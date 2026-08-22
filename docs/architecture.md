@@ -32,12 +32,17 @@ contains only Telegram-authenticated player accounts.
 
 ## Shop transaction boundary
 
-`GET /api/shop` returns the safe server-owned card catalog.
-`POST /api/shop/purchase` accepts only `{ "offerId": string }`. The authenticated
-purchase transaction locks the player row, validates and deducts the canonical
-currency price, grants a real card through `player_cards`, invokes the shared
-automatic deck service, and commits the reward and deck state together.
+`GET /api/shop/cards` returns the safe server-owned Cards catalog together with
+the authenticated player's current pity meters and affordability.
+`POST /api/shop/cards/purchase` accepts only `{ "offerId": string }`.
 
-Offer prices, allowed rarities, and future rarity weights live in the server
-shop configuration. Internal weights and reward-roll details are never part of
-the public catalog contract.
+The purchase transaction locks the player and normalized
+`player_shop_chances` rows, resolves rarity through the fixed-point pity policy,
+selects an exactly matching shop-eligible canonical card, deducts the canonical
+price, persists pity and ownership, invokes the shared automatic deck service,
+and commits all results together.
+
+Offer prices and increments live in server configuration. Player chances live
+in PostgreSQL per player, offer, and target rarity. The client receives only
+current percentages and safe purchase results, never RNG state or database
+details.

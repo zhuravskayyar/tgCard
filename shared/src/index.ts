@@ -16,9 +16,11 @@ export type { PlayerSummary, TelegramAuthRequest } from "./player.js";
 export {
   SHOP_CURRENCIES,
   type PlayerBalance,
+  type ShopChanceState,
   type ShopCatalogResponse,
   type ShopCurrency,
   type ShopOffer,
   type ShopPurchaseRequest,
   type ShopPurchaseResponse,
+  type ShopUpgradeChance,
 } from "./shop.js";

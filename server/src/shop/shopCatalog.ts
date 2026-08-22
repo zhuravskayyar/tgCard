@@ -1,53 +1,51 @@
-import type { CardRarity, ShopCatalogResponse, ShopCurrency, ShopOffer } from "@cardastika/shared";
+import type { CardRarity, ShopCurrency } from "@cardastika/shared";
 
-export interface RarityWeight {
+export interface ShopUpgradeDefinition {
+  initialChanceBasisPoints: number;
+  incrementBasisPoints: number;
   rarity: CardRarity;
-  weight: number;
 }
 
-export interface ShopOfferDefinition extends Omit<ShopOffer, "allowedRarities"> {
-  allowedRarities: readonly CardRarity[];
-  rarityWeights: readonly RarityWeight[] | null;
+export interface ShopOfferDefinition {
+  currency: ShopCurrency;
+  guaranteedRarity: CardRarity;
+  id: string;
+  price: number;
+  upgrades: readonly Readonly<ShopUpgradeDefinition>[];
 }
 
 function defineOffer(
   id: string,
   currency: ShopCurrency,
   price: number,
-  minimumRarity: CardRarity,
-  allowedRarities: readonly CardRarity[],
+  guaranteedRarity: CardRarity,
+  upgrades: readonly ShopUpgradeDefinition[],
 ): Readonly<ShopOfferDefinition> {
   return Object.freeze({
     id,
     currency,
     price,
-    minimumRarity,
-    allowedRarities: Object.freeze([...allowedRarities]),
-    // Exact production rarity weights are intentionally absent until product approval.
-    rarityWeights: null,
+    guaranteedRarity,
+    upgrades: Object.freeze(upgrades.map((upgrade) => Object.freeze({ ...upgrade }))),
   });
 }
 
 export const SHOP_OFFERS: readonly Readonly<ShopOfferDefinition>[] = Object.freeze([
-  defineOffer("silver_card", "silver", 500, "uncommon", ["uncommon", "rare", "epic"]),
-  defineOffer("epic_card", "gold", 50, "epic", ["epic", "legendary", "mythic"]),
-  defineOffer("legendary_card", "gold", 150, "legendary", ["legendary", "mythic"]),
+  defineOffer("card_uncommon", "silver", 500, "uncommon", [
+    { rarity: "rare", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+    { rarity: "epic", initialChanceBasisPoints: 0, incrementBasisPoints: 25 },
+  ]),
+  defineOffer("card_epic", "gold", 50, "epic", [
+    { rarity: "legendary", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+    { rarity: "mythic", initialChanceBasisPoints: 0, incrementBasisPoints: 25 },
+  ]),
+  defineOffer("card_legendary", "gold", 150, "legendary", [
+    { rarity: "mythic", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+  ]),
 ]);
 
 const offersById = new Map(SHOP_OFFERS.map((offer) => [offer.id, offer]));
 
 export function findShopOffer(offerId: string) {
   return offersById.get(offerId) ?? null;
-}
-
-export function getPlayerFacingShopCatalog(): ShopCatalogResponse {
-  return {
-    offers: SHOP_OFFERS.map(({ id, currency, price, minimumRarity, allowedRarities }) => ({
-      id,
-      currency,
-      price,
-      minimumRarity,
-      allowedRarities: [...allowedRarities],
-    })),
-  };
 }

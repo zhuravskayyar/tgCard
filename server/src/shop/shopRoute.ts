@@ -1,25 +1,27 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import type { PlayerSummary, ShopPurchaseRequest, ShopPurchaseResponse } from "@cardastika/shared";
+import type {
+  PlayerSummary,
+  ShopCatalogResponse,
+  ShopPurchaseRequest,
+  ShopPurchaseResponse,
+} from "@cardastika/shared";
 import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
-import { getPlayerFacingShopCatalog } from "./shopCatalog.js";
 import {
   InsufficientShopFundsError,
   ShopOfferMissingError,
   ShopPersistenceError,
   ShopPlayerMissingError,
 } from "./shopService.js";
-import {
-  ShopRewardPolicyUnavailableError,
-  ShopRewardUnavailableError,
-} from "./shopRewardSelector.js";
+import { ShopRewardUnavailableError } from "./shopRewardSelector.js";
 
 interface PlayerLookup {
   findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
 }
 
 interface ShopPurchaseService {
+  getCardsCatalog(playerId: string): Promise<ShopCatalogResponse>;
   purchase(playerId: string, offerId: string): Promise<ShopPurchaseResponse>;
 }
 
@@ -75,12 +77,6 @@ function sendShopError(
     }, responseHeaders);
     return;
   }
-  if (error instanceof ShopRewardPolicyUnavailableError) {
-    sendJson(response, 503, {
-      error: { code: "reward_policy_unavailable", message: "Shop reward policy is unavailable" },
-    }, responseHeaders);
-    return;
-  }
   if (error instanceof ShopRewardUnavailableError) {
     sendJson(response, 503, {
       error: { code: "reward_unavailable", message: "No eligible canonical reward is available" },
@@ -117,8 +113,8 @@ export async function handleShopCatalog(
   }
 
   try {
-    await authenticatePlayer(request, dependencies);
-    sendJson(response, 200, getPlayerFacingShopCatalog(), responseHeaders);
+    const player = await authenticatePlayer(request, dependencies);
+    sendJson(response, 200, await dependencies.shop.getCardsCatalog(player.id), responseHeaders);
   } catch (error) {
     sendShopError(response, error, responseHeaders);
   }

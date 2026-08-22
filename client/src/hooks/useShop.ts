@@ -49,7 +49,26 @@ export function useShop() {
     setPurchaseErrorCode(null);
     setPurchasingOfferId(offerId);
     try {
-      return await purchaseShopOffer(initData, offerId, controller.signal);
+      const result = await purchaseShopOffer(initData, offerId, controller.signal);
+      setCatalogState((current) => current.status === "ready"
+        ? {
+            status: "ready",
+            catalog: {
+              offers: current.catalog.offers.map((offer) => ({
+                ...offer,
+                canAfford: result.updatedBalance[offer.currency] >= offer.price,
+                upgrades: offer.id === offerId
+                  ? offer.upgrades.map((upgrade) => ({
+                      ...upgrade,
+                      chance: result.updatedChances.find(({ rarity }) => rarity === upgrade.rarity)?.chance
+                        ?? upgrade.chance,
+                    }))
+                  : offer.upgrades,
+              })),
+            },
+          }
+        : current);
+      return result;
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         setPurchaseErrorCode(error instanceof ShopApiError ? error.code : "shop_request_failed");

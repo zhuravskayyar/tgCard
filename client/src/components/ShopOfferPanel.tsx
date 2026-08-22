@@ -11,7 +11,6 @@ const rarityLabels: Record<CardRarity, string> = {
 };
 
 interface ShopOfferPanelProps {
-  canAfford: boolean | null;
   disabled: boolean;
   offer: ShopOffer;
   onPurchase: () => void;
@@ -19,33 +18,37 @@ interface ShopOfferPanelProps {
 }
 
 export function ShopOfferPanel({
-  canAfford,
   disabled,
   offer,
   onPurchase,
   purchasing,
 }: ShopOfferPanelProps) {
-  const higherRarities = offer.allowedRarities.filter((rarity) => rarity !== offer.minimumRarity);
   const currencyLabel = offer.currency === "silver" ? "срібла" : "золота";
+  const formatPercentage = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "");
 
   return (
-    <article className={`shop-offer shop-offer--${offer.minimumRarity}`}>
+    <article className={`shop-offer shop-offer--${offer.guaranteedRarity}`}>
       <div className="shop-offer__symbol" aria-hidden="true">
         <AppIcon name="collection" size={34} />
       </div>
       <div className="shop-offer__copy">
-        <h2>{rarityLabels[offer.minimumRarity].toUpperCase()} КАРТКА</h2>
-        <p><strong>Гарантовано:</strong> {rarityLabels[offer.minimumRarity]}</p>
-        <p className="shop-offer__possible">
-          <strong>Може випасти:</strong>{" "}
-          {higherRarities.length ? higherRarities.map((rarity) => rarityLabels[rarity]).join(" / ") : "—"}
-        </p>
-        {canAfford === false ? <span className="shop-offer__unavailable">Недостатньо {currencyLabel}</span> : null}
+        <h2>{rarityLabels[offer.guaranteedRarity].toUpperCase()} КАРТКА</h2>
+        <p className="shop-offer__guarantee"><strong>Гарантовано:</strong> {rarityLabels[offer.guaranteedRarity]}</p>
+        <dl className="shop-offer__upgrades">
+          {offer.upgrades.map((upgrade) => (
+            <div key={upgrade.rarity}>
+              <dt>{rarityLabels[upgrade.rarity]}</dt>
+              <dd>Поточний шанс: <strong>{formatPercentage(upgrade.chance)}%</strong></dd>
+              <dd className="shop-offer__increment">+{formatPercentage(upgrade.increment)}% після невдачі</dd>
+            </div>
+          ))}
+        </dl>
+        {!offer.canAfford ? <span className="shop-offer__unavailable">Недостатньо {currencyLabel}</span> : null}
       </div>
       <button
         aria-label={`Придбати за ${offer.price} ${currencyLabel}`}
         className="shop-offer__purchase"
-        disabled={disabled || canAfford !== true}
+        disabled={disabled || !offer.canAfford}
         onClick={onPurchase}
         type="button"
       >

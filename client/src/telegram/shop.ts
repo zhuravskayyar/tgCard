@@ -27,6 +27,10 @@ function isPositiveInteger(value: unknown) {
   return Number.isSafeInteger(value) && Number(value) > 0;
 }
 
+function isPercentage(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+}
+
 function isPlayerCard(value: unknown): value is PlayerCard {
   if (!value || typeof value !== "object") return false;
   const card = value as Record<string, unknown>;
@@ -50,14 +54,22 @@ function isShopOffer(value: unknown): value is ShopOffer {
     typeof offer.id === "string" &&
     typeof offer.currency === "string" && SHOP_CURRENCIES.some((currency) => currency === offer.currency) &&
     isPositiveInteger(offer.price) &&
-    typeof offer.minimumRarity === "string" &&
-    CARD_RARITIES.some((rarity) => rarity === offer.minimumRarity) &&
-    Array.isArray(offer.allowedRarities) &&
-    offer.allowedRarities.length > 0 &&
-    offer.allowedRarities.every(
-      (value) => typeof value === "string" && CARD_RARITIES.some((rarity) => rarity === value),
-    ) &&
-    offer.allowedRarities.includes(offer.minimumRarity)
+    typeof offer.guaranteedRarity === "string" &&
+    CARD_RARITIES.some((rarity) => rarity === offer.guaranteedRarity) &&
+    typeof offer.canAfford === "boolean" &&
+    Array.isArray(offer.upgrades) &&
+    offer.upgrades.length > 0 &&
+    offer.upgrades.every((value) => {
+      if (!value || typeof value !== "object") return false;
+      const upgrade = value as Record<string, unknown>;
+      return (
+        typeof upgrade.rarity === "string" &&
+        CARD_RARITIES.some((rarity) => rarity === upgrade.rarity) &&
+        isPercentage(upgrade.chance) &&
+        isPercentage(upgrade.increment) &&
+        Number(upgrade.increment) > 0
+      );
+    })
   );
 }
 
@@ -75,11 +87,19 @@ function parsePurchase(value: unknown): ShopPurchaseResponse {
   const purchase = value as Partial<ShopPurchaseResponse>;
   if (
     !isPlayerCard(purchase.reward) ||
-    !purchase.balance ||
-    !isNonNegativeInteger(purchase.balance.silver) ||
-    !isNonNegativeInteger(purchase.balance.gold) ||
+    !purchase.updatedBalance ||
+    !isNonNegativeInteger(purchase.updatedBalance.silver) ||
+    !isNonNegativeInteger(purchase.updatedBalance.gold) ||
+    !Array.isArray(purchase.updatedChances) ||
+    !purchase.updatedChances.every((state) => (
+      state &&
+      typeof state.rarity === "string" &&
+      CARD_RARITIES.some((rarity) => rarity === state.rarity) &&
+      isPercentage(state.chance)
+    )) ||
     typeof purchase.deckChanged !== "boolean" ||
-    (purchase.deckPower !== undefined && !isNonNegativeInteger(purchase.deckPower))
+    (purchase.deckPower !== undefined && !isNonNegativeInteger(purchase.deckPower)) ||
+    (purchase.previousDeckPower !== undefined && !isNonNegativeInteger(purchase.previousDeckPower))
   ) {
     throw new ShopApiError(502, "invalid_response");
   }
@@ -98,7 +118,7 @@ async function parseError(response: Response): Promise<never> {
 }
 
 export async function loadShopCatalog(initData: string, signal: AbortSignal) {
-  const response = await fetch(getApiEndpoint("/api/shop"), {
+  const response = await fetch(getApiEndpoint("/api/shop/cards"), {
     headers: { Authorization: `tma ${initData}` },
     cache: "no-store",
     credentials: "same-origin",
@@ -109,7 +129,7 @@ export async function loadShopCatalog(initData: string, signal: AbortSignal) {
 }
 
 export async function purchaseShopOffer(initData: string, offerId: string, signal: AbortSignal) {
-  const response = await fetch(getApiEndpoint("/api/shop/purchase"), {
+  const response = await fetch(getApiEndpoint("/api/shop/cards/purchase"), {
     method: "POST",
     headers: {
       Authorization: `tma ${initData}`,

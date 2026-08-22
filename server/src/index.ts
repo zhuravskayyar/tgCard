@@ -31,8 +31,8 @@ const server = createServer(async (request, response) => {
   const isTelegramAuthRoute = url.pathname === "/api/auth/telegram";
   const isPlayerCardsRoute = url.pathname === "/api/player/cards";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
-  const isShopCatalogRoute = url.pathname === "/api/shop";
-  const isShopPurchaseRoute = url.pathname === "/api/shop/purchase";
+  const isShopCatalogRoute = url.pathname === "/api/shop/cards";
+  const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
 
   if (
     request.method === "OPTIONS" &&

@@ -36,7 +36,6 @@ export function App() {
         <ShopScreen
           onBack={() => setScreen(shopReturnScreen)}
           onBalanceChange={updateBalance}
-          playerSummaryState={playerSummaryState}
         />
       ) : null}
     </AppShell>

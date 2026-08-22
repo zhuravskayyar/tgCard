@@ -4,12 +4,19 @@ export const SHOP_CURRENCIES = ["silver", "gold"] as const;
 
 export type ShopCurrency = (typeof SHOP_CURRENCIES)[number];
 
+export interface ShopUpgradeChance {
+  chance: number;
+  increment: number;
+  rarity: CardRarity;
+}
+
 export interface ShopOffer {
-  allowedRarities: CardRarity[];
+  canAfford: boolean;
   currency: ShopCurrency;
+  guaranteedRarity: CardRarity;
   id: string;
-  minimumRarity: CardRarity;
   price: number;
+  upgrades: ShopUpgradeChance[];
 }
 
 export interface ShopCatalogResponse {
@@ -25,9 +32,16 @@ export interface PlayerBalance {
   silver: number;
 }
 
+export interface ShopChanceState {
+  chance: number;
+  rarity: CardRarity;
+}
+
 export interface ShopPurchaseResponse {
-  balance: PlayerBalance;
   deckChanged: boolean;
   deckPower?: number;
+  previousDeckPower?: number;
   reward: PlayerCard;
+  updatedBalance: PlayerBalance;
+  updatedChances: ShopChanceState[];
 }

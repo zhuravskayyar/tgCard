@@ -20,12 +20,22 @@ const rarityLabels: Record<CardRarity, string> = {
 };
 
 interface ShopRewardRevealProps {
+  deckPower?: number;
   deckChanged: boolean;
   onContinue: () => void;
+  previousDeckPower?: number;
   reward: PlayerCard;
 }
 
-export function ShopRewardReveal({ deckChanged, onContinue, reward }: ShopRewardRevealProps) {
+export function ShopRewardReveal({
+  deckChanged,
+  deckPower,
+  onContinue,
+  previousDeckPower,
+  reward,
+}: ShopRewardRevealProps) {
+  const deckImproved = deckChanged && previousDeckPower !== undefined && deckPower !== undefined
+    && deckPower > previousDeckPower;
   return (
     <section className="shop-reveal" aria-live="polite">
       <header className="shop-reveal__heading">
@@ -51,7 +61,9 @@ export function ShopRewardReveal({ deckChanged, onContinue, reward }: ShopReward
         <div><dt>Стихія</dt><dd>{elementLabels[reward.element]}</dd></div>
         <div><dt>Рідкість</dt><dd>{rarityLabels[reward.rarity]}</dd></div>
       </dl>
-      {deckChanged ? <p className="shop-reveal__deck-note">Бойову колоду автоматично оновлено.</p> : null}
+      {deckImproved ? (
+        <p className="shop-reveal__deck-note">Колода посилилась: {previousDeckPower} → {deckPower}</p>
+      ) : null}
       <button className="shop-reveal__continue" onClick={onContinue} type="button">Продовжити</button>
     </section>
   );

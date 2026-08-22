@@ -335,11 +335,40 @@ button:focus-visible {
   gap: 10px;
 }
 
+.shop-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.shop-tabs button {
+  min-height: 42px;
+  padding: 7px 5px;
+  color: var(--text-disabled);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--border-subtle);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.shop-tabs button:last-child {
+  border-right: 0;
+}
+
+.shop-tabs button[aria-current="page"] {
+  color: var(--accent-gold);
+  background: var(--bg-active);
+}
+
 .shop-offer {
   --offer-accent: #5b7563;
   position: relative;
   display: grid;
-  min-height: 134px;
+  min-height: 176px;
   padding: 15px 13px;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
@@ -405,7 +434,43 @@ button:focus-visible {
   font-weight: 600;
 }
 
-.shop-offer__possible {
+.shop-offer__guarantee {
+  padding-bottom: 2px;
+}
+
+.shop-offer__upgrades {
+  display: grid;
+  margin: 0;
+  gap: 7px;
+}
+
+.shop-offer__upgrades > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.shop-offer__upgrades dt {
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.shop-offer__upgrades dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.shop-offer__upgrades dd strong {
+  color: var(--offer-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-offer__increment {
+  grid-column: 1 / -1;
   color: var(--text-muted) !important;
 }
 
@@ -477,15 +542,6 @@ button:focus-visible {
   border: 1px solid color-mix(in srgb, var(--state-danger) 58%, var(--border-default));
   border-radius: var(--radius-sm);
   font-size: var(--font-sm);
-  text-align: center;
-}
-
-.shop-odds-note {
-  margin: 0;
-  padding-inline: 8px;
-  color: var(--text-muted);
-  font-size: 0.66rem;
-  line-height: 1.45;
   text-align: center;
 }
 

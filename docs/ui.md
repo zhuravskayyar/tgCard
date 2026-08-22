@@ -12,6 +12,11 @@ The current client includes the persistent shell, automatic deck and card-detail
 views, and the base card shop. Battles, elaborate reward animations, and final
 visual polish remain out of scope.
 
+The Shop navigation is prepared for `Карти`, `Підсилення`, and `Готові набори`.
+Only `Карти` is active. Its offer panels show the guaranteed rarity, real
+per-player accumulated upgrade chances, miss increments, and authoritative
+affordability; the other sections contain no gameplay logic yet.
+
 ## Global UI rule: persistent application shell
 
 `TopHud` and `BottomNav` are persistent application shell elements. They must

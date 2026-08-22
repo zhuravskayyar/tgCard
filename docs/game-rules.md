@@ -37,21 +37,36 @@ purposely not specified yet.
 
 ## Base card shop
 
-The server owns the permanent base catalog and accepts only an offer ID from the
-client:
+The server owns the permanent Cards catalog and accepts only an offer ID from
+the client:
 
-- `silver_card`: 500 silver; minimum Uncommon; may reward Rare or Epic.
-- `epic_card`: 50 gold; minimum Epic; may reward Legendary or Mythic.
-- `legendary_card`: 150 gold; minimum Legendary; may reward Mythic.
+- `card_uncommon`: 500 silver; Uncommon guaranteed; Rare pity increases by
+  3.5 percentage points on a miss and Epic pity by 0.25.
+- `card_epic`: 50 gold; Epic guaranteed; Legendary pity increases by 3.5
+  percentage points on a miss and Mythic pity by 0.25.
+- `card_legendary`: 150 gold; Legendary guaranteed; Mythic pity increases by
+  3.5 percentage points on a miss.
 
-Exact rarity probabilities are not finalized yet. Production purchases fail
-closed until explicit server-side rarity weights are approved and configured;
-the client never displays invented odds and never selects a reward, price, or
-rarity.
+Shop rarity chances are persistent per player, offer, and target rarity. No
+unapproved base chance is added: a new accumulated meter starts with zero
+progress. Chance math uses integer basis points. After an unsuccessful upgrade
+roll, the meter increases by its offer-specific increment. When it succeeds:
+
+`newChance = ceil(oldChance / 2)`
+
+The result is rounded upward to a whole percentage. Higher rarities are resolved
+first. The isolated current cross-rarity policy treats lower targets as misses
+when a higher target succeeds, so their pity continues to accumulate rather
+than being silently reset.
 
 A shop purchase changes inventory only. Currency deduction, canonical card
 ownership, and automatic deck recalculation commit in one database transaction.
 The automatic deck service remains the sole owner of active deck composition.
+Only canonical cards explicitly marked shop-eligible can be selected, and the
+reward must exactly match the resolved rarity.
+
+Card levels are not part of the current Shop system. Rarity and power remain
+separate canonical card attributes until level progression is designed.
 
 ## Permanent card content rules
 
