@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $databasePort = 5432
+$keepAliveMarker = "CARDASTIKA_DB_KEEPALIVE=1"
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $windowsDatabaseHost = "127.0.0.1"
 
@@ -84,9 +85,32 @@ function Test-NodeDatabaseConnection {
   }
 }
 
+function Start-WslKeepAlive {
+  $existingProcess = Get-CimInstance Win32_Process -Filter "Name = 'wsl.exe'" | Where-Object {
+    $_.CommandLine -and $_.CommandLine.Contains($keepAliveMarker)
+  } | Select-Object -First 1
+
+  if ($existingProcess) {
+    return
+  }
+
+  Start-Process -FilePath "wsl.exe" -ArgumentList @(
+    "-d",
+    $Distro,
+    "-u",
+    "root",
+    "--",
+    "env",
+    $keepAliveMarker,
+    "sleep",
+    "infinity"
+  ) -WindowStyle Hidden | Out-Null
+}
+
 Write-Output "Starting PostgreSQL in WSL distro '$Distro'..."
 Invoke-WslRoot @("service", "postgresql", "start") | Out-Null
 Invoke-WslRoot @("pg_isready", "-h", "127.0.0.1", "-p", "$databasePort") | Out-Null
+Start-WslKeepAlive
 
 Use-LocalDatabaseUrl
 
