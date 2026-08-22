@@ -8,9 +8,11 @@ export interface DeckSlotInput {
 }
 
 export interface PlayerDeckCard {
+  artKey: string | null;
   cardId: string;
   code: string;
   collectionId: string | null;
+  displayName: string | null;
   element: CardElement;
   power: number;
   rarity: CardRarity;

@@ -10,7 +10,12 @@ interface AppShellProps {
   playerSummaryState: PlayerSummaryState;
 }
 
-export function AppShell({ children, onNavigateHome, onRetryPlayerSummary, playerSummaryState }: AppShellProps) {
+export function AppShell({
+  children,
+  onNavigateHome,
+  onRetryPlayerSummary,
+  playerSummaryState,
+}: AppShellProps) {
   return (
     <div className="app-shell">
       <TopHud onRetry={onRetryPlayerSummary} state={playerSummaryState} />

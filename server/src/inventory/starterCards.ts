@@ -31,6 +31,8 @@ export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
     return Object.freeze({
       id,
       code: id,
+      displayName: null,
+      artKey: null,
       element,
       rarity: STARTER_CARD_SEED_CONFIG.rarity,
       power: 12,

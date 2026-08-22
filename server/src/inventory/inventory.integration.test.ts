@@ -45,6 +45,7 @@ test("new player receives nine starters and a second login does not duplicate th
     const firstInventory = await inventory.findByPlayerId(firstPlayer.id);
     assert.equal(firstInventory.length, STARTER_CARD_COUNT);
     assert.equal(firstInventory.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
+    assert.ok(firstInventory.every((card) => card.displayName === null && card.artKey === null));
 
     const secondPlayer = await players.findOrCreateFromTelegram(user);
     const secondInventory = await inventory.findByPlayerId(secondPlayer.id);

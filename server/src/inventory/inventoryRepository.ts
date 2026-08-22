@@ -2,9 +2,11 @@ import type { PlayerCard } from "@cardastika/shared";
 import type { Pool } from "pg";
 
 interface PlayerCardRow {
+  art_key: string | null;
   card_id: string;
   code: string;
   collection_id: string | null;
+  display_name: string | null;
   element: PlayerCard["element"];
   power: string | number;
   quantity: string | number;
@@ -38,6 +40,8 @@ export class InventoryRepository {
           SELECT
             cards.id AS card_id,
             cards.code,
+            cards.display_name,
+            cards.art_key,
             cards.element,
             cards.rarity,
             cards.power,
@@ -54,6 +58,8 @@ export class InventoryRepository {
       return result.rows.map((row) => ({
         cardId: row.card_id,
         code: row.code,
+        displayName: row.display_name,
+        artKey: row.art_key,
         element: row.element,
         rarity: row.rarity,
         power: toPositiveInteger(row.power, "power"),

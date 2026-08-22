@@ -14,3 +14,20 @@ These are the current product constraints.
 
 Card abilities, battles, collection bonuses, and further economy behavior are
 purposely not specified yet.
+
+## Permanent card content rules
+
+Cards may represent animals, beasts, mythical creatures, non-humanoid elemental
+creatures or spirits, relics, artifacts, magical or natural objects, and
+manifestations of natural forces.
+
+Card content must never include humans, humanoid characters, anthropomorphic
+animals, human faces on creatures, animals wearing human clothing, or animals
+presented as knights, mages, warriors, priests, or other human roles. Do not add
+human-like arms or body structures to animals.
+
+Power and rarity must remain logically consistent with the scale of the entity.
+The intended progression is ordinary beast, elemental beast, mythical creature,
+then ancient or primordial creature or major relic. A random mortal must not be
+stronger than a divine or primordial entity. These are world and content-design
+rules, not gameplay logic.

@@ -14,8 +14,10 @@ export const CARD_RARITIES = [
 export type CardRarity = (typeof CARD_RARITIES)[number];
 
 export interface CardDefinition {
+  artKey: string | null;
   code: string;
   collectionId: string | null;
+  displayName: string | null;
   element: CardElement;
   id: string;
   power: number;
@@ -23,9 +25,11 @@ export interface CardDefinition {
 }
 
 export interface PlayerCard {
+  artKey: string | null;
   cardId: string;
   code: string;
   collectionId: string | null;
+  displayName: string | null;
   element: CardElement;
   power: number;
   quantity: number;

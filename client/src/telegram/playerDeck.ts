@@ -32,6 +32,8 @@ function isCanonicalCard(value: unknown): value is Omit<PlayerDeckCard, "slot"> 
   return (
     typeof card.cardId === "string" &&
     typeof card.code === "string" &&
+    (card.displayName === null || typeof card.displayName === "string") &&
+    (card.artKey === null || typeof card.artKey === "string") &&
     (card.collectionId === null || typeof card.collectionId === "string") &&
     isCardElement(card.element) &&
     Number.isSafeInteger(card.power) &&

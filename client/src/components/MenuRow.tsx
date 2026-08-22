@@ -3,13 +3,21 @@ import { Badge } from "./Badge";
 
 interface MenuRowProps {
   badge?: string;
+  compact?: boolean;
+  disabled?: boolean;
   icon: AppIconName;
+  onClick?: () => void;
   title: string;
 }
 
-export function MenuRow({ badge, icon, title }: MenuRowProps) {
+export function MenuRow({ badge, compact = false, disabled = false, icon, onClick, title }: MenuRowProps) {
   return (
-    <button className="menu-row" type="button">
+    <button
+      className={`menu-row${compact ? " menu-row--compact" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
       <span className="menu-row__icon">
         <AppIcon name={icon} size={23} />
       </span>

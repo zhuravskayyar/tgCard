@@ -47,6 +47,7 @@ test("new player receives one persistent nine-card starter deck", { skip: !datab
     assert.equal(firstPlayer.id, secondPlayer.id);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
+    assert.ok(firstDeck.cards.every((card) => card.displayName === null && card.artKey === null));
     assert.deepEqual(firstDeck.cards.map(({ slot }) => slot), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert.equal(firstDeck.totalPower, 108);
     assert.deepEqual(secondDeck, firstDeck);

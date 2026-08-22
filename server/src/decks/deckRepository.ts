@@ -12,9 +12,11 @@ interface DeckIdRow {
 }
 
 interface DeckCardRow {
+  art_key: string | null;
   card_id: string;
   code: string;
   collection_id: string | null;
+  display_name: string | null;
   element: PlayerDeckCard["element"];
   power: string | number;
   rarity: PlayerDeckCard["rarity"];
@@ -67,6 +69,8 @@ async function loadDeck(database: DatabaseClient, playerId: string): Promise<Pla
         deck_slots.slot,
         cards.id AS card_id,
         cards.code,
+        cards.display_name,
+        cards.art_key,
         cards.element,
         cards.rarity,
         cards.power,
@@ -82,6 +86,8 @@ async function loadDeck(database: DatabaseClient, playerId: string): Promise<Pla
     slot: row.slot,
     cardId: row.card_id,
     code: row.code,
+    displayName: row.display_name,
+    artKey: row.art_key,
     element: row.element,
     rarity: row.rarity,
     power: toPositiveInteger(row.power),

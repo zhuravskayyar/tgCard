@@ -12,6 +12,8 @@ test("starter definitions are canonical and unique", () => {
   for (const card of STARTER_CARDS) {
     assert.equal(card.power, 12);
     assert.equal(card.collectionId, null);
+    assert.equal(card.displayName, null);
+    assert.equal(card.artKey, null);
     assert.ok(CARD_ELEMENTS.includes(card.element));
     assert.ok(CARD_RARITIES.includes(card.rarity));
   }

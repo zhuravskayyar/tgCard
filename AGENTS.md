@@ -29,3 +29,25 @@
 - Put reusable pure rules in `game-core` and shared contracts in `shared`.
 - Run only checks and tests relevant to the files changed.
 - Put detailed rules and design decisions in `/docs`, not this file.
+
+## Persistent application shell
+
+- `TopHud` and `BottomNav` are persistent on every normal screen and sub-screen.
+- Screens render only in the scrollable content area between those shell elements.
+- Never hide, replace, duplicate, or recreate either shell element inside a screen.
+- `BottomNav` always contains exactly `Головна`, `Профіль`, and `Гільдія`.
+- `TopHud` always shows the authenticated player's real data.
+- Sub-screen Back controls belong inside content below `TopHud`.
+- Only an explicitly documented future fullscreen gameplay mode may override this.
+
+## Card detail
+
+- Every Card Detail shows `Колода`, `Слабкі карти`, and `Магазин` action rows.
+- Place them below card information/state and above the persistent `BottomNav`.
+- Always reuse the shared `MenuRow`; never duplicate its styles in the screen.
+
+## Card content
+
+- Cards may depict non-humanoid creatures, spirits, relics, objects, or natural forces.
+- Never invent humans, humanoids, anthropomorphic animals, human faces, clothing, or roles for card subjects.
+- Keep entity scale, rarity, and power logically consistent; detailed rules live in `docs/game-rules.md`.

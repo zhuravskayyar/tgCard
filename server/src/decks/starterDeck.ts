@@ -66,6 +66,7 @@ export async function backfillStarterDecks(pool: Pool) {
               AND cards.code = ANY($1::text[])
           ) = $2
         ORDER BY players.id
+        FOR KEY SHARE OF players
       `,
       [STARTER_CARD_CODES, STARTER_CARD_COUNT],
     );

@@ -1,24 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerCard, PlayerDeckCard } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
-
-const elementLabels: Record<PlayerDeckCard["element"], string> = {
-  fire: "Вогонь",
-  water: "Вода",
-  air: "Повітря",
-  earth: "Земля",
-};
-
-const rarityLabels: Record<PlayerDeckCard["rarity"], string> = {
-  common: "Звичайна",
-  uncommon: "Незвичайна",
-  rare: "Рідкісна",
-  epic: "Епічна",
-  legendary: "Легендарна",
-  mythic: "Міфічна",
-};
+import { CardDetailScreen } from "./CardDetailScreen";
 
 function getReserveCards(inventory: readonly PlayerCard[], deck: readonly PlayerDeckCard[]) {
   const selectedCounts = new Map<string, number>();
@@ -26,11 +11,19 @@ function getReserveCards(inventory: readonly PlayerCard[], deck: readonly Player
   return inventory.filter((card) => card.quantity > (selectedCounts.get(card.cardId) ?? 0));
 }
 
-export function DeckScreen({ onBack }: { onBack: () => void }) {
+interface DeckScreenProps {
+  onBack: () => void;
+}
+
+export function DeckScreen({ onBack }: DeckScreenProps) {
   const { retry, save, state } = usePlayerDeck();
   const [draft, setDraft] = useState<PlayerDeckCard[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [inspectedCard, setInspectedCard] = useState<PlayerDeckCard | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
+  const screenRef = useRef<HTMLElement>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const deckScrollPositionRef = useRef(0);
 
   useEffect(() => {
     if (state.status === "ready") {
@@ -44,10 +37,27 @@ export function DeckScreen({ onBack }: { onBack: () => void }) {
     () => state.status === "ready" ? getReserveCards(state.inventory.cards, draft) : [],
     [draft, state],
   );
-  const selectedCard = selectedSlot === null ? null : draft.find(({ slot }) => slot === selectedSlot) ?? null;
   const isDirty = state.status === "ready" && draft.some(
     (card, index) => card.cardId !== state.deck.cards[index]?.cardId,
   );
+
+  function openCardDetail(card: PlayerDeckCard) {
+    const scrollContainer = screenRef.current?.closest<HTMLElement>(".app-content") ?? null;
+    scrollContainerRef.current = scrollContainer;
+    deckScrollPositionRef.current = scrollContainer?.scrollTop ?? 0;
+    setSelectedSlot(card.slot);
+    setInspectedCard(card);
+    requestAnimationFrame(() => scrollContainer?.scrollTo({ top: 0, behavior: "auto" }));
+  }
+
+  function closeCardDetail() {
+    const scrollContainer = scrollContainerRef.current;
+    setInspectedCard(null);
+    requestAnimationFrame(() => scrollContainer?.scrollTo({
+      top: deckScrollPositionRef.current,
+      behavior: "auto",
+    }));
+  }
 
   function replaceSelectedCard(card: PlayerCard) {
     if (selectedSlot === null) return;
@@ -55,6 +65,8 @@ export function DeckScreen({ onBack }: { onBack: () => void }) {
       ...entry,
       cardId: card.cardId,
       code: card.code,
+      displayName: card.displayName,
+      artKey: card.artKey,
       collectionId: card.collectionId,
       element: card.element,
       power: card.power,
@@ -74,8 +86,12 @@ export function DeckScreen({ onBack }: { onBack: () => void }) {
     }
   }
 
+  if (inspectedCard) {
+    return <CardDetailScreen card={inspectedCard} inActiveDeck onBack={closeCardDetail} />;
+  }
+
   return (
-    <section className="deck-screen">
+    <section className="deck-screen" ref={screenRef}>
       <header className="deck-heading">
         <button aria-label="Назад на головну" className="deck-back" onClick={onBack} type="button">
           <AppIcon name="chevron" size={20} />
@@ -105,22 +121,11 @@ export function DeckScreen({ onBack }: { onBack: () => void }) {
               <DeckCard
                 card={card}
                 key={card.slot}
-                onClick={() => setSelectedSlot(card.slot)}
+                onClick={() => openCardDetail(card)}
                 selected={card.slot === selectedSlot}
               />
             ))}
           </div>
-
-          {selectedCard ? (
-            <dl className="deck-details">
-              <div><dt>Сила</dt><dd>{selectedCard.power}</dd></div>
-              <div><dt>Стихія</dt><dd>{elementLabels[selectedCard.element]}</dd></div>
-              <div><dt>Рідкість</dt><dd>{rarityLabels[selectedCard.rarity]}</dd></div>
-              <div><dt>Колекція</dt><dd>{selectedCard.collectionId ? "У колекції" : "Поза колекцією"}</dd></div>
-            </dl>
-          ) : (
-            <p className="deck-hint">Торкніться карти, щоб переглянути деталі.</p>
-          )}
 
           <section className="deck-reserve" aria-label="Доступні карти для заміни">
             <h2>Доступні карти</h2>
