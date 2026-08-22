@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { PlayerSummary } from "@cardastika/shared";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
+import { grantStarterCards } from "../inventory/starterCardGrant.js";
 import { NEW_PLAYER_DEFAULTS } from "./playerDefaults.js";
 
 interface PlayerRow {
@@ -46,51 +47,65 @@ function toPlayerSummary(row: PlayerRow): PlayerSummary {
 export class PlayerRepository {
   constructor(private readonly pool: Pool) {}
 
+  private async upsertTelegramPlayer(client: PoolClient, user: ValidatedTelegramUser) {
+    return client.query<PlayerRow>(
+      `
+        INSERT INTO players (
+          id,
+          telegram_user_id,
+          username,
+          first_name,
+          last_name,
+          photo_url,
+          level,
+          silver,
+          gold
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (telegram_user_id) DO UPDATE SET
+          username = EXCLUDED.username,
+          first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
+          photo_url = EXCLUDED.photo_url,
+          updated_at = NOW()
+        RETURNING id, username, first_name, photo_url, level, silver, gold
+      `,
+      [
+        randomUUID(),
+        user.id,
+        user.username,
+        user.firstName,
+        user.lastName,
+        user.photoUrl,
+        NEW_PLAYER_DEFAULTS.level,
+        NEW_PLAYER_DEFAULTS.silver,
+        NEW_PLAYER_DEFAULTS.gold,
+      ],
+    );
+  }
+
   async findOrCreateFromTelegram(user: ValidatedTelegramUser): Promise<PlayerSummary> {
+    let client: PoolClient | undefined;
+
     try {
-      const result = await this.pool.query<PlayerRow>(
-        `
-          INSERT INTO players (
-            id,
-            telegram_user_id,
-            username,
-            first_name,
-            last_name,
-            photo_url,
-            level,
-            silver,
-            gold
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (telegram_user_id) DO UPDATE SET
-            username = EXCLUDED.username,
-            first_name = EXCLUDED.first_name,
-            last_name = EXCLUDED.last_name,
-            photo_url = EXCLUDED.photo_url,
-            updated_at = NOW()
-          RETURNING id, username, first_name, photo_url, level, silver, gold
-        `,
-        [
-          randomUUID(),
-          user.id,
-          user.username,
-          user.firstName,
-          user.lastName,
-          user.photoUrl,
-          NEW_PLAYER_DEFAULTS.level,
-          NEW_PLAYER_DEFAULTS.silver,
-          NEW_PLAYER_DEFAULTS.gold,
-        ],
-      );
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const result = await this.upsertTelegramPlayer(client, user);
 
       const player = result.rows[0];
       if (!player) {
         throw new Error("Player upsert returned no row");
       }
 
-      return toPlayerSummary(player);
+      await grantStarterCards(client, player.id);
+      const summary = toPlayerSummary(player);
+      await client.query("COMMIT");
+      return summary;
     } catch {
+      await client?.query("ROLLBACK").catch(() => undefined);
       throw new PlayerPersistenceError();
+    } finally {
+      client?.release();
     }
   }
 }

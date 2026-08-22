@@ -17,8 +17,8 @@ export function getCorsPolicy(requestOrigin: string | undefined, allowedOrigin: 
   return {
     allowed: true,
     headers: {
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Origin": allowedOrigin,
       Vary: "Origin",
     },

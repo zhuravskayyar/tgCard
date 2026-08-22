@@ -4,11 +4,14 @@ import { getServerEnvironment } from "./config/environment.js";
 import { createDatabasePool } from "./database/pool.js";
 import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
+import { InventoryRepository } from "./inventory/inventoryRepository.js";
+import { handlePlayerCards } from "./inventory/playerCardsRoute.js";
 import { PlayerRepository } from "./users/playerRepository.js";
 
 const environment = getServerEnvironment();
 const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
+const inventory = new InventoryRepository(pool);
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
@@ -19,15 +22,28 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "OPTIONS" && url.pathname === "/api/auth/telegram") {
+  const isTelegramAuthRoute = url.pathname === "/api/auth/telegram";
+  const isPlayerCardsRoute = url.pathname === "/api/player/cards";
+
+  if (request.method === "OPTIONS" && (isTelegramAuthRoute || isPlayerCardsRoute)) {
     response.writeHead(204, cors.headers);
     response.end();
     return;
   }
 
-  if (request.method === "POST" && url.pathname === "/api/auth/telegram") {
+  if (request.method === "POST" && isTelegramAuthRoute) {
     await handleTelegramAuth(request, response, {
       botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "GET" && isPlayerCardsRoute) {
+    await handlePlayerCards(request, response, {
+      botToken: environment.telegramBotToken,
+      inventory,
       players,
       responseHeaders: cors.headers,
     });
