@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { PlayerBalance } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
 import { authenticateTelegramPlayer } from "../telegram/authenticatePlayer";
 import type { PlayerSummaryState } from "../types/player";
@@ -9,6 +10,12 @@ export function usePlayerSummary() {
 
   const retry = useCallback(() => {
     setAttempt((currentAttempt) => currentAttempt + 1);
+  }, []);
+
+  const updateBalance = useCallback((balance: PlayerBalance) => {
+    setState((current) => current.status === "ready"
+      ? { status: "ready", data: { ...current.data, ...balance } }
+      : current);
   }, []);
 
   useEffect(() => {
@@ -34,5 +41,5 @@ export function usePlayerSummary() {
     return () => controller.abort();
   }, [attempt]);
 
-  return { retry, state };
+  return { retry, state, updateBalance };
 }

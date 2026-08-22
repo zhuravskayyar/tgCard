@@ -7,9 +7,10 @@ import { CardDetailScreen } from "./CardDetailScreen";
 
 interface DeckScreenProps {
   onBack: () => void;
+  onOpenShop: () => void;
 }
 
-export function DeckScreen({ onBack }: DeckScreenProps) {
+export function DeckScreen({ onBack, onOpenShop }: DeckScreenProps) {
   const { retry, state } = usePlayerDeck();
   const [inspectedCard, setInspectedCard] = useState<PlayerDeckCard | null>(null);
   const screenRef = useRef<HTMLElement>(null);
@@ -34,7 +35,7 @@ export function DeckScreen({ onBack }: DeckScreenProps) {
   }
 
   if (inspectedCard) {
-    return <CardDetailScreen card={inspectedCard} inActiveDeck onBack={closeCardDetail} />;
+    return <CardDetailScreen card={inspectedCard} inActiveDeck onBack={closeCardDetail} onOpenShop={onOpenShop} />;
   }
 
   return (

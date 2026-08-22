@@ -35,6 +35,24 @@ structured `insufficient_valid_cards` state.
 Card abilities, battles, collection bonuses, and further economy behavior are
 purposely not specified yet.
 
+## Base card shop
+
+The server owns the permanent base catalog and accepts only an offer ID from the
+client:
+
+- `silver_card`: 500 silver; minimum Uncommon; may reward Rare or Epic.
+- `epic_card`: 50 gold; minimum Epic; may reward Legendary or Mythic.
+- `legendary_card`: 150 gold; minimum Legendary; may reward Mythic.
+
+Exact rarity probabilities are not finalized yet. Production purchases fail
+closed until explicit server-side rarity weights are approved and configured;
+the client never displays invented odds and never selects a reward, price, or
+rarity.
+
+A shop purchase changes inventory only. Currency deduction, canonical card
+ownership, and automatic deck recalculation commit in one database transaction.
+The automatic deck service remains the sole owner of active deck composition.
+
 ## Permanent card content rules
 
 Cards may represent animals, beasts, mythical creatures, non-humanoid elemental

@@ -25,9 +25,10 @@ interface CardDetailScreenProps {
   card: PlayerDeckCard;
   inActiveDeck: boolean;
   onBack: () => void;
+  onOpenShop: () => void;
 }
 
-export function CardDetailScreen({ card, inActiveDeck, onBack }: CardDetailScreenProps) {
+export function CardDetailScreen({ card, inActiveDeck, onBack, onOpenShop }: CardDetailScreenProps) {
   return (
     <section className="card-detail-screen">
       <header className="card-detail-topbar">
@@ -78,7 +79,7 @@ export function CardDetailScreen({ card, inActiveDeck, onBack }: CardDetailScree
       <nav className="card-detail-actions" aria-label="Дії з картою">
         <MenuRow compact icon="deck" onClick={onBack} title="Колода" />
         <MenuRow compact icon="inventory" title="Слабкі карти" />
-        <MenuRow compact icon="shop" title="Магазин" />
+        <MenuRow compact icon="shop" onClick={onOpenShop} title="Магазин" />
       </nav>
     </section>
   );

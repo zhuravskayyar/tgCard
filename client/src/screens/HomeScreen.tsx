@@ -28,7 +28,12 @@ const secondaryActions: HomeItem[] = [
   { title: "Інвентар", icon: "inventory" },
 ];
 
-export function HomeScreen({ onOpenDeck }: { onOpenDeck: () => void }) {
+interface HomeScreenProps {
+  onOpenDeck: () => void;
+  onOpenShop: () => void;
+}
+
+export function HomeScreen({ onOpenDeck, onOpenShop }: HomeScreenProps) {
   return (
     <div className="home-screen">
       <header className="home-heading">
@@ -44,7 +49,7 @@ export function HomeScreen({ onOpenDeck }: { onOpenDeck: () => void }) {
 
       <section className="secondary-menu" aria-label="Додаткові розділи">
         {secondaryActions.map((action) => (
-          <MenuRow key={action.title} {...action} />
+          <MenuRow key={action.title} {...action} onClick={action.icon === "shop" ? onOpenShop : undefined} />
         ))}
       </section>
     </div>

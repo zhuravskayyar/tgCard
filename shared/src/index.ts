@@ -13,3 +13,12 @@ export {
   type PlayerDeckResponse,
 } from "./deck.js";
 export type { PlayerSummary, TelegramAuthRequest } from "./player.js";
+export {
+  SHOP_CURRENCIES,
+  type PlayerBalance,
+  type ShopCatalogResponse,
+  type ShopCurrency,
+  type ShopOffer,
+  type ShopPurchaseRequest,
+  type ShopPurchaseResponse,
+} from "./shop.js";

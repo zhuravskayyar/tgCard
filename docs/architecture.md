@@ -29,3 +29,15 @@ The server uses PostgreSQL through `DATABASE_URL`. Schema changes are explicit,
 versioned SQL migrations under `server/migrations`; application startup never
 applies destructive or automatic schema changes. The first persistence boundary
 contains only Telegram-authenticated player accounts.
+
+## Shop transaction boundary
+
+`GET /api/shop` returns the safe server-owned card catalog.
+`POST /api/shop/purchase` accepts only `{ "offerId": string }`. The authenticated
+purchase transaction locks the player row, validates and deducts the canonical
+currency price, grants a real card through `player_cards`, invokes the shared
+automatic deck service, and commits the reward and deck state together.
+
+Offer prices, allowed rarities, and future rarity weights live in the server
+shop configuration. Internal weights and reward-roll details are never part of
+the public catalog contract.

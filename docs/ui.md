@@ -8,8 +8,9 @@ Keep screens in `client/src/screens`, reusable visual pieces in `components`, an
 screen-independent React behavior in `hooks`. Prefer existing components and
 small CSS modules or focused styles over premature design systems.
 
-The current client is only an architecture status screen. Navigation, cards,
-deck UI, battles, shop, animations, and final visual design are out of scope.
+The current client includes the persistent shell, automatic deck and card-detail
+views, and the base card shop. Battles, elaborate reward animations, and final
+visual polish remain out of scope.
 
 ## Global UI rule: persistent application shell
 
