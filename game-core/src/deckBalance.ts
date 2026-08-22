@@ -7,17 +7,12 @@ export interface DeckElementCard {
   element: CardElement;
 }
 
-export interface SlottedDeckElementCard extends DeckElementCard {
-  slot: number;
-}
-
 export type DeckElementCounts = Record<CardElement, number>;
 
 export type DeckElementBalanceReason =
   | "invalid_deck_size"
   | "element_below_minimum"
-  | "element_above_maximum"
-  | "slot_not_found";
+  | "element_above_maximum";
 
 export interface DeckElementBalanceResult {
   counts: DeckElementCounts;
@@ -53,22 +48,4 @@ export function validateDeckElementBalance(
   }
 
   return { valid: true, counts };
-}
-
-export function canReplaceDeckCard(
-  currentDeck: readonly SlottedDeckElementCard[],
-  slot: number,
-  candidateCard: DeckElementCard,
-): DeckElementBalanceResult {
-  if (!currentDeck.some((card) => card.slot === slot)) {
-    return {
-      valid: false,
-      counts: countDeckElements(currentDeck),
-      reason: "slot_not_found",
-    };
-  }
-
-  return validateDeckElementBalance(
-    currentDeck.map((card) => card.slot === slot ? { ...card, element: candidateCard.element } : card),
-  );
 }

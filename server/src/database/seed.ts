@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { backfillStarterDecks } from "../decks/starterDeck.js";
+import { recalculateAllAutomaticDecks } from "../decks/automaticDeckService.js";
 import { backfillStarterCards } from "../inventory/starterCardGrant.js";
 import {
   STARTER_CARD_CONTENT_SEED_NAME,
@@ -41,8 +41,10 @@ try {
   }
 
   const grantedRows = await backfillStarterCards(pool);
-  const createdDecks = await backfillStarterDecks(pool);
-  console.log(`Starter data ready; ownership rows added: ${grantedRows}; decks added: ${createdDecks}`);
+  const deckSummary = await recalculateAllAutomaticDecks(pool);
+  console.log(
+    `Starter data ready; ownership rows added: ${grantedRows}; automatic decks updated: ${deckSummary.updated}; unchanged: ${deckSummary.unchanged}; insufficient: ${deckSummary.insufficientValidCards}`,
+  );
 } finally {
   await pool.end();
 }

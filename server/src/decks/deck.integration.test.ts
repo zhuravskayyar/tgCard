@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
+import { countDeckElements } from "@cardastika/game-core";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
-import { backfillStarterCards } from "../inventory/starterCardGrant.js";
 import { STARTER_CARDS } from "../inventory/starterCards.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { DeckRepository } from "./deckRepository.js";
-import { DeckValidationError } from "./deckRules.js";
-import { backfillStarterDecks } from "./starterDeck.js";
+import {
+  recalculateAutomaticDeck,
+  recalculateAutomaticDeckForPlayer,
+} from "./automaticDeckService.js";
+import { DeckMissingError, DeckRepository } from "./deckRepository.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let telegramSequence = 0n;
@@ -28,7 +30,9 @@ async function cleanupPlayers(pool: Pool, telegramUserIds: string[]) {
   await pool.query("DELETE FROM players WHERE telegram_user_id = ANY($1::bigint[])", [telegramUserIds]);
 }
 
-test("new player receives one persistent nine-card starter deck", { skip: !databaseUrl }, async () => {
+test("bootstrap keeps one automatic balanced 108-power starter deck without changing economy", {
+  skip: !databaseUrl,
+}, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
@@ -46,15 +50,15 @@ test("new player receives one persistent nine-card starter deck", { skip: !datab
     );
 
     assert.equal(firstPlayer.id, secondPlayer.id);
+    assert.equal(firstPlayer.silver, 1_500);
+    assert.equal(firstPlayer.gold, 0);
+    assert.equal(secondPlayer.silver, firstPlayer.silver);
+    assert.equal(secondPlayer.gold, firstPlayer.gold);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
-    assert.deepEqual(
-      firstDeck.cards.map(({ displayName }) => displayName),
-      STARTER_CARDS.map(({ displayName }) => displayName),
-    );
-    assert.ok(firstDeck.cards.every((card) => card.artKey === null));
-    assert.deepEqual(firstDeck.cards.map(({ slot }) => slot), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert.equal(firstDeck.totalPower, 108);
+    assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.deepEqual(firstDeck.cards.map(({ code }) => code), STARTER_CARDS.map(({ code }) => code));
     assert.deepEqual(secondDeck, firstDeck);
   } finally {
     await cleanupPlayers(pool, [user.id]);
@@ -62,7 +66,7 @@ test("new player receives one persistent nine-card starter deck", { skip: !datab
   }
 });
 
-test("concurrent player bootstrap creates only one complete deck", { skip: !databaseUrl }, async () => {
+test("concurrent bootstrap creates only one complete automatic deck", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
@@ -89,124 +93,98 @@ test("concurrent player bootstrap creates only one complete deck", { skip: !data
   }
 });
 
-test("starter deck backfill is idempotent", { skip: !databaseUrl }, async () => {
+test("inventory transaction replaces a weaker card and skips an unchanged deck write", {
+  skip: !databaseUrl,
+}, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
   const decks = new DeckRepository(pool);
-  const user = createTelegramUser("backfill");
+  const user = createTelegramUser("stronger-card");
+  const bonusCardId = `test_${randomUUID()}`;
+  const bonusCardCode = `test-${randomUUID()}`;
+
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    const before = await decks.findByPlayerId(player.id);
+    const client = await pool.connect();
+    let updatedResult;
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `
+          INSERT INTO cards (id, code, display_name, element, rarity, power)
+          VALUES ($1, $2, 'Test fire card', 'fire', 'common', 50)
+        `,
+        [bonusCardId, bonusCardCode],
+      );
+      await client.query(
+        "INSERT INTO player_cards (player_id, card_id, quantity) VALUES ($1, $2, 1)",
+        [player.id, bonusCardId],
+      );
+      updatedResult = await recalculateAutomaticDeck(client, player.id);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    const after = await decks.findByPlayerId(player.id);
+    const updatedAtBeforeUnchangedCheck = await pool.query<{ updated_at: Date }>(
+      "SELECT updated_at FROM player_decks WHERE player_id = $1",
+      [player.id],
+    );
+    const unchangedResult = await recalculateAutomaticDeckForPlayer(pool, player.id);
+    const updatedAtAfterUnchangedCheck = await pool.query<{ updated_at: Date }>(
+      "SELECT updated_at FROM player_decks WHERE player_id = $1",
+      [player.id],
+    );
+
+    assert.equal(updatedResult.status, "updated");
+    assert.equal(after.totalPower, before.totalPower + 38);
+    assert.ok(after.cards.some(({ cardId }) => cardId === bonusCardId));
+    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.equal(unchangedResult.status, "unchanged");
+    assert.deepEqual(updatedAtAfterUnchangedCheck.rows[0], updatedAtBeforeUnchangedCheck.rows[0]);
+  } finally {
+    await cleanupPlayers(pool, [user.id]);
+    await pool.query("DELETE FROM cards WHERE id = $1", [bonusCardId]);
+    await pool.end();
+  }
+});
+
+test("insufficient inventory returns structured state and never creates an invalid deck", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
   const playerId = randomUUID();
+  const user = createTelegramUser("insufficient");
 
   try {
     await pool.query(
       "INSERT INTO players (id, telegram_user_id, first_name) VALUES ($1, $2, $3)",
       [playerId, user.id, user.firstName],
     );
-    await backfillStarterCards(pool);
-    await backfillStarterDecks(pool);
-    await backfillStarterDecks(pool);
-
-    const deck = await decks.findByPlayerId(playerId);
+    const result = await recalculateAutomaticDeckForPlayer(pool, playerId);
     const deckCount = await pool.query<{ count: string }>(
       "SELECT count(*) FROM player_decks WHERE player_id = $1",
       [playerId],
     );
-    assert.equal(Number(deckCount.rows[0]?.count), 1);
-    assert.equal(deck.cards.length, 9);
-    assert.equal(deck.totalPower, 108);
-  } finally {
-    await cleanupPlayers(pool, [user.id]);
-    await pool.end();
-  }
-});
 
-test("deck save enforces ownership and owned quantity", { skip: !databaseUrl }, async () => {
-  if (!databaseUrl) return;
-  const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  const decks = new DeckRepository(pool);
-  const user = createTelegramUser("validation");
-
-  try {
-    const player = await players.findOrCreateFromTelegram(user);
-    const deck = await decks.findByPlayerId(player.id);
-    const slots = deck.cards.map(({ cardId, slot }) => ({ cardId, slot }));
-    const repeated = slots.map((entry, index) => index === 8 ? { ...entry, cardId: slots[0]!.cardId } : entry);
+    assert.deepEqual(result, {
+      status: "insufficient_valid_cards",
+      preservedCurrentDeck: false,
+    });
+    assert.equal(Number(deckCount.rows[0]?.count), 0);
     await assert.rejects(
-      decks.save(player.id, repeated),
-      (error) => error instanceof DeckValidationError && error.code === "card_quantity_exceeded",
-    );
-
-    await pool.query("DELETE FROM player_cards WHERE player_id = $1 AND card_id = $2", [player.id, slots[8]!.cardId]);
-    await assert.rejects(
-      decks.save(player.id, slots),
-      (error) => error instanceof DeckValidationError && error.code === "unowned_card",
+      new DeckRepository(pool).findByPlayerId(playerId),
+      (error) => error instanceof DeckMissingError,
     );
   } finally {
     await cleanupPlayers(pool, [user.id]);
-    await pool.end();
-  }
-});
-
-test("deck save rejects an owned but element-unbalanced deck", { skip: !databaseUrl }, async () => {
-  if (!databaseUrl) return;
-  const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  const decks = new DeckRepository(pool);
-  const user = createTelegramUser("element-balance");
-
-  try {
-    const player = await players.findOrCreateFromTelegram(user);
-    const before = await decks.findByPlayerId(player.id);
-    const fire = before.cards.find((card) => card.element === "fire");
-    const earth = before.cards.find((card) => card.element === "earth");
-    assert.ok(fire);
-    assert.ok(earth);
-
-    await pool.query(
-      "UPDATE player_cards SET quantity = 2 WHERE player_id = $1 AND card_id = $2",
-      [player.id, fire.cardId],
-    );
-    const invalidSlots = before.cards.map(({ cardId, slot }) => ({
-      cardId: slot === earth.slot ? fire.cardId : cardId,
-      slot,
-    }));
-
-    await assert.rejects(
-      decks.save(player.id, invalidSlots),
-      (error) => error instanceof DeckValidationError && error.code === "invalid_element_balance",
-    );
-    assert.deepEqual(await decks.findByPlayerId(player.id), before);
-  } finally {
-    await cleanupPlayers(pool, [user.id]);
-    await pool.end();
-  }
-});
-
-test("deck lookup and save remain scoped to the authenticated player id", { skip: !databaseUrl }, async () => {
-  if (!databaseUrl) return;
-  const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  const decks = new DeckRepository(pool);
-  const firstUser = createTelegramUser("owner");
-  const secondUser = createTelegramUser("other");
-
-  try {
-    const first = await players.findOrCreateFromTelegram(firstUser);
-    const second = await players.findOrCreateFromTelegram(secondUser);
-    const firstBefore = await decks.findByPlayerId(first.id);
-    const secondBefore = await decks.findByPlayerId(second.id);
-    const reversedSlots = [...secondBefore.cards]
-      .reverse()
-      .map((card, index) => ({ slot: index + 1, cardId: card.cardId }));
-
-    await decks.save(second.id, reversedSlots);
-    const firstAfter = await decks.findByPlayerId(first.id);
-    const secondAfter = await decks.findByPlayerId(second.id);
-
-    assert.deepEqual(firstAfter, firstBefore);
-    assert.deepEqual(secondAfter.cards.map(({ cardId }) => cardId), reversedSlots.map(({ cardId }) => cardId));
-  } finally {
-    await cleanupPlayers(pool, [firstUser.id, secondUser.id]);
     await pool.end();
   }
 });

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PlayerSummary } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
-import { ensureStarterDeck } from "../decks/starterDeck.js";
+import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { grantStarterCards } from "../inventory/starterCardGrant.js";
 import { NEW_PLAYER_DEFAULTS } from "./playerDefaults.js";
 
@@ -99,7 +99,7 @@ export class PlayerRepository {
       }
 
       await grantStarterCards(client, player.id);
-      await ensureStarterDeck(client, player.id);
+      await recalculateAutomaticDeck(client, player.id);
       const summary = toPlayerSummary(player);
       await client.query("COMMIT");
       return summary;

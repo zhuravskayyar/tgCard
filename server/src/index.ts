@@ -54,7 +54,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if ((request.method === "GET" || request.method === "PUT") && isPlayerDeckRoute) {
+  if (isPlayerDeckRoute) {
     await handlePlayerDeck(request, response, {
       botToken: environment.telegramBotToken,
       decks,

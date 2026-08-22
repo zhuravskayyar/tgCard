@@ -2,11 +2,6 @@ import type { CardElement, CardRarity } from "./card.js";
 
 export const DECK_SIZE = 9;
 
-export interface DeckSlotInput {
-  cardId: string;
-  slot: number;
-}
-
 export interface PlayerDeckCard {
   artKey: string | null;
   cardId: string;
@@ -22,8 +17,4 @@ export interface PlayerDeckCard {
 export interface PlayerDeckResponse {
   cards: PlayerDeckCard[];
   totalPower: number;
-}
-
-export interface UpdatePlayerDeckRequest {
-  slots: DeckSlotInput[];
 }

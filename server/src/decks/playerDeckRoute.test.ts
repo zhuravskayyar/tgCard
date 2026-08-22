@@ -63,10 +63,34 @@ test("GET player deck uses only the authenticated player's id", async () => {
         requestedPlayerId = playerId;
         return deck;
       },
-      save: async () => deck,
     },
   });
 
   assert.equal(requestedPlayerId, player.id);
   assert.deepEqual(capture.read(), { status: 200, body: deck });
+});
+
+test("PUT player deck is retired", async () => {
+  const request = { method: "PUT", headers: {} } as IncomingMessage;
+  const capture = createResponseCapture();
+  let playerLookupCalled = false;
+
+  await handlePlayerDeck(request, capture.response, {
+    botToken,
+    players: {
+      findOrCreateFromTelegram: async () => {
+        playerLookupCalled = true;
+        throw new Error("Player lookup must not run for retired methods");
+      },
+    },
+    decks: {
+      findByPlayerId: async () => ({ cards: [], totalPower: 0 }),
+    },
+  });
+
+  assert.equal(playerLookupCalled, false);
+  assert.deepEqual(capture.read(), {
+    status: 405,
+    body: { error: { code: "method_not_allowed", message: "Method not allowed" } },
+  });
 });

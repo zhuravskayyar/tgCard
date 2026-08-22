@@ -1,10 +1,9 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type { PlayerSummary } from "@cardastika/shared";
 import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
-import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
+import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import { DeckMissingError, DeckPersistenceError } from "./deckRepository.js";
-import { DeckValidationError, parseDeckUpdateRequest } from "./deckRules.js";
 
 interface PlayerLookup {
   findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
@@ -12,10 +11,6 @@ interface PlayerLookup {
 
 interface DeckLookup {
   findByPlayerId(playerId: string): ReturnType<import("./deckRepository.js").DeckRepository["findByPlayerId"]>;
-  save(
-    playerId: string,
-    slots: Parameters<import("./deckRepository.js").DeckRepository["save"]>[1],
-  ): ReturnType<import("./deckRepository.js").DeckRepository["save"]>;
 }
 
 interface PlayerDeckDependencies {
@@ -40,38 +35,22 @@ export async function handlePlayerDeck(
 ) {
   const responseHeaders = dependencies.responseHeaders ?? {};
 
+  if (request.method !== "GET") {
+    sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, responseHeaders);
+    return;
+  }
+
   try {
     const initData = readTelegramInitData(request);
     const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
     const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
 
-    if (request.method === "GET") {
-      sendJson(response, 200, await dependencies.decks.findByPlayerId(player.id), responseHeaders);
-      return;
-    }
-
-    if (request.method === "PUT") {
-      const slots = parseDeckUpdateRequest(await readJsonBody(request));
-      sendJson(response, 200, await dependencies.decks.save(player.id, slots), responseHeaders);
-      return;
-    }
-
-    sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, responseHeaders);
+    sendJson(response, 200, await dependencies.decks.findByPlayerId(player.id), responseHeaders);
   } catch (error) {
     if (error instanceof TelegramInitDataError) {
       sendJson(response, 401, {
         error: { code: error.code, message: "Telegram authentication failed" },
       }, responseHeaders);
-      return;
-    }
-
-    if (error instanceof HttpRequestError) {
-      sendJson(response, error.status, { error: { code: error.code, message: error.message } }, responseHeaders);
-      return;
-    }
-
-    if (error instanceof DeckValidationError) {
-      sendJson(response, 400, { error: { code: error.code, message: "Deck is invalid" } }, responseHeaders);
       return;
     }
 
