@@ -281,6 +281,292 @@ button:focus-visible {
   gap: 14px;
 }
 
+.deck-screen {
+  display: grid;
+  gap: 14px;
+}
+
+.deck-heading {
+  display: grid;
+  min-height: 52px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.deck-heading > div {
+  min-width: 0;
+}
+
+.deck-heading span {
+  color: var(--accent-bronze);
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.deck-heading h1 {
+  margin: 2px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.28rem;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+}
+
+.deck-heading > strong {
+  color: var(--accent-gold);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.deck-back {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.deck-back .app-icon {
+  transform: rotate(180deg);
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-card {
+  --card-element: #7e9db9;
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 100 / 136;
+  padding: 8px;
+  overflow: hidden;
+  grid-template-rows: auto 1fr auto;
+  color: var(--text-primary);
+  background: var(--bg-panel);
+  border: 1px solid color-mix(in srgb, var(--card-element) 48%, var(--border-default));
+  border-radius: var(--radius-md);
+  box-shadow:
+    inset 0 0 0 3px var(--bg-inset),
+    var(--shadow-panel);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.deck-card::before,
+.deck-card::after {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  content: "";
+  pointer-events: none;
+  border-color: color-mix(in srgb, var(--card-element) 45%, transparent);
+}
+
+.deck-card::before {
+  top: 5px;
+  left: 5px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.deck-card::after {
+  right: 5px;
+  bottom: 5px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.deck-card--fire { --card-element: #aa6658; }
+.deck-card--water { --card-element: #5c8eae; }
+.deck-card--air { --card-element: #8c9dac; }
+.deck-card--earth { --card-element: #8d8058; }
+.deck-card--uncommon { box-shadow: inset 0 0 0 3px #101712, var(--shadow-panel); }
+.deck-card--rare { box-shadow: inset 0 0 0 3px #0d1420, var(--shadow-panel); }
+.deck-card--epic { box-shadow: inset 0 0 0 3px #171120, var(--shadow-panel); }
+.deck-card--legendary,
+.deck-card--mythic { border-color: var(--accent-bronze); }
+
+.deck-card[aria-pressed="true"] {
+  border-color: var(--accent-gold);
+  background: var(--bg-active);
+  box-shadow:
+    inset 0 0 0 3px var(--bg-inset),
+    0 0 0 1px var(--accent-gold);
+}
+
+.deck-card__topline {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-card__topline strong {
+  color: var(--accent-gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+}
+
+.deck-card__sigil {
+  display: grid;
+  width: min(68%, 64px);
+  aspect-ratio: 1;
+  margin: auto;
+  place-items: center;
+  color: var(--card-element);
+  border: 1px solid color-mix(in srgb, var(--card-element) 45%, transparent);
+  transform: rotate(45deg);
+}
+
+.element-symbol {
+  width: 68%;
+  height: 68%;
+  transform: rotate(-45deg);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.deck-card--fire .element-symbol path {
+  fill: color-mix(in srgb, var(--card-element) 24%, transparent);
+}
+
+.deck-card__element {
+  color: var(--text-muted);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.deck-card:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.deck-details {
+  display: grid;
+  margin: 0;
+  padding: 11px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.deck-details div {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.deck-details dt {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.deck-details dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-hint,
+.deck-reserve p,
+.deck-save-error {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.deck-reserve {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.deck-reserve h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.deck-reserve__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-save,
+.deck-state button {
+  min-height: 42px;
+  padding: 8px 14px;
+  color: var(--bg-inset);
+  background: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deck-save:disabled {
+  color: var(--text-disabled);
+  background: var(--bg-panel);
+  border-color: var(--border-default);
+  cursor: default;
+}
+
+.deck-save-error {
+  color: var(--state-danger);
+  text-align: center;
+}
+
+.deck-state {
+  display: grid;
+  min-height: 190px;
+  padding: var(--space-5);
+  place-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.deck-state button {
+  min-height: 38px;
+}
+
 .home-heading {
   padding: 0 2px 2px;
 }
@@ -564,6 +850,16 @@ button:focus-visible {
 }
 
 @media (hover: hover) {
+  .deck-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--card-element);
+  }
+
+  .deck-back:hover {
+    color: var(--accent-gold);
+    border-color: var(--border-active);
+  }
+
   .mode-tile:hover {
     transform: translateY(-2px);
     border-color: var(--mode-accent);
@@ -601,6 +897,15 @@ button:focus-visible {
 
   .mode-grid {
     gap: var(--space-2);
+  }
+
+  .deck-grid,
+  .deck-reserve__cards {
+    gap: 6px;
+  }
+
+  .deck-card {
+    padding: 7px;
   }
 
   .mode-tile {

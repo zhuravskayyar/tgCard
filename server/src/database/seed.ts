@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { backfillStarterDecks } from "../decks/starterDeck.js";
 import { backfillStarterCards } from "../inventory/starterCardGrant.js";
 import { STARTER_CARD_SEED_NAME, seedStarterCardDefinitions } from "./starterCardSeed.js";
 
@@ -34,7 +35,8 @@ try {
   }
 
   const grantedRows = await backfillStarterCards(pool);
-  console.log(`Starter card seed ready; ownership rows added: ${grantedRows}`);
+  const createdDecks = await backfillStarterDecks(pool);
+  console.log(`Starter data ready; ownership rows added: ${grantedRows}; decks added: ${createdDecks}`);
 } finally {
   await pool.end();
 }

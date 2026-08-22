@@ -5,16 +5,17 @@ import { TopHud } from "./TopHud";
 
 interface AppShellProps {
   children: ReactNode;
+  onNavigateHome: () => void;
   onRetryPlayerSummary: () => void;
   playerSummaryState: PlayerSummaryState;
 }
 
-export function AppShell({ children, onRetryPlayerSummary, playerSummaryState }: AppShellProps) {
+export function AppShell({ children, onNavigateHome, onRetryPlayerSummary, playerSummaryState }: AppShellProps) {
   return (
     <div className="app-shell">
       <TopHud onRetry={onRetryPlayerSummary} state={playerSummaryState} />
       <main className="app-content">{children}</main>
-      <BottomNav activeItem="home" />
+      <BottomNav activeItem="home" onSelect={(item) => item === "home" && onNavigateHome()} />
     </div>
   );
 }

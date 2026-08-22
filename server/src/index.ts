@@ -2,6 +2,8 @@ import { createServer } from "node:http";
 import { handleTelegramAuth } from "./auth/telegramAuthRoute.js";
 import { getServerEnvironment } from "./config/environment.js";
 import { createDatabasePool } from "./database/pool.js";
+import { DeckRepository } from "./decks/deckRepository.js";
+import { handlePlayerDeck } from "./decks/playerDeckRoute.js";
 import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
 import { InventoryRepository } from "./inventory/inventoryRepository.js";
@@ -12,6 +14,7 @@ const environment = getServerEnvironment();
 const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const inventory = new InventoryRepository(pool);
+const decks = new DeckRepository(pool);
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
@@ -24,8 +27,9 @@ const server = createServer(async (request, response) => {
 
   const isTelegramAuthRoute = url.pathname === "/api/auth/telegram";
   const isPlayerCardsRoute = url.pathname === "/api/player/cards";
+  const isPlayerDeckRoute = url.pathname === "/api/player/deck";
 
-  if (request.method === "OPTIONS" && (isTelegramAuthRoute || isPlayerCardsRoute)) {
+  if (request.method === "OPTIONS" && (isTelegramAuthRoute || isPlayerCardsRoute || isPlayerDeckRoute)) {
     response.writeHead(204, cors.headers);
     response.end();
     return;
@@ -44,6 +48,16 @@ const server = createServer(async (request, response) => {
     await handlePlayerCards(request, response, {
       botToken: environment.telegramBotToken,
       inventory,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if ((request.method === "GET" || request.method === "PUT") && isPlayerDeckRoute) {
+    await handlePlayerDeck(request, response, {
+      botToken: environment.telegramBotToken,
+      decks,
       players,
       responseHeaders: cors.headers,
     });

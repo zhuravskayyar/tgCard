@@ -28,7 +28,7 @@ const secondaryActions: HomeItem[] = [
   { title: "Інвентар", icon: "inventory" },
 ];
 
-export function HomeScreen() {
+export function HomeScreen({ onOpenDeck }: { onOpenDeck: () => void }) {
   return (
     <div className="home-screen">
       <header className="home-heading">
@@ -38,7 +38,7 @@ export function HomeScreen() {
 
       <section className="mode-grid" aria-label="Ігрові режими">
         {modes.map((mode) => (
-          <ModeTile key={mode.title} {...mode} />
+          <ModeTile key={mode.title} {...mode} onClick={mode.icon === "deck" ? onOpenDeck : undefined} />
         ))}
       </section>
 

@@ -10,7 +10,7 @@ test("allows the configured Mini App origin", () => {
   assert.equal(policy.allowed, true);
   assert.equal(policy.headers["Access-Control-Allow-Origin"], allowedOrigin);
   assert.equal(policy.headers["Access-Control-Allow-Headers"], "Authorization, Content-Type");
-  assert.equal(policy.headers["Access-Control-Allow-Methods"], "GET, POST, OPTIONS");
+  assert.equal(policy.headers["Access-Control-Allow-Methods"], "GET, POST, PUT, OPTIONS");
 });
 
 test("rejects an unconfigured browser origin", () => {

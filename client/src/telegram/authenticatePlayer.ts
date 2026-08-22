@@ -1,15 +1,11 @@
 import type { PlayerSummary, TelegramAuthRequest } from "@cardastika/shared";
+import { getApiEndpoint } from "../api/config";
 
 export class PlayerBootstrapError extends Error {
   constructor(public readonly status: number) {
     super("Player bootstrap failed");
     this.name = "PlayerBootstrapError";
   }
-}
-
-function getTelegramAuthEndpoint() {
-  const apiBaseUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "") ?? "";
-  return apiBaseUrl ? `${apiBaseUrl}/api/auth/telegram` : "/api/auth/telegram";
 }
 
 function isNullableString(value: unknown): value is string | null {
@@ -40,7 +36,7 @@ function isPlayerSummary(value: unknown): value is PlayerSummary {
 
 export async function authenticateTelegramPlayer(initData: string, signal: AbortSignal) {
   const body: TelegramAuthRequest = { initData };
-  const response = await fetch(getTelegramAuthEndpoint(), {
+  const response = await fetch(getApiEndpoint("/api/auth/telegram"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

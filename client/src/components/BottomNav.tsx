@@ -16,9 +16,10 @@ const navigationItems: NavigationItem[] = [
 
 interface BottomNavProps {
   activeItem: BottomNavItem;
+  onSelect?: (item: BottomNavItem) => void;
 }
 
-export function BottomNav({ activeItem }: BottomNavProps) {
+export function BottomNav({ activeItem, onSelect }: BottomNavProps) {
   return (
     <nav className="bottom-navigation" aria-label="Головна навігація">
       <div className="bottom-navigation__items">
@@ -30,6 +31,7 @@ export function BottomNav({ activeItem }: BottomNavProps) {
               aria-current={isActive ? "page" : undefined}
               className="bottom-navigation__item"
               key={item.id}
+              onClick={() => onSelect?.(item.id)}
               type="button"
             >
               <AppIcon name={item.icon} size={24} />
