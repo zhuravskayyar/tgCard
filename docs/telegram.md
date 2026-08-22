@@ -34,3 +34,9 @@ Set `DATABASE_URL` and `TELEGRAM_BOT_TOKEN` in the server environment. `PORT` is
 optional and defaults to `3000`. Never expose the bot token to client code.
 Apply versioned migrations explicitly with `npm run migrate --workspace server`;
 they are not run during server startup.
+
+For a public development Mini App, set `CLIENT_ORIGIN` on the server to the exact
+HTTPS client origin and build or start the client with `VITE_API_URL` set to the
+public HTTPS API origin. Local development keeps using the Vite `/api` proxy when
+`VITE_API_URL` is empty. Temporary tunnel URLs belong only in environment state,
+never in React components or committed configuration.

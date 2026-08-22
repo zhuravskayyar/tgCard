@@ -7,6 +7,11 @@ export class PlayerBootstrapError extends Error {
   }
 }
 
+function getTelegramAuthEndpoint() {
+  const apiBaseUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "") ?? "";
+  return apiBaseUrl ? `${apiBaseUrl}/api/auth/telegram` : "/api/auth/telegram";
+}
+
 function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
@@ -35,7 +40,7 @@ function isPlayerSummary(value: unknown): value is PlayerSummary {
 
 export async function authenticateTelegramPlayer(initData: string, signal: AbortSignal) {
   const body: TelegramAuthRequest = { initData };
-  const response = await fetch("/api/auth/telegram", {
+  const response = await fetch(getTelegramAuthEndpoint(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

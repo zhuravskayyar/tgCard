@@ -1,4 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 
 const MAX_JSON_BODY_BYTES = 16 * 1024;
 
@@ -35,10 +35,16 @@ export async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   }
 }
 
-export function sendJson(response: ServerResponse, status: number, body: unknown) {
+export function sendJson(
+  response: ServerResponse,
+  status: number,
+  body: unknown,
+  headers: OutgoingHttpHeaders = {},
+) {
   response.writeHead(status, {
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
+    ...headers,
   });
   response.end(JSON.stringify(body));
 }
