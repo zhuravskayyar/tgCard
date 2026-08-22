@@ -11,6 +11,7 @@
     "seed": "tsx src/database/seed.ts"
   },
   "dependencies": {
+    "@cardastika/game-core": "*",
     "@cardastika/shared": "*",
     "pg": "^8.16.0"
   },

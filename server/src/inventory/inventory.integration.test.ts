@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { backfillStarterCards } from "./starterCardGrant.js";
-import { STARTER_CARD_COUNT } from "./starterCards.js";
+import { STARTER_CARDS, STARTER_CARD_COUNT } from "./starterCards.js";
 import { InventoryRepository } from "./inventoryRepository.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -45,7 +45,11 @@ test("new player receives nine starters and a second login does not duplicate th
     const firstInventory = await inventory.findByPlayerId(firstPlayer.id);
     assert.equal(firstInventory.length, STARTER_CARD_COUNT);
     assert.equal(firstInventory.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
-    assert.ok(firstInventory.every((card) => card.displayName === null && card.artKey === null));
+    assert.deepEqual(
+      firstInventory.map(({ displayName }) => displayName),
+      STARTER_CARDS.map(({ displayName }) => displayName),
+    );
+    assert.ok(firstInventory.every((card) => card.artKey === null));
 
     const secondPlayer = await players.findOrCreateFromTelegram(user);
     const secondInventory = await inventory.findByPlayerId(secondPlayer.id);

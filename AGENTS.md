@@ -51,3 +51,4 @@
 - Cards may depict non-humanoid creatures, spirits, relics, objects, or natural forces.
 - Never invent humans, humanoids, anthropomorphic animals, human faces, clothing, or roles for card subjects.
 - Keep entity scale, rarity, and power logically consistent; detailed rules live in `docs/game-rules.md`.
+- Complete active decks use 9 cards with a `3/2/2/2` element distribution; inventory is unrestricted.

@@ -5,6 +5,7 @@ import {
   calculateDeckTotalPower,
   DeckValidationError,
   parseDeckUpdateRequest,
+  validateDeckElements,
   validateDeckOwnership,
 } from "./deckRules.js";
 
@@ -47,6 +48,25 @@ test("deck ownership rejects unowned cards and quantity overuse", () => {
   expectCode(
     () => validateDeckOwnership(validSlots.map((entry, index) => index === 8 ? { ...entry, cardId: validSlots[0]!.cardId } : entry), inventory),
     "card_quantity_exceeded",
+  );
+});
+
+test("server deck validation accepts only a balanced complete deck", () => {
+  const elements = [
+    "fire", "fire", "fire", "water", "water", "air", "air", "earth", "earth",
+  ] as const;
+  const inventory: Pick<PlayerCard, "cardId" | "element">[] = validSlots.map(({ cardId }, index) => ({
+    cardId,
+    element: elements[index]!,
+  }));
+
+  assert.equal(validateDeckElements(validSlots, inventory).valid, true);
+  expectCode(
+    () => validateDeckElements(
+      validSlots.map((entry, index) => index === 8 ? { ...entry, cardId: validSlots[0]!.cardId } : entry),
+      inventory,
+    ),
+    "invalid_element_balance",
   );
 });
 

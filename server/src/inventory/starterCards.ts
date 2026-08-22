@@ -2,19 +2,19 @@ import type { CardDefinition, CardElement, CardRarity } from "@cardastika/shared
 
 export const STARTER_CARD_COUNT = 9;
 
-// Explicit provisional content configuration; no balance rule is derived here.
+// Explicit canonical content configuration; deck balance is enforced in game-core.
 export const STARTER_CARD_SEED_CONFIG = Object.freeze({
-  elements: [
-    "fire",
-    "water",
-    "air",
-    "earth",
-    "fire",
-    "water",
-    "air",
-    "earth",
-    "fire",
-  ] as const satisfies readonly CardElement[],
+  cards: Object.freeze([
+    { displayName: "Саламандра", element: "fire" },
+    { displayName: "Лис", element: "fire" },
+    { displayName: "Жук", element: "fire" },
+    { displayName: "Вугор", element: "water" },
+    { displayName: "Щука", element: "water" },
+    { displayName: "Ворон", element: "air" },
+    { displayName: "Сокіл", element: "air" },
+    { displayName: "Кріт", element: "earth" },
+    { displayName: "Вепр", element: "earth" },
+  ] as const satisfies readonly { displayName: string; element: CardElement }[]),
   rarity: "common" as const satisfies CardRarity,
 });
 
@@ -22,18 +22,18 @@ export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
   Array.from({ length: STARTER_CARD_COUNT }, (_, index) => {
     const sequence = String(index + 1).padStart(2, "0");
     const id = `starter_${sequence}`;
-    const element = STARTER_CARD_SEED_CONFIG.elements[index];
+    const content = STARTER_CARD_SEED_CONFIG.cards[index];
 
-    if (!element) {
-      throw new Error(`Missing element configuration for ${id}`);
+    if (!content) {
+      throw new Error(`Missing content configuration for ${id}`);
     }
 
     return Object.freeze({
       id,
       code: id,
-      displayName: null,
+      displayName: content.displayName,
       artKey: null,
-      element,
+      element: content.element,
       rarity: STARTER_CARD_SEED_CONFIG.rarity,
       power: 12,
       collectionId: null,

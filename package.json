@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "workspaces": [
     "client",
+    "game-core",
     "server",
     "shared"
   ],
@@ -11,7 +12,7 @@
     "dev": "npm run dev --workspace client",
     "dev:db": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev-db-forward.ps1",
     "dev:server": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev-server.ps1",
-    "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
-    "test": "npm run test --workspace server"
+    "build": "npm run build --workspace shared && npm run build --workspace game-core && npm run build --workspace server && npm run build --workspace client",
+    "test": "npm run test --workspace game-core && npm run test --workspace server"
   }
 }

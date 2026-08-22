@@ -5,7 +5,12 @@ import type {
   PlayerDeckResponse,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
-import { calculateDeckTotalPower, DeckValidationError, validateDeckOwnership } from "./deckRules.js";
+import {
+  calculateDeckTotalPower,
+  DeckValidationError,
+  validateDeckElements,
+  validateDeckOwnership,
+} from "./deckRules.js";
 
 interface DeckIdRow {
   id: string;
@@ -25,6 +30,7 @@ interface DeckCardRow {
 
 interface OwnershipRow {
   card_id: string;
+  element: PlayerCard["element"];
   quantity: string | number;
 }
 
@@ -130,19 +136,23 @@ export class DeckRepository {
       const requestedCardIds = [...new Set(slots.map(({ cardId }) => cardId))];
       const ownershipResult = await client.query<OwnershipRow>(
         `
-          SELECT card_id, quantity
+          SELECT player_cards.card_id, player_cards.quantity, cards.element
           FROM player_cards
+          INNER JOIN cards ON cards.id = player_cards.card_id
           WHERE player_id = $1
             AND card_id = ANY($2::text[])
-          FOR SHARE
+          FOR SHARE OF player_cards
         `,
         [playerId, requestedCardIds],
       );
-      const inventory: Pick<PlayerCard, "cardId" | "quantity">[] = ownershipResult.rows.map((row) => ({
-        cardId: row.card_id,
-        quantity: toPositiveInteger(row.quantity),
-      }));
+      const inventory: Pick<PlayerCard, "cardId" | "quantity" | "element">[] =
+        ownershipResult.rows.map((row) => ({
+          cardId: row.card_id,
+          element: row.element,
+          quantity: toPositiveInteger(row.quantity),
+        }));
       validateDeckOwnership(slots, inventory);
+      validateDeckElements(slots, inventory);
 
       await client.query("DELETE FROM deck_slots WHERE deck_id = $1", [deck.id]);
       await client.query(

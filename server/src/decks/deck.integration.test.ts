@@ -4,6 +4,7 @@ import test from "node:test";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { backfillStarterCards } from "../inventory/starterCardGrant.js";
+import { STARTER_CARDS } from "../inventory/starterCards.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { DeckRepository } from "./deckRepository.js";
 import { DeckValidationError } from "./deckRules.js";
@@ -47,7 +48,11 @@ test("new player receives one persistent nine-card starter deck", { skip: !datab
     assert.equal(firstPlayer.id, secondPlayer.id);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
-    assert.ok(firstDeck.cards.every((card) => card.displayName === null && card.artKey === null));
+    assert.deepEqual(
+      firstDeck.cards.map(({ displayName }) => displayName),
+      STARTER_CARDS.map(({ displayName }) => displayName),
+    );
+    assert.ok(firstDeck.cards.every((card) => card.artKey === null));
     assert.deepEqual(firstDeck.cards.map(({ slot }) => slot), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert.equal(firstDeck.totalPower, 108);
     assert.deepEqual(secondDeck, firstDeck);
@@ -136,6 +141,41 @@ test("deck save enforces ownership and owned quantity", { skip: !databaseUrl }, 
       decks.save(player.id, slots),
       (error) => error instanceof DeckValidationError && error.code === "unowned_card",
     );
+  } finally {
+    await cleanupPlayers(pool, [user.id]);
+    await pool.end();
+  }
+});
+
+test("deck save rejects an owned but element-unbalanced deck", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const decks = new DeckRepository(pool);
+  const user = createTelegramUser("element-balance");
+
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    const before = await decks.findByPlayerId(player.id);
+    const fire = before.cards.find((card) => card.element === "fire");
+    const earth = before.cards.find((card) => card.element === "earth");
+    assert.ok(fire);
+    assert.ok(earth);
+
+    await pool.query(
+      "UPDATE player_cards SET quantity = 2 WHERE player_id = $1 AND card_id = $2",
+      [player.id, fire.cardId],
+    );
+    const invalidSlots = before.cards.map(({ cardId, slot }) => ({
+      cardId: slot === earth.slot ? fire.cardId : cardId,
+      slot,
+    }));
+
+    await assert.rejects(
+      decks.save(player.id, invalidSlots),
+      (error) => error instanceof DeckValidationError && error.code === "invalid_element_balance",
+    );
+    assert.deepEqual(await decks.findByPlayerId(player.id), before);
   } finally {
     await cleanupPlayers(pool, [user.id]);
     await pool.end();

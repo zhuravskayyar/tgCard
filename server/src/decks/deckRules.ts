@@ -5,6 +5,10 @@ import {
   type PlayerDeckCard,
   type UpdatePlayerDeckRequest,
 } from "@cardastika/shared";
+import {
+  validateDeckElementBalance,
+  type DeckElementBalanceResult,
+} from "@cardastika/game-core";
 
 export type DeckValidationErrorCode =
   | "invalid_deck"
@@ -12,7 +16,8 @@ export type DeckValidationErrorCode =
   | "duplicate_slot"
   | "invalid_card_id"
   | "unowned_card"
-  | "card_quantity_exceeded";
+  | "card_quantity_exceeded"
+  | "invalid_element_balance";
 
 export class DeckValidationError extends Error {
   constructor(public readonly code: DeckValidationErrorCode) {
@@ -73,6 +78,27 @@ export function validateDeckOwnership(
     }
     selectedQuantities.set(cardId, selected);
   }
+}
+
+export function validateDeckElements(
+  slots: readonly DeckSlotInput[],
+  inventory: readonly Pick<PlayerCard, "cardId" | "element">[],
+): DeckElementBalanceResult {
+  const elementsByCardId = new Map(inventory.map((card) => [card.cardId, card.element]));
+  const cards = slots.map(({ cardId }) => {
+    const element = elementsByCardId.get(cardId);
+    if (!element) {
+      throw new DeckValidationError("unowned_card");
+    }
+    return { element };
+  });
+  const result = validateDeckElementBalance(cards);
+
+  if (!result.valid) {
+    throw new DeckValidationError("invalid_element_balance");
+  }
+
+  return result;
 }
 
 export function calculateDeckTotalPower(cards: readonly Pick<PlayerDeckCard, "power">[]) {

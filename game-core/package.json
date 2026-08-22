@@ -1,0 +1,24 @@
+{
+  "name": "@cardastika/game-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "tsx --test src/deckBalance.test.ts"
+  },
+  "dependencies": {
+    "@cardastika/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

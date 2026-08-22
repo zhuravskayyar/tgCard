@@ -12,6 +12,19 @@ These are the current product constraints.
 - Battle calculations must live in `game-core` and the server must remain
   authoritative over battle outcomes.
 
+## Deck element balance
+
+- A complete deck contains exactly 9 cards across exactly 4 elements.
+- Every element must contribute at least 2 and at most 3 cards.
+- Therefore every complete deck has a `3/2/2/2` element distribution.
+- Any of the four elements may be the element represented three times.
+
+Inventory is unrestricted by element balance. The rule applies only to active
+deck composition. Every future direct deck add, replacement, auto-fill,
+auto-upgrade, or one-click replacement must use the canonical policy in
+`game-core`; receiving or buying an inventory card must not silently modify the
+active deck.
+
 Card abilities, battles, collection bonuses, and further economy behavior are
 purposely not specified yet.
 
