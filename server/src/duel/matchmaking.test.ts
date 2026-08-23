@@ -14,7 +14,7 @@ test("matchmaking excludes self, invalid decks, and players outside the exact ra
   assert.equal(selected?.playerId, "eligible");
 });
 
-test("matchmaking returns no opponent and never creates a fake fallback", () => {
+test("real-player selector returns null when no candidate fits so the service can use its bot fallback", () => {
   const selected = selectMatchmakingCandidate("self", getMatchmakingRange(1_000, 5), [
     { playerId: "self", effectiveDeckPower: 1_000, validDeck: true },
     { playerId: "outside", effectiveDeckPower: 1_151, validDeck: true },

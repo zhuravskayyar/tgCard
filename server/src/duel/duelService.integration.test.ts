@@ -25,6 +25,57 @@ async function cleanup(pool: Pool, playerIds: string[]) {
   await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
 }
 
+test("matchmaking persists and starts a bot snapshot when no real player is in range", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const challengerUser = telegramUser("bot fallback");
+  const playerIds: string[] = [];
+  try {
+    const challenger = await players.findOrCreateFromTelegram(challengerUser);
+    playerIds.push(challenger.id);
+    await pool.query(
+      "UPDATE player_card_instances SET bonus_power = 100000000 WHERE player_id = $1",
+      [challenger.id],
+    );
+
+    const service = new DuelService(pool, () => 0.5);
+    const found = await service.search(challenger.id);
+    assert.equal(found.opponent.powerDifferencePct, 0);
+    assert.equal(found.opponent.photoUrl, null);
+    assert.match(found.opponent.name, /^[A-Za-z]+_[a-z]+\d+$/);
+
+    const search = await pool.query<{
+      opponent_id: string | null;
+      opponent_kind: string;
+      opponent_snapshot: { name: string };
+    }>(
+      "SELECT opponent_id, opponent_kind, opponent_snapshot FROM duel_matchmaking_searches WHERE id = $1",
+      [found.searchId],
+    );
+    assert.equal(search.rows[0]?.opponent_kind, "bot");
+    assert.equal(search.rows[0]?.opponent_id, null);
+    assert.equal(search.rows[0]?.opponent_snapshot.name, found.opponent.name);
+
+    const duel = await service.start(challenger.id, found.searchId);
+    assert.equal(duel.opponent.name, found.opponent.name);
+    assert.equal(duel.opponent.cards.length, 9);
+    assert.ok(duel.opponent.cards.every(({ instanceId }) => instanceId.startsWith("bot:")));
+
+    const persisted = await pool.query<{ opponent_id: string | null; opponent_kind: string }>(
+      "SELECT opponent_id, opponent_kind FROM duels WHERE id = $1",
+      [duel.duelId],
+    );
+    assert.equal(persisted.rows[0]?.opponent_kind, "bot");
+    assert.equal(persisted.rows[0]?.opponent_id, null);
+  } finally {
+    if (playerIds.length) await cleanup(pool, playerIds);
+    await pool.end();
+  }
+});
+
 test("winning finalizes once, duplicate final action conflicts, and finished reload does not re-award", {
   skip: !databaseUrl,
 }, async () => {

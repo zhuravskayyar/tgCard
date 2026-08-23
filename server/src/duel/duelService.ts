@@ -37,6 +37,7 @@ import {
   mapCardInstanceRow,
   type CardInstanceProjectionRow,
 } from "../cards/cardInstanceMapper.js";
+import { createBotOpponentSnapshot } from "./botOpponent.js";
 import { selectMatchmakingCandidate } from "./matchmaking.js";
 
 const SEARCH_LIFETIME_MS = 10 * 60 * 1_000;
@@ -67,7 +68,9 @@ interface ModifierRow {
 }
 
 interface SearchRow {
-  opponent_id: string;
+  opponent_id: string | null;
+  opponent_kind: "bot" | "real";
+  opponent_snapshot: DuelSideSnapshot | null;
 }
 
 interface DuelRow {
@@ -78,7 +81,7 @@ interface DuelRow {
   enemy_hp: number;
   enemy_reserve_queue: DuelCardSnapshot[];
   id: string;
-  opponent_id: string;
+  opponent_id: string | null;
   opponent_snapshot: DuelSideSnapshot;
   player_active_slots: DuelCardSnapshot[];
   player_hp: number;
@@ -338,7 +341,9 @@ export class DuelService {
         }
       }
       const opponent = selectMatchmakingCandidate(challengerId, range, candidates, this.random);
-      if (!opponent) throw new DuelNoOpponentFoundError();
+      const opponentKind = opponent ? "real" : "bot";
+      const opponentSnapshot = opponent?.snapshot
+        ?? createBotOpponentSnapshot(challenger.snapshot, this.random);
 
       const searchId = randomUUID();
       await client.query(
@@ -347,19 +352,28 @@ export class DuelService {
       );
       await client.query(
         `
-          INSERT INTO duel_matchmaking_searches (id, challenger_id, opponent_id, expires_at)
-          VALUES ($1, $2, $3, $4)
+          INSERT INTO duel_matchmaking_searches (
+            id, challenger_id, opponent_id, opponent_kind, opponent_snapshot, expires_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
         `,
-        [searchId, challengerId, opponent.playerId, new Date(Date.now() + SEARCH_LIFETIME_MS)],
+        [
+          searchId,
+          challengerId,
+          opponent?.playerId ?? null,
+          opponentKind,
+          opponent ? null : JSON.stringify(opponentSnapshot),
+          new Date(Date.now() + SEARCH_LIFETIME_MS),
+        ],
       );
       await client.query("COMMIT");
       const preview: DuelOpponentPreview = {
-        name: opponent.snapshot.name,
-        photoUrl: opponent.snapshot.photoUrl,
-        level: opponent.snapshot.level,
-        effectiveDeckPower: opponent.snapshot.effectiveDeckPower,
+        name: opponentSnapshot.name,
+        photoUrl: opponentSnapshot.photoUrl,
+        level: opponentSnapshot.level,
+        effectiveDeckPower: opponentSnapshot.effectiveDeckPower,
         powerDifferencePct: Math.round(
-          (opponent.snapshot.effectiveDeckPower - challenger.snapshot.effectiveDeckPower)
+          (opponentSnapshot.effectiveDeckPower - challenger.snapshot.effectiveDeckPower)
           / challenger.snapshot.effectiveDeckPower * 100,
         ),
       };
@@ -380,7 +394,7 @@ export class DuelService {
       if (active.rowCount) throw new DuelAlreadyActiveError();
       const searchResult = await client.query<SearchRow>(
         `
-          SELECT opponent_id
+          SELECT opponent_id, opponent_kind, opponent_snapshot
           FROM duel_matchmaking_searches
           WHERE id = $1 AND challenger_id = $2 AND used_at IS NULL AND expires_at > NOW()
           FOR UPDATE
@@ -391,35 +405,43 @@ export class DuelService {
       if (!search) throw new DuelSearchInvalidError();
 
       const challenger = await loadParticipant(client, challengerId);
-      const opponent = await loadParticipant(client, search.opponent_id);
+      let opponentSnapshot: DuelSideSnapshot;
+      if (search.opponent_kind === "bot") {
+        if (!search.opponent_snapshot || search.opponent_id) throw new DuelSearchInvalidError();
+        opponentSnapshot = search.opponent_snapshot;
+      } else {
+        if (!search.opponent_id || search.opponent_snapshot) throw new DuelSearchInvalidError();
+        opponentSnapshot = (await loadParticipant(client, search.opponent_id)).snapshot;
+      }
       const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, challenger.player.duel_win_streak);
-      if (!isDeckPowerInMatchmakingRange(opponent.snapshot.effectiveDeckPower, range)) {
+      if (!isDeckPowerInMatchmakingRange(opponentSnapshot.effectiveDeckPower, range)) {
         throw new DuelNoOpponentFoundError();
       }
 
       const playerPool = initializeCyclicCardPool(challenger.snapshot.cards, this.random);
-      const enemyPool = initializeCyclicCardPool(opponent.snapshot.cards, this.random);
+      const enemyPool = initializeCyclicCardPool(opponentSnapshot.cards, this.random);
       const duelId = randomUUID();
       const inserted = await client.query<DuelRow>(
         `
           INSERT INTO duels (
-            id, challenger_id, opponent_id, status,
+            id, challenger_id, opponent_id, opponent_kind, status,
             challenger_snapshot, opponent_snapshot,
             player_hp, enemy_hp,
             player_active_slots, enemy_active_slots,
             player_reserve_queue, enemy_reserve_queue
           )
-          VALUES ($1, $2, $3, 'active', $4, $5, $6, $7, $8, $9, $10, $11)
+          VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING ${DUEL_COLUMNS}
         `,
         [
           duelId,
           challengerId,
           search.opponent_id,
+          search.opponent_kind,
           JSON.stringify(challenger.snapshot),
-          JSON.stringify(opponent.snapshot),
+          JSON.stringify(opponentSnapshot),
           challenger.snapshot.startingHp,
-          opponent.snapshot.startingHp,
+          opponentSnapshot.startingHp,
           JSON.stringify(playerPool.activeCards),
           JSON.stringify(enemyPool.activeCards),
           JSON.stringify(playerPool.reserveQueue),
