@@ -1,20 +1,13 @@
-import type { CardElement, CardRarity } from "./card.js";
+import type { PlayerCardInstance } from "./card.js";
 
 export const DECK_SIZE = 9;
 
-export interface PlayerDeckCard {
-  artKey: string | null;
-  cardId: string;
-  code: string;
-  collectionId: string | null;
-  displayName: string | null;
-  element: CardElement;
-  power: number;
-  rarity: CardRarity;
+export interface PlayerDeckCard extends PlayerCardInstance {
   slot: number;
 }
 
 export interface PlayerDeckResponse {
+  baseBattleHp: number;
   cards: PlayerDeckCard[];
   totalPower: number;
 }

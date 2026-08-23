@@ -20,22 +20,29 @@ export interface CardDefinition {
   displayName: string | null;
   element: CardElement;
   id: string;
-  power: number;
-  rarity: CardRarity;
 }
 
-export interface PlayerCard {
+export interface PlayerCardInstance {
   artKey: string | null;
+  basePower: number;
+  bonusPower: number;
   cardId: string;
   code: string;
   collectionId: string | null;
   displayName: string | null;
   element: CardElement;
-  power: number;
-  quantity: number;
+  finalPower: number;
+  instanceId: string;
+  level: number;
   rarity: CardRarity;
 }
 
+export type PlayerCard = PlayerCardInstance;
+
 export interface PlayerCardsResponse {
-  cards: PlayerCard[];
+  cards: PlayerCardInstance[];
+}
+
+export interface WeakPlayerCardsResponse {
+  cards: PlayerCardInstance[];
 }

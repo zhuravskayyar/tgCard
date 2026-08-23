@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { countDeckElements } from "@cardastika/game-core";
-import type { PlayerCard } from "@cardastika/shared";
+import { countDeckElements, type GeneratedLevelPolicy } from "@cardastika/game-core";
+import type { CardElement, CardRarity } from "@cardastika/shared";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { DeckRepository } from "../decks/deckRepository.js";
@@ -11,6 +11,7 @@ import { PlayerRepository } from "../users/playerRepository.js";
 import type { ShopRandomSource } from "./shopChancePolicy.js";
 import {
   InsufficientShopFundsError,
+  ShopLevelSelectionPolicyUnavailableError,
   ShopPersistenceError,
   ShopService,
 } from "./shopService.js";
@@ -49,9 +50,9 @@ function createTelegramUser(label: string): ValidatedTelegramUser {
 }
 
 function createCard(
-  rarity: PlayerCard["rarity"],
-  element: PlayerCard["element"],
-  power: number,
+  rarity: CardRarity,
+  element: CardElement,
+  level: number,
   shopEligible = true,
 ) {
   const suffix = randomUUID();
@@ -62,7 +63,7 @@ function createCard(
     artKey: null,
     element,
     rarity,
-    power,
+    level,
     collectionId: null,
     shopEligible,
   };
@@ -70,35 +71,45 @@ function createCard(
 
 type TestCard = ReturnType<typeof createCard>;
 
+function selectInsertedReward(cards: readonly TestCard[]) {
+  return async (_client: unknown, rarity: CardRarity) => {
+    const card = cards.find((candidate) => candidate.rarity === rarity && candidate.shopEligible);
+    if (!card) throw new ShopRewardUnavailableError(rarity);
+    return {
+      id: card.cardId,
+      code: card.code,
+      displayName: card.displayName,
+      artKey: card.artKey,
+      element: card.element,
+      targetRarity: card.rarity,
+      collectionId: card.collectionId,
+    };
+  };
+}
+
+function levelPolicyFor(cards: readonly TestCard[]): GeneratedLevelPolicy {
+  return (rarity) => {
+    const card = cards.find((candidate) => candidate.rarity === rarity && candidate.shopEligible);
+    if (!card) throw new Error(`No test level for ${rarity}`);
+    return card.level;
+  };
+}
+
 async function insertCards(pool: Pool, cards: readonly TestCard[]) {
   for (const card of cards) {
     await pool.query(
       `
-        INSERT INTO cards (
-          id,
-          code,
-          display_name,
-          art_key,
-          element,
-          rarity,
-          power,
-          collection_id,
-          shop_eligible
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO cards (id, code, display_name, art_key, element, collection_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `,
-      [
-        card.cardId,
-        card.code,
-        card.displayName,
-        card.artKey,
-        card.element,
-        card.rarity,
-        card.power,
-        card.collectionId,
-        card.shopEligible,
-      ],
+      [card.cardId, card.code, card.displayName, card.artKey, card.element, card.collectionId],
     );
+    if (card.shopEligible) {
+      await pool.query(
+        "INSERT INTO shop_card_pools (card_id, target_rarity) VALUES ($1, $2)",
+        [card.cardId, card.rarity],
+      );
+    }
   }
 }
 
@@ -107,7 +118,7 @@ async function cleanup(pool: Pool, telegramUserIds: string[], cardIds: string[])
   await pool.query("DELETE FROM cards WHERE id = ANY($1::text[])", [cardIds]);
 }
 
-test("prices, miss increments, quantities, and persisted catalog state are authoritative", {
+test("prices, miss increments, independent instances, and persisted pity are authoritative", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -116,9 +127,9 @@ test("prices, miss increments, quantities, and persisted catalog state are autho
   const inventory = new InventoryRepository(pool);
   const user = createTelegramUser("prices-and-pity");
   const rewards = {
-    uncommon: createCard("uncommon", "fire", 40),
-    epic: createCard("epic", "water", 45),
-    legendary: createCard("legendary", "air", 50),
+    uncommon: createCard("uncommon", "fire", 5),
+    epic: createCard("epic", "water", 20),
+    legendary: createCard("legendary", "air", 35),
   };
   const cards = Object.values(rewards);
 
@@ -126,16 +137,16 @@ test("prices, miss increments, quantities, and persisted catalog state are autho
     await insertCards(pool, cards);
     const player = await players.findOrCreateFromTelegram(user);
     await pool.query("UPDATE players SET gold = 250 WHERE id = $1", [player.id]);
-    const shop = new ShopService(pool, { rng: new AlwaysMissRandomSource() });
+    const shop = new ShopService(pool, {
+      rng: new AlwaysMissRandomSource(),
+      selectReward: selectInsertedReward(cards),
+      levelPolicy: levelPolicyFor(cards),
+    });
     const initialCatalog = await shop.getCardsCatalog(player.id);
-
     assert.deepEqual(initialCatalog.offers.map(({ id }) => id), [
-      "card_uncommon",
-      "card_epic",
-      "card_legendary",
+      "card_uncommon", "card_epic", "card_legendary",
     ]);
     assert.ok(initialCatalog.offers.every(({ canAfford }) => canAfford));
-    assert.ok(initialCatalog.offers.flatMap(({ upgrades }) => upgrades).every(({ chance }) => chance === 0));
 
     const firstSilver = await shop.purchase(player.id, "card_uncommon");
     const secondSilver = await shop.purchase(player.id, "card_uncommon");
@@ -145,24 +156,17 @@ test("prices, miss increments, quantities, and persisted catalog state are autho
 
     assert.deepEqual(firstSilver.updatedBalance, { silver: 1_000, gold: 250 });
     assert.deepEqual(firstSilver.updatedChances, [
-      { rarity: "rare", chance: 3.5 },
-      { rarity: "epic", chance: 0.25 },
+      { rarity: "rare", chance: 3.5 }, { rarity: "epic", chance: 0.25 },
     ]);
     assert.deepEqual(secondSilver.updatedBalance, { silver: 500, gold: 250 });
-    assert.deepEqual(secondSilver.updatedChances, [
-      { rarity: "rare", chance: 7 },
-      { rarity: "epic", chance: 0.5 },
-    ]);
     assert.deepEqual(epic.updatedBalance, { silver: 500, gold: 200 });
-    assert.deepEqual(epic.updatedChances, [
-      { rarity: "legendary", chance: 3.5 },
-      { rarity: "mythic", chance: 0.25 },
-    ]);
     assert.deepEqual(legendary.updatedBalance, { silver: 500, gold: 50 });
-    assert.deepEqual(legendary.updatedChances, [{ rarity: "mythic", chance: 3.5 }]);
-    assert.equal(ownedCards.find(({ cardId }) => cardId === rewards.uncommon.cardId)?.quantity, 2);
-    assert.equal(ownedCards.find(({ cardId }) => cardId === rewards.epic.cardId)?.quantity, 1);
-    assert.equal(ownedCards.find(({ cardId }) => cardId === rewards.legendary.cardId)?.quantity, 1);
+    const uncommonCopies = ownedCards.filter(({ cardId }) => cardId === rewards.uncommon.cardId);
+    assert.equal(uncommonCopies.length, 2);
+    assert.equal(new Set(uncommonCopies.map(({ instanceId }) => instanceId)).size, 2);
+    assert.ok(uncommonCopies.every(({ level, rarity }) => level === 5 && rarity === "uncommon"));
+    assert.equal(ownedCards.filter(({ cardId }) => cardId === rewards.epic.cardId).length, 1);
+    assert.equal(ownedCards.filter(({ cardId }) => cardId === rewards.legendary.cardId).length, 1);
 
     const reopenedCatalog = await new ShopService(pool).getCardsCatalog(player.id);
     assert.deepEqual(reopenedCatalog.offers[0]?.upgrades.map(({ chance }) => chance), [7, 0.5]);
@@ -180,13 +184,16 @@ test("pity belongs to one player and survives a new service/session", { skip: !d
   const players = new PlayerRepository(pool);
   const firstUser = createTelegramUser("first-owner");
   const secondUser = createTelegramUser("second-owner");
-  const reward = createCard("uncommon", "earth", 30);
+  const reward = createCard("uncommon", "earth", 5);
 
   try {
     await insertCards(pool, [reward]);
     const first = await players.findOrCreateFromTelegram(firstUser);
     const second = await players.findOrCreateFromTelegram(secondUser);
-    await new ShopService(pool, { rng: new AlwaysMissRandomSource() }).purchase(first.id, "card_uncommon");
+    await new ShopService(pool, {
+      rng: new AlwaysMissRandomSource(),
+      levelPolicy: levelPolicyFor([reward]),
+    }).purchase(first.id, "card_uncommon");
 
     const freshService = new ShopService(pool);
     const firstCatalog = await freshService.getCardsCatalog(first.id);
@@ -204,7 +211,7 @@ test("a higher rarity hit halves only its meter and increments lower pity", { sk
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
   const user = createTelegramUser("epic-hit");
-  const reward = createCard("epic", "air", 60);
+  const reward = createCard("epic", "air", 20);
 
   try {
     await insertCards(pool, [reward]);
@@ -217,50 +224,50 @@ test("a higher rarity hit halves only its meter and increments lower pity", { sk
       [player.id],
     );
     const result = await new ShopService(pool, {
-      rng: new SequenceRandomSource([0, 0]),
+      rng: new SequenceRandomSource([0, 0, 0]),
+      levelPolicy: levelPolicyFor([reward]),
     }).purchase(player.id, "card_uncommon");
 
     assert.equal(result.reward.rarity, "epic");
+    assert.equal(result.reward.level, 20);
     assert.deepEqual(result.updatedChances, [
-      { rarity: "rare", chance: 21 },
-      { rarity: "epic", chance: 2 },
+      { rarity: "rare", chance: 21 }, { rarity: "epic", chance: 2 },
     ]);
-    const persisted = await new ShopService(pool).getCardsCatalog(player.id);
-    assert.deepEqual(persisted.offers[0]?.upgrades.map(({ chance }) => chance), [21, 2]);
   } finally {
     await cleanup(pool, [user.id], [reward.cardId]);
     await pool.end();
   }
 });
 
-test("missing reward and downstream failure roll back balance, pity, and inventory", {
+test("unresolved level policy and downstream failures roll back balance, pity, and inventory", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
   const user = createTelegramUser("rollback");
-  const reward = createCard("uncommon", "water", 34);
+  const reward = createCard("uncommon", "water", 5);
 
   try {
     await insertCards(pool, [reward]);
     const player = await players.findOrCreateFromTelegram(user);
+    await assert.rejects(
+      new ShopService(pool, { rng: new AlwaysMissRandomSource() }).purchase(player.id, "card_uncommon"),
+      (error) => error instanceof ShopLevelSelectionPolicyUnavailableError,
+    );
     const unavailableShop = new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
-      selectReward: async () => {
-        throw new ShopRewardUnavailableError("uncommon");
-      },
+      levelPolicy: levelPolicyFor([reward]),
+      selectReward: async () => { throw new ShopRewardUnavailableError("uncommon"); },
     });
     await assert.rejects(
       unavailableShop.purchase(player.id, "card_uncommon"),
       (error) => error instanceof ShopRewardUnavailableError,
     );
-
     const failingDeckShop = new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
-      recalculateDeck: async () => {
-        throw new Error("deck write failed");
-      },
+      levelPolicy: levelPolicyFor([reward]),
+      recalculateDeck: async () => { throw new Error("deck write failed"); },
     });
     await assert.rejects(
       failingDeckShop.purchase(player.id, "card_uncommon"),
@@ -273,7 +280,7 @@ test("missing reward and downstream failure roll back balance, pity, and invento
       [player.id],
     );
     const ownership = await pool.query<{ count: string }>(
-      "SELECT count(*) FROM player_cards WHERE player_id = $1 AND card_id = $2",
+      "SELECT count(*) FROM player_card_instances WHERE player_id = $1 AND card_id = $2",
       [player.id, reward.cardId],
     );
     assert.equal(balance.rows[0]?.silver, "1500");
@@ -290,41 +297,40 @@ test("concurrent purchases serialize balance and pity without double-spend", { s
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
   const user = createTelegramUser("concurrent");
-  const reward = createCard("uncommon", "water", 35);
+  const reward = createCard("uncommon", "water", 5);
 
   try {
     await insertCards(pool, [reward]);
     const player = await players.findOrCreateFromTelegram(user);
     await pool.query("UPDATE players SET silver = 600 WHERE id = $1", [player.id]);
-    const shop = new ShopService(pool, { rng: new AlwaysMissRandomSource() });
+    const shop = new ShopService(pool, {
+      rng: new AlwaysMissRandomSource(),
+      selectReward: selectInsertedReward([reward]),
+      levelPolicy: levelPolicyFor([reward]),
+    });
     const results = await Promise.allSettled([
       shop.purchase(player.id, "card_uncommon"),
       shop.purchase(player.id, "card_uncommon"),
     ]);
-    const catalog = await shop.getCardsCatalog(player.id);
     const balance = await pool.query<{ silver: string }>("SELECT silver FROM players WHERE id = $1", [player.id]);
-    const ownership = await pool.query<{ quantity: number }>(
-      "SELECT quantity FROM player_cards WHERE player_id = $1 AND card_id = $2",
+    const ownership = await pool.query<{ count: string }>(
+      "SELECT count(*) FROM player_card_instances WHERE player_id = $1 AND card_id = $2",
       [player.id, reward.cardId],
     );
 
     assert.equal(results.filter(({ status }) => status === "fulfilled").length, 1);
-    assert.equal(
-      results.filter(
-        (result) => result.status === "rejected" && result.reason instanceof InsufficientShopFundsError,
-      ).length,
-      1,
-    );
+    assert.equal(results.filter((result) => (
+      result.status === "rejected" && result.reason instanceof InsufficientShopFundsError
+    )).length, 1);
     assert.equal(balance.rows[0]?.silver, "100");
-    assert.equal(ownership.rows[0]?.quantity, 1);
-    assert.deepEqual(catalog.offers[0]?.upgrades.map(({ chance }) => chance), [3.5, 0.25]);
+    assert.equal(ownership.rows[0]?.count, "1");
   } finally {
     await cleanup(pool, [user.id], [reward.cardId]);
     await pool.end();
   }
 });
 
-test("shop-eligible reward enters unrestricted inventory and canonical deck stays 3/2/2/2", {
+test("shop instance enters inventory, strongest deck, and weak cards remain its complement", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -333,28 +339,38 @@ test("shop-eligible reward enters unrestricted inventory and canonical deck stay
   const decks = new DeckRepository(pool);
   const inventory = new InventoryRepository(pool);
   const user = createTelegramUser("deck");
-  const reward = createCard("uncommon", "fire", 100, true);
-  const ineligible = createCard("uncommon", "fire", 200, false);
+  const reward = createCard("uncommon", "fire", 8, true);
+  const ineligible = createCard("uncommon", "fire", 9, false);
 
   try {
     await insertCards(pool, [reward, ineligible]);
     const player = await players.findOrCreateFromTelegram(user);
     const before = await decks.findByPlayerId(player.id);
-    const result = await new ShopService(pool, { rng: new AlwaysMissRandomSource() })
-      .purchase(player.id, "card_uncommon");
+    const result = await new ShopService(pool, {
+      rng: new AlwaysMissRandomSource(),
+      selectReward: selectInsertedReward([reward]),
+      levelPolicy: levelPolicyFor([reward]),
+    }).purchase(player.id, "card_uncommon");
     const after = await decks.findByPlayerId(player.id);
     const ownedCards = await inventory.findByPlayerId(player.id);
+    const weakCards = await inventory.findWeakByPlayerId(player.id);
 
     assert.equal(result.reward.cardId, reward.cardId);
+    assert.equal(result.reward.finalPower, 100);
     assert.equal(result.deckChanged, true);
     assert.equal(result.previousDeckPower, before.totalPower);
     assert.equal(result.deckPower, after.totalPower);
     assert.equal(after.totalPower, before.totalPower + 88);
-    assert.ok(after.cards.some(({ cardId }) => cardId === reward.cardId));
+    assert.ok(after.cards.some(({ instanceId }) => instanceId === result.reward.instanceId));
     assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
-    assert.ok(ownedCards.some(({ cardId }) => cardId === reward.cardId));
+    assert.equal(ownedCards.length, 10);
+    assert.equal(weakCards.length, 1);
+    const deckIds = new Set(after.cards.map(({ instanceId }) => instanceId));
+    assert.deepEqual(
+      new Set(weakCards.map(({ instanceId }) => instanceId)),
+      new Set(ownedCards.filter(({ instanceId }) => !deckIds.has(instanceId)).map(({ instanceId }) => instanceId)),
+    );
     assert.ok(!ownedCards.some(({ cardId }) => cardId === ineligible.cardId));
-    assert.equal(ownedCards.filter(({ element }) => element === "fire").length, 4);
   } finally {
     await cleanup(pool, [user.id], [reward.cardId, ineligible.cardId]);
     await pool.end();

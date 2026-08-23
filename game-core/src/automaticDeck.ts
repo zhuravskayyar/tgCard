@@ -9,11 +9,11 @@ export interface OwnedDeckCard {
   cardId: string;
   code: string;
   element: CardElement;
-  power: number;
-  quantity: number;
+  finalPower: number;
+  instanceId: string;
 }
 
-export type BestValidDeckCard = Omit<OwnedDeckCard, "quantity">;
+export type BestValidDeckCard = OwnedDeckCard;
 
 export type BestValidDeckResult =
   | {
@@ -27,71 +27,52 @@ export type BestValidDeckResult =
       status: "insufficient_valid_cards";
     };
 
-interface ExpandedDeckCard extends BestValidDeckCard {
-  copyIndex: number;
-}
-
-function compareCanonicalIdentity(left: BestValidDeckCard, right: BestValidDeckCard) {
+function compareStableIdentity(left: BestValidDeckCard, right: BestValidDeckCard) {
   const codeComparison = left.code < right.code ? -1 : left.code > right.code ? 1 : 0;
   if (codeComparison !== 0) return codeComparison;
-  return left.cardId < right.cardId ? -1 : left.cardId > right.cardId ? 1 : 0;
+  const cardComparison = left.cardId < right.cardId ? -1 : left.cardId > right.cardId ? 1 : 0;
+  if (cardComparison !== 0) return cardComparison;
+  return left.instanceId < right.instanceId ? -1 : left.instanceId > right.instanceId ? 1 : 0;
 }
 
-function compareCardStrength(left: BestValidDeckCard, right: BestValidDeckCard) {
-  return right.power - left.power || compareCanonicalIdentity(left, right);
+export function compareInstanceStrength(left: BestValidDeckCard, right: BestValidDeckCard) {
+  return right.finalPower - left.finalPower || compareStableIdentity(left, right);
 }
 
 function compareTiedDecks(left: readonly BestValidDeckCard[], right: readonly BestValidDeckCard[]) {
-  const leftRanked = [...left].sort(compareCardStrength);
-  const rightRanked = [...right].sort(compareCardStrength);
+  const leftRanked = [...left].sort(compareInstanceStrength);
+  const rightRanked = [...right].sort(compareInstanceStrength);
 
   for (let index = 0; index < leftRanked.length; index += 1) {
-    const comparison = compareCardStrength(leftRanked[index]!, rightRanked[index]!);
+    const comparison = compareInstanceStrength(leftRanked[index]!, rightRanked[index]!);
     if (comparison !== 0) return comparison;
   }
-
   return 0;
 }
 
-function expandOwnedCards(ownedCards: readonly OwnedDeckCard[]) {
-  const cardsByElement: Record<CardElement, ExpandedDeckCard[]> = {
-    fire: [],
-    water: [],
-    air: [],
-    earth: [],
+function groupOwnedInstances(ownedCards: readonly OwnedDeckCard[]) {
+  const cardsByElement: Record<CardElement, BestValidDeckCard[]> = {
+    fire: [], water: [], air: [], earth: [],
   };
+  const seenInstanceIds = new Set<string>();
 
   for (const card of ownedCards) {
-    if (!Number.isSafeInteger(card.power) || card.power <= 0) {
-      throw new RangeError(`Invalid power for card ${card.cardId}`);
+    if (!Number.isSafeInteger(card.finalPower) || card.finalPower <= 0) {
+      throw new RangeError(`Invalid final power for card instance ${card.instanceId}`);
     }
-    if (!Number.isSafeInteger(card.quantity) || card.quantity <= 0) {
-      throw new RangeError(`Invalid quantity for card ${card.cardId}`);
+    if (!card.instanceId || seenInstanceIds.has(card.instanceId)) {
+      throw new RangeError(`Duplicate or missing card instance ID: ${card.instanceId}`);
     }
-
-    const usableQuantity = Math.min(card.quantity, MAX_DECK_CARDS_PER_ELEMENT);
-    for (let copyIndex = 0; copyIndex < usableQuantity; copyIndex += 1) {
-      cardsByElement[card.element].push({
-        cardId: card.cardId,
-        code: card.code,
-        element: card.element,
-        power: card.power,
-        copyIndex,
-      });
-    }
+    seenInstanceIds.add(card.instanceId);
+    cardsByElement[card.element].push({ ...card });
   }
 
-  for (const element of CARD_ELEMENTS) {
-    cardsByElement[element].sort((left, right) => (
-      compareCardStrength(left, right) || left.copyIndex - right.copyIndex
-    ));
-  }
-
+  for (const element of CARD_ELEMENTS) cardsByElement[element].sort(compareInstanceStrength);
   return cardsByElement;
 }
 
 export function buildBestValidDeck(ownedCards: readonly OwnedDeckCard[]): BestValidDeckResult {
-  const cardsByElement = expandOwnedCards(ownedCards);
+  const cardsByElement = groupOwnedInstances(ownedCards);
   const availableElementCounts: DeckElementCounts = {
     fire: cardsByElement.fire.length,
     water: cardsByElement.water.length,
@@ -118,7 +99,7 @@ export function buildBestValidDeck(ownedCards: readonly OwnedDeckCard[]): BestVa
     const cards = CARD_ELEMENTS.flatMap((element) => (
       cardsByElement[element].slice(0, elementCounts[element])
     ));
-    const totalPower = cards.reduce((total, card) => total + card.power, 0);
+    const totalPower = cards.reduce((total, card) => total + card.finalPower, 0);
 
     if (
       totalPower > bestTotalPower ||
@@ -136,9 +117,7 @@ export function buildBestValidDeck(ownedCards: readonly OwnedDeckCard[]): BestVa
 
   return {
     status: "ready",
-    cards: bestCards
-      .map(({ cardId, code, element, power }) => ({ cardId, code, element, power }))
-      .sort(compareCanonicalIdentity),
+    cards: [...bestCards].sort(compareStableIdentity),
     elementCounts: bestElementCounts,
     totalPower: bestTotalPower,
   };

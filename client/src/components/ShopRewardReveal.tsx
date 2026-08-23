@@ -49,7 +49,7 @@ export function ShopRewardReveal({
 
       <div className={`shop-reveal__card deck-card--${reward.element} deck-card--${reward.rarity}`}>
         <CardArtwork artKey={reward.artKey} element={reward.element} />
-        <strong className="shop-reveal__power">{reward.power}</strong>
+        <strong className="shop-reveal__power">{reward.finalPower}</strong>
         <span className="shop-reveal__element" aria-hidden="true">
           <ElementSymbol element={reward.element} />
         </span>
@@ -57,7 +57,8 @@ export function ShopRewardReveal({
       </div>
 
       <dl className="shop-reveal__facts">
-        <div><dt>Сила</dt><dd>{reward.power}</dd></div>
+        <div><dt>Рівень</dt><dd>{reward.level}</dd></div>
+        <div><dt>Сила</dt><dd>{reward.finalPower}</dd></div>
         <div><dt>Стихія</dt><dd>{elementLabels[reward.element]}</dd></div>
         <div><dt>Рідкість</dt><dd>{rarityLabels[reward.rarity]}</dd></div>
       </dl>

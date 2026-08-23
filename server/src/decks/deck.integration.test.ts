@@ -103,6 +103,7 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
   const user = createTelegramUser("stronger-card");
   const bonusCardId = `test_${randomUUID()}`;
   const bonusCardCode = `test-${randomUUID()}`;
+  const bonusInstanceId = randomUUID();
 
   try {
     const player = await players.findOrCreateFromTelegram(user);
@@ -113,14 +114,17 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
       await client.query("BEGIN");
       await client.query(
         `
-          INSERT INTO cards (id, code, display_name, element, rarity, power)
-          VALUES ($1, $2, 'Test fire card', 'fire', 'common', 50)
+          INSERT INTO cards (id, code, display_name, element)
+          VALUES ($1, $2, 'Test fire card', 'fire')
         `,
         [bonusCardId, bonusCardCode],
       );
       await client.query(
-        "INSERT INTO player_cards (player_id, card_id, quantity) VALUES ($1, $2, 1)",
-        [player.id, bonusCardId],
+        `
+          INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+          VALUES ($1, $2, $3, 1, 40)
+        `,
+        [bonusInstanceId, player.id, bonusCardId],
       );
       updatedResult = await recalculateAutomaticDeck(client, player.id);
       await client.query("COMMIT");
@@ -145,6 +149,8 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
     assert.equal(updatedResult.status, "updated");
     assert.equal(after.totalPower, before.totalPower + 38);
     assert.ok(after.cards.some(({ cardId }) => cardId === bonusCardId));
+    assert.ok(after.cards.some(({ instanceId }) => instanceId === bonusInstanceId));
+    assert.equal(after.baseBattleHp, after.totalPower);
     assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
     assert.equal(unchangedResult.status, "unchanged");
     assert.deepEqual(updatedAtAfterUnchangedCheck.rows[0], updatedAtBeforeUnchangedCheck.rows[0]);

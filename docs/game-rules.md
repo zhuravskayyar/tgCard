@@ -6,9 +6,11 @@ These are the current product constraints.
 - The game has 4 elements and 6 rarity levels.
 - The final card target is 180 cards arranged as 20 collections of 9 cards.
 - There are also 9 starter cards outside those collections.
-- Bonuses come from completed collections, not individual card buffs.
+- Collection bonuses come from completed collections; an instance's persisted
+  creation `bonusPower` is part of its own final power, not a mutable card buff.
 - A new account starts with 1,500 silver, 0 gold, and 9 starter cards.
-- Each starter card has power 12 and does not belong to a collection.
+- Each starter instance is Lv1 with base power 10, bonus power 2, final power
+  12, Common rarity, and no collection.
 - Battle calculations must live in `game-core` and the server must remain
   authoritative over battle outcomes.
 
@@ -16,7 +18,7 @@ These are the current product constraints.
 
 - The battle deck is automatic; players do not manually edit or save deck slots.
 - The server always assembles the strongest possible deck from cards the player
-  owns, using canonical power-first and card-code/ID tie-breaking.
+  owns, using final instance power and stable instance/card tie-breaking.
 - A complete deck contains exactly 9 cards across exactly 4 elements.
 - Every element must contribute at least 2 and at most 3 cards.
 - Therefore every complete deck has a `3/2/2/2` element distribution.
@@ -59,14 +61,16 @@ first. The isolated current cross-rarity policy treats lower targets as misses
 when a higher target succeeds, so their pity continues to accumulate rather
 than being silently reset.
 
-A shop purchase changes inventory only. Currency deduction, canonical card
-ownership, and automatic deck recalculation commit in one database transaction.
+A shop purchase changes inventory only. Currency deduction, instance creation,
+and automatic deck recalculation commit in one database transaction.
 The automatic deck service remains the sole owner of active deck composition.
-Only canonical cards explicitly marked shop-eligible can be selected, and the
-reward must exactly match the resolved rarity.
+Only canonical cards in the explicit Shop rarity pool can be selected, and the
+generated instance level must belong to the resolved rarity.
 
-Card levels are not part of the current Shop system. Rarity and power remain
-separate canonical card attributes until level progression is designed.
+Shop-pool membership is configuration attached to canonical definitions, not
+owned-card rarity. Instance rarity and power derive from the generated level.
+The exact level-selection distribution inside a resolved rarity remains an
+explicit unresolved product rule; see `docs/card-progression.md`.
 
 ## Permanent card content rules
 

@@ -47,7 +47,7 @@ test("GET player deck uses only the authenticated player's id", async () => {
     silver: 1500,
     gold: 0,
   };
-  const deck: PlayerDeckResponse = { cards: [], totalPower: 0 };
+  const deck: PlayerDeckResponse = { cards: [], totalPower: 0, baseBattleHp: 0 };
   let requestedPlayerId: string | null = null;
   const request = {
     method: "GET",
@@ -84,7 +84,7 @@ test("PUT player deck is retired", async () => {
       },
     },
     decks: {
-      findByPlayerId: async () => ({ cards: [], totalPower: 0 }),
+      findByPlayerId: async () => ({ cards: [], totalPower: 0, baseBattleHp: 0 }),
     },
   });
 

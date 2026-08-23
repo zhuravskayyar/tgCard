@@ -5,7 +5,9 @@ export {
   type CardElement,
   type CardRarity,
   type PlayerCard,
+  type PlayerCardInstance,
   type PlayerCardsResponse,
+  type WeakPlayerCardsResponse,
 } from "./card.js";
 export {
   DECK_SIZE,

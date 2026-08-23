@@ -1,4 +1,5 @@
-import type { CardDefinition, CardElement, CardRarity } from "@cardastika/shared";
+import { getCardPower } from "@cardastika/game-core";
+import type { CardDefinition, CardElement } from "@cardastika/shared";
 
 export const STARTER_CARD_COUNT = 9;
 
@@ -15,7 +16,12 @@ export const STARTER_CARD_SEED_CONFIG = Object.freeze({
     { displayName: "Кріт", element: "earth" },
     { displayName: "Вепр", element: "earth" },
   ] as const satisfies readonly { displayName: string; element: CardElement }[]),
-  rarity: "common" as const satisfies CardRarity,
+});
+
+export const STARTER_INSTANCE_DEFAULTS = Object.freeze({
+  level: 1,
+  bonusPower: 2,
+  finalPower: getCardPower({ level: 1, bonusPower: 2 }),
 });
 
 export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
@@ -34,8 +40,6 @@ export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
       displayName: content.displayName,
       artKey: null,
       element: content.element,
-      rarity: STARTER_CARD_SEED_CONFIG.rarity,
-      power: 12,
       collectionId: null,
     });
   }),

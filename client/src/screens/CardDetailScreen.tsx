@@ -49,12 +49,12 @@ export function CardDetailScreen({ card, inActiveDeck, onBack, onOpenShop }: Car
       </div>
 
       <div
-        aria-label={`Сила ${card.power}, стихія ${elementLabels[card.element]}, рідкість ${rarityLabels[card.rarity]}`}
+        aria-label={`Сила ${card.finalPower}, стихія ${elementLabels[card.element]}, рідкість ${rarityLabels[card.rarity]}`}
         className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`}
         role="img"
       >
         <CardArtwork artKey={card.artKey} element={card.element} />
-        <strong className="card-detail-card__power">{card.power}</strong>
+        <strong className="card-detail-card__power">{card.finalPower}</strong>
         <span className="card-detail-card__element" aria-hidden="true">
           <ElementSymbol element={card.element} />
         </span>
@@ -63,8 +63,24 @@ export function CardDetailScreen({ card, inActiveDeck, onBack, onOpenShop }: Car
 
       <dl className="card-facts">
         <div>
+          <dt>Назва</dt>
+          <dd>{card.displayName ?? "Недоступна"}</dd>
+        </div>
+        <div>
+          <dt>Рівень</dt>
+          <dd>{card.level}</dd>
+        </div>
+        <div>
           <dt>Сила</dt>
-          <dd>{card.power}</dd>
+          <dd>{card.finalPower}</dd>
+        </div>
+        <div>
+          <dt>Стихія</dt>
+          <dd>{elementLabels[card.element]}</dd>
+        </div>
+        <div>
+          <dt>Рідкість</dt>
+          <dd>{rarityLabels[card.rarity]}</dd>
         </div>
         <div>
           <dt>Колекція</dt>

@@ -44,7 +44,9 @@ test("new player receives nine starters and a second login does not duplicate th
     const firstPlayer = await players.findOrCreateFromTelegram(user);
     const firstInventory = await inventory.findByPlayerId(firstPlayer.id);
     assert.equal(firstInventory.length, STARTER_CARD_COUNT);
-    assert.equal(firstInventory.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
+    assert.ok(firstInventory.every(({ level, basePower, bonusPower, finalPower, rarity }) => (
+      level === 1 && basePower === 10 && bonusPower === 2 && finalPower === 12 && rarity === "common"
+    )));
     assert.deepEqual(
       firstInventory.map(({ displayName }) => displayName),
       STARTER_CARDS.map(({ displayName }) => displayName),
@@ -55,7 +57,7 @@ test("new player receives nine starters and a second login does not duplicate th
     const secondInventory = await inventory.findByPlayerId(secondPlayer.id);
     assert.equal(secondPlayer.id, firstPlayer.id);
     assert.equal(secondInventory.length, STARTER_CARD_COUNT);
-    assert.equal(secondInventory.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
+    assert.equal(new Set(secondInventory.map(({ instanceId }) => instanceId)).size, STARTER_CARD_COUNT);
   } finally {
     await cleanupPlayers(pool, [user.id]);
     await pool.end();
@@ -86,7 +88,7 @@ test("concurrent bootstrap requests cannot duplicate starter ownership", {
     assert.equal(left.id, right.id);
     assert.equal(Number(playerCount.rows[0]?.count), 1);
     assert.equal(cards.length, STARTER_CARD_COUNT);
-    assert.equal(cards.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
+    assert.equal(new Set(cards.map(({ instanceId }) => instanceId)).size, STARTER_CARD_COUNT);
   } finally {
     await cleanupPlayers(pool, [user.id]);
     await pool.end();
@@ -115,7 +117,7 @@ test("starter backfill is idempotent", { skip: !databaseUrl }, async () => {
     const cards = await inventory.findByPlayerId(playerId);
 
     assert.equal(cards.length, STARTER_CARD_COUNT);
-    assert.equal(cards.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
+    assert.equal(new Set(cards.map(({ instanceId }) => instanceId)).size, STARTER_CARD_COUNT);
   } finally {
     await cleanupPlayers(pool, [user.id]);
     await pool.end();
@@ -136,22 +138,27 @@ test("inventory lookup returns only the requested player's ownership", {
   try {
     const firstPlayer = await players.findOrCreateFromTelegram(firstUser);
     const secondPlayer = await players.findOrCreateFromTelegram(secondUser);
+    const duplicateInstanceId = randomUUID();
     await pool.query(
       `
-        UPDATE player_cards
-        SET quantity = 2
-        WHERE player_id = $1
-          AND card_id = (SELECT id FROM cards ORDER BY code LIMIT 1)
+        INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+        VALUES ($1, $2, $3, 2, 7)
       `,
-      [secondPlayer.id],
+      [duplicateInstanceId, secondPlayer.id, STARTER_CARDS[0]!.id],
     );
 
     const firstCards = await inventory.findByPlayerId(firstPlayer.id);
     const secondCards = await inventory.findByPlayerId(secondPlayer.id);
 
     assert.equal(firstCards.length, STARTER_CARD_COUNT);
-    assert.equal(firstCards.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT);
-    assert.equal(secondCards.reduce((total, card) => total + card.quantity, 0), STARTER_CARD_COUNT + 1);
+    assert.equal(firstCards.length, STARTER_CARD_COUNT);
+    assert.equal(secondCards.length, STARTER_CARD_COUNT + 1);
+    const duplicateDefinitions = secondCards.filter(({ cardId }) => cardId === STARTER_CARDS[0]!.id);
+    assert.equal(duplicateDefinitions.length, 2);
+    assert.equal(new Set(duplicateDefinitions.map(({ instanceId }) => instanceId)).size, 2);
+    assert.ok(duplicateDefinitions.some(({ instanceId, level, bonusPower, finalPower }) => (
+      instanceId === duplicateInstanceId && level === 2 && bonusPower === 7 && finalPower === 27
+    )));
   } finally {
     await cleanupPlayers(pool, [firstUser.id, secondUser.id]);
     await pool.end();

@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import type { CardRarity, PlayerCard } from "@cardastika/shared";
+import type { CardDefinition, CardRarity } from "@cardastika/shared";
 import type { PoolClient } from "pg";
 import type { ShopRandomSource } from "./shopChancePolicy.js";
 
@@ -9,14 +9,17 @@ interface CanonicalCardRow {
   code: string;
   collection_id: string | null;
   display_name: string | null;
-  element: PlayerCard["element"];
-  power: string | number;
-  rarity: PlayerCard["rarity"];
+  element: CardDefinition["element"];
+  target_rarity: CardRarity;
+}
+
+export interface SelectedShopRewardDefinition extends CardDefinition {
+  targetRarity: CardRarity;
 }
 
 export class ShopRewardUnavailableError extends Error {
   constructor(public readonly rarity: CardRarity) {
-    super(`No shop-eligible canonical ${rarity} card is available`);
+    super(`No shop-pool canonical ${rarity} card is available`);
     this.name = "ShopRewardUnavailableError";
   }
 }
@@ -27,34 +30,26 @@ export class CryptoShopRandomSource implements ShopRandomSource {
   }
 }
 
-function toPositiveInteger(value: string | number) {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-    throw new Error("Invalid card power returned while selecting a shop reward");
-  }
-  return parsed;
-}
-
 export async function selectCanonicalShopReward(
   client: PoolClient,
   rarity: CardRarity,
   rng: ShopRandomSource,
-): Promise<Omit<PlayerCard, "quantity">> {
+): Promise<SelectedShopRewardDefinition> {
   const result = await client.query<CanonicalCardRow>(
     `
       SELECT
-        id AS card_id,
-        code,
-        display_name,
-        art_key,
-        element,
-        rarity,
-        power,
-        collection_id
-      FROM cards
-      WHERE rarity = $1 AND shop_eligible = TRUE
-      ORDER BY code, id
-      FOR SHARE
+        cards.id AS card_id,
+        cards.code,
+        cards.display_name,
+        cards.art_key,
+        cards.element,
+        cards.collection_id,
+        shop_card_pools.target_rarity
+      FROM shop_card_pools
+      INNER JOIN cards ON cards.id = shop_card_pools.card_id
+      WHERE shop_card_pools.target_rarity = $1
+      ORDER BY cards.code, cards.id
+      FOR SHARE OF cards, shop_card_pools
     `,
     [rarity],
   );
@@ -62,18 +57,16 @@ export async function selectCanonicalShopReward(
 
   const selectedIndex = rng.nextInt(result.rows.length);
   const row = result.rows[selectedIndex];
-  if (!Number.isSafeInteger(selectedIndex) || selectedIndex < 0 || !row || row.rarity !== rarity) {
+  if (!Number.isSafeInteger(selectedIndex) || selectedIndex < 0 || !row || row.target_rarity !== rarity) {
     throw new Error("Shop card selector returned an invalid canonical reward");
   }
-
   return {
-    cardId: row.card_id,
+    id: row.card_id,
     code: row.code,
     displayName: row.display_name,
     artKey: row.art_key,
     element: row.element,
-    rarity: row.rarity,
-    power: toPositiveInteger(row.power),
     collectionId: row.collection_id,
+    targetRarity: row.target_rarity,
   };
 }

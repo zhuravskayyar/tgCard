@@ -17,8 +17,8 @@ interface PlayerRow {
 }
 
 export class PlayerPersistenceError extends Error {
-  constructor() {
-    super("Player persistence is unavailable");
+  constructor(options?: ErrorOptions) {
+    super("Player persistence is unavailable", options);
     this.name = "PlayerPersistenceError";
   }
 }
@@ -103,9 +103,9 @@ export class PlayerRepository {
       const summary = toPlayerSummary(player);
       await client.query("COMMIT");
       return summary;
-    } catch {
+    } catch (error) {
       await client?.query("ROLLBACK").catch(() => undefined);
-      throw new PlayerPersistenceError();
+      throw new PlayerPersistenceError({ cause: error });
     } finally {
       client?.release();
     }

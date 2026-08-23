@@ -10,13 +10,13 @@ interface DeckCardProps {
 export function DeckCard({ card, onClick }: DeckCardProps) {
   return (
     <button
-      aria-label={`${card.displayName ? `${card.displayName}, ` : ""}power ${card.power}, element ${card.element}, rarity ${card.rarity}`}
+      aria-label={`${card.displayName ? `${card.displayName}, ` : ""}power ${card.finalPower}, element ${card.element}, rarity ${card.rarity}`}
       className={`deck-card deck-card--${card.element} deck-card--${card.rarity}`}
       onClick={onClick}
       type="button"
     >
       <CardArtwork artKey={card.artKey} element={card.element} />
-      <strong className="deck-card__power">{card.power}</strong>
+      <strong className="deck-card__power">{card.finalPower}</strong>
       <span className="deck-card__element-badge" aria-hidden="true">
         <ElementSymbol element={card.element} />
       </span>

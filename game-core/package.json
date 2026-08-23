@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "tsx --test src/deckBalance.test.ts src/automaticDeck.test.ts"
+    "test": "tsx --test src/cardProgression.test.ts src/battleStats.test.ts src/deckBalance.test.ts src/automaticDeck.test.ts"
   },
   "dependencies": {
     "@cardastika/shared": "*"

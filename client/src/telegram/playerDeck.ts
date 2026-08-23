@@ -22,25 +22,29 @@ function isCardRarity(value: unknown): value is PlayerDeckCard["rarity"] {
   return typeof value === "string" && CARD_RARITIES.some((rarity) => rarity === value);
 }
 
-function isCanonicalCard(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
+function isCardInstance(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
   if (!value || typeof value !== "object") return false;
   const card = value as Record<string, unknown>;
   return (
     typeof card.cardId === "string" &&
+    typeof card.instanceId === "string" &&
     typeof card.code === "string" &&
     (card.displayName === null || typeof card.displayName === "string") &&
     (card.artKey === null || typeof card.artKey === "string") &&
     (card.collectionId === null || typeof card.collectionId === "string") &&
     isCardElement(card.element) &&
-    Number.isSafeInteger(card.power) &&
-    Number(card.power) > 0 &&
+    Number.isSafeInteger(card.level) && Number(card.level) >= 1 && Number(card.level) <= 180 &&
+    Number.isSafeInteger(card.basePower) && Number(card.basePower) > 0 &&
+    Number.isSafeInteger(card.bonusPower) && Number(card.bonusPower) >= 0 &&
+    Number.isSafeInteger(card.finalPower) && Number(card.finalPower) > 0 &&
+    Number(card.finalPower) === Number(card.basePower) + Number(card.bonusPower) &&
     isCardRarity(card.rarity)
   );
 }
 
 function isDeckCard(value: unknown): value is PlayerDeckCard {
   const slot = (value as PlayerDeckCard | null)?.slot;
-  return isCanonicalCard(value) && Number.isSafeInteger(slot) && Number(slot) >= 1 && Number(slot) <= DECK_SIZE;
+  return isCardInstance(value) && Number.isSafeInteger(slot) && Number(slot) >= 1 && Number(slot) <= DECK_SIZE;
 }
 
 function parseDeck(value: unknown): PlayerDeckResponse {
@@ -50,11 +54,17 @@ function parseDeck(value: unknown): PlayerDeckResponse {
     !Array.isArray(response.cards) ||
     !response.cards.every(isDeckCard) ||
     !Number.isSafeInteger(response.totalPower) ||
-    Number(response.totalPower) < 0
+    Number(response.totalPower) < 0 ||
+    !Number.isSafeInteger(response.baseBattleHp) ||
+    Number(response.baseBattleHp) !== Number(response.totalPower)
   ) {
     throw new PlayerDataError(502);
   }
-  return { cards: response.cards, totalPower: Number(response.totalPower) };
+  return {
+    cards: response.cards,
+    totalPower: Number(response.totalPower),
+    baseBattleHp: Number(response.baseBattleHp),
+  };
 }
 
 async function requestPlayerDeck(initData: string, signal: AbortSignal) {

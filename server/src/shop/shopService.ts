@@ -1,12 +1,18 @@
+import {
+  getCardPower,
+  getDeckPower,
+  selectGeneratedLevelForRarity,
+  type GeneratedLevelPolicy,
+} from "@cardastika/game-core";
 import type {
   CardRarity,
   PlayerBalance,
-  PlayerCard,
   ShopCatalogResponse,
   ShopOffer,
   ShopPurchaseResponse,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import { createStandardCardInstance } from "../cards/cardInstanceCreator.js";
 import {
   recalculateAutomaticDeck,
   type AutomaticDeckRecalculationResult,
@@ -23,6 +29,7 @@ import {
   CryptoShopRandomSource,
   selectCanonicalShopReward,
   ShopRewardUnavailableError,
+  type SelectedShopRewardDefinition,
 } from "./shopRewardSelector.js";
 
 interface PlayerBalanceRow {
@@ -37,21 +44,19 @@ interface ShopChanceRow {
   target_rarity: CardRarity;
 }
 
-interface QuantityRow {
-  quantity: string | number;
-}
-
-interface DeckPowerRow {
-  total_power: string | number | null;
+interface DeckPowerCardRow {
+  bonus_power: string | number;
+  level: string | number;
 }
 
 type ShopRewardSelector = (
   client: PoolClient,
   rarity: CardRarity,
   rng: ShopRandomSource,
-) => Promise<Omit<PlayerCard, "quantity">>;
+) => Promise<SelectedShopRewardDefinition>;
 
 interface ShopServiceDependencies {
+  levelPolicy?: GeneratedLevelPolicy;
   recalculateDeck?: (
     client: PoolClient,
     playerId: string,
@@ -86,12 +91,23 @@ export class InsufficientShopFundsError extends Error {
   }
 }
 
+export class ShopLevelSelectionPolicyUnavailableError extends Error {
+  constructor() {
+    super("Shop card level-selection policy is not configured");
+    this.name = "ShopLevelSelectionPolicyUnavailableError";
+  }
+}
+
 export class ShopPersistenceError extends Error {
   constructor() {
     super("Shop persistence is unavailable");
     this.name = "ShopPersistenceError";
   }
 }
+
+const unconfiguredLevelPolicy: GeneratedLevelPolicy = () => {
+  throw new ShopLevelSelectionPolicyUnavailableError();
+};
 
 function toNonNegativeInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -101,11 +117,9 @@ function toNonNegativeInteger(value: string | number, field: string) {
   return parsed;
 }
 
-function toPositiveInteger(value: string | number) {
+function toInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-    throw new Error("Invalid inventory quantity returned during shop purchase");
-  }
+  if (!Number.isSafeInteger(parsed)) throw new Error(`Invalid ${field} returned during shop request`);
   return parsed;
 }
 
@@ -122,7 +136,6 @@ function readOfferChances(offer: ShopOfferDefinition, rows: readonly ShopChanceR
       .filter((row) => row.offer_id === offer.id)
       .map((row) => [row.target_rarity, toNonNegativeInteger(row.chance_basis_points, "shop chance")]),
   );
-
   return offer.upgrades.map((upgrade) => ({
     rarity: upgrade.rarity,
     chanceBasisPoints: chanceRows.get(upgrade.rarity) ?? upgrade.initialChanceBasisPoints,
@@ -150,20 +163,27 @@ function toPlayerFacingOffer(
 }
 
 async function loadCurrentDeckPower(client: PoolClient, playerId: string) {
-  const result = await client.query<DeckPowerRow>(
+  const result = await client.query<DeckPowerCardRow>(
     `
-      SELECT COALESCE(SUM(cards.power), 0) AS total_power
+      SELECT player_card_instances.level, player_card_instances.bonus_power
       FROM player_decks
-      LEFT JOIN deck_slots ON deck_slots.deck_id = player_decks.id
-      LEFT JOIN cards ON cards.id = deck_slots.card_id
+      INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
+      INNER JOIN player_card_instances
+        ON player_card_instances.id = deck_slots.card_instance_id
       WHERE player_decks.player_id = $1
     `,
     [playerId],
   );
-  return toNonNegativeInteger(result.rows[0]?.total_power ?? 0, "deck power");
+  return getDeckPower(result.rows.map((row) => ({
+    finalPower: getCardPower({
+      level: toInteger(row.level, "card level"),
+      bonusPower: toInteger(row.bonus_power, "card bonus power"),
+    }),
+  })));
 }
 
 export class ShopService {
+  private readonly levelPolicy: GeneratedLevelPolicy;
   private readonly recalculateDeck: NonNullable<ShopServiceDependencies["recalculateDeck"]>;
   private readonly resolveRarity: NonNullable<ShopServiceDependencies["resolveRarity"]>;
   private readonly rng: ShopRandomSource;
@@ -173,6 +193,7 @@ export class ShopService {
     private readonly pool: Pick<Pool, "connect" | "query">,
     dependencies: ShopServiceDependencies = {},
   ) {
+    this.levelPolicy = dependencies.levelPolicy ?? unconfiguredLevelPolicy;
     this.recalculateDeck = dependencies.recalculateDeck ?? recalculateAutomaticDeck;
     this.resolveRarity = dependencies.resolveRarity ?? resolveShopRarity;
     this.rng = dependencies.rng ?? new CryptoShopRandomSource();
@@ -232,12 +253,7 @@ export class ShopService {
       for (const upgrade of offer.upgrades) {
         await client.query(
           `
-            INSERT INTO player_shop_chances (
-              player_id,
-              offer_id,
-              target_rarity,
-              chance_basis_points
-            )
+            INSERT INTO player_shop_chances (player_id, offer_id, target_rarity, chance_basis_points)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (player_id, offer_id, target_rarity) DO NOTHING
           `,
@@ -257,10 +273,15 @@ export class ShopService {
       );
       const currentChances = readOfferChances(offer, chanceResult.rows);
       const rarityResolution = this.resolveRarity(offer, currentChances, this.rng);
-      const selectedReward = await this.selectReward(client, rarityResolution.rarity, this.rng);
-      if (selectedReward.rarity !== rarityResolution.rarity) {
-        throw new Error("Shop reward rarity does not match the resolved rarity");
+      const selectedDefinition = await this.selectReward(client, rarityResolution.rarity, this.rng);
+      if (selectedDefinition.targetRarity !== rarityResolution.rarity) {
+        throw new Error("Shop reward pool does not match the resolved rarity");
       }
+      const level = selectGeneratedLevelForRarity(
+        rarityResolution.rarity,
+        this.rng,
+        this.levelPolicy,
+      );
 
       const previousDeckPower = await loadCurrentDeckPower(client, playerId);
       const balanceResult = await client.query<PlayerBalanceRow>(
@@ -287,22 +308,11 @@ export class ShopService {
         if (updateResult.rowCount !== 1) throw new Error("Shop pity update affected an unexpected row count");
       }
 
-      const ownershipResult = await client.query<QuantityRow>(
-        `
-          INSERT INTO player_cards (player_id, card_id, quantity)
-          VALUES ($1, $2, 1)
-          ON CONFLICT (player_id, card_id) DO UPDATE SET
-            quantity = player_cards.quantity + 1
-          RETURNING quantity
-        `,
-        [playerId, selectedReward.cardId],
-      );
-      const ownership = ownershipResult.rows[0];
-      if (!ownership) throw new Error("Shop inventory update returned no row");
-
+      const { targetRarity: _targetRarity, ...definition } = selectedDefinition;
+      const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
       const deckResult = await this.recalculateDeck(client, playerId);
       const response: ShopPurchaseResponse = {
-        reward: { ...selectedReward, quantity: toPositiveInteger(ownership.quantity) },
+        reward,
         updatedBalance: toBalance(updatedPlayer),
         updatedChances: rarityResolution.updatedChances.map((chance) => ({
           rarity: chance.rarity,
@@ -321,6 +331,7 @@ export class ShopService {
       await client.query("ROLLBACK").catch(() => undefined);
       if (
         error instanceof InsufficientShopFundsError ||
+        error instanceof ShopLevelSelectionPolicyUnavailableError ||
         error instanceof ShopPlayerMissingError ||
         error instanceof ShopRewardUnavailableError
       ) {

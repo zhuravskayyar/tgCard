@@ -1,37 +1,34 @@
 import { randomUUID } from "node:crypto";
 import {
   buildBestValidDeck,
+  getCardPower,
   validateDeckElementBalance,
   type OwnedDeckCard,
 } from "@cardastika/game-core";
-import type { PlayerCard } from "@cardastika/shared";
+import type { PlayerCardInstance } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 
-interface DeckIdRow {
-  id: string;
-}
+interface DeckIdRow { id: string }
+interface PlayerIdRow { id: string }
 
 interface CurrentDeckSlotRow {
-  card_id: string;
-  element: PlayerCard["element"];
+  card_instance_id: string;
+  element: PlayerCardInstance["element"];
   slot: number;
 }
 
 interface InventoryDeckCardRow {
+  bonus_power: string | number;
   card_id: string;
   code: string;
-  element: PlayerCard["element"];
-  power: string | number;
-  quantity: string | number;
-}
-
-interface PlayerIdRow {
-  id: string;
+  element: PlayerCardInstance["element"];
+  instance_id: string;
+  level: string | number;
 }
 
 export type AutomaticDeckRecalculationResult =
   | {
-      cardIds: string[];
+      instanceIds: string[];
       status: "unchanged" | "updated";
       totalPower: number;
     }
@@ -40,11 +37,9 @@ export type AutomaticDeckRecalculationResult =
       status: "insufficient_valid_cards";
     };
 
-function toPositiveInteger(value: string | number, field: "power" | "quantity") {
+function toInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-    throw new Error(`Invalid ${field} returned while recalculating deck`);
-  }
+  if (!Number.isSafeInteger(parsed)) throw new Error(`Invalid ${field} while recalculating deck`);
   return parsed;
 }
 
@@ -54,53 +49,48 @@ function currentDeckIsValid(
 ) {
   if (!validateDeckElementBalance(slots).valid) return false;
   if (slots.some(({ slot }, index) => slot !== index + 1)) return false;
-
-  const ownedQuantities = new Map(inventory.map(({ cardId, quantity }) => [cardId, quantity]));
-  const selectedQuantities = new Map<string, number>();
-  for (const { card_id: cardId } of slots) {
-    const selected = (selectedQuantities.get(cardId) ?? 0) + 1;
-    if (selected > (ownedQuantities.get(cardId) ?? 0)) return false;
-    selectedQuantities.set(cardId, selected);
-  }
-  return true;
+  const ownedInstanceIds = new Set(inventory.map(({ instanceId }) => instanceId));
+  return slots.every(({ card_instance_id: instanceId }) => ownedInstanceIds.has(instanceId));
 }
 
 export async function recalculateAutomaticDeck(
   client: PoolClient,
   playerId: string,
 ): Promise<AutomaticDeckRecalculationResult> {
-  // Inventory mutations call this before committing so inventory and deck stay atomic.
   const playerLock = await client.query<PlayerIdRow>(
     "SELECT id FROM players WHERE id = $1 FOR UPDATE",
     [playerId],
   );
-  if (!playerLock.rows[0]) {
-    throw new Error("Cannot recalculate deck for a missing player");
-  }
+  if (!playerLock.rows[0]) throw new Error("Cannot recalculate deck for a missing player");
 
   const inventoryResult = await client.query<InventoryDeckCardRow>(
     `
       SELECT
-        player_cards.card_id,
+        player_card_instances.id AS instance_id,
+        player_card_instances.card_id,
         cards.code,
         cards.element,
-        cards.power,
-        player_cards.quantity
-      FROM player_cards
-      INNER JOIN cards ON cards.id = player_cards.card_id
-      WHERE player_cards.player_id = $1
-      ORDER BY cards.code, cards.id
-      FOR SHARE OF player_cards
+        player_card_instances.level,
+        player_card_instances.bonus_power
+      FROM player_card_instances
+      INNER JOIN cards ON cards.id = player_card_instances.card_id
+      WHERE player_card_instances.player_id = $1
+      ORDER BY cards.code, cards.id, player_card_instances.id
+      FOR SHARE OF player_card_instances
     `,
     [playerId],
   );
-  const inventory: OwnedDeckCard[] = inventoryResult.rows.map((row) => ({
-    cardId: row.card_id,
-    code: row.code,
-    element: row.element,
-    power: toPositiveInteger(row.power, "power"),
-    quantity: toPositiveInteger(row.quantity, "quantity"),
-  }));
+  const inventory: OwnedDeckCard[] = inventoryResult.rows.map((row) => {
+    const level = toInteger(row.level, "level");
+    const bonusPower = toInteger(row.bonus_power, "bonus power");
+    return {
+      instanceId: row.instance_id,
+      cardId: row.card_id,
+      code: row.code,
+      element: row.element,
+      finalPower: getCardPower({ level, bonusPower }),
+    };
+  });
 
   const deckResult = await client.query<DeckIdRow>(
     "SELECT id FROM player_decks WHERE player_id = $1 FOR UPDATE",
@@ -110,9 +100,11 @@ export async function recalculateAutomaticDeck(
   const currentSlots = currentDeck
     ? (await client.query<CurrentDeckSlotRow>(
         `
-          SELECT deck_slots.slot, deck_slots.card_id, cards.element
+          SELECT deck_slots.slot, deck_slots.card_instance_id, cards.element
           FROM deck_slots
-          INNER JOIN cards ON cards.id = deck_slots.card_id
+          INNER JOIN player_card_instances
+            ON player_card_instances.id = deck_slots.card_instance_id
+          INNER JOIN cards ON cards.id = player_card_instances.card_id
           WHERE deck_slots.deck_id = $1
           ORDER BY deck_slots.slot
         `,
@@ -128,42 +120,32 @@ export async function recalculateAutomaticDeck(
     };
   }
 
-  const desiredCardIds = bestDeck.cards.map(({ cardId }) => cardId);
-  const isUnchanged = currentSlots.length === desiredCardIds.length && currentSlots.every(
-    ({ card_id: cardId, slot }, index) => slot === index + 1 && cardId === desiredCardIds[index],
+  const desiredInstanceIds = bestDeck.cards.map(({ instanceId }) => instanceId);
+  const isUnchanged = currentSlots.length === desiredInstanceIds.length && currentSlots.every(
+    ({ card_instance_id: instanceId, slot }, index) => (
+      slot === index + 1 && instanceId === desiredInstanceIds[index]
+    ),
   );
   if (isUnchanged) {
-    return {
-      status: "unchanged",
-      cardIds: desiredCardIds,
-      totalPower: bestDeck.totalPower,
-    };
+    return { status: "unchanged", instanceIds: desiredInstanceIds, totalPower: bestDeck.totalPower };
   }
 
   const deckId = currentDeck?.id ?? randomUUID();
   if (!currentDeck) {
-    await client.query(
-      "INSERT INTO player_decks (id, player_id) VALUES ($1, $2)",
-      [deckId, playerId],
-    );
+    await client.query("INSERT INTO player_decks (id, player_id) VALUES ($1, $2)", [deckId, playerId]);
   }
 
   await client.query("DELETE FROM deck_slots WHERE deck_id = $1", [deckId]);
   await client.query(
     `
-      INSERT INTO deck_slots (deck_id, slot, card_id)
-      SELECT $1, input.slot, input.card_id
-      FROM unnest($2::smallint[], $3::text[]) AS input(slot, card_id)
+      INSERT INTO deck_slots (deck_id, slot, card_instance_id)
+      SELECT $1, input.slot, input.card_instance_id
+      FROM unnest($2::smallint[], $3::uuid[]) AS input(slot, card_instance_id)
     `,
-    [deckId, desiredCardIds.map((_, index) => index + 1), desiredCardIds],
+    [deckId, desiredInstanceIds.map((_, index) => index + 1), desiredInstanceIds],
   );
   await client.query("UPDATE player_decks SET updated_at = NOW() WHERE id = $1", [deckId]);
-
-  return {
-    status: "updated",
-    cardIds: desiredCardIds,
-    totalPower: bestDeck.totalPower,
-  };
+  return { status: "updated", instanceIds: desiredInstanceIds, totalPower: bestDeck.totalPower };
 }
 
 export async function recalculateAutomaticDeckForPlayer(pool: Pool, playerId: string) {
@@ -184,7 +166,6 @@ export async function recalculateAutomaticDeckForPlayer(pool: Pool, playerId: st
 export async function recalculateAllAutomaticDecks(pool: Pool) {
   const client = await pool.connect();
   const summary = { updated: 0, unchanged: 0, insufficientValidCards: 0 };
-
   try {
     await client.query("BEGIN");
     const players = await client.query<PlayerIdRow>("SELECT id FROM players ORDER BY id");

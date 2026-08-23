@@ -14,18 +14,14 @@ export async function seedStarterCardDefinitions(client: PoolClient) {
           display_name,
           art_key,
           element,
-          rarity,
-          power,
           collection_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (id) DO UPDATE SET
           code = EXCLUDED.code,
           display_name = EXCLUDED.display_name,
           art_key = EXCLUDED.art_key,
           element = EXCLUDED.element,
-          rarity = EXCLUDED.rarity,
-          power = EXCLUDED.power,
           collection_id = EXCLUDED.collection_id
       `,
       [
@@ -34,8 +30,6 @@ export async function seedStarterCardDefinitions(client: PoolClient) {
         card.displayName,
         card.artKey,
         card.element,
-        card.rarity,
-        card.power,
         card.collectionId,
       ],
     );

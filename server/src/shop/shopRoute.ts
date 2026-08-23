@@ -10,6 +10,7 @@ import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
   InsufficientShopFundsError,
+  ShopLevelSelectionPolicyUnavailableError,
   ShopOfferMissingError,
   ShopPersistenceError,
   ShopPlayerMissingError,
@@ -80,6 +81,15 @@ function sendShopError(
   if (error instanceof ShopRewardUnavailableError) {
     sendJson(response, 503, {
       error: { code: "reward_unavailable", message: "No eligible canonical reward is available" },
+    }, responseHeaders);
+    return;
+  }
+  if (error instanceof ShopLevelSelectionPolicyUnavailableError) {
+    sendJson(response, 503, {
+      error: {
+        code: "level_policy_unavailable",
+        message: "Shop card level-selection policy is not configured",
+      },
     }, responseHeaders);
     return;
   }

@@ -36,14 +36,18 @@ function isPlayerCard(value: unknown): value is PlayerCard {
   const card = value as Record<string, unknown>;
   return (
     typeof card.cardId === "string" &&
+    typeof card.instanceId === "string" &&
     typeof card.code === "string" &&
     (card.displayName === null || typeof card.displayName === "string") &&
     (card.artKey === null || typeof card.artKey === "string") &&
     (card.collectionId === null || typeof card.collectionId === "string") &&
     typeof card.element === "string" && CARD_ELEMENTS.some((element) => element === card.element) &&
     typeof card.rarity === "string" && CARD_RARITIES.some((rarity) => rarity === card.rarity) &&
-    isPositiveInteger(card.power) &&
-    isPositiveInteger(card.quantity)
+    isPositiveInteger(card.level) && Number(card.level) <= 180 &&
+    isPositiveInteger(card.basePower) &&
+    isNonNegativeInteger(card.bonusPower) &&
+    isPositiveInteger(card.finalPower) &&
+    Number(card.finalPower) === Number(card.basePower) + Number(card.bonusPower)
   );
 }
 

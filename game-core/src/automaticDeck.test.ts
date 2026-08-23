@@ -6,51 +6,41 @@ import { buildBestValidDeck, type OwnedDeckCard } from "./automaticDeck.js";
 function card(
   code: string,
   element: OwnedDeckCard["element"],
-  power: number,
-  quantity = 1,
+  finalPower: number,
+  instanceId = `instance_${code}`,
+  cardId = `id_${code}`,
 ): OwnedDeckCard {
-  return { cardId: `id_${code}`, code, element, power, quantity };
+  return { cardId, code, element, finalPower, instanceId };
 }
 
 const balancedInventory = [
-  card("fire_1", "fire", 30),
-  card("fire_2", "fire", 20),
-  card("fire_3", "fire", 10),
-  card("water_1", "water", 29),
-  card("water_2", "water", 19),
-  card("water_3", "water", 9),
-  card("air_1", "air", 28),
-  card("air_2", "air", 18),
-  card("air_3", "air", 8),
-  card("earth_1", "earth", 27),
-  card("earth_2", "earth", 17),
-  card("earth_3", "earth", 40),
+  card("fire_1", "fire", 30), card("fire_2", "fire", 20), card("fire_3", "fire", 10),
+  card("water_1", "water", 29), card("water_2", "water", 19), card("water_3", "water", 9),
+  card("air_1", "air", 28), card("air_2", "air", 18), card("air_3", "air", 8),
+  card("earth_1", "earth", 27), card("earth_2", "earth", 17), card("earth_3", "earth", 40),
 ] as const;
 
-test("chooses the globally strongest valid nine-card deck with 3/2/2/2 balance", () => {
+test("chooses the globally strongest valid nine-card instance deck with 3/2/2/2 balance", () => {
   const result = buildBestValidDeck(balancedInventory);
   assert.equal(result.status, "ready");
   if (result.status !== "ready") return;
-
   assert.equal(result.cards.length, 9);
   assert.equal(result.totalPower, 228);
   assert.deepEqual(countDeckElements(result.cards), { fire: 2, water: 2, air: 2, earth: 3 });
-  assert.ok(Object.values(result.elementCounts).every((count) => count >= 2 && count <= 3));
 });
 
-test("a stronger acquired card replaces the weaker candidate from the same element", () => {
+test("a stronger acquired instance replaces the weaker candidate from the same element", () => {
   const before = buildBestValidDeck(balancedInventory);
   const after = buildBestValidDeck([...balancedInventory, card("fire_new", "fire", 50)]);
   assert.equal(before.status, "ready");
   assert.equal(after.status, "ready");
   if (before.status !== "ready" || after.status !== "ready") return;
-
   assert.ok(after.cards.some(({ code }) => code === "fire_new"));
   assert.ok(!after.cards.some(({ code }) => code === "fire_3"));
   assert.ok(after.totalPower > before.totalPower);
 });
 
-test("a fourth high-power card is excluded when it would exceed the element maximum", () => {
+test("a fourth high-power instance is excluded when it would exceed the element maximum", () => {
   const inventory = [
     card("fire_1", "fire", 100), card("fire_2", "fire", 99),
     card("fire_3", "fire", 98), card("fire_4", "fire", 97),
@@ -61,30 +51,32 @@ test("a fourth high-power card is excluded when it would exceed the element maxi
   const result = buildBestValidDeck(inventory);
   assert.equal(result.status, "ready");
   if (result.status !== "ready") return;
-
   assert.deepEqual(countDeckElements(result.cards), { fire: 3, water: 2, air: 2, earth: 2 });
   assert.ok(!result.cards.some(({ code }) => code === "fire_4"));
   assert.equal(result.totalPower, 714);
 });
 
-test("owned quantities are expanded without selecting more copies than owned", () => {
+test("duplicate canonical cards remain distinct instances with independent power", () => {
   const inventory = [
-    card("fire_stack", "fire", 30, 2),
-    card("water_stack", "water", 25, 3),
-    card("air_stack", "air", 20, 2),
-    card("earth_stack", "earth", 15, 2),
+    card("fire_copy", "fire", 30, "fire-copy-a", "same-fire-card"),
+    card("fire_copy", "fire", 45, "fire-copy-b", "same-fire-card"),
+    card("water_copy", "water", 25, "water-copy-a", "same-water-card"),
+    card("water_copy", "water", 26, "water-copy-b", "same-water-card"),
+    card("water_copy", "water", 27, "water-copy-c", "same-water-card"),
+    card("air_copy", "air", 20, "air-copy-a", "same-air-card"),
+    card("air_copy", "air", 21, "air-copy-b", "same-air-card"),
+    card("earth_copy", "earth", 15, "earth-copy-a", "same-earth-card"),
+    card("earth_copy", "earth", 16, "earth-copy-b", "same-earth-card"),
   ];
   const result = buildBestValidDeck(inventory);
   assert.equal(result.status, "ready");
   if (result.status !== "ready") return;
-
-  assert.equal(result.cards.filter(({ code }) => code === "fire_stack").length, 2);
-  assert.equal(result.cards.filter(({ code }) => code === "water_stack").length, 3);
-  assert.deepEqual(countDeckElements(result.cards), { fire: 2, water: 3, air: 2, earth: 2 });
+  assert.equal(new Set(result.cards.map(({ instanceId }) => instanceId)).size, 9);
+  assert.ok(result.cards.some(({ instanceId, finalPower }) => instanceId === "fire-copy-b" && finalPower === 45));
 });
 
 test("tie-breaking is deterministic regardless of inventory order", () => {
-  const inventory = balancedInventory.map((entry) => ({ ...entry, power: 12 }));
+  const inventory = balancedInventory.map((entry) => ({ ...entry, finalPower: 12 }));
   const forward = buildBestValidDeck(inventory);
   const reverse = buildBestValidDeck([...inventory].reverse());
   assert.deepEqual(reverse, forward);
@@ -103,7 +95,7 @@ test("returns a structured insufficient state instead of an invalid deck", () =>
   });
 });
 
-test("canonical starter-equivalent cards remain a 108-power deck", () => {
+test("canonical starter instances remain a 108-power deck", () => {
   const elements = ["fire", "fire", "fire", "water", "water", "air", "air", "earth", "earth"] as const;
   const result = buildBestValidDeck(elements.map((element, index) => (
     card(`starter_${String(index + 1).padStart(2, "0")}`, element, 12)

@@ -7,7 +7,7 @@ import { handlePlayerDeck } from "./decks/playerDeckRoute.js";
 import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
 import { InventoryRepository } from "./inventory/inventoryRepository.js";
-import { handlePlayerCards } from "./inventory/playerCardsRoute.js";
+import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCardsRoute.js";
 import { handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
 import { PlayerRepository } from "./users/playerRepository.js";
@@ -30,13 +30,14 @@ const server = createServer(async (request, response) => {
 
   const isTelegramAuthRoute = url.pathname === "/api/auth/telegram";
   const isPlayerCardsRoute = url.pathname === "/api/player/cards";
+  const isWeakPlayerCardsRoute = url.pathname === "/api/player/cards/weak";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute)
+    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -54,6 +55,16 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "GET" && isPlayerCardsRoute) {
     await handlePlayerCards(request, response, {
+      botToken: environment.telegramBotToken,
+      inventory,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "GET" && isWeakPlayerCardsRoute) {
+    await handleWeakPlayerCards(request, response, {
       botToken: environment.telegramBotToken,
       inventory,
       players,

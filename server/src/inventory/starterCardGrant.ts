@@ -1,5 +1,9 @@
 import type { Pool, PoolClient } from "pg";
-import { STARTER_CARD_CODES, STARTER_CARD_COUNT } from "./starterCards.js";
+import {
+  STARTER_CARD_CODES,
+  STARTER_CARD_COUNT,
+  STARTER_INSTANCE_DEFAULTS,
+} from "./starterCards.js";
 
 interface CountRow {
   count: string;
@@ -22,13 +26,24 @@ export async function grantStarterCards(client: PoolClient, playerId: string) {
 
   await client.query(
     `
-      INSERT INTO player_cards (player_id, card_id, quantity)
-      SELECT $1, cards.id, 1
+      INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+      SELECT
+        md5('cardastika:starter:' || $1::text || ':' || cards.id)::uuid,
+        $1::uuid,
+        cards.id,
+        $3,
+        $4
       FROM cards
       WHERE cards.code = ANY($2::text[])
-      ON CONFLICT (player_id, card_id) DO NOTHING
+        AND NOT EXISTS (
+          SELECT 1
+          FROM player_card_instances existing
+          WHERE existing.player_id = $1::uuid
+            AND existing.card_id = cards.id
+        )
+      ON CONFLICT (id) DO NOTHING
     `,
-    [playerId, STARTER_CARD_CODES],
+    [playerId, STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],
   );
 }
 
@@ -40,14 +55,25 @@ export async function backfillStarterCards(pool: Pool) {
     await requireCanonicalStarterCards(client);
     const result = await client.query(
       `
-        INSERT INTO player_cards (player_id, card_id, quantity)
-        SELECT players.id, cards.id, 1
+        INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+        SELECT
+          md5('cardastika:starter:' || players.id::text || ':' || cards.id)::uuid,
+          players.id,
+          cards.id,
+          $2,
+          $3
         FROM players
         CROSS JOIN cards
         WHERE cards.code = ANY($1::text[])
-        ON CONFLICT (player_id, card_id) DO NOTHING
+          AND NOT EXISTS (
+            SELECT 1
+            FROM player_card_instances existing
+            WHERE existing.player_id = players.id
+              AND existing.card_id = cards.id
+          )
+        ON CONFLICT (id) DO NOTHING
       `,
-      [STARTER_CARD_CODES],
+      [STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],
     );
     await client.query("COMMIT");
     return result.rowCount ?? 0;
