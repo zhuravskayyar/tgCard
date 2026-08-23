@@ -2,6 +2,7 @@ import { AppIcon, type AppIconName } from "./AppIcon";
 import { Badge } from "./Badge";
 
 interface MenuRowProps {
+  active?: boolean;
   badge?: string;
   compact?: boolean;
   disabled?: boolean;
@@ -10,7 +11,7 @@ interface MenuRowProps {
   title: string;
 }
 
-export function MenuRow({ badge, compact = false, disabled = false, icon, onClick, title }: MenuRowProps) {
+export function MenuRow({ active = false, badge, compact = false, disabled = false, icon, onClick, title }: MenuRowProps) {
   return (
     <button
       className={`menu-row${compact ? " menu-row--compact" : ""}`}
@@ -23,6 +24,7 @@ export function MenuRow({ badge, compact = false, disabled = false, icon, onClic
       </span>
       <span className="menu-row__title">{title}</span>
       <span className="menu-row__action">
+        {active ? <span aria-label="Активна" className="menu-row__status" /> : null}
         {badge ? <Badge value={badge} /> : null}
         <AppIcon name="chevron" size={18} />
       </span>

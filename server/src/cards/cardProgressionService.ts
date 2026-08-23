@@ -1,6 +1,7 @@
 import {
   MAX_CARD_LEVEL,
   advanceCardLevel,
+  applyAbsorptionEfficiency,
   applyElementalPotential,
   canLevelUp,
   getCardLevelTableEntry,
@@ -8,6 +9,7 @@ import {
   getTransferableElementValue,
   getUpgradeProgress,
   isGoldLevel,
+  getPlayerCollectionModifiers,
 } from "@cardastika/game-core";
 import type {
   AbsorptionCandidatesResponse,
@@ -21,6 +23,7 @@ import type { Pool, PoolClient } from "pg";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "./cardInstanceMapper.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import type { InventoryRepository } from "../inventory/inventoryRepository.js";
+import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
 
 const PAGE_SIZE = 9 as const;
 const MAX_FODDER_CARDS = 100;
@@ -238,10 +241,14 @@ async function loadValidatedAbsorption(
       "The canonical elemental value for a selected card level is unknown",
     );
   }
+  const baseElements = transferableValues.reduce<number>((total, value) => total + (value ?? 0), 0);
+  const modifiers = getPlayerCollectionModifiers(
+    await getCompletedCollectionModifiers(database, playerId),
+  );
   return {
     target,
     fodder,
-    addedElements: transferableValues.reduce<number>((total, value) => total + (value ?? 0), 0),
+    addedElements: applyAbsorptionEfficiency(baseElements, modifiers),
   };
 }
 

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test src/auth/telegramInitData.test.ts src/cards/cardInstanceCreator.test.ts src/cards/cardProgressionService.integration.test.ts src/decks/automaticDeckService.test.ts src/decks/playerDeckRoute.test.ts src/decks/deck.integration.test.ts src/http/cors.test.ts src/inventory/playerCardsRoute.test.ts src/inventory/starterCards.test.ts src/inventory/inventory.integration.test.ts src/shop/shopChancePolicy.test.ts src/shop/shopRewardSelector.test.ts src/shop/shopRoute.test.ts src/shop/shop.integration.test.ts src/users/playerDefaults.test.ts",
+    "test": "tsx --test --test-concurrency=1 src/auth/telegramInitData.test.ts src/cards/cardInstanceCreator.test.ts src/cards/cardProgressionService.integration.test.ts src/collections/collectionCatalog.test.ts src/collections/discoveryService.test.ts src/collections/collection.integration.test.ts src/collections/collectionRoute.test.ts src/decks/automaticDeckService.test.ts src/decks/playerDeckRoute.test.ts src/decks/deck.integration.test.ts src/http/cors.test.ts src/inventory/playerCardsRoute.test.ts src/inventory/starterCards.test.ts src/inventory/inventory.integration.test.ts src/shop/shopChancePolicy.test.ts src/shop/shopRewardSelector.test.ts src/shop/shopRoute.test.ts src/shop/shop.integration.test.ts src/users/playerDefaults.test.ts",
     "migrate": "tsx src/database/migrate.ts",
     "seed": "tsx src/database/seed.ts"
   },

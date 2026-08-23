@@ -5,6 +5,7 @@ import { usePlayerDeck } from "../hooks/usePlayerDeck";
 interface DeckScreenProps {
   onBack: () => void;
   onOpenCard: (instanceId: string) => void;
+  onOpenShop: () => void;
 }
 
 export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
@@ -17,7 +18,6 @@ export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
           <AppIcon name="chevron" size={20} />
         </button>
         <div>
-          <span>Автоматична колода</span>
           <h1>МОЯ КОЛОДА</h1>
         </div>
         <strong>{state.status === "ready" ? `${state.deck.totalPower} power` : "— power"}</strong>

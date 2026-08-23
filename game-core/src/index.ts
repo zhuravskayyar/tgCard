@@ -42,6 +42,8 @@ export {
   getUpgradeProgress,
   isGoldLevel,
   selectGeneratedLevelForRarity,
+  selectShopLevelForRarity,
+  SHOP_LEVEL_RANGES,
   type CardPowerInput,
   type CardLevelTableEntry,
   type CardProgressionState,
@@ -50,3 +52,8 @@ export {
   type IntegerRandomSource,
   type UpgradeAvailability,
 } from "./cardProgression.js";
+export {
+  applyAbsorptionEfficiency,
+  getPlayerCollectionModifiers,
+  type PlayerCollectionModifiers,
+} from "./collectionModifiers.js";

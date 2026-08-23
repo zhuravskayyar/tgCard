@@ -259,6 +259,28 @@ export type GeneratedLevelPolicy = (
   rng: IntegerRandomSource,
 ) => number;
 
+export const SHOP_LEVEL_RANGES: Readonly<Partial<Record<CardRarity, Readonly<{
+  maximumLevel: number;
+  minimumLevel: number;
+}>>>> = Object.freeze({
+  uncommon: Object.freeze({ minimumLevel: 5, maximumLevel: 9 }),
+  rare: Object.freeze({ minimumLevel: 10, maximumLevel: 19 }),
+  epic: Object.freeze({ minimumLevel: 20, maximumLevel: 34 }),
+  legendary: Object.freeze({ minimumLevel: 35, maximumLevel: 59 }),
+  mythic: Object.freeze({ minimumLevel: 60, maximumLevel: 75 }),
+});
+
+export function selectShopLevelForRarity(rarity: CardRarity, rng: IntegerRandomSource) {
+  const range = SHOP_LEVEL_RANGES[rarity];
+  if (!range) throw new RangeError(`Rarity ${rarity} is not sold by the permanent Shop`);
+  const size = range.maximumLevel - range.minimumLevel + 1;
+  const offset = rng.nextInt(size);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset >= size) {
+    throw new RangeError("Random source returned an invalid Shop level offset");
+  }
+  return range.minimumLevel + offset;
+}
+
 export function selectGeneratedLevelForRarity(
   rarity: CardRarity,
   rng: IntegerRandomSource,

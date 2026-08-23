@@ -20,6 +20,8 @@ export interface CardDefinition {
   displayName: string | null;
   element: CardElement;
   id: string;
+  minRarity: CardRarity;
+  shopEligible: boolean;
 }
 
 export interface PlayerCardInstance {

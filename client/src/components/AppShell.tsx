@@ -1,18 +1,20 @@
 import type { ReactNode } from "react";
 import type { PlayerSummaryState } from "../types/player";
-import { BottomNav } from "./BottomNav";
+import { BottomNav, type BottomNavItem } from "./BottomNav";
 import { TopHud } from "./TopHud";
 
 interface AppShellProps {
+  activeNavigationItem: BottomNavItem;
   children: ReactNode;
-  onNavigateHome: () => void;
+  onNavigate: (item: BottomNavItem) => void;
   onRetryPlayerSummary: () => void;
   playerSummaryState: PlayerSummaryState;
 }
 
 export function AppShell({
+  activeNavigationItem,
   children,
-  onNavigateHome,
+  onNavigate,
   onRetryPlayerSummary,
   playerSummaryState,
 }: AppShellProps) {
@@ -20,7 +22,7 @@ export function AppShell({
     <div className="app-shell">
       <TopHud onRetry={onRetryPlayerSummary} state={playerSummaryState} />
       <main className="app-content">{children}</main>
-      <BottomNav activeItem="home" onSelect={(item) => item === "home" && onNavigateHome()} />
+      <BottomNav activeItem={activeNavigationItem} onSelect={onNavigate} />
     </div>
   );
 }

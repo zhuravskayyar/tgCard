@@ -41,6 +41,8 @@ export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
       artKey: null,
       element: content.element,
       collectionId: null,
+      minRarity: "common",
+      shopEligible: false,
     });
   }),
 );

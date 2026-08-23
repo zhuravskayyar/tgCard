@@ -1,4 +1,4 @@
-import type { CardElement, CardRarity, PlayerCard } from "@cardastika/shared";
+import type { CardElement, CardRarity, CollectionCompletionNotice, PlayerCard } from "@cardastika/shared";
 import { CardArtwork } from "./CardArtwork";
 import { CardNameBadge } from "./CardNameBadge";
 import { ElementSymbol } from "./ElementSymbol";
@@ -20,6 +20,7 @@ const rarityLabels: Record<CardRarity, string> = {
 };
 
 interface ShopRewardRevealProps {
+  collectionCompleted?: CollectionCompletionNotice;
   deckPower?: number;
   deckChanged: boolean;
   onContinue: () => void;
@@ -28,6 +29,7 @@ interface ShopRewardRevealProps {
 }
 
 export function ShopRewardReveal({
+  collectionCompleted,
   deckChanged,
   deckPower,
   onContinue,
@@ -65,6 +67,7 @@ export function ShopRewardReveal({
       {deckImproved ? (
         <p className="shop-reveal__deck-note">Колода посилилась: {previousDeckPower} → {deckPower}</p>
       ) : null}
+      {collectionCompleted ? <aside className="shop-collection-complete"><span>КОЛЕКЦІЮ ЗІБРАНО</span><strong>{collectionCompleted.name}</strong><p>{collectionCompleted.bonusLabel}</p></aside> : null}
       <button className="shop-reveal__continue" onClick={onContinue} type="button">Продовжити</button>
     </section>
   );

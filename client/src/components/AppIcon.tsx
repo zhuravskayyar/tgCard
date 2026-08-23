@@ -15,6 +15,8 @@ export type AppIconName =
   | "ranking"
   | "collection"
   | "inventory"
+  | "mail"
+  | "lock"
   | "chevron"
   | "silver"
   | "gold";
@@ -91,6 +93,18 @@ const paths: Record<AppIconName, ReactNode> = {
     <>
       <path d="M3 9h18v11H3V9ZM5 4h14l2 5H3l2-5ZM9 9v3h6V9" />
       <path d="M9.5 16h5" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4.5 7 7.5 6 7.5-6" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" />
     </>
   ),
   chevron: <path d="m9 5 7 7-7 7" />,

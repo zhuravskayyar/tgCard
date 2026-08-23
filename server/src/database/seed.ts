@@ -1,11 +1,13 @@
 import { Pool } from "pg";
 import { recalculateAllAutomaticDecks } from "../decks/automaticDeckService.js";
 import { backfillStarterCards } from "../inventory/starterCardGrant.js";
+import { backfillCardDiscoveries } from "../collections/discoveryService.js";
 import {
   STARTER_CARD_CONTENT_SEED_NAME,
   STARTER_CARD_SEED_NAME,
   seedStarterCardDefinitions,
 } from "./starterCardSeed.js";
+import { seedCollectionDefinitions } from "./collectionSeed.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
@@ -32,6 +34,9 @@ try {
       }
     }
 
+    const catalog = await seedCollectionDefinitions(client);
+    console.log(`Collection catalog validated: ${catalog.cardCount} cards; elements ${JSON.stringify(catalog.elementCounts)}`);
+
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -41,9 +46,10 @@ try {
   }
 
   const grantedRows = await backfillStarterCards(pool);
+  const discoverySummary = await backfillCardDiscoveries(pool);
   const deckSummary = await recalculateAllAutomaticDecks(pool);
   console.log(
-    `Starter data ready; ownership rows added: ${grantedRows}; automatic decks updated: ${deckSummary.updated}; unchanged: ${deckSummary.unchanged}; insufficient: ${deckSummary.insufficientValidCards}`,
+    `Canonical data ready; ownership rows added: ${grantedRows}; discoveries added: ${discoverySummary.discoveries}; collection completions added: ${discoverySummary.completions}; automatic decks updated: ${deckSummary.updated}; unchanged: ${deckSummary.unchanged}; insufficient: ${deckSummary.insufficientValidCards}`,
   );
 } finally {
   await pool.end();

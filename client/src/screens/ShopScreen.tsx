@@ -18,6 +18,20 @@ const purchaseErrorMessages: Record<string, string> = {
   shop_request_failed: "Не вдалося виконати покупку.",
 };
 
+interface ShopSectionHeadingProps {
+  children: string;
+}
+
+function ShopSectionHeading({ children }: ShopSectionHeadingProps) {
+  return (
+    <div className="shop-section-heading">
+      <span aria-hidden="true" />
+      <h2>{children}</h2>
+      <span aria-hidden="true" />
+    </div>
+  );
+}
+
 export function ShopScreen({ onBack, onBalanceChange }: ShopScreenProps) {
   const { catalogState, purchase, purchaseErrorCode, purchasingOfferId, retryCatalog } = useShop();
   const [reveal, setReveal] = useState<ShopPurchaseResponse | null>(null);
@@ -25,6 +39,7 @@ export function ShopScreen({ onBack, onBalanceChange }: ShopScreenProps) {
   if (reveal) {
     return (
       <ShopRewardReveal
+        collectionCompleted={reveal.collectionCompleted}
         deckChanged={reveal.deckChanged}
         deckPower={reveal.deckPower}
         onContinue={() => setReveal(null)}
@@ -57,11 +72,10 @@ export function ShopScreen({ onBack, onBalanceChange }: ShopScreenProps) {
         </div>
       </header>
 
-      <nav className="shop-tabs" aria-label="Розділи магазину">
-        <button aria-current="page" type="button">Карти</button>
-        <button disabled type="button">Підсилення</button>
-        <button disabled type="button">Готові набори</button>
-      </nav>
+      <div className="shop-category" aria-label="Поточний розділ магазину">
+        <AppIcon name="collection" size={20} />
+        <span>Карти стихій</span>
+      </div>
 
       {catalogState.status === "loading" ? <div className="shop-state">Завантаження пропозицій…</div> : null}
       {catalogState.status === "unavailable" ? (
@@ -76,19 +90,46 @@ export function ShopScreen({ onBack, onBalanceChange }: ShopScreenProps) {
 
       {catalogState.status === "ready" ? (
         <div className="shop-sections">
-          <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
-            {catalogState.catalog.offers.map((offer) => {
-              return (
-                <ShopOfferPanel
-                  disabled={purchasingOfferId !== null}
-                  key={offer.id}
-                  offer={offer}
-                  onPurchase={() => void handlePurchase(offer.id)}
-                  purchasing={purchasingOfferId === offer.id}
-                />
-              );
-            })}
+          <section className="shop-featured" aria-labelledby="shop-featured-heading">
+            <div id="shop-featured-heading">
+              <ShopSectionHeading>Акційні набори</ShopSectionHeading>
+            </div>
+            <div className="shop-featured__empty">
+              <div className="shop-featured__icon" aria-hidden="true">
+                <AppIcon name="collection" size={30} />
+              </div>
+              <div>
+                <strong>Немає активних наборів</strong>
+                <p>Нові пропозиції з’являться тут, щойно стануть доступними.</p>
+              </div>
+              <span>Невдовзі</span>
+            </div>
           </section>
+
+          <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
+            <ShopSectionHeading>По одній карті</ShopSectionHeading>
+            {catalogState.catalog.offers.length ? (
+              catalogState.catalog.offers.map((offer) => {
+                return (
+                  <ShopOfferPanel
+                    disabled={purchasingOfferId !== null}
+                    key={offer.id}
+                    offer={offer}
+                    onPurchase={() => void handlePurchase(offer.id)}
+                    purchasing={purchasingOfferId === offer.id}
+                  />
+                );
+              })
+            ) : (
+              <div className="shop-inline-empty">Пропозиції карт тимчасово відсутні.</div>
+            )}
+          </section>
+
+          <aside className="shop-chance-note">
+            <span>Бонус до шансу</span>
+            <strong>Кожна невдала спроба наближає рідкіснішу карту</strong>
+            <p>Поточний шанс і приріст указано окремо в кожній пропозиції.</p>
+          </aside>
         </div>
       ) : null}
 

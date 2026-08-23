@@ -1,4 +1,5 @@
 import type { CardRarity, PlayerCard } from "./card.js";
+import type { CollectionCompletionNotice } from "./collection.js";
 
 export const SHOP_CURRENCIES = ["silver", "gold"] as const;
 
@@ -38,8 +39,10 @@ export interface ShopChanceState {
 }
 
 export interface ShopPurchaseResponse {
+  collectionCompleted?: CollectionCompletionNotice;
   deckChanged: boolean;
   deckPower?: number;
+  newDiscovery: boolean;
   previousDeckPower?: number;
   reward: PlayerCard;
   updatedBalance: PlayerBalance;

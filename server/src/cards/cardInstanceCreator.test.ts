@@ -18,6 +18,8 @@ test("server creation persists one independent instance with an injected bounded
     artKey: null,
     element: "fire",
     collectionId: null,
+    minRarity: "common",
+    shopEligible: false,
   }, 1, { nextInt: (maximum) => maximum - 1 });
 
   assert.equal(instance.level, 1);

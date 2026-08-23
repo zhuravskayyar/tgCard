@@ -10,6 +10,7 @@ interface CanonicalCardRow {
   collection_id: string | null;
   display_name: string | null;
   element: CardDefinition["element"];
+  min_rarity: CardRarity;
   target_rarity: CardRarity;
 }
 
@@ -44,12 +45,19 @@ export async function selectCanonicalShopReward(
         cards.art_key,
         cards.element,
         cards.collection_id,
-        shop_card_pools.target_rarity
-      FROM shop_card_pools
-      INNER JOIN cards ON cards.id = shop_card_pools.card_id
-      WHERE shop_card_pools.target_rarity = $1
+        cards.min_rarity,
+        $1::text AS target_rarity
+      FROM cards
+      WHERE cards.shop_eligible = TRUE
+        AND array_position(
+          ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
+          cards.min_rarity
+        ) <= array_position(
+          ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
+          $1::text
+        )
       ORDER BY cards.code, cards.id
-      FOR SHARE OF cards, shop_card_pools
+      FOR SHARE OF cards
     `,
     [rarity],
   );
@@ -67,6 +75,8 @@ export async function selectCanonicalShopReward(
     artKey: row.art_key,
     element: row.element,
     collectionId: row.collection_id,
+    minRarity: row.min_rarity,
+    shopEligible: true,
     targetRarity: row.target_rarity,
   };
 }

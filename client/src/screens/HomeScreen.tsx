@@ -30,10 +30,11 @@ const secondaryActions: HomeItem[] = [
 
 interface HomeScreenProps {
   onOpenDeck: () => void;
+  onOpenCollections: () => void;
   onOpenShop: () => void;
 }
 
-export function HomeScreen({ onOpenDeck, onOpenShop }: HomeScreenProps) {
+export function HomeScreen({ onOpenCollections, onOpenDeck, onOpenShop }: HomeScreenProps) {
   return (
     <div className="home-screen">
       <header className="home-heading">
@@ -49,7 +50,7 @@ export function HomeScreen({ onOpenDeck, onOpenShop }: HomeScreenProps) {
 
       <section className="secondary-menu" aria-label="Додаткові розділи">
         {secondaryActions.map((action) => (
-          <MenuRow key={action.title} {...action} onClick={action.icon === "shop" ? onOpenShop : undefined} />
+          <MenuRow key={action.title} {...action} onClick={action.icon === "shop" ? onOpenShop : action.icon === "collection" ? onOpenCollections : undefined} />
         ))}
       </section>
     </div>

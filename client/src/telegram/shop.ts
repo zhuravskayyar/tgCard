@@ -102,6 +102,7 @@ function parsePurchase(value: unknown): ShopPurchaseResponse {
       isPercentage(state.chance)
     )) ||
     typeof purchase.deckChanged !== "boolean" ||
+    typeof purchase.newDiscovery !== "boolean" ||
     (purchase.deckPower !== undefined && !isNonNegativeInteger(purchase.deckPower)) ||
     (purchase.previousDeckPower !== undefined && !isNonNegativeInteger(purchase.previousDeckPower))
   ) {

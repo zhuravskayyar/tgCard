@@ -11,7 +11,6 @@ import { PlayerRepository } from "../users/playerRepository.js";
 import type { ShopRandomSource } from "./shopChancePolicy.js";
 import {
   InsufficientShopFundsError,
-  ShopLevelSelectionPolicyUnavailableError,
   ShopPersistenceError,
   ShopService,
 } from "./shopService.js";
@@ -83,6 +82,8 @@ function selectInsertedReward(cards: readonly TestCard[]) {
       element: card.element,
       targetRarity: card.rarity,
       collectionId: card.collectionId,
+      minRarity: card.rarity,
+      shopEligible: true,
     };
   };
 }
@@ -239,7 +240,7 @@ test("a higher rarity hit halves only its meter and increments lower pity", { sk
   }
 });
 
-test("unresolved level policy and downstream failures roll back balance, pity, and inventory", {
+test("downstream Shop failures roll back balance, pity, discovery, and inventory", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -251,10 +252,6 @@ test("unresolved level policy and downstream failures roll back balance, pity, a
   try {
     await insertCards(pool, [reward]);
     const player = await players.findOrCreateFromTelegram(user);
-    await assert.rejects(
-      new ShopService(pool, { rng: new AlwaysMissRandomSource() }).purchase(player.id, "card_uncommon"),
-      (error) => error instanceof ShopLevelSelectionPolicyUnavailableError,
-    );
     const unavailableShop = new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
       levelPolicy: levelPolicyFor([reward]),
@@ -283,9 +280,14 @@ test("unresolved level policy and downstream failures roll back balance, pity, a
       "SELECT count(*) FROM player_card_instances WHERE player_id = $1 AND card_id = $2",
       [player.id, reward.cardId],
     );
+    const discovery = await pool.query<{ count: string }>(
+      "SELECT count(*) FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2",
+      [player.id, reward.cardId],
+    );
     assert.equal(balance.rows[0]?.silver, "1500");
     assert.equal(pity.rows[0]?.count, "0");
     assert.equal(ownership.rows[0]?.count, "0");
+    assert.equal(discovery.rows[0]?.count, "0");
   } finally {
     await cleanup(pool, [user.id], [reward.cardId]);
     await pool.end();

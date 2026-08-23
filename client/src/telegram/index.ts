@@ -27,6 +27,10 @@ export function initializeTelegram(): TelegramWebApp | null {
 }
 
 export function getTelegramInitData(): string | null {
-  const initData = getTelegramWebApp()?.initData.trim();
+  const webAppInitData = getTelegramWebApp()?.initData.trim();
+  const hashInitData = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.hash.replace(/^#/, "")).get("tgWebAppData")?.trim();
+  const initData = webAppInitData || hashInitData;
   return initData || null;
 }

@@ -45,6 +45,16 @@ export async function grantStarterCards(client: PoolClient, playerId: string) {
     `,
     [playerId, STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],
   );
+  await client.query(
+    `
+      INSERT INTO player_card_discoveries (player_id, card_id)
+      SELECT $1::uuid, cards.id
+      FROM cards
+      WHERE cards.code = ANY($2::text[])
+      ON CONFLICT (player_id, card_id) DO NOTHING
+    `,
+    [playerId, STARTER_CARD_CODES],
+  );
 }
 
 export async function backfillStarterCards(pool: Pool) {
@@ -74,6 +84,17 @@ export async function backfillStarterCards(pool: Pool) {
         ON CONFLICT (id) DO NOTHING
       `,
       [STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],
+    );
+    await client.query(
+      `
+        INSERT INTO player_card_discoveries (player_id, card_id)
+        SELECT players.id, cards.id
+        FROM players
+        CROSS JOIN cards
+        WHERE cards.code = ANY($1::text[])
+        ON CONFLICT (player_id, card_id) DO NOTHING
+      `,
+      [STARTER_CARD_CODES],
     );
     await client.query("COMMIT");
     return result.rowCount ?? 0;

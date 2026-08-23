@@ -3,6 +3,8 @@ import { handleTelegramAuth } from "./auth/telegramAuthRoute.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
 import { getServerEnvironment } from "./config/environment.js";
+import { CollectionRepository } from "./collections/collectionRepository.js";
+import { handlePlayerCollections } from "./collections/collectionRoute.js";
 import { createDatabasePool } from "./database/pool.js";
 import { DeckRepository } from "./decks/deckRepository.js";
 import { handlePlayerDeck } from "./decks/playerDeckRoute.js";
@@ -21,6 +23,7 @@ const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const shop = new ShopService(pool);
 const cardProgression = new CardProgressionService(pool, inventory);
+const collections = new CollectionRepository(pool);
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
@@ -40,10 +43,13 @@ const server = createServer(async (request, response) => {
   const cardProgressionMatch = url.pathname.match(
     /^\/api\/player\/cards\/([^/]+?)(?:\/(absorption-candidates|absorption-preview|absorb|level-up))?$/,
   );
+  const collectionMatch = url.pathname.match(
+    /^\/api\/player\/collections(?:\/([^/]+?)(?:\/cards\/([^/]+?))?)?$/,
+  );
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || cardProgressionMatch)
+    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -88,6 +94,17 @@ const server = createServer(async (request, response) => {
       progression: cardProgression,
       responseHeaders: cors.headers,
     }, instanceId, action);
+    return;
+  }
+
+  if (collectionMatch) {
+    await handlePlayerCollections(request, response, {
+      botToken: environment.telegramBotToken,
+      collections,
+      players,
+      responseHeaders: cors.headers,
+    }, collectionMatch[1] ? decodeURIComponent(collectionMatch[1]) : undefined,
+    collectionMatch[2] ? decodeURIComponent(collectionMatch[2]) : undefined);
     return;
   }
 

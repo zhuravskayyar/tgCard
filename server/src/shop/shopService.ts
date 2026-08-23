@@ -1,6 +1,7 @@
 import {
   getCardPower,
   getDeckPower,
+  selectShopLevelForRarity,
   selectGeneratedLevelForRarity,
   type GeneratedLevelPolicy,
 } from "@cardastika/game-core";
@@ -13,6 +14,7 @@ import type {
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { createStandardCardInstance } from "../cards/cardInstanceCreator.js";
+import { recordCardDiscovery } from "../collections/discoveryService.js";
 import {
   recalculateAutomaticDeck,
   type AutomaticDeckRecalculationResult,
@@ -105,10 +107,6 @@ export class ShopPersistenceError extends Error {
   }
 }
 
-const unconfiguredLevelPolicy: GeneratedLevelPolicy = () => {
-  throw new ShopLevelSelectionPolicyUnavailableError();
-};
-
 function toNonNegativeInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
@@ -193,7 +191,7 @@ export class ShopService {
     private readonly pool: Pick<Pool, "connect" | "query">,
     dependencies: ShopServiceDependencies = {},
   ) {
-    this.levelPolicy = dependencies.levelPolicy ?? unconfiguredLevelPolicy;
+    this.levelPolicy = dependencies.levelPolicy ?? selectShopLevelForRarity;
     this.recalculateDeck = dependencies.recalculateDeck ?? recalculateAutomaticDeck;
     this.resolveRarity = dependencies.resolveRarity ?? resolveShopRarity;
     this.rng = dependencies.rng ?? new CryptoShopRandomSource();
@@ -310,9 +308,11 @@ export class ShopService {
 
       const { targetRarity: _targetRarity, ...definition } = selectedDefinition;
       const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
+      const discovery = await recordCardDiscovery(client, playerId, definition.id);
       const deckResult = await this.recalculateDeck(client, playerId);
       const response: ShopPurchaseResponse = {
         reward,
+        newDiscovery: discovery.newDiscovery,
         updatedBalance: toBalance(updatedPlayer),
         updatedChances: rarityResolution.updatedChances.map((chance) => ({
           rarity: chance.rarity,
@@ -320,6 +320,7 @@ export class ShopService {
         })),
         deckChanged: deckResult.status === "updated",
       };
+      if (discovery.collectionCompleted) response.collectionCompleted = discovery.collectionCompleted;
       if (deckResult.status !== "insufficient_valid_cards") {
         response.previousDeckPower = previousDeckPower;
         response.deckPower = deckResult.totalPower;

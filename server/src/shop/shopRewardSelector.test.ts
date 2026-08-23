@@ -3,7 +3,7 @@ import test from "node:test";
 import type { PoolClient } from "pg";
 import { selectCanonicalShopReward, ShopRewardUnavailableError } from "./shopRewardSelector.js";
 
-test("reward selection queries only the exact-rarity explicit shop pool", async () => {
+test("reward selection filters canonical Shop cards by minimum rarity", async () => {
   let queryText = "";
   let queryValues: unknown[] = [];
   const client = {
@@ -17,6 +17,7 @@ test("reward selection queries only the exact-rarity explicit shop pool", async 
           display_name: "Eligible rare",
           art_key: null,
           element: "air",
+          min_rarity: "uncommon",
           target_rarity: "rare",
           collection_id: null,
         }],
@@ -25,7 +26,8 @@ test("reward selection queries only the exact-rarity explicit shop pool", async 
   } as unknown as PoolClient;
 
   const reward = await selectCanonicalShopReward(client, "rare", { nextInt: () => 0 });
-  assert.match(queryText, /FROM shop_card_pools/);
+  assert.match(queryText, /cards\.shop_eligible = TRUE/);
+  assert.match(queryText, /cards\.min_rarity/);
   assert.deepEqual(queryValues, ["rare"]);
   assert.equal(reward.id, "eligible_rare");
   assert.equal(reward.targetRarity, "rare");

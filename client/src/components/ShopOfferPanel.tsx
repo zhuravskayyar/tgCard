@@ -28,33 +28,47 @@ export function ShopOfferPanel({
 
   return (
     <article className={`shop-offer shop-offer--${offer.guaranteedRarity}`}>
-      <div className="shop-offer__symbol" aria-hidden="true">
-        <AppIcon name="collection" size={34} />
+      <div className="shop-offer__summary">
+        <div className="shop-offer__symbol" aria-hidden="true">
+          <AppIcon name="collection" size={32} />
+        </div>
+        <div className="shop-offer__copy">
+          <h3>{rarityLabels[offer.guaranteedRarity]} картка</h3>
+          <p className="shop-offer__guarantee">
+            <strong>Гарантовано</strong> {rarityLabels[offer.guaranteedRarity].toLowerCase()} або краще
+          </p>
+        </div>
       </div>
-      <div className="shop-offer__copy">
-        <h2>{rarityLabels[offer.guaranteedRarity].toUpperCase()} КАРТКА</h2>
-        <p className="shop-offer__guarantee"><strong>Гарантовано:</strong> {rarityLabels[offer.guaranteedRarity]}</p>
-        <dl className="shop-offer__upgrades">
-          {offer.upgrades.map((upgrade) => (
-            <div key={upgrade.rarity}>
-              <dt>{rarityLabels[upgrade.rarity]}</dt>
-              <dd>Поточний шанс: <strong>{formatPercentage(upgrade.chance)}%</strong></dd>
-              <dd className="shop-offer__increment">+{formatPercentage(upgrade.increment)}% після невдачі</dd>
-            </div>
-          ))}
-        </dl>
-        {!offer.canAfford ? <span className="shop-offer__unavailable">Недостатньо {currencyLabel}</span> : null}
+
+      {offer.upgrades.length ? (
+        <details className="shop-offer__details">
+          <summary>Шанси отримати рідкіснішу карту</summary>
+          <dl className="shop-offer__upgrades">
+            {offer.upgrades.map((upgrade) => (
+              <div key={upgrade.rarity}>
+                <dt>{rarityLabels[upgrade.rarity]}</dt>
+                <dd><strong>{formatPercentage(upgrade.chance)}%</strong> зараз</dd>
+                <dd className="shop-offer__increment">+{formatPercentage(upgrade.increment)}% після невдачі</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      ) : null}
+
+      <div className="shop-offer__footer">
+        {!offer.canAfford ? <span className="shop-offer__unavailable">Недостатньо {currencyLabel}</span> : <span />}
+        <button
+          aria-label={`Придбати за ${offer.price} ${currencyLabel}`}
+          className="shop-offer__purchase"
+          disabled={disabled || !offer.canAfford}
+          onClick={onPurchase}
+          type="button"
+        >
+          <span>{purchasing ? "Купуємо…" : "Купити за"}</span>
+          {!purchasing ? <AppIcon name={offer.currency} size={20} /> : null}
+          {!purchasing ? <strong>{offer.price}</strong> : null}
+        </button>
       </div>
-      <button
-        aria-label={`Придбати за ${offer.price} ${currencyLabel}`}
-        className="shop-offer__purchase"
-        disabled={disabled || !offer.canAfford}
-        onClick={onPurchase}
-        type="button"
-      >
-        <AppIcon name={offer.currency} size={20} />
-        <strong>{purchasing ? "…" : offer.price}</strong>
-      </button>
     </article>
   );
 }
