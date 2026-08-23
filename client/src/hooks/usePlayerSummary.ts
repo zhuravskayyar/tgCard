@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { PlayerBalance } from "@cardastika/shared";
+import type { PlayerSummary } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
 import { authenticateTelegramPlayer } from "../telegram/authenticatePlayer";
 import type { PlayerSummaryState } from "../types/player";
@@ -12,7 +12,7 @@ export function usePlayerSummary() {
     setAttempt((currentAttempt) => currentAttempt + 1);
   }, []);
 
-  const updateBalance = useCallback((balance: Partial<PlayerBalance>) => {
+  const updateBalance = useCallback((balance: Partial<Pick<PlayerSummary, "gold" | "level" | "silver">>) => {
     setState((current) => current.status === "ready"
       ? { status: "ready", data: { ...current.data, ...balance } }
       : current);

@@ -8,16 +8,17 @@ import { ShopScreen } from "./screens/ShopScreen";
 import { CardDetailScreen } from "./screens/CardDetailScreen";
 import { WeakCardsScreen } from "./screens/WeakCardsScreen";
 import { CollectionCardScreen, CollectionDetailScreen, CollectionsScreen } from "./screens/CollectionsScreens";
+import { DuelScreen } from "./screens/DuelScreen";
 import { initializeTelegram } from "./telegram";
 import type { BottomNavItem } from "./components/BottomNav";
 
 export function App() {
   const { retry, state: playerSummaryState, updateBalance } = usePlayerSummary();
-  type Screen = "home" | "profile" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card";
+  type Screen = "home" | "profile" | "duel" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card";
   const initialPath = typeof window === "undefined" ? "/" : window.location.pathname;
   const initialCollectionCard = initialPath.match(/^\/collections\/([^/]+)\/cards\/([^/]+)$/);
   const initialCollection = initialPath.match(/^\/collections\/([^/]+)$/);
-  const [screen, setScreen] = useState<Screen>(initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : "home");
+  const [screen, setScreen] = useState<Screen>(initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialPath === "/duel" ? "duel" : "home");
   const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile">("home");
   const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck">("home");
   const [cardInstanceId, setCardInstanceId] = useState<string | null>(null);
@@ -56,6 +57,11 @@ export function App() {
     updatePath("/");
   }
 
+  function openDuel() {
+    setScreen("duel");
+    updatePath("/duel");
+  }
+
   function openShop(returnScreen: "home" | "deck") {
     setShopReturnScreen(returnScreen);
     setScreen("shop");
@@ -85,7 +91,10 @@ export function App() {
       playerSummaryState={playerSummaryState}
     >
       {screen === "home" ? (
-        <HomeScreen onOpenCollections={openCollections} onOpenDeck={() => openDeck("home")} onOpenShop={() => openShop("home")} />
+        <HomeScreen onOpenCollections={openCollections} onOpenDeck={() => openDeck("home")} onOpenDuel={openDuel} onOpenShop={() => openShop("home")} />
+      ) : null}
+      {screen === "duel" ? (
+        <DuelScreen onBack={goHome} onPlayerSummaryChange={updateBalance} />
       ) : null}
       {screen === "profile" ? (
         <ProfileScreen

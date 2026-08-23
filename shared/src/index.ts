@@ -32,6 +32,23 @@ export {
   type PlayerDeckCard,
   type PlayerDeckResponse,
 } from "./deck.js";
+export type {
+  ActiveDuelResponse,
+  DuelActionRequest,
+  DuelBattleModifiers,
+  DuelCardSnapshot,
+  DuelExchange,
+  DuelLogVisualState,
+  DuelOpponentPreview,
+  DuelOutcome,
+  DuelResult,
+  DuelSearchResponse,
+  DuelSideSnapshot,
+  DuelStartRequest,
+  DuelStatus,
+  DuelView,
+  ElementMultiplier,
+} from "./duel.js";
 export type { PlayerSummary, TelegramAuthRequest } from "./player.js";
 export {
   SHOP_CURRENCIES,
