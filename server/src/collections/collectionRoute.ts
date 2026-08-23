@@ -29,6 +29,13 @@ interface CollectionRouteDependencies {
   collections: CollectionLookup;
   players: PlayerLookup;
   responseHeaders?: OutgoingHttpHeaders;
+  campaign?: {
+    recordExternalEvent(
+      playerId: string,
+      type: "COLLECTION_OPENED",
+      payload: { collectionScope: "detail" | "list" },
+    ): Promise<void>;
+  };
 }
 
 function readTelegramInitData(request: IncomingMessage) {
@@ -58,6 +65,11 @@ export async function handlePlayerCollections(
         ? await dependencies.collections.card(player.id, collectionId, cardId)
         : await dependencies.collections.detail(player.id, collectionId)
       : await dependencies.collections.list(player.id);
+    if (!cardId) {
+      await dependencies.campaign?.recordExternalEvent(player.id, "COLLECTION_OPENED", {
+        collectionScope: collectionId ? "detail" : "list",
+      });
+    }
     sendJson(response, 200, body, responseHeaders);
   } catch (error) {
     if (error instanceof TelegramInitDataError) {

@@ -2,11 +2,14 @@ import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:
 import type { TelegramAuthRequest } from "@cardastika/shared";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError, type PlayerRepository } from "../users/playerRepository.js";
-import { TelegramInitDataError, validateTelegramInitData } from "./telegramInitData.js";
+import { TelegramInitDataError, validateTelegramInitDataPayload } from "./telegramInitData.js";
 
 interface TelegramAuthDependencies {
   botToken: string;
   players: PlayerRepository;
+  referrals?: {
+    acceptFromTelegramStart(playerId: string, startParam: string | null): Promise<unknown>;
+  };
   responseHeaders?: OutgoingHttpHeaders;
 }
 
@@ -32,8 +35,9 @@ export async function handleTelegramAuth(
       throw new HttpRequestError(400, "missing_init_data", "initData is required");
     }
 
-    const telegramUser = validateTelegramInitData(body.initData, dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const validated = validateTelegramInitDataPayload(body.initData, dependencies.botToken);
+    const player = await dependencies.players.findOrCreateFromTelegram(validated.user);
+    await dependencies.referrals?.acceptFromTelegramStart(player.id, validated.startParam);
     sendJson(response, 200, player, responseHeaders);
   } catch (error) {
     if (error instanceof HttpRequestError) {

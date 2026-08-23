@@ -169,7 +169,12 @@ test("Duel XP and Silver formulas and collection reward modifiers are exact", ()
   assert.deepEqual(calculateDuelReward(8, "win", {
     experienceRewardPct: 5,
     silverRewardPct: 5,
-  }), { baseXp: 60, baseSilver: 120, xp: 63, silver: 126 });
+  }), { accountBoostMultiplier: 1, baseXp: 60, baseSilver: 120, xp: 63, silver: 126 });
+
+  assert.deepEqual(calculateDuelReward(8, "win", {
+    experienceRewardPct: 5,
+    silverRewardPct: 5,
+  }, 2), { accountBoostMultiplier: 2, baseXp: 60, baseSilver: 120, xp: 126, silver: 252 });
 });
 
 test("linear account XP preserves overflow and supports multiple Gold-paying level-ups", () => {

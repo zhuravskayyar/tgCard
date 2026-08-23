@@ -20,6 +20,7 @@ import type {
   PlayerCardInstance,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import type { CampaignService } from "../campaign/campaignService.js";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "./cardInstanceMapper.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import type { InventoryRepository } from "../inventory/inventoryRepository.js";
@@ -256,6 +257,7 @@ export class CardProgressionService {
   constructor(
     private readonly pool: Pool,
     private readonly inventory: Pick<InventoryRepository, "findWeakPageByPlayerId">,
+    private readonly campaign?: Pick<CampaignService, "recordEvent">,
   ) {}
 
   async getDetail(playerId: string, instanceId: string) {
@@ -373,6 +375,9 @@ export class CardProgressionService {
         [fodderInstanceIds],
       );
       await recalculateAutomaticDeck(client, playerId);
+      await this.campaign?.recordEvent(client, playerId, "CARD_ABSORBED", {
+        absorbedCards: fodderInstanceIds.length,
+      });
       const gold = toNonNegativeInteger(player.gold, "player gold");
       const detail = await loadDetail(client, playerId, targetInstanceId, gold);
       await client.query("COMMIT");
@@ -439,6 +444,7 @@ export class CardProgressionService {
         [targetInstanceId, next.level, next.levelProgressElements, next.storedElements],
       );
       await recalculateAutomaticDeck(client, playerId);
+      await this.campaign?.recordEvent(client, playerId, "CARD_LEVEL_UP");
       const detail = await loadDetail(client, playerId, targetInstanceId, nextGold);
       await client.query("COMMIT");
       return { ...detail, consumedInstanceIds: [], playerGold: nextGold };

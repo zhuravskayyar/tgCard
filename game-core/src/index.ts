@@ -66,6 +66,7 @@ export {
   applyAccountXp,
   applyDuelOutcomeToStats,
   calculateDuelDamage,
+  calculateBattleReward,
   calculateDuelReward,
   cycleCardPoolSlot,
   getDuelBaseSilver,
@@ -86,6 +87,7 @@ export {
   type DuelReward,
   type DuelStats,
   type MatchmakingRange,
+  type ModifiedBattleReward,
   type RandomSource,
   type ResolvedDuelExchange,
 } from "./duel.js";

@@ -13,6 +13,7 @@ import type {
   ShopPurchaseResponse,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import type { CampaignService } from "../campaign/campaignService.js";
 import { createStandardCardInstance } from "../cards/cardInstanceCreator.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
 import {
@@ -58,6 +59,7 @@ type ShopRewardSelector = (
 ) => Promise<SelectedShopRewardDefinition>;
 
 interface ShopServiceDependencies {
+  campaign?: Pick<CampaignService, "recordEvent">;
   levelPolicy?: GeneratedLevelPolicy;
   recalculateDeck?: (
     client: PoolClient,
@@ -181,6 +183,7 @@ async function loadCurrentDeckPower(client: PoolClient, playerId: string) {
 }
 
 export class ShopService {
+  private readonly campaign?: Pick<CampaignService, "recordEvent">;
   private readonly levelPolicy: GeneratedLevelPolicy;
   private readonly recalculateDeck: NonNullable<ShopServiceDependencies["recalculateDeck"]>;
   private readonly resolveRarity: NonNullable<ShopServiceDependencies["resolveRarity"]>;
@@ -191,6 +194,7 @@ export class ShopService {
     private readonly pool: Pick<Pool, "connect" | "query">,
     dependencies: ShopServiceDependencies = {},
   ) {
+    this.campaign = dependencies.campaign;
     this.levelPolicy = dependencies.levelPolicy ?? selectShopLevelForRarity;
     this.recalculateDeck = dependencies.recalculateDeck ?? recalculateAutomaticDeck;
     this.resolveRarity = dependencies.resolveRarity ?? resolveShopRarity;
@@ -310,6 +314,11 @@ export class ShopService {
       const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
       const discovery = await recordCardDiscovery(client, playerId, definition.id);
       const deckResult = await this.recalculateDeck(client, playerId);
+      await this.campaign?.recordEvent(client, playerId, "SHOP_CARD_PURCHASED");
+      await this.campaign?.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: reward.rarity });
+      if (discovery.newDiscovery) {
+        await this.campaign?.recordEvent(client, playerId, "CARD_DISCOVERED");
+      }
       const response: ShopPurchaseResponse = {
         reward,
         newDiscovery: discovery.newDiscovery,

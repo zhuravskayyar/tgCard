@@ -40,3 +40,9 @@ HTTPS client origin and build or start the client with `VITE_API_URL` set to the
 public HTTPS API origin. Local development keeps using the Vite `/api` proxy when
 `VITE_API_URL` is empty. Temporary tunnel URLs belong only in environment state,
 never in React components or committed configuration.
+
+For Campaign referral links, configure the public bot username as
+`VITE_TELEGRAM_BOT_USERNAME` in the client environment. It is used only to form
+the public `startapp=ref_<code>` URL; `TELEGRAM_BOT_TOKEN` and raw `initData`
+remain server-only/authentication-only respectively. The server reads
+`start_param` only from the already signature-validated Telegram payload.

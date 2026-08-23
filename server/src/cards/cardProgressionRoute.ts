@@ -29,6 +29,9 @@ interface CardProgressionRouteDependencies {
     "getDetail" | "getAbsorptionCandidates" | "previewAbsorption" | "absorb" | "levelUp"
   >;
   responseHeaders?: OutgoingHttpHeaders;
+  campaign?: {
+    recordExternalEvent(playerId: string, type: "CARD_DETAIL_OPENED"): Promise<void>;
+  };
 }
 
 function readTelegramInitData(request: IncomingMessage) {
@@ -99,7 +102,9 @@ export async function handleCardProgressionRequest(
     const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
 
     if (action === "detail" && request.method === "GET") {
-      sendJson(response, 200, await dependencies.progression.getDetail(player.id, instanceId), headers);
+      const detail = await dependencies.progression.getDetail(player.id, instanceId);
+      await dependencies.campaign?.recordExternalEvent(player.id, "CARD_DETAIL_OPENED");
+      sendJson(response, 200, detail, headers);
       return;
     }
     if (action === "absorption-candidates" && request.method === "GET") {

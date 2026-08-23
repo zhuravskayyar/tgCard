@@ -30,8 +30,15 @@ export interface MatchmakingRange {
 }
 
 export interface DuelReward {
+  accountBoostMultiplier: 1 | 2;
   baseSilver: number;
   baseXp: number;
+  silver: number;
+  xp: number;
+}
+
+export interface ModifiedBattleReward {
+  accountBoostMultiplier: 1 | 2;
   silver: number;
   xp: number;
 }
@@ -259,16 +266,42 @@ export function calculateDuelReward(
   level: number,
   outcome: DuelOutcome,
   modifiers: Pick<DuelBattleModifiers, "experienceRewardPct" | "silverRewardPct">,
+  accountBoostMultiplier: 1 | 2 = 1,
 ): DuelReward {
   assertPercentage(modifiers.experienceRewardPct, "Experience reward percentage");
   assertPercentage(modifiers.silverRewardPct, "Silver reward percentage");
   const baseXp = getDuelBaseXp(level, outcome);
   const baseSilver = getDuelBaseSilver(level, outcome);
-  return {
+  const modified = calculateBattleReward(
     baseXp,
     baseSilver,
-    xp: Math.round(baseXp * (1 + modifiers.experienceRewardPct / 100)),
-    silver: Math.round(baseSilver * (1 + modifiers.silverRewardPct / 100)),
+    modifiers,
+    accountBoostMultiplier,
+  );
+  return {
+    ...modified,
+    baseXp,
+    baseSilver,
+  };
+}
+
+export function calculateBattleReward(
+  baseXp: number,
+  baseSilver: number,
+  modifiers: Pick<DuelBattleModifiers, "experienceRewardPct" | "silverRewardPct">,
+  accountBoostMultiplier: 1 | 2 = 1,
+): ModifiedBattleReward {
+  assertNonNegativeInteger(baseXp, "Base battle XP");
+  assertNonNegativeInteger(baseSilver, "Base battle silver");
+  assertPercentage(modifiers.experienceRewardPct, "Experience reward percentage");
+  assertPercentage(modifiers.silverRewardPct, "Silver reward percentage");
+  if (accountBoostMultiplier !== 1 && accountBoostMultiplier !== 2) {
+    throw new RangeError("Account boost multiplier must be 1 or 2");
+  }
+  return {
+    accountBoostMultiplier,
+    xp: Math.round(baseXp * (1 + modifiers.experienceRewardPct / 100) * accountBoostMultiplier),
+    silver: Math.round(baseSilver * (1 + modifiers.silverRewardPct / 100) * accountBoostMultiplier),
   };
 }
 

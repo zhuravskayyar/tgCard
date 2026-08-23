@@ -49,6 +49,8 @@ export class PlayerRepository {
   constructor(private readonly pool: Pool) {}
 
   private async upsertTelegramPlayer(client: PoolClient, user: ValidatedTelegramUser) {
+    const playerId = randomUUID();
+    const referralCode = playerId.replaceAll("-", "").slice(0, 12).toLowerCase();
     return client.query<PlayerRow>(
       `
         INSERT INTO players (
@@ -60,9 +62,10 @@ export class PlayerRepository {
           photo_url,
           level,
           silver,
-          gold
+          gold,
+          referral_code
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (telegram_user_id) DO UPDATE SET
           username = EXCLUDED.username,
           first_name = EXCLUDED.first_name,
@@ -72,7 +75,7 @@ export class PlayerRepository {
         RETURNING id, username, first_name, photo_url, level, silver, gold
       `,
       [
-        randomUUID(),
+        playerId,
         user.id,
         user.username,
         user.firstName,
@@ -81,6 +84,7 @@ export class PlayerRepository {
         NEW_PLAYER_DEFAULTS.level,
         NEW_PLAYER_DEFAULTS.silver,
         NEW_PLAYER_DEFAULTS.gold,
+        referralCode,
       ],
     );
   }

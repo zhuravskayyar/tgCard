@@ -50,6 +50,28 @@ export type {
   ElementMultiplier,
 } from "./duel.js";
 export type { PlayerSummary, TelegramAuthRequest } from "./player.js";
+export type {
+  AccountBoostStatus,
+  ActiveCampaignBossResponse,
+  CampaignBossOpponentView,
+  CampaignBossResult,
+  CampaignBossState,
+  CampaignBossSummary,
+  CampaignBossView,
+  CampaignDialogue,
+  CampaignDialogueEmotion,
+  CampaignDialogueTrigger,
+  CampaignNavigationTarget,
+  CampaignQuestClaimResponse,
+  CampaignQuestState,
+  CampaignQuestView,
+  CampaignReferralView,
+  CampaignReward,
+  CampaignStageState,
+  CampaignStageView,
+  CampaignView,
+  HiddenBossCardSlot,
+} from "./campaign.js";
 export {
   SHOP_CURRENCIES,
   type PlayerBalance,

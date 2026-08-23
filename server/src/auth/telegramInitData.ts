@@ -25,6 +25,11 @@ export interface ValidatedTelegramUser {
   username: string | null;
 }
 
+export interface ValidatedTelegramInitData {
+  startParam: string | null;
+  user: ValidatedTelegramUser;
+}
+
 interface ValidationOptions {
   maxAgeSeconds?: number;
   nowSeconds?: number;
@@ -71,6 +76,14 @@ export function validateTelegramInitData(
   botToken: string,
   options: ValidationOptions = {},
 ): ValidatedTelegramUser {
+  return validateTelegramInitDataPayload(initData, botToken, options).user;
+}
+
+export function validateTelegramInitDataPayload(
+  initData: string,
+  botToken: string,
+  options: ValidationOptions = {},
+): ValidatedTelegramInitData {
   if (!initData.trim()) {
     throw new TelegramInitDataError("missing_init_data");
   }
@@ -115,5 +128,8 @@ export function validateTelegramInitData(
     throw new TelegramInitDataError("expired_init_data");
   }
 
-  return parseTelegramUser(uniqueParameters.get("user") ?? null);
+  return {
+    user: parseTelegramUser(uniqueParameters.get("user") ?? null),
+    startParam: getOptionalString(uniqueParameters.get("start_param")),
+  };
 }

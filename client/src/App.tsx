@@ -9,18 +9,24 @@ import { CardDetailScreen } from "./screens/CardDetailScreen";
 import { WeakCardsScreen } from "./screens/WeakCardsScreen";
 import { CollectionCardScreen, CollectionDetailScreen, CollectionsScreen } from "./screens/CollectionsScreens";
 import { DuelScreen } from "./screens/DuelScreen";
+import { CampaignBossScreen, CampaignScreen, CampaignStageScreen } from "./screens/CampaignScreens";
 import { initializeTelegram } from "./telegram";
 import type { BottomNavItem } from "./components/BottomNav";
 
 export function App() {
   const { retry, state: playerSummaryState, updateBalance } = usePlayerSummary();
-  type Screen = "home" | "profile" | "duel" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card";
+  type Screen = "home" | "profile" | "duel" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss";
   const initialPath = typeof window === "undefined" ? "/" : window.location.pathname;
   const initialCollectionCard = initialPath.match(/^\/collections\/([^/]+)\/cards\/([^/]+)$/);
   const initialCollection = initialPath.match(/^\/collections\/([^/]+)$/);
-  const [screen, setScreen] = useState<Screen>(initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialPath === "/duel" ? "duel" : "home");
-  const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile">("home");
-  const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck">("home");
+  const initialCampaignStage = initialPath.match(/^\/campaign\/stages\/([^/]+)$/);
+  const [screen, setScreen] = useState<Screen>(initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "campaign-stage" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : "home");
+  const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile" | "campaign-stage">("home");
+  const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck" | "campaign-stage">("home");
+  const [duelReturnScreen, setDuelReturnScreen] = useState<"home" | "campaign-stage">("home");
+  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "campaign-stage">("card");
+  const [collectionsReturnScreen, setCollectionsReturnScreen] = useState<"home" | "campaign-stage">("home");
+  const [campaignStageId, setCampaignStageId] = useState(() => decodeURIComponent(initialCampaignStage?.[1] ?? "") || "stage_1");
   const [cardInstanceId, setCardInstanceId] = useState<string | null>(null);
   const [cardReturnScreen, setCardReturnScreen] = useState<"deck" | "weak" | "collection-card">("deck");
   const [collectionId, setCollectionId] = useState<string | null>(() => decodeURIComponent(initialCollectionCard?.[1] ?? initialCollection?.[1] ?? "") || null);
@@ -31,10 +37,13 @@ export function App() {
   }, []);
 
   function updatePath(path: string) {
-    if (typeof window !== "undefined" && window.location.pathname !== path) window.history.pushState(null, "", path);
+    if (typeof window !== "undefined" && window.location.pathname !== path) {
+      window.history.pushState(null, "", `${path}${window.location.hash}`);
+    }
   }
 
-  function openCollections() {
+  function openCollections(returnScreen: "home" | "campaign-stage" = "home") {
+    setCollectionsReturnScreen(returnScreen);
     setScreen("collections");
     updatePath("/collections");
   }
@@ -57,17 +66,18 @@ export function App() {
     updatePath("/");
   }
 
-  function openDuel() {
+  function openDuel(returnScreen: "home" | "campaign-stage" = "home") {
+    setDuelReturnScreen(returnScreen);
     setScreen("duel");
     updatePath("/duel");
   }
 
-  function openShop(returnScreen: "home" | "deck") {
+  function openShop(returnScreen: "home" | "deck" | "campaign-stage") {
     setShopReturnScreen(returnScreen);
     setScreen("shop");
   }
 
-  function openDeck(returnScreen: "home" | "profile") {
+  function openDeck(returnScreen: "home" | "profile" | "campaign-stage") {
     setDeckReturnScreen(returnScreen);
     setScreen("deck");
   }
@@ -76,6 +86,28 @@ export function App() {
     setCardInstanceId(instanceId);
     setCardReturnScreen(returnScreen);
     setScreen("card");
+  }
+
+  function openCampaign() {
+    setScreen("campaign");
+    updatePath("/campaign");
+  }
+
+  function openCampaignStage(stageId: string) {
+    setCampaignStageId(stageId);
+    setScreen("campaign-stage");
+    updatePath(`/campaign/stages/${encodeURIComponent(stageId)}`);
+  }
+
+  function navigateFromCampaign(target: "deck" | "duel" | "shop" | "collections" | "weak") {
+    if (target === "deck") openDeck("campaign-stage");
+    if (target === "duel") openDuel("campaign-stage");
+    if (target === "shop") openShop("campaign-stage");
+    if (target === "collections") openCollections("campaign-stage");
+    if (target === "weak") {
+      setWeakReturnScreen("campaign-stage");
+      setScreen("weak");
+    }
   }
 
   function navigateFromBottom(item: BottomNavItem) {
@@ -91,10 +123,10 @@ export function App() {
       playerSummaryState={playerSummaryState}
     >
       {screen === "home" ? (
-        <HomeScreen onOpenCollections={openCollections} onOpenDeck={() => openDeck("home")} onOpenDuel={openDuel} onOpenShop={() => openShop("home")} />
+        <HomeScreen onOpenCampaign={openCampaign} onOpenCollections={() => openCollections("home")} onOpenDeck={() => openDeck("home")} onOpenDuel={() => openDuel("home")} onOpenShop={() => openShop("home")} />
       ) : null}
       {screen === "duel" ? (
-        <DuelScreen onBack={goHome} onPlayerSummaryChange={updateBalance} />
+        <DuelScreen onBack={() => setScreen(duelReturnScreen)} onPlayerSummaryChange={updateBalance} />
       ) : null}
       {screen === "profile" ? (
         <ProfileScreen
@@ -107,7 +139,7 @@ export function App() {
         <DeckScreen onBack={() => setScreen(deckReturnScreen)} onOpenCard={(id) => openCard(id, "deck")} onOpenShop={() => openShop("deck")} />
       ) : null}
       {screen === "weak" ? (
-        <WeakCardsScreen onBack={() => setScreen("card")} onOpenCard={(id) => openCard(id, "weak")} />
+        <WeakCardsScreen onBack={() => setScreen(weakReturnScreen)} onOpenCard={(id) => openCard(id, "weak")} />
       ) : null}
       {screen === "card" && cardInstanceId ? (
         <CardDetailScreen
@@ -116,7 +148,7 @@ export function App() {
           onGoldChange={(gold) => updateBalance({ gold })}
           onOpenDeck={() => setScreen("deck")}
           onOpenShop={() => openShop("deck")}
-          onOpenWeakCards={() => setScreen("weak")}
+          onOpenWeakCards={() => { setWeakReturnScreen("card"); setScreen("weak"); }}
         />
       ) : null}
       {screen === "shop" ? (
@@ -125,9 +157,12 @@ export function App() {
           onBalanceChange={updateBalance}
         />
       ) : null}
-      {screen === "collections" ? <CollectionsScreen onBack={goHome} onOpenCollection={openCollection} /> : null}
-      {screen === "collection" && collectionId ? <CollectionDetailScreen collectionId={collectionId} onBack={openCollections} onOpenCard={openCollectionCard} /> : null}
+      {screen === "collections" ? <CollectionsScreen onBack={() => setScreen(collectionsReturnScreen)} onOpenCollection={openCollection} /> : null}
+      {screen === "collection" && collectionId ? <CollectionDetailScreen collectionId={collectionId} onBack={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} /> : null}
       {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
+      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenBoss={() => { setScreen("campaign-boss"); updatePath("/campaign/boss"); }} onOpenStage={openCampaignStage} /> : null}
+      {screen === "campaign-stage" ? <CampaignStageScreen onBack={openCampaign} onNavigate={navigateFromCampaign} onPlayerSummaryChange={updateBalance} stageId={campaignStageId} /> : null}
+      {screen === "campaign-boss" ? <CampaignBossScreen onPlayerSummaryChange={updateBalance} onReturn={openCampaign} /> : null}
     </AppShell>
   );
 }

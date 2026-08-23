@@ -35,7 +35,7 @@ interface DuelScreenProps {
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "level" | "silver" | "gold">>) => void;
 }
 
-function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
+export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
   return (
     <span className="duel-avatar" aria-hidden="true">
       {photoUrl ? <img alt="" src={photoUrl} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
@@ -57,10 +57,10 @@ function DuelHeading({ onBack }: { onBack: () => void }) {
   );
 }
 
-function HpPanel({ currentHp, maximumHp, side, tone }: {
+export function HpPanel({ currentHp, maximumHp, side, tone }: {
   currentHp: number;
   maximumHp: number;
-  side: DuelSideSnapshot;
+  side: Pick<DuelSideSnapshot, "level" | "name" | "photoUrl">;
   tone: "enemy" | "player";
 }) {
   const percentage = maximumHp > 0 ? Math.max(0, Math.min(100, currentHp / maximumHp * 100)) : 0;
@@ -84,7 +84,7 @@ function HpPanel({ currentHp, maximumHp, side, tone }: {
   );
 }
 
-function BattleCard({ card, disabled, enemy = false, onClick, selected = false }: {
+export function BattleCard({ card, disabled, enemy = false, onClick, selected = false }: {
   card: DuelCardSnapshot;
   disabled?: boolean;
   enemy?: boolean;
@@ -135,7 +135,7 @@ function BattleLogRow({ exchange }: { exchange: DuelExchange }) {
   );
 }
 
-function BattleLog({ entries }: { entries: DuelExchange[] }) {
+export function BattleLog({ entries }: { entries: DuelExchange[] }) {
   return (
     <section className="battle-log">
       <header>
@@ -207,6 +207,7 @@ function DuelResultView({ duel, onReturn }: { duel: DuelView; onReturn: () => vo
         </div>
       ) : null}
       {result.outcome === "win" ? <p>Серія перемог: <strong>{result.winStreak}</strong></p> : null}
+      {result.accountBoostMultiplier === 2 ? <p><strong>Буст ×2 активний</strong></p> : null}
       <button className="duel-primary-button" onClick={onReturn} type="button">До дуелей</button>
     </section>
   );

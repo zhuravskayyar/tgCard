@@ -26,19 +26,25 @@ export function usePlayerSummary() {
     }
 
     const controller = new AbortController();
+    let active = true;
     setState({ status: "loading" });
 
     void authenticateTelegramPlayer(initData, controller.signal)
-      .then((data) => setState({ status: "ready", data }))
+      .then((data) => {
+        if (active) setState({ status: "ready", data });
+      })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
+        if (!active || (error instanceof Error && error.name === "AbortError")) {
           return;
         }
 
         setState({ status: "error", message: "Не вдалося завантажити профіль" });
       });
 
-    return () => controller.abort();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [attempt]);
 
   return { retry, state, updateBalance };

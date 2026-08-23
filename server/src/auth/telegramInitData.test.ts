@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { TelegramInitDataError, validateTelegramInitData } from "./telegramInitData.js";
+import { TelegramInitDataError, validateTelegramInitData, validateTelegramInitDataPayload } from "./telegramInitData.js";
 
 const botToken = "123456:test-token";
 const nowSeconds = 1_800_000_000;
 
-function createSignedInitData(authDate = nowSeconds) {
+function createSignedInitData(authDate = nowSeconds, startParam?: string) {
   const parameters = new URLSearchParams({
     auth_date: String(authDate),
     query_id: "test-query",
@@ -16,6 +16,7 @@ function createSignedInitData(authDate = nowSeconds) {
       username: "test_user",
     }),
   });
+  if (startParam) parameters.set("start_param", startParam);
   const dataCheckString = [...parameters.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key}=${value}`)
@@ -36,6 +37,16 @@ test("accepts valid Telegram initData and extracts its signed user", () => {
     lastName: null,
     photoUrl: null,
   });
+});
+
+test("extracts only the signed Telegram start_param for referral acceptance", () => {
+  const validated = validateTelegramInitDataPayload(
+    createSignedInitData(nowSeconds, "ref_abcd1234"),
+    botToken,
+    { nowSeconds },
+  );
+  assert.equal(validated.startParam, "ref_abcd1234");
+  assert.equal(validated.user.id, "7654321012");
 });
 
 test("rejects initData modified after signing", () => {

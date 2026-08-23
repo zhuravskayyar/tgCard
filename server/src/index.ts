@@ -2,6 +2,10 @@ import { createServer } from "node:http";
 import { handleTelegramAuth } from "./auth/telegramAuthRoute.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
+import { handleCampaignRequest } from "./campaign/campaignRoute.js";
+import { CampaignService } from "./campaign/campaignService.js";
+import { CampaignBossService } from "./campaign/campaignBossService.js";
+import { handleCampaignBossRequest } from "./campaign/campaignBossRoute.js";
 import { getServerEnvironment } from "./config/environment.js";
 import { CollectionRepository } from "./collections/collectionRepository.js";
 import { handlePlayerCollections } from "./collections/collectionRoute.js";
@@ -17,16 +21,20 @@ import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCard
 import { handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
 import { PlayerRepository } from "./users/playerRepository.js";
+import { ReferralService } from "./referrals/referralService.js";
 
 const environment = getServerEnvironment();
 const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
-const shop = new ShopService(pool);
-const cardProgression = new CardProgressionService(pool, inventory);
+const campaign = new CampaignService(pool);
+const campaignBoss = new CampaignBossService(pool, campaign);
+const referrals = new ReferralService(pool, campaign);
+const shop = new ShopService(pool, { campaign });
+const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
-const duels = new DuelService(pool);
+const duels = new DuelService(pool, Math.random, campaign);
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
@@ -44,6 +52,8 @@ const server = createServer(async (request, response) => {
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
+  const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
+  const isCampaignBossRoute = url.pathname.startsWith("/api/player/campaign/boss");
   const cardProgressionMatch = url.pathname.match(
     /^\/api\/player\/cards\/([^/]+?)(?:\/(absorption-candidates|absorption-preview|absorb|level-up))?$/,
   );
@@ -53,7 +63,7 @@ const server = createServer(async (request, response) => {
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isDuelRoute || cardProgressionMatch || collectionMatch)
+    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isDuelRoute || isCampaignRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -64,6 +74,7 @@ const server = createServer(async (request, response) => {
     await handleTelegramAuth(request, response, {
       botToken: environment.telegramBotToken,
       players,
+      referrals,
       responseHeaders: cors.headers,
     });
     return;
@@ -96,6 +107,7 @@ const server = createServer(async (request, response) => {
       botToken: environment.telegramBotToken,
       players,
       progression: cardProgression,
+      campaign,
       responseHeaders: cors.headers,
     }, instanceId, action);
     return;
@@ -105,6 +117,7 @@ const server = createServer(async (request, response) => {
     await handlePlayerCollections(request, response, {
       botToken: environment.telegramBotToken,
       collections,
+      campaign,
       players,
       responseHeaders: cors.headers,
     }, collectionMatch[1] ? decodeURIComponent(collectionMatch[1]) : undefined,
@@ -116,6 +129,7 @@ const server = createServer(async (request, response) => {
     await handlePlayerDeck(request, response, {
       botToken: environment.telegramBotToken,
       decks,
+      campaign,
       players,
       responseHeaders: cors.headers,
     });
@@ -146,6 +160,26 @@ const server = createServer(async (request, response) => {
     await handleDuelRequest(request, response, {
       botToken: environment.telegramBotToken,
       duels,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isCampaignBossRoute) {
+    await handleCampaignBossRequest(request, response, {
+      botToken: environment.telegramBotToken,
+      boss: campaignBoss,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isCampaignRoute) {
+    await handleCampaignRequest(request, response, {
+      botToken: environment.telegramBotToken,
+      campaign,
       players,
       responseHeaders: cors.headers,
     });

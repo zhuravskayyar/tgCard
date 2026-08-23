@@ -18,6 +18,9 @@ interface PlayerDeckDependencies {
   decks: DeckLookup;
   players: PlayerLookup;
   responseHeaders?: OutgoingHttpHeaders;
+  campaign?: {
+    recordExternalEvent(playerId: string, type: "DECK_OPENED"): Promise<void>;
+  };
 }
 
 function readTelegramInitData(request: IncomingMessage) {
@@ -45,7 +48,9 @@ export async function handlePlayerDeck(
     const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
     const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
 
-    sendJson(response, 200, await dependencies.decks.findByPlayerId(player.id), responseHeaders);
+    const deck = await dependencies.decks.findByPlayerId(player.id);
+    await dependencies.campaign?.recordExternalEvent(player.id, "DECK_OPENED");
+    sendJson(response, 200, deck, responseHeaders);
   } catch (error) {
     if (error instanceof TelegramInitDataError) {
       sendJson(response, 401, {

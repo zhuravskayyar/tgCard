@@ -29,13 +29,14 @@ const secondaryActions: HomeItem[] = [
 ];
 
 interface HomeScreenProps {
+  onOpenCampaign: () => void;
   onOpenDuel: () => void;
   onOpenDeck: () => void;
   onOpenCollections: () => void;
   onOpenShop: () => void;
 }
 
-export function HomeScreen({ onOpenCollections, onOpenDeck, onOpenDuel, onOpenShop }: HomeScreenProps) {
+export function HomeScreen({ onOpenCampaign, onOpenCollections, onOpenDeck, onOpenDuel, onOpenShop }: HomeScreenProps) {
   return (
     <div className="home-screen">
       <header className="home-heading">
@@ -45,7 +46,7 @@ export function HomeScreen({ onOpenCollections, onOpenDeck, onOpenDuel, onOpenSh
 
       <section className="mode-grid" aria-label="Ігрові режими">
         {modes.map((mode) => (
-          <ModeTile key={mode.title} {...mode} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "deck" ? onOpenDeck : undefined} />
+          <ModeTile key={mode.title} {...mode} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
         ))}
       </section>
 

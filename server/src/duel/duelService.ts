@@ -33,6 +33,8 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import { getAccountBoostStatus } from "../boosts/accountBoost.js";
+import type { CampaignService } from "../campaign/campaignService.js";
 import {
   mapCardInstanceRow,
   type CardInstanceProjectionRow,
@@ -103,7 +105,7 @@ interface DuelRow {
   version: number;
 }
 
-interface LoadedParticipant {
+export interface LoadedParticipant {
   player: ParticipantRow;
   snapshot: DuelSideSnapshot;
 }
@@ -239,7 +241,7 @@ function toDuelView(row: DuelRow): DuelView {
   };
 }
 
-async function loadParticipant(client: PoolClient, playerId: string): Promise<LoadedParticipant> {
+export async function loadDuelParticipant(client: PoolClient, playerId: string): Promise<LoadedParticipant> {
   const playerResult = await client.query<ParticipantRow>(
     `
       SELECT id, username, first_name, photo_url, level, silver, gold,
@@ -327,6 +329,7 @@ export class DuelService {
   constructor(
     private readonly pool: Pool,
     private readonly random: RandomSource = Math.random,
+    private readonly campaign?: Pick<CampaignService, "recordEvent">,
   ) {}
 
   async search(challengerId: string): Promise<DuelSearchResponse> {
@@ -336,7 +339,7 @@ export class DuelService {
       const active = await client.query("SELECT 1 FROM duels WHERE challenger_id = $1 AND status = 'active'", [challengerId]);
       if (active.rowCount) throw new DuelAlreadyActiveError();
 
-      const challenger = await loadParticipant(client, challengerId);
+      const challenger = await loadDuelParticipant(client, challengerId);
       const range = getMatchmakingRange(
         challenger.snapshot.effectiveDeckPower,
         challenger.player.duel_win_streak,
@@ -407,14 +410,14 @@ export class DuelService {
       const search = searchResult.rows[0];
       if (!search) throw new DuelSearchInvalidError();
 
-      const challenger = await loadParticipant(client, challengerId);
+      const challenger = await loadDuelParticipant(client, challengerId);
       let opponentSnapshot: DuelSideSnapshot;
       if (search.opponent_kind === "bot") {
         if (!search.opponent_snapshot || search.opponent_id) throw new DuelSearchInvalidError();
         opponentSnapshot = search.opponent_snapshot;
       } else {
         if (!search.opponent_id || search.opponent_snapshot) throw new DuelSearchInvalidError();
-        opponentSnapshot = (await loadParticipant(client, search.opponent_id)).snapshot;
+        opponentSnapshot = (await loadDuelParticipant(client, search.opponent_id)).snapshot;
       }
       const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, challenger.player.duel_win_streak);
       if (!isDeckPowerInMatchmakingRange(opponentSnapshot.effectiveDeckPower, range)) {
@@ -487,6 +490,7 @@ export class DuelService {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const actionNow = new Date();
       const locked = await client.query<DuelRow>(
         `SELECT ${DUEL_COLUMNS} FROM duels WHERE id = $1 AND challenger_id = $2 FOR UPDATE`,
         [duelId, challengerId],
@@ -514,6 +518,11 @@ export class DuelService {
         turnNumber: duel.turn_number,
       });
       const battleLog = [...duel.battle_log, resolved.exchange].slice(-MAX_BATTLE_LOG_ENTRIES);
+      if (resolved.exchange.playerMultiplier === 1.5) {
+        await this.campaign?.recordEvent(client, challengerId, "DUEL_STRONG_HIT", { duelId }, actionNow);
+      } else if (resolved.exchange.playerMultiplier === 1) {
+        await this.campaign?.recordEvent(client, challengerId, "DUEL_NEUTRAL_HIT", { duelId }, actionNow);
+      }
       let result: DuelResult | null = null;
       let rewardsGranted = false;
 
@@ -531,7 +540,13 @@ export class DuelService {
         );
         const player = playerResult.rows[0];
         if (!player) throw new DuelMissingError();
-        const reward = calculateDuelReward(player.level, outcome, duel.challenger_snapshot.modifiers);
+        const boost = await getAccountBoostStatus(client, challengerId, actionNow);
+        const reward = calculateDuelReward(
+          player.level,
+          outcome,
+          duel.challenger_snapshot.modifiers,
+          boost.multiplier,
+        );
         const progression = applyAccountXp({
           level: player.level,
           xp: player.account_xp,
@@ -575,6 +590,8 @@ export class DuelService {
         );
         result = {
           outcome,
+          accountBoostMultiplier: boost.multiplier,
+          boostExpiresAt: boost.expiresAt,
           xp: reward.xp,
           silver: reward.silver,
           gold: progression.goldReward,
@@ -582,6 +599,33 @@ export class DuelService {
           winStreak: stats.duelWinStreak,
           player: toPlayerSummary(updatedPlayerResult.rows[0]!),
         };
+        let neutralHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1).length;
+        if (this.campaign) {
+          const neutralHitResult = await client.query<{ count: string }>(
+            `
+              SELECT COUNT(*) AS count
+              FROM player_campaign_events
+              WHERE player_id = $1 AND event_type = 'DUEL_NEUTRAL_HIT'
+                AND payload->>'duelId' = $2
+            `,
+            [challengerId, duelId],
+          );
+          neutralHits = Number(neutralHitResult.rows[0]?.count ?? 0);
+        }
+        const strongHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1.5).length;
+        await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
+          duelId,
+          outcome,
+          winStreak: stats.duelWinStreak,
+          neutralHits,
+          strongHits,
+        }, actionNow);
+        if (outcome === "win") {
+          await this.campaign?.recordEvent(client, challengerId, "DUEL_WON", {
+            duelId,
+            winStreak: stats.duelWinStreak,
+          }, actionNow);
+        }
         rewardsGranted = true;
       }
 

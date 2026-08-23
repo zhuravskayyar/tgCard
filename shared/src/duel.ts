@@ -75,6 +75,8 @@ export interface DuelExchange {
 export type DuelLogVisualState = "player_strong" | "enemy_strong" | "neutral";
 
 export interface DuelResult {
+  accountBoostMultiplier: 1 | 2;
+  boostExpiresAt: string | null;
   gold: number;
   outcome: DuelOutcome;
   player: PlayerSummary;
