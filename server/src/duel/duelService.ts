@@ -37,8 +37,10 @@ import {
   mapCardInstanceRow,
   type CardInstanceProjectionRow,
 } from "../cards/cardInstanceMapper.js";
-import { createBotOpponentSnapshot } from "./botOpponent.js";
-import { selectMatchmakingCandidate } from "./matchmaking.js";
+import {
+  createBotOpponentSnapshot,
+  type BotCardTemplate,
+} from "./botOpponent.js";
 
 const SEARCH_LIFETIME_MS = 10 * 60 * 1_000;
 const MAX_BATTLE_LOG_ENTRIES = 10;
@@ -65,6 +67,14 @@ interface ModifierRow {
   buff_element: CardElement | null;
   buff_type: CollectionModifierType;
   buff_value: number | string;
+}
+
+interface BotCardRow {
+  art_key: string | null;
+  display_name: string | null;
+  element: CardElement;
+  id: string;
+  code: string;
 }
 
 interface SearchRow {
@@ -300,6 +310,19 @@ async function loadParticipant(client: PoolClient, playerId: string): Promise<Lo
   };
 }
 
+async function loadBotCardTemplates(client: PoolClient): Promise<BotCardTemplate[]> {
+  const result = await client.query<BotCardRow>(
+    "SELECT id, code, display_name, art_key, element FROM cards ORDER BY element, id",
+  );
+  return result.rows.map((row) => ({
+    cardId: row.id,
+    code: row.code,
+    displayName: row.display_name,
+    artKey: row.art_key,
+    element: row.element,
+  }));
+}
+
 export class DuelService {
   constructor(
     private readonly pool: Pool,
@@ -318,32 +341,12 @@ export class DuelService {
         challenger.snapshot.effectiveDeckPower,
         challenger.player.duel_win_streak,
       );
-      const playerIds = await client.query<{ id: string }>(
-        "SELECT id FROM players WHERE id <> $1 ORDER BY id",
-        [challengerId],
+      const opponentSnapshot = createBotOpponentSnapshot(
+        challenger.snapshot,
+        range,
+        await loadBotCardTemplates(client),
+        this.random,
       );
-      const candidates: Array<LoadedParticipant & {
-        effectiveDeckPower: number;
-        playerId: string;
-        validDeck: true;
-      }> = [];
-      for (const { id } of playerIds.rows) {
-        try {
-          const participant = await loadParticipant(client, id);
-          candidates.push({
-            ...participant,
-            playerId: id,
-            effectiveDeckPower: participant.snapshot.effectiveDeckPower,
-            validDeck: true,
-          });
-        } catch (error) {
-          if (!(error instanceof DuelDeckInvalidError)) throw error;
-        }
-      }
-      const opponent = selectMatchmakingCandidate(challengerId, range, candidates, this.random);
-      const opponentKind = opponent ? "real" : "bot";
-      const opponentSnapshot = opponent?.snapshot
-        ?? createBotOpponentSnapshot(challenger.snapshot, this.random);
 
       const searchId = randomUUID();
       await client.query(
@@ -360,9 +363,9 @@ export class DuelService {
         [
           searchId,
           challengerId,
-          opponent?.playerId ?? null,
-          opponentKind,
-          opponent ? null : JSON.stringify(opponentSnapshot),
+          null,
+          "bot",
+          JSON.stringify(opponentSnapshot),
           new Date(Date.now() + SEARCH_LIFETIME_MS),
         ],
       );

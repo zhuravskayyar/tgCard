@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { getDeckPower, validateDeckElementBalance } from "@cardastika/game-core";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
@@ -25,27 +26,28 @@ async function cleanup(pool: Pool, playerIds: string[]) {
   await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
 }
 
-test("matchmaking persists and starts a bot snapshot when no real player is in range", {
+test("matchmaking always builds and persists a varied bot deck even when a real player is eligible", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
-  const challengerUser = telegramUser("bot fallback");
+  const challengerUser = telegramUser("bot only");
+  const eligibleRealUser = telegramUser("ignored real opponent");
   const playerIds: string[] = [];
   try {
     const challenger = await players.findOrCreateFromTelegram(challengerUser);
-    playerIds.push(challenger.id);
-    await pool.query(
-      "UPDATE player_card_instances SET bonus_power = 100000000 WHERE player_id = $1",
-      [challenger.id],
-    );
+    const eligibleReal = await players.findOrCreateFromTelegram(eligibleRealUser);
+    playerIds.push(challenger.id, eligibleReal.id);
+    const playerCountBefore = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM players");
 
-    const service = new DuelService(pool, () => 0.5);
+    const service = new DuelService(pool, () => 0);
     const found = await service.search(challenger.id);
-    assert.equal(found.opponent.powerDifferencePct, 0);
+    assert.equal(found.opponent.powerDifferencePct, -10);
     assert.equal(found.opponent.photoUrl, null);
-    assert.match(found.opponent.name, /^[A-Za-z]+_[a-z]+\d+$/);
+    assert.match(found.opponent.name, /^[A-Za-z]+\d+$/);
+    const playerCountAfter = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM players");
+    assert.equal(playerCountAfter.rows[0]?.count, playerCountBefore.rows[0]?.count);
 
     const search = await pool.query<{
       opponent_id: string | null;
@@ -63,6 +65,12 @@ test("matchmaking persists and starts a bot snapshot when no real player is in r
     assert.equal(duel.opponent.name, found.opponent.name);
     assert.equal(duel.opponent.cards.length, 9);
     assert.ok(duel.opponent.cards.every(({ instanceId }) => instanceId.startsWith("bot:")));
+    assert.equal(validateDeckElementBalance(duel.opponent.cards).valid, true);
+    assert.equal(getDeckPower(duel.opponent.cards), duel.opponent.effectiveDeckPower);
+    assert.notEqual(duel.opponent.effectiveDeckPower, duel.player.effectiveDeckPower);
+    assert.ok(duel.opponent.cards.every(({ cardId }) => (
+      !duel.player.cards.some((card) => card.cardId === cardId)
+    )));
 
     const persisted = await pool.query<{ opponent_id: string | null; opponent_kind: string }>(
       "SELECT opponent_id, opponent_kind FROM duels WHERE id = $1",
@@ -89,7 +97,7 @@ test("winning finalizes once, duplicate final action conflicts, and finished rel
     const challenger = await players.findOrCreateFromTelegram(challengerUser);
     const opponent = await players.findOrCreateFromTelegram(opponentUser);
     playerIds.push(challenger.id, opponent.id);
-    const service = new DuelService(pool, () => 0.999999);
+    const service = new DuelService(pool, () => 0);
     const found = await service.search(challenger.id);
     let duel = await service.start(challenger.id, found.searchId);
     let finalRequestVersion = duel.version;
