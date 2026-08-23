@@ -1,45 +1,17 @@
-import { useRef, useState } from "react";
-import type { PlayerDeckCard } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
-import { CardDetailScreen } from "./CardDetailScreen";
 
 interface DeckScreenProps {
   onBack: () => void;
-  onOpenShop: () => void;
+  onOpenCard: (instanceId: string) => void;
 }
 
-export function DeckScreen({ onBack, onOpenShop }: DeckScreenProps) {
+export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
   const { retry, state } = usePlayerDeck();
-  const [inspectedCard, setInspectedCard] = useState<PlayerDeckCard | null>(null);
-  const screenRef = useRef<HTMLElement>(null);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
-  const deckScrollPositionRef = useRef(0);
-
-  function openCardDetail(card: PlayerDeckCard) {
-    const scrollContainer = screenRef.current?.closest<HTMLElement>(".app-content") ?? null;
-    scrollContainerRef.current = scrollContainer;
-    deckScrollPositionRef.current = scrollContainer?.scrollTop ?? 0;
-    setInspectedCard(card);
-    requestAnimationFrame(() => scrollContainer?.scrollTo({ top: 0, behavior: "auto" }));
-  }
-
-  function closeCardDetail() {
-    const scrollContainer = scrollContainerRef.current;
-    setInspectedCard(null);
-    requestAnimationFrame(() => scrollContainer?.scrollTo({
-      top: deckScrollPositionRef.current,
-      behavior: "auto",
-    }));
-  }
-
-  if (inspectedCard) {
-    return <CardDetailScreen card={inspectedCard} inActiveDeck onBack={closeCardDetail} onOpenShop={onOpenShop} />;
-  }
 
   return (
-    <section className="deck-screen" ref={screenRef}>
+    <section className="deck-screen">
       <header className="deck-heading">
         <button aria-label="Назад на головну" className="deck-back" onClick={onBack} type="button">
           <AppIcon name="chevron" size={20} />
@@ -64,7 +36,7 @@ export function DeckScreen({ onBack, onOpenShop }: DeckScreenProps) {
       {state.status === "ready" ? (
         <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
           {state.deck.cards.map((card) => (
-            <DeckCard card={card} key={card.slot} onClick={() => openCardDetail(card)} />
+            <DeckCard card={card} key={card.slot} onClick={() => onOpenCard(card.instanceId)} />
           ))}
         </div>
       ) : null}

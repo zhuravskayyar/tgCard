@@ -15,6 +15,8 @@ export interface CardInstanceProjectionRow {
   element: PlayerCardInstance["element"];
   instance_id: string;
   level: string | number;
+  level_progress_elements: string | number;
+  stored_elements: string | number;
 }
 
 function toInteger(value: string | number, field: string) {
@@ -26,6 +28,8 @@ function toInteger(value: string | number, field: string) {
 export function mapCardInstanceRow(row: CardInstanceProjectionRow): PlayerCardInstance {
   const level = toInteger(row.level, "card level");
   const bonusPower = toInteger(row.bonus_power, "card bonus power");
+  const levelProgressElements = toInteger(row.level_progress_elements, "card level progress");
+  const storedElements = toInteger(row.stored_elements, "stored card elements");
   const basePower = getBasePowerForLevel(level);
   return {
     instanceId: row.instance_id,
@@ -35,10 +39,12 @@ export function mapCardInstanceRow(row: CardInstanceProjectionRow): PlayerCardIn
     artKey: row.art_key,
     element: row.element,
     level,
+    levelProgressElements,
     basePower,
     bonusPower,
     finalPower: getCardPower({ level, bonusPower }),
     rarity: getRarityForLevel(level),
+    storedElements,
     collectionId: row.collection_id,
   };
 }

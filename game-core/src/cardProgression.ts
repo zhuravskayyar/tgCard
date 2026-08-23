@@ -2,6 +2,28 @@ import type { CardRarity } from "@cardastika/shared";
 
 export const MIN_CARD_LEVEL = 1;
 export const MAX_CARD_LEVEL = 180;
+export const CARD_LEVEL_PROGRESS_REQUIRED = 100;
+
+export interface CardLevelTableEntry {
+  basePower: number;
+  elementValue: number | null;
+  goldUpgradeCost: number | null;
+  level: number;
+  minimumGoldCost: number | null;
+  powerIncrease: number | null;
+}
+
+export interface CardProgressionState {
+  level: number;
+  levelProgressElements: number;
+  storedElements: number;
+}
+
+export type UpgradeAvailability =
+  | "ready"
+  | "insufficient_gold"
+  | "maximum_level"
+  | "unsupported_level_data";
 
 export interface CardPowerInput {
   bonusPower: number;
@@ -51,6 +73,34 @@ export const BASE_POWER_BY_LEVEL: readonly number[] = Object.freeze([
   15400, 15500, 15620, 15760, 15940, 16040, 16160, 16300, 16460, 16660,
 ]);
 
+// The source supplied for this milestone confirms all base-power rows but only
+// a subset of its economy/element columns. Unknown source cells stay null. They
+// must be filled from the source table, never extrapolated from neighbouring rows.
+const CONFIRMED_LEVEL_DATA: Readonly<Record<number, Readonly<{
+  elementValue?: number;
+  goldUpgradeCost?: number;
+  minimumGoldCost?: number;
+}>>> = Object.freeze({
+  10: Object.freeze({ elementValue: 2 }),
+  15: Object.freeze({ elementValue: 2, goldUpgradeCost: 4, minimumGoldCost: 2 }),
+  20: Object.freeze({ goldUpgradeCost: 5 }),
+});
+
+export const CARD_LEVEL_TABLE: readonly Readonly<CardLevelTableEntry>[] = Object.freeze(
+  BASE_POWER_BY_LEVEL.map((basePower, index) => {
+    const level = index + 1;
+    const confirmed = CONFIRMED_LEVEL_DATA[level];
+    return Object.freeze({
+      level,
+      basePower,
+      powerIncrease: index === 0 ? null : basePower - BASE_POWER_BY_LEVEL[index - 1]!,
+      goldUpgradeCost: confirmed?.goldUpgradeCost ?? null,
+      minimumGoldCost: confirmed?.minimumGoldCost ?? null,
+      elementValue: confirmed?.elementValue ?? null,
+    });
+  }),
+);
+
 function assertCardLevel(level: number) {
   if (!Number.isSafeInteger(level) || level < MIN_CARD_LEVEL || level > MAX_CARD_LEVEL) {
     throw new RangeError(`Card level must be an integer from ${MIN_CARD_LEVEL} to ${MAX_CARD_LEVEL}`);
@@ -60,6 +110,12 @@ function assertCardLevel(level: number) {
 function assertBonusPower(bonusPower: number) {
   if (!Number.isSafeInteger(bonusPower) || bonusPower < 0) {
     throw new RangeError("Card bonus power must be a non-negative integer");
+  }
+}
+
+function assertProgressValue(value: number, field: string) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new RangeError(`${field} must be a non-negative safe integer`);
   }
 }
 
@@ -78,9 +134,105 @@ export function getRarityForLevel(level: number): CardRarity {
 
 export function getBasePowerForLevel(level: number) {
   assertCardLevel(level);
-  const power = BASE_POWER_BY_LEVEL[level - 1];
-  if (power === undefined) throw new RangeError(`No base power configured for card level ${level}`);
-  return power;
+  return getCardLevelTableEntry(level).basePower;
+}
+
+export function getCardLevelTableEntry(level: number) {
+  assertCardLevel(level);
+  const entry = CARD_LEVEL_TABLE[level - 1];
+  if (!entry) throw new RangeError(`No canonical data configured for card level ${level}`);
+  return entry;
+}
+
+export function isGoldLevel(targetLevel: number) {
+  assertCardLevel(targetLevel);
+  return targetLevel >= 90 || targetLevel % 5 === 0;
+}
+
+export function getElementValueForLevel(level: number) {
+  return getCardLevelTableEntry(level).elementValue;
+}
+
+export function getTransferableElementValue(state: CardProgressionState) {
+  assertProgressValue(state.levelProgressElements, "Level progress");
+  assertProgressValue(state.storedElements, "Stored elements");
+  const nativeValue = getElementValueForLevel(state.level);
+  return nativeValue === null
+    ? null
+    : nativeValue + state.levelProgressElements + state.storedElements;
+}
+
+export function applyElementalPotential(
+  state: CardProgressionState,
+  addedElements: number,
+): Pick<CardProgressionState, "levelProgressElements" | "storedElements"> {
+  assertCardLevel(state.level);
+  assertProgressValue(state.levelProgressElements, "Level progress");
+  assertProgressValue(state.storedElements, "Stored elements");
+  assertProgressValue(addedElements, "Added elements");
+
+  if (state.level === MAX_CARD_LEVEL) {
+    return {
+      levelProgressElements: 0,
+      storedElements: state.levelProgressElements + state.storedElements + addedElements,
+    };
+  }
+
+  const total = state.levelProgressElements + state.storedElements + addedElements;
+  return {
+    levelProgressElements: Math.min(CARD_LEVEL_PROGRESS_REQUIRED, total),
+    storedElements: Math.max(0, total - CARD_LEVEL_PROGRESS_REQUIRED),
+  };
+}
+
+export function getUpgradeProgress(levelProgressElements: number) {
+  assertProgressValue(levelProgressElements, "Level progress");
+  const filledElements = Math.min(levelProgressElements, CARD_LEVEL_PROGRESS_REQUIRED);
+  return {
+    filledElements,
+    requiredElements: CARD_LEVEL_PROGRESS_REQUIRED,
+    percent: Math.floor((filledElements * 100) / CARD_LEVEL_PROGRESS_REQUIRED),
+  };
+}
+
+export function getUpgradeGoldPrice(targetLevel: number, levelProgressElements: number) {
+  const entry = getCardLevelTableEntry(targetLevel);
+  const progress = getUpgradeProgress(levelProgressElements);
+  if (entry.goldUpgradeCost === null) return null;
+
+  const minimum = isGoldLevel(targetLevel) ? entry.minimumGoldCost : 0;
+  if (minimum === null) return null;
+  const reducible = entry.goldUpgradeCost - minimum;
+  if (reducible < 0) throw new RangeError(`Invalid canonical gold cost for level ${targetLevel}`);
+  const unfilled = progress.requiredElements - progress.filledElements;
+  return minimum + Math.ceil((reducible * unfilled) / progress.requiredElements);
+}
+
+export function canLevelUp(
+  state: CardProgressionState,
+  availableGold: number,
+): { availability: UpgradeAvailability; requiredGold: number | null } {
+  assertProgressValue(availableGold, "Available gold");
+  if (state.level === MAX_CARD_LEVEL) {
+    return { availability: "maximum_level", requiredGold: 0 };
+  }
+  const requiredGold = getUpgradeGoldPrice(state.level + 1, state.levelProgressElements);
+  if (requiredGold === null) {
+    return { availability: "unsupported_level_data", requiredGold: null };
+  }
+  return {
+    availability: availableGold >= requiredGold ? "ready" : "insufficient_gold",
+    requiredGold,
+  };
+}
+
+export function advanceCardLevel(state: CardProgressionState) {
+  assertCardLevel(state.level);
+  if (state.level === MAX_CARD_LEVEL) throw new RangeError("Card is already at maximum level");
+  assertProgressValue(state.levelProgressElements, "Level progress");
+  assertProgressValue(state.storedElements, "Stored elements");
+  const level = state.level + 1;
+  return { level, ...applyElementalPotential({ level, levelProgressElements: 0, storedElements: state.storedElements }, 0) };
 }
 
 export function getCardPower(instance: CardPowerInput) {

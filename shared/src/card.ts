@@ -34,7 +34,9 @@ export interface PlayerCardInstance {
   finalPower: number;
   instanceId: string;
   level: number;
+  levelProgressElements: number;
   rarity: CardRarity;
+  storedElements: number;
 }
 
 export type PlayerCard = PlayerCardInstance;
@@ -45,4 +47,53 @@ export interface PlayerCardsResponse {
 
 export interface WeakPlayerCardsResponse {
   cards: PlayerCardInstance[];
+  page: number;
+  pageSize: 9;
+  totalCards: number;
+  totalPages: number;
+}
+
+export type CardUpgradeAvailability =
+  | "ready"
+  | "insufficient_gold"
+  | "maximum_level"
+  | "unsupported_level_data";
+
+export interface CardProgressionView {
+  availability: CardUpgradeAvailability;
+  filledElements: number;
+  isGoldLevel: boolean;
+  minimumGoldCost: number | null;
+  percent: number;
+  powerAfterLevel: number | null;
+  powerIncrease: number | null;
+  requiredElements: number;
+  requiredGold: number | null;
+  storedOverflowElements: number;
+  targetLevel: number | null;
+}
+
+export interface PlayerCardDetailResponse {
+  card: PlayerCardInstance;
+  inActiveDeck: boolean;
+  progression: CardProgressionView;
+}
+
+export interface AbsorptionCandidatesResponse extends WeakPlayerCardsResponse {}
+
+export interface AbsorbCardsRequest {
+  fodderInstanceIds: string[];
+}
+
+export interface AbsorptionPreviewResponse {
+  addedElements: number;
+  afterPercent: number;
+  beforePercent: number;
+  resultingStoredElements: number;
+  selectedCards: number;
+}
+
+export interface CardProgressionActionResponse extends PlayerCardDetailResponse {
+  consumedInstanceIds: string[];
+  playerGold: number;
 }

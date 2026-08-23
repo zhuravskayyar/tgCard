@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 import { handleTelegramAuth } from "./auth/telegramAuthRoute.js";
+import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
+import { CardProgressionService } from "./cards/cardProgressionService.js";
 import { getServerEnvironment } from "./config/environment.js";
 import { createDatabasePool } from "./database/pool.js";
 import { DeckRepository } from "./decks/deckRepository.js";
@@ -18,6 +20,7 @@ const players = new PlayerRepository(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const shop = new ShopService(pool);
+const cardProgression = new CardProgressionService(pool, inventory);
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
@@ -34,10 +37,13 @@ const server = createServer(async (request, response) => {
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
+  const cardProgressionMatch = url.pathname.match(
+    /^\/api\/player\/cards\/([^/]+?)(?:\/(absorption-candidates|absorption-preview|absorb|level-up))?$/,
+  );
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute)
+    (isTelegramAuthRoute || isPlayerCardsRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || cardProgressionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -70,6 +76,18 @@ const server = createServer(async (request, response) => {
       players,
       responseHeaders: cors.headers,
     });
+    return;
+  }
+
+  if (cardProgressionMatch) {
+    const instanceId = decodeURIComponent(cardProgressionMatch[1]!);
+    const action = (cardProgressionMatch[2] ?? "detail") as CardProgressionRouteAction;
+    await handleCardProgressionRequest(request, response, {
+      botToken: environment.telegramBotToken,
+      players,
+      progression: cardProgression,
+      responseHeaders: cors.headers,
+    }, instanceId, action);
     return;
   }
 

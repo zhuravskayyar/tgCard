@@ -8,7 +8,7 @@ import {
 import { getApiEndpoint } from "../api/config";
 
 export class PlayerDataError extends Error {
-  constructor(public readonly status: number) {
+  constructor(public readonly status: number, public readonly code?: string) {
     super("Player data request failed");
     this.name = "PlayerDataError";
   }
@@ -22,7 +22,7 @@ function isCardRarity(value: unknown): value is PlayerDeckCard["rarity"] {
   return typeof value === "string" && CARD_RARITIES.some((rarity) => rarity === value);
 }
 
-function isCardInstance(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
+export function isPlayerCardInstance(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
   if (!value || typeof value !== "object") return false;
   const card = value as Record<string, unknown>;
   return (
@@ -34,6 +34,8 @@ function isCardInstance(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
     (card.collectionId === null || typeof card.collectionId === "string") &&
     isCardElement(card.element) &&
     Number.isSafeInteger(card.level) && Number(card.level) >= 1 && Number(card.level) <= 180 &&
+    Number.isSafeInteger(card.levelProgressElements) && Number(card.levelProgressElements) >= 0 && Number(card.levelProgressElements) <= 100 &&
+    Number.isSafeInteger(card.storedElements) && Number(card.storedElements) >= 0 &&
     Number.isSafeInteger(card.basePower) && Number(card.basePower) > 0 &&
     Number.isSafeInteger(card.bonusPower) && Number(card.bonusPower) >= 0 &&
     Number.isSafeInteger(card.finalPower) && Number(card.finalPower) > 0 &&
@@ -44,7 +46,7 @@ function isCardInstance(value: unknown): value is Omit<PlayerDeckCard, "slot"> {
 
 function isDeckCard(value: unknown): value is PlayerDeckCard {
   const slot = (value as PlayerDeckCard | null)?.slot;
-  return isCardInstance(value) && Number.isSafeInteger(slot) && Number(slot) >= 1 && Number(slot) <= DECK_SIZE;
+  return isPlayerCardInstance(value) && Number.isSafeInteger(slot) && Number(slot) >= 1 && Number(slot) <= DECK_SIZE;
 }
 
 function parseDeck(value: unknown): PlayerDeckResponse {

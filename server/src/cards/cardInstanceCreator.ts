@@ -42,10 +42,12 @@ export async function createStandardCardInstance(
     artKey: definition.artKey,
     element: definition.element,
     level,
+    levelProgressElements: 0,
     basePower,
     bonusPower,
     finalPower: getCardPower({ level, bonusPower }),
     rarity: getRarityForLevel(level),
+    storedElements: 0,
     collectionId: definition.collectionId,
   };
 }

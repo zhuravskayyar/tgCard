@@ -7,9 +7,21 @@ import { InventoryPersistenceError, type InventoryRepository } from "./inventory
 
 interface PlayerCardsDependencies {
   botToken: string;
-  inventory: Pick<InventoryRepository, "findByPlayerId" | "findWeakByPlayerId">;
+  inventory: Pick<InventoryRepository, "findByPlayerId" | "findWeakPageByPlayerId">;
   players: Pick<PlayerRepository, "findOrCreateFromTelegram">;
   responseHeaders?: OutgoingHttpHeaders;
+}
+
+const WEAK_PAGE_SIZE = 9 as const;
+
+function readWeakPage(request: IncomingMessage) {
+  const url = new URL(request.url ?? "/api/player/cards/weak", "http://localhost");
+  const rawPage = url.searchParams.get("page") ?? "1";
+  const rawLimit = url.searchParams.get("limit") ?? String(WEAK_PAGE_SIZE);
+  const page = Number(rawPage);
+  const limit = Number(rawLimit);
+  if (!Number.isSafeInteger(page) || page < 1 || limit !== WEAK_PAGE_SIZE) return null;
+  return page;
 }
 
 function readTelegramInitData(request: IncomingMessage) {
@@ -67,11 +79,24 @@ export async function handleWeakPlayerCards(
   const responseHeaders = dependencies.responseHeaders ?? {};
 
   try {
+    const page = readWeakPage(request);
+    if (page === null) {
+      sendJson(response, 400, {
+        error: { code: "invalid_pagination", message: "Weak cards use positive pages of exactly 9 cards" },
+      }, responseHeaders);
+      return;
+    }
     const initData = readTelegramInitData(request);
     const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
     const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
-    const cards = await dependencies.inventory.findWeakByPlayerId(player.id);
-    const body: WeakPlayerCardsResponse = { cards };
+    const result = await dependencies.inventory.findWeakPageByPlayerId(player.id, page, WEAK_PAGE_SIZE);
+    const body: WeakPlayerCardsResponse = {
+      cards: result.cards,
+      page,
+      pageSize: WEAK_PAGE_SIZE,
+      totalCards: result.totalCards,
+      totalPages: Math.ceil(result.totalCards / WEAK_PAGE_SIZE),
+    };
     sendJson(response, 200, body, responseHeaders);
   } catch (error) {
     if (error instanceof TelegramInitDataError) {

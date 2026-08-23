@@ -12,7 +12,7 @@ export function usePlayerSummary() {
     setAttempt((currentAttempt) => currentAttempt + 1);
   }, []);
 
-  const updateBalance = useCallback((balance: PlayerBalance) => {
+  const updateBalance = useCallback((balance: Partial<PlayerBalance>) => {
     setState((current) => current.status === "ready"
       ? { status: "ready", data: { ...current.data, ...balance } }
       : current);

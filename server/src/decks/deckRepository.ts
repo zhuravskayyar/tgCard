@@ -48,6 +48,8 @@ async function loadDeck(database: Pool, playerId: string): Promise<PlayerDeckRes
         cards.element,
         player_card_instances.level,
         player_card_instances.bonus_power,
+        player_card_instances.level_progress_elements,
+        player_card_instances.stored_elements,
         cards.collection_id
       FROM deck_slots
       INNER JOIN player_card_instances

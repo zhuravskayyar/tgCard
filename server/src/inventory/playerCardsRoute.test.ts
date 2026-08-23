@@ -49,10 +49,12 @@ test("weak cards endpoint uses the authenticated player and returns derived inst
     artKey: null,
     element: "fire",
     level: 1,
+    levelProgressElements: 0,
     basePower: 10,
     bonusPower: 2,
     finalPower: 12,
     rarity: "common",
+    storedElements: 0,
     collectionId: null,
   };
   let requestedPlayerId: string | null = null;
@@ -60,19 +62,25 @@ test("weak cards endpoint uses the authenticated player and returns derived inst
 
   await handleWeakPlayerCards({
     method: "GET",
+    url: "/api/player/cards/weak?page=2&limit=9",
     headers: { authorization: `tma ${createInitData(123456)}` },
   } as IncomingMessage, capture.response, {
     botToken,
     players: { findOrCreateFromTelegram: async () => player },
     inventory: {
       findByPlayerId: async () => [],
-      findWeakByPlayerId: async (playerId) => {
+      findWeakPageByPlayerId: async (playerId, page, pageSize) => {
         requestedPlayerId = playerId;
-        return [weakCard];
+        assert.equal(page, 2);
+        assert.equal(pageSize, 9);
+        return { cards: [weakCard], totalCards: 17 };
       },
     },
   });
 
   assert.equal(requestedPlayerId, player.id);
-  assert.deepEqual(capture.read(), { status: 200, body: { cards: [weakCard] } });
+  assert.deepEqual(capture.read(), {
+    status: 200,
+    body: { cards: [weakCard], page: 2, pageSize: 9, totalCards: 17, totalPages: 2 },
+  });
 });
