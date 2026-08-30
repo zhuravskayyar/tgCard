@@ -11,8 +11,10 @@ function requireEnvironmentValue(name: "DATABASE_URL" | "TELEGRAM_BOT_TOKEN") {
 export interface ServerEnvironment {
   clientOrigin: string | null;
   databaseUrl: string;
+  googleClientId: string | null;
   port: number;
   telegramBotToken: string;
+  telegramBotUsername: string | null;
 }
 
 export function getServerEnvironment(): ServerEnvironment {
@@ -37,7 +39,11 @@ export function getServerEnvironment(): ServerEnvironment {
   return {
     clientOrigin,
     databaseUrl: requireEnvironmentValue("DATABASE_URL"),
+    googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || null,
     port,
     telegramBotToken: requireEnvironmentValue("TELEGRAM_BOT_TOKEN"),
+    telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME?.trim()
+      || process.env.VITE_TELEGRAM_BOT_USERNAME?.trim()
+      || null,
   };
 }

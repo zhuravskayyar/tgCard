@@ -1,0 +1,2 @@
+ALTER TABLE players
+  ADD COLUMN tutorial_eligible BOOLEAN NOT NULL DEFAULT FALSE;

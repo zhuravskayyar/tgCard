@@ -15,6 +15,7 @@ test("server creation persists one independent instance with an injected bounded
     id: "starter_02",
     code: "starter_02",
     displayName: "Лис",
+    description: "Тестовий опис картки для перевірки створення екземпляра без зміни бойової логіки.",
     artKey: null,
     element: "fire",
     collectionId: null,

@@ -23,7 +23,9 @@ const INSTANCE_PROJECTION = `
   player_card_instances.level,
   player_card_instances.bonus_power,
   player_card_instances.level_progress_elements,
+  player_card_instances.protected_from_absorption,
   player_card_instances.stored_elements,
+  cards.limited,
   cards.collection_id
 `;
 
@@ -84,6 +86,7 @@ export class InventoryRepository {
             AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.player_id = $1
             AND deck_slots.card_instance_id IS NULL
+            AND player_card_instances.protected_from_absorption = FALSE
             ${filter}
         `,
         countParameters,
@@ -104,6 +107,7 @@ export class InventoryRepository {
             AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.player_id = $1
             AND deck_slots.card_instance_id IS NULL
+            AND player_card_instances.protected_from_absorption = FALSE
             ${filter}
           ORDER BY (($${powerParameter}::integer[])[player_card_instances.level] + player_card_instances.bonus_power) DESC,
             player_card_instances.id ASC
@@ -135,6 +139,7 @@ export class InventoryRepository {
             AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.player_id = $1
             AND deck_slots.card_instance_id IS NULL
+            AND player_card_instances.protected_from_absorption = FALSE
         `,
         [playerId],
       );

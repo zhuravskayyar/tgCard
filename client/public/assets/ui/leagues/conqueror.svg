@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <radialGradient id="conqueror-core" cx="32" cy="25" r="25" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38204d"/>
+      <stop offset="1" stop-color="#100b18"/>
+    </radialGradient>
+    <linearGradient id="conqueror-rim" x1="14" y1="9" x2="50" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#edb8ff"/>
+      <stop offset=".45" stop-color="#a54ce0"/>
+      <stop offset="1" stop-color="#54228a"/>
+    </linearGradient>
+    <filter id="conqueror-glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="1.7"/>
+    </filter>
+  </defs>
+  <circle cx="32" cy="32" r="28" fill="#08050b" stroke="#3f1d59" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="25.6" stroke="#bf68f2" stroke-opacity=".44" stroke-width="5" filter="url(#conqueror-glow)"/>
+  <circle cx="32" cy="32" r="25.2" stroke="url(#conqueror-rim)" stroke-width="4"/>
+  <circle cx="32" cy="32" r="21.6" fill="url(#conqueror-core)" stroke="#e0a8ff" stroke-opacity=".3" stroke-width="1.2"/>
+  <path d="m34.4 18.8-9.5 15.3h6l-1.8 11.1 10.1-16.3h-6l1.2-10.1Z" fill="#d891fa" fill-opacity=".34" stroke="#f1c7ff" stroke-opacity=".82" stroke-width="1.2"/>
+  <path d="M22.5 36.2h19M27.3 40.8h9.4" stroke="#f1c7ff" stroke-opacity=".5" stroke-width="1.2"/>
+</svg>

@@ -2,10 +2,15 @@ import { randomUUID } from "node:crypto";
 import {
   applyAccountXp,
   applyDuelOutcomeToStats,
+  calculateEquipmentSummary,
   calculateDuelReward,
+  getDuelGoldReward,
   getDeckPower,
   getEffectiveDeckPower,
   getElementMultiplier,
+  getEquipmentBattleModifiers,
+  getEquippedDefinitions,
+  getRequiredAccountXp,
   getMatchmakingRange,
   getPlayerCollectionModifiers,
   getStartingHp,
@@ -16,6 +21,7 @@ import {
   type CyclicCardPool,
   type RandomSource,
 } from "@cardastika/game-core";
+import { applyLeagueProgression } from "@cardastika/shared";
 import type {
   CardElement,
   CollectionModifier,
@@ -34,6 +40,9 @@ import type {
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
+import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
+import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
+import { parseStoredEquipment } from "../equipment/equipmentState.js";
 import type { CampaignService } from "../campaign/campaignService.js";
 import {
   mapCardInstanceRow,
@@ -46,10 +55,18 @@ import {
 
 const SEARCH_LIFETIME_MS = 10 * 60 * 1_000;
 const MAX_BATTLE_LOG_ENTRIES = 10;
+const TUTORIAL_PLAYER_POWERS = [12, 12, 12, 12, 12, 12, 12, 12, 12] as const;
+const TUTORIAL_ENEMY_POWERS = [12, 12, 12, 12, 12, 12, 12, 12, 12] as const;
+const CARD_ELEMENTS: readonly CardElement[] = ["fire", "water", "air", "earth"];
 
 interface ParticipantRow {
   account_xp: number;
+  duel_gold_day: string | Date;
+  duel_gold_earned_today: number;
+  duel_gold_level: number;
   duel_losses: number;
+  duel_highest_league_index: number;
+  duel_rating: number;
   duel_win_streak: number;
   duel_wins: number;
   first_name: string;
@@ -58,7 +75,9 @@ interface ParticipantRow {
   level: number;
   photo_url: string | null;
   silver: string | number;
+  tutorial_eligible: boolean;
   username: string | null;
+  equipment: unknown;
 }
 
 interface DeckCardRow extends CardInstanceProjectionRow {
@@ -95,6 +114,8 @@ interface DuelRow {
   id: string;
   opponent_id: string | null;
   opponent_snapshot: DuelSideSnapshot;
+  tutorial_mode: boolean;
+  player_damage_total: number | string;
   player_active_slots: DuelCardSnapshot[];
   player_hp: number;
   player_reserve_queue: DuelCardSnapshot[];
@@ -112,11 +133,12 @@ export interface LoadedParticipant {
 
 const DUEL_COLUMNS = `
   id, challenger_id, opponent_id, status,
+  tutorial_mode,
   challenger_snapshot, opponent_snapshot,
   player_hp, enemy_hp,
   player_active_slots, enemy_active_slots,
   player_reserve_queue, enemy_reserve_queue,
-  battle_log, turn_number, version, result, rewards_granted
+  battle_log, player_damage_total, turn_number, version, result, rewards_granted
 `;
 
 export class DuelNoOpponentFoundError extends Error {
@@ -161,13 +183,20 @@ export class DuelStateConflictError extends Error {
   }
 }
 
+export class DuelTutorialActionError extends Error {
+  constructor() {
+    super("This tutorial action is not available yet");
+    this.name = "DuelTutorialActionError";
+  }
+}
+
 function toSafeInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`Invalid ${field} returned by database`);
   return parsed;
 }
 
-function toBattleModifiers(modifiers: readonly CollectionModifier[]): DuelBattleModifiers {
+function toBattleModifiers(modifiers: readonly CollectionModifier[], equipmentSummary?: ReturnType<typeof calculateEquipmentSummary>): DuelBattleModifiers {
   const aggregated = getPlayerCollectionModifiers(modifiers);
   return {
     battleDamagePct: aggregated.battleDamagePct,
@@ -176,6 +205,10 @@ function toBattleModifiers(modifiers: readonly CollectionModifier[]): DuelBattle
     elementDamagePct: { ...aggregated.elementDamagePct },
     experienceRewardPct: aggregated.experienceRewardPct,
     silverRewardPct: aggregated.silverRewardPct,
+    ...(equipmentSummary ? {
+      equipment: getEquipmentBattleModifiers(equipmentSummary),
+      equipmentState: { reviveUsed: false, voodooUsed: false },
+    } : {}),
   };
 }
 
@@ -193,11 +226,69 @@ function toDuelCard(row: DeckCardRow): DuelCardSnapshot {
     bonusPower: instance.bonusPower,
     finalPower: instance.finalPower,
     rarity: instance.rarity,
+    limited: instance.limited ?? false,
+  };
+}
+
+function tutorialModifiers(): DuelBattleModifiers {
+  return {
+    battleDamagePct: 0,
+    battleHpPct: 0,
+    deckPowerPct: 0,
+    elementDamagePct: { fire: 0, water: 0, air: 0, earth: 0 },
+    experienceRewardPct: 0,
+    silverRewardPct: 0,
+  };
+}
+
+function elementForMultiplier(attacker: CardElement, multiplier: 0.5 | 1 | 1.5) {
+  return CARD_ELEMENTS.find((defender) => getElementMultiplier(attacker, defender) === multiplier) ?? attacker;
+}
+
+function withTutorialPower(card: DuelCardSnapshot, finalPower: number, element = card.element): DuelCardSnapshot {
+  return {
+    ...card,
+    basePower: finalPower,
+    bonusPower: 0,
+    element,
+    finalPower,
+  };
+}
+
+function createTutorialSnapshot(snapshot: DuelSideSnapshot, powers: readonly number[], enemy = false, targetElements?: readonly CardElement[]): DuelSideSnapshot {
+  const cards = snapshot.cards.map((card, index) => {
+    const desiredMultiplier: 0.5 | 1 | 1.5 = index === 0 ? 1.5 : index === 1 ? 1 : 0.5;
+    const element = enemy && index < 3 && targetElements?.[index]
+      ? elementForMultiplier(targetElements[index]!, desiredMultiplier)
+      : card.element;
+    return withTutorialPower(card, powers[index] ?? powers[powers.length - 1]!, element);
+  });
+  return {
+    ...snapshot,
+    cards,
+    effectiveDeckPower: enemy ? 35 : 180,
+    modifiers: tutorialModifiers(),
+    startingHp: enemy ? 35 : 180,
+  };
+}
+
+function createTutorialPool(cards: DuelCardSnapshot[]): CyclicCardPool<DuelCardSnapshot> {
+  if (cards.length !== 9 || !cards[0] || !cards[1] || !cards[2]) {
+    throw new DuelDeckInvalidError();
+  }
+  return {
+    activeCards: [cards[0], cards[1], cards[2]],
+    reserveQueue: cards.slice(3),
   };
 }
 
 function toPlayerSummary(row: ParticipantRow): PlayerSummary {
   return {
+    accountXp: toSafeInteger(row.account_xp, "Account XP"),
+    duelWins: toSafeInteger(row.duel_wins, "Duel wins"),
+    accountXpRequired: getRequiredAccountXp(row.level),
+    duelHighestLeagueIndex: toSafeInteger(row.duel_highest_league_index, "Duel highest league index"),
+    duelRating: toSafeInteger(row.duel_rating, "Duel rating"),
     id: row.id,
     username: row.username,
     firstName: row.first_name,
@@ -245,7 +336,9 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
   const playerResult = await client.query<ParticipantRow>(
     `
       SELECT id, username, first_name, photo_url, level, silver, gold,
-        account_xp, duel_wins, duel_losses, duel_win_streak
+        account_xp, duel_wins, duel_losses, duel_win_streak,
+        duel_rating, duel_highest_league_index,
+        duel_gold_earned_today, duel_gold_day, duel_gold_level, tutorial_eligible, equipment
       FROM players
       WHERE id = $1
     `,
@@ -268,7 +361,8 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
         player_card_instances.bonus_power,
         player_card_instances.level_progress_elements,
         player_card_instances.stored_elements,
-        cards.collection_id
+        cards.collection_id,
+        cards.limited
       FROM player_decks
       INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
       INNER JOIN player_card_instances ON player_card_instances.id = deck_slots.card_instance_id
@@ -278,9 +372,9 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
     `,
     [playerId],
   );
-  const cards = cardsResult.rows.map(toDuelCard);
+  const rawCards = cardsResult.rows.map(toDuelCard);
   const slotsAreSequential = cardsResult.rows.every(({ slot }, index) => slot === index + 1);
-  if (!slotsAreSequential || !validateDeckElementBalance(cards).valid) throw new DuelDeckInvalidError();
+  if (!slotsAreSequential || !validateDeckElementBalance(rawCards).valid) throw new DuelDeckInvalidError();
 
   const modifiersResult = await client.query<ModifierRow>(
     `
@@ -292,11 +386,17 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
     `,
     [playerId],
   );
+  const equipment = parseStoredEquipment(player.id, player.equipment);
+  const equipmentSummary = calculateEquipmentSummary(getEquippedDefinitions(equipment));
   const modifiers = toBattleModifiers(modifiersResult.rows.map((row) => ({
     type: row.buff_type,
     value: Number(row.buff_value),
     ...(row.buff_element ? { element: row.buff_element } : {}),
-  })));
+  })), equipmentSummary);
+  const cards = rawCards.map((card) => ({
+    ...card,
+    finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element],
+  }));
   const effectiveDeckPower = getEffectiveDeckPower(getDeckPower(cards), modifiers.deckPowerPct);
   return {
     player,
@@ -314,7 +414,7 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
 
 async function loadBotCardTemplates(client: PoolClient): Promise<BotCardTemplate[]> {
   const result = await client.query<BotCardRow>(
-    "SELECT id, code, display_name, art_key, element FROM cards ORDER BY element, id",
+    "SELECT id, code, display_name, art_key, element FROM cards WHERE limited = FALSE ORDER BY element, id",
   );
   return result.rows.map((row) => ({
     cardId: row.id,
@@ -392,7 +492,7 @@ export class DuelService {
     }
   }
 
-  async start(challengerId: string, searchId: string): Promise<DuelView> {
+  async start(challengerId: string, searchId: string, tutorial = false): Promise<DuelView> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
@@ -411,6 +511,7 @@ export class DuelService {
       if (!search) throw new DuelSearchInvalidError();
 
       const challenger = await loadDuelParticipant(client, challengerId);
+      const tutorialMode = tutorial && challenger.player.tutorial_eligible;
       let opponentSnapshot: DuelSideSnapshot;
       if (search.opponent_kind === "bot") {
         if (!search.opponent_snapshot || search.opponent_id) throw new DuelSearchInvalidError();
@@ -420,23 +521,35 @@ export class DuelService {
         opponentSnapshot = (await loadDuelParticipant(client, search.opponent_id)).snapshot;
       }
       const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, challenger.player.duel_win_streak);
-      if (!isDeckPowerInMatchmakingRange(opponentSnapshot.effectiveDeckPower, range)) {
+      if (!tutorialMode && !isDeckPowerInMatchmakingRange(opponentSnapshot.effectiveDeckPower, range)) {
         throw new DuelNoOpponentFoundError();
       }
 
-      const playerPool = initializeCyclicCardPool(challenger.snapshot.cards, this.random);
-      const enemyPool = initializeCyclicCardPool(opponentSnapshot.cards, this.random);
+      const challengerSnapshot = tutorialMode
+        ? createTutorialSnapshot(challenger.snapshot, TUTORIAL_PLAYER_POWERS)
+        : challenger.snapshot;
+      const resolvedOpponentSnapshot = tutorialMode
+        ? createTutorialSnapshot(opponentSnapshot, TUTORIAL_ENEMY_POWERS, true, challengerSnapshot.cards.map((card) => card.element))
+        : opponentSnapshot;
+
+      const playerPool = tutorialMode
+        ? createTutorialPool(challengerSnapshot.cards)
+        : initializeCyclicCardPool(challengerSnapshot.cards, this.random);
+      const enemyPool = tutorialMode
+        ? createTutorialPool(resolvedOpponentSnapshot.cards)
+        : initializeCyclicCardPool(resolvedOpponentSnapshot.cards, this.random);
       const duelId = randomUUID();
       const inserted = await client.query<DuelRow>(
         `
           INSERT INTO duels (
             id, challenger_id, opponent_id, opponent_kind, status,
+            tutorial_mode,
             challenger_snapshot, opponent_snapshot,
             player_hp, enemy_hp,
             player_active_slots, enemy_active_slots,
             player_reserve_queue, enemy_reserve_queue
           )
-          VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12)
+          VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING ${DUEL_COLUMNS}
         `,
         [
@@ -444,10 +557,11 @@ export class DuelService {
           challengerId,
           search.opponent_id,
           search.opponent_kind,
-          JSON.stringify(challenger.snapshot),
-          JSON.stringify(opponentSnapshot),
-          challenger.snapshot.startingHp,
-          opponentSnapshot.startingHp,
+          tutorialMode,
+          JSON.stringify(challengerSnapshot),
+          JSON.stringify(resolvedOpponentSnapshot),
+          challengerSnapshot.startingHp,
+          resolvedOpponentSnapshot.startingHp,
           JSON.stringify(playerPool.activeCards),
           JSON.stringify(enemyPool.activeCards),
           JSON.stringify(playerPool.reserveQueue),
@@ -500,8 +614,14 @@ export class DuelService {
       if (duel.status !== "active" || duel.version !== input.expectedVersion) {
         throw new DuelStateConflictError();
       }
+      const requiredTutorialSlot = duel.tutorial_mode
+        ? duel.turn_number === 0 ? 0 : duel.turn_number === 1 ? 1 : null
+        : null;
+      if (requiredTutorialSlot !== null && input.slotIndex !== requiredTutorialSlot) {
+        throw new DuelTutorialActionError();
+      }
 
-      const resolved = resolveDuelExchange({
+      let resolved = resolveDuelExchange({
         playerHp: duel.player_hp,
         enemyHp: duel.enemy_hp,
         playerPool: {
@@ -514,10 +634,34 @@ export class DuelService {
         },
         playerModifiers: duel.challenger_snapshot.modifiers,
         enemyModifiers: duel.opponent_snapshot.modifiers,
+        playerMaxHp: duel.challenger_snapshot.startingHp,
+        enemyMaxHp: duel.opponent_snapshot.startingHp,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });
+      const referenceTutorialState = duel.tutorial_mode
+        && ((duel.turn_number === 0 && duel.player_hp === 180 && duel.enemy_hp === 35)
+          || (duel.turn_number === 1 && duel.player_hp === 168 && duel.enemy_hp === 23)
+          || (duel.turn_number === 2 && duel.player_hp === 162 && duel.enemy_hp === 5));
+      if (referenceTutorialState) {
+        const tutorialPlayerDamage = duel.turn_number === 0 ? 12 : duel.turn_number === 1 ? 18 : 5;
+        const tutorialEnemyDamage = duel.turn_number === 0 ? 12 : 6;
+        resolved = {
+          ...resolved,
+          enemyHp: duel.turn_number === 0 ? 23 : duel.turn_number === 1 ? 5 : 0,
+          playerHp: duel.turn_number === 0 ? 168 : duel.turn_number === 1 ? 162 : 156,
+          status: duel.turn_number === 2 ? "won" : "active",
+          exchange: {
+            ...resolved.exchange,
+            enemyDamage: tutorialEnemyDamage,
+            playerDamage: tutorialPlayerDamage,
+          },
+        };
+      }
       const battleLog = [...duel.battle_log, resolved.exchange].slice(-MAX_BATTLE_LOG_ENTRIES);
+      const previousPlayerDamage = toSafeInteger(duel.player_damage_total, "Player damage total");
+      const playerDamageTotal = previousPlayerDamage + resolved.exchange.playerDamage;
+      if (!Number.isSafeInteger(playerDamageTotal)) throw new Error("Player damage total exceeds safe integer limits");
       if (resolved.exchange.playerMultiplier === 1.5) {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_STRONG_HIT", { duelId }, actionNow);
       } else if (resolved.exchange.playerMultiplier === 1) {
@@ -525,40 +669,110 @@ export class DuelService {
       }
       let result: DuelResult | null = null;
       let rewardsGranted = false;
+      let persistedPlayerHp = resolved.playerHp;
+      let persistedEnemyHp = resolved.enemyHp;
+      let persistedStatus = resolved.status;
+      const challengerSnapshot: DuelSideSnapshot = duel.challenger_snapshot.modifiers.equipment
+        ? {
+          ...duel.challenger_snapshot,
+          modifiers: {
+            ...duel.challenger_snapshot.modifiers,
+            equipmentState: resolved.playerEquipmentState,
+          },
+        }
+        : duel.challenger_snapshot;
+      const opponentSnapshot: DuelSideSnapshot = duel.opponent_snapshot.modifiers.equipment
+        ? {
+          ...duel.opponent_snapshot,
+          modifiers: {
+            ...duel.opponent_snapshot.modifiers,
+            equipmentState: resolved.enemyEquipmentState,
+          },
+        }
+        : duel.opponent_snapshot;
 
       if (resolved.status !== "active") {
-        const outcome: DuelOutcome = resolved.status === "won" ? "win" : "loss";
         const playerResult = await client.query<ParticipantRow>(
           `
-            SELECT id, username, first_name, photo_url, level, silver, gold,
-              account_xp, duel_wins, duel_losses, duel_win_streak
+          SELECT id, username, first_name, photo_url, level, silver, gold,
+            account_xp, duel_wins, duel_losses, duel_win_streak,
+              duel_rating, duel_highest_league_index,
+              duel_gold_earned_today, duel_gold_day, duel_gold_level, tutorial_eligible
             FROM players
             WHERE id = $1
             FOR UPDATE
-          `,
+        `,
           [challengerId],
         );
         const player = playerResult.rows[0];
         if (!player) throw new DuelMissingError();
+        const tutorialVictory = resolved.status === "lost"
+          && duel.tutorial_mode;
+        if (tutorialVictory) {
+          persistedPlayerHp = Math.max(1, resolved.playerHp);
+          persistedEnemyHp = 0;
+          persistedStatus = "won";
+        }
+        const outcome: DuelOutcome = persistedStatus === "won" ? "win" : "loss";
         const boost = await getAccountBoostStatus(client, challengerId, actionNow);
-        const reward = calculateDuelReward(
+        const currencyBoost = await getCurrencyBoostStatus(client, challengerId, actionNow);
+        const currentModifiers = toBattleModifiers(await getCompletedCollectionModifiers(client, challengerId));
+        const baseReward = calculateDuelReward(
           player.level,
           outcome,
-          duel.challenger_snapshot.modifiers,
+          currentModifiers,
           boost.multiplier,
+          playerDamageTotal,
         );
+        const reward = {
+          ...baseReward,
+          silver: baseReward.silver * currencyBoost.multiplier,
+          ...(duel.tutorial_mode ? { xp: 35, silver: 100 } : {}),
+        };
+        const calculatedLeagueProgression = applyLeagueProgression({
+          highestLeagueIndex: toSafeInteger(player.duel_highest_league_index, "Duel highest league index"),
+          ratingBefore: toSafeInteger(player.duel_rating, "Duel rating"),
+          result: outcome,
+          rewardMultiplier: boost.multiplier * currencyBoost.multiplier,
+          silverBonus: currentModifiers.silverRewardPct / 100,
+        });
+        const leagueProgression = duel.tutorial_mode
+          ? {
+            ...calculatedLeagueProgression,
+            promotionReward: 0,
+            silverReward: 100,
+            totalSilverEarned: 100,
+          }
+          : calculatedLeagueProgression;
         const progression = applyAccountXp({
           level: player.level,
-          xp: player.account_xp,
+          xp: toSafeInteger(player.account_xp, "Account XP"),
           gainedXp: reward.xp,
         });
+        const actionDate = actionNow.toISOString().slice(0, 10);
+        const storedDuelGold = toSafeInteger(player.duel_gold_earned_today, "Duel daily gold");
+        const storedDuelGoldDate = typeof player.duel_gold_day === "string"
+          ? player.duel_gold_day.slice(0, 10)
+          : player.duel_gold_day.toISOString().slice(0, 10);
+        const sameDayAndLevel = storedDuelGoldDate === actionDate && player.duel_gold_level === player.level;
+        const earnedDuelGold = sameDayAndLevel ? Math.min(storedDuelGold, player.level) : 0;
+        const levelChanged = progression.newLevel !== player.level;
+        const duelGoldReward = getDuelGoldReward(
+          progression.newLevel,
+          outcome,
+          levelChanged ? 0 : earnedDuelGold,
+          this.random,
+          currencyBoost.multiplier,
+        );
+        const duelGoldEarnedToday = levelChanged ? duelGoldReward : earnedDuelGold + duelGoldReward;
+        const levelUpGoldReward = progression.goldReward * currencyBoost.multiplier;
         const stats = applyDuelOutcomeToStats({
           duelWins: player.duel_wins,
           duelLosses: player.duel_losses,
           duelWinStreak: player.duel_win_streak,
         }, outcome);
-        const nextSilver = toSafeInteger(player.silver, "Silver") + reward.silver;
-        const nextGold = toSafeInteger(player.gold, "Gold") + progression.goldReward;
+        const nextSilver = toSafeInteger(player.silver, "Silver") + leagueProgression.totalSilverEarned;
+        const nextGold = toSafeInteger(player.gold, "Gold") + levelUpGoldReward + duelGoldReward;
         if (!Number.isSafeInteger(nextSilver) || !Number.isSafeInteger(nextGold)) {
           throw new Error("Duel reward exceeds safe currency limits");
         }
@@ -572,10 +786,18 @@ export class DuelService {
               duel_wins = $6,
               duel_losses = $7,
               duel_win_streak = $8,
+              duel_rating = $9,
+              rating = $9,
+              duel_highest_league_index = $10,
+              duel_gold_earned_today = $11,
+              duel_gold_day = $12,
+              duel_gold_level = $13,
               updated_at = NOW()
             WHERE id = $1
             RETURNING id, username, first_name, photo_url, level, silver, gold,
-              account_xp, duel_wins, duel_losses, duel_win_streak
+              account_xp, duel_wins, duel_losses, duel_win_streak,
+              duel_rating, duel_highest_league_index,
+              duel_gold_earned_today, duel_gold_day, duel_gold_level
           `,
           [
             challengerId,
@@ -586,6 +808,11 @@ export class DuelService {
             stats.duelWins,
             stats.duelLosses,
             stats.duelWinStreak,
+            leagueProgression.ratingAfter,
+            leagueProgression.highestLeagueIndexAfter,
+            duelGoldEarnedToday,
+            actionDate,
+            progression.newLevel,
           ],
         );
         result = {
@@ -593,8 +820,14 @@ export class DuelService {
           accountBoostMultiplier: boost.multiplier,
           boostExpiresAt: boost.expiresAt,
           xp: reward.xp,
-          silver: reward.silver,
-          gold: progression.goldReward,
+          leagueProgression,
+          promotionReward: leagueProgression.promotionReward,
+          silver: leagueProgression.totalSilverEarned,
+          silverReward: leagueProgression.silverReward,
+          totalSilverEarned: leagueProgression.totalSilverEarned,
+          gold: levelUpGoldReward,
+          duelGoldReward,
+          levelUpGoldReward,
           reachedLevels: progression.reachedLevels,
           winStreak: stats.duelWinStreak,
           player: toPlayerSummary(updatedPlayerResult.rows[0]!),
@@ -638,28 +871,34 @@ export class DuelService {
             enemy_active_slots = $5,
             player_reserve_queue = $6,
             enemy_reserve_queue = $7,
-            battle_log = $8,
-            turn_number = $9,
+            challenger_snapshot = $8,
+            opponent_snapshot = $9,
+            battle_log = $10,
+            player_damage_total = $11,
+            turn_number = $12,
             version = version + 1,
-            status = $10,
-            result = $11,
-            rewards_granted = $12,
+            status = $13,
+            result = $14,
+            rewards_granted = $15,
             updated_at = NOW(),
-            finished_at = CASE WHEN $10 = 'active' THEN NULL ELSE NOW() END
+            finished_at = CASE WHEN $13 = 'active' THEN NULL ELSE NOW() END
           WHERE id = $1
           RETURNING ${DUEL_COLUMNS}
         `,
         [
           duelId,
-          resolved.playerHp,
-          resolved.enemyHp,
+          persistedPlayerHp,
+          persistedEnemyHp,
           JSON.stringify(resolved.playerPool.activeCards),
           JSON.stringify(resolved.enemyPool.activeCards),
           JSON.stringify(resolved.playerPool.reserveQueue),
           JSON.stringify(resolved.enemyPool.reserveQueue),
+          JSON.stringify(challengerSnapshot),
+          JSON.stringify(opponentSnapshot),
           JSON.stringify(battleLog),
+          playerDamageTotal,
           resolved.exchange.turnNumber,
-          resolved.status,
+          persistedStatus,
           result ? JSON.stringify(result) : null,
           rewardsGranted,
         ],

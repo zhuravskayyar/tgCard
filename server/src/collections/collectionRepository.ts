@@ -28,11 +28,13 @@ interface SummaryRow {
 interface CardRow {
   art_key: string | null;
   code: string;
-  collection_id: string;
+  collection_id: string | null;
+  description: string;
   discovered: boolean;
   display_name: string;
   element: CardElement;
   id: string;
+  limited: boolean;
   min_rarity: CardRarity;
   owned_copies: string | number;
   strongest_instance_id: string | null;
@@ -84,10 +86,12 @@ function mapCard(row: CardRow): PlayerCollectionCard {
   return {
     id: row.id,
     code: row.code,
+    description: row.description,
     displayName: row.display_name,
     artKey: row.art_key,
     element: row.element,
     collectionId: row.collection_id,
+    limited: row.limited,
     minRarity: row.min_rarity,
     discovered: row.discovered,
     ownedCopies: Number(row.owned_copies),
@@ -100,7 +104,17 @@ const SUMMARY_QUERY = `
     collections.id,
     collections.code,
     collections.display_name,
-    collections.cover_art_key,
+    COALESCE(
+      collections.cover_art_key,
+      (
+        SELECT cards.art_key
+        FROM cards
+        WHERE cards.collection_id = collections.id
+          AND cards.art_key IS NOT NULL
+        ORDER BY cards.code
+        LIMIT 1
+      )
+    ) AS cover_art_key,
     collections.buff_type,
     collections.buff_value,
     collections.buff_element,
@@ -139,7 +153,32 @@ export class CollectionRepository {
          ORDER BY collections.position`,
         [playerId],
       );
-      return { collections: result.rows.map(mapSummary) };
+      const limitedCards = await this.pool.query<CardRow>(
+        `
+          SELECT
+            cards.id, cards.code, cards.display_name, cards.art_key, cards.element,
+            cards.collection_id, cards.min_rarity, cards.description, cards.limited,
+            (discoveries.card_id IS NOT NULL) AS discovered,
+            COUNT(instances.id) AS owned_copies,
+            (ARRAY_AGG(instances.id ORDER BY
+              (($2::integer[])[instances.level] + instances.bonus_power) DESC,
+              instances.id
+            ) FILTER (WHERE instances.id IS NOT NULL))[1] AS strongest_instance_id
+          FROM cards
+          LEFT JOIN player_card_discoveries discoveries
+            ON discoveries.card_id = cards.id AND discoveries.player_id = $1
+          LEFT JOIN player_card_instances instances
+            ON instances.card_id = cards.id AND instances.player_id = $1
+          WHERE cards.limited = TRUE
+          GROUP BY cards.id, discoveries.card_id
+          ORDER BY cards.code
+        `,
+        [playerId, BASE_POWER_BY_LEVEL],
+      );
+      return {
+        collections: result.rows.map(mapSummary),
+        limitedCards: limitedCards.rows.map(mapCard),
+      };
     } catch (error) {
       if (error instanceof CollectionMissingError) throw error;
       throw new CollectionPersistenceError();
@@ -154,7 +193,7 @@ export class CollectionRepository {
       `
         SELECT
           cards.id, cards.code, cards.display_name, cards.art_key, cards.element,
-          cards.collection_id, cards.min_rarity,
+          cards.collection_id, cards.min_rarity, cards.description, cards.limited,
           (discoveries.card_id IS NOT NULL) AS discovered,
           COUNT(instances.id) AS owned_copies,
           (ARRAY_AGG(instances.id ORDER BY

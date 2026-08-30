@@ -6,6 +6,7 @@ import type {
   PlayerCollectionSummary,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 import { PlayerDataError } from "./playerDeck";
 
 function isSummary(value: unknown): value is PlayerCollectionSummary {
@@ -25,16 +26,18 @@ function isCard(value: unknown): value is PlayerCollectionCard {
   const card = value as Partial<PlayerCollectionCard>;
   return typeof card.id === "string"
     && typeof card.displayName === "string"
-    && typeof card.collectionId === "string"
+    && typeof card.description === "string"
+    && (card.collectionId === null || typeof card.collectionId === "string")
     && typeof card.element === "string"
     && typeof card.minRarity === "string"
     && typeof card.discovered === "boolean"
-    && Number.isSafeInteger(card.ownedCopies);
+    && Number.isSafeInteger(card.ownedCopies)
+    && (card.limited === undefined || typeof card.limited === "boolean");
 }
 
 async function request(initData: string, path: string, signal?: AbortSignal) {
   const response = await fetch(getApiEndpoint(path), {
-    headers: { Authorization: `tma ${initData}` },
+    headers: { Authorization: getPlayerAuthHeader(initData) },
     cache: "no-store",
     credentials: "same-origin",
     signal,
@@ -47,7 +50,10 @@ async function request(initData: string, path: string, signal?: AbortSignal) {
 export async function loadCollections(initData: string, signal?: AbortSignal) {
   const value = await request(initData, "/api/player/collections", signal) as Partial<PlayerCollectionsResponse>;
   if (!Array.isArray(value?.collections) || !value.collections.every(isSummary)) throw new PlayerDataError(502);
-  return value as PlayerCollectionsResponse;
+  if (value.limitedCards !== undefined && (!Array.isArray(value.limitedCards) || !value.limitedCards.every(isCard))) {
+    throw new PlayerDataError(502);
+  }
+  return { ...value, limitedCards: value.limitedCards ?? [] } as PlayerCollectionsResponse;
 }
 
 export async function loadCollection(initData: string, collectionId: string, signal?: AbortSignal) {

@@ -2,7 +2,7 @@ import type { CardRarity } from "@cardastika/shared";
 
 export const MIN_CARD_LEVEL = 1;
 export const MAX_CARD_LEVEL = 180;
-export const CARD_LEVEL_PROGRESS_REQUIRED = 100;
+export const MINIMUM_TRANSFERABLE_ELEMENT_VALUE = 1;
 
 export interface CardLevelTableEntry {
   basePower: number;
@@ -21,6 +21,7 @@ export interface CardProgressionState {
 
 export type UpgradeAvailability =
   | "ready"
+  | "insufficient_elements"
   | "insufficient_gold"
   | "maximum_level"
   | "unsupported_level_data";
@@ -73,30 +74,81 @@ export const BASE_POWER_BY_LEVEL: readonly number[] = Object.freeze([
   15400, 15500, 15620, 15760, 15940, 16040, 16160, 16300, 16460, 16660,
 ]);
 
-// The source supplied for this milestone confirms all base-power rows but only
-// a subset of its economy/element columns. Unknown source cells stay null. They
-// must be filled from the source table, never extrapolated from neighbouring rows.
-const CONFIRMED_LEVEL_DATA: Readonly<Record<number, Readonly<{
-  elementValue?: number;
-  goldUpgradeCost?: number;
-  minimumGoldCost?: number;
-}>>> = Object.freeze({
-  10: Object.freeze({ elementValue: 2 }),
-  15: Object.freeze({ elementValue: 2, goldUpgradeCost: 4, minimumGoldCost: 2 }),
-  20: Object.freeze({ goldUpgradeCost: 5 }),
-});
+// Source-table values are kept in their native units, including hundredths for
+// the first levels. The database stores the same two-decimal precision.
+const ELEMENT_VALUE_BY_LEVEL: readonly (number | null)[] = Object.freeze([
+  0.02, 0.04, 0.08, 0.14, 0.2, 0.32, 0.44, 0.56, 0.68, 0.8,
+  1.04, 1.28, 1.52, 1.76, 2, 2.4, 2.8, 3.2, 3.6, 4,
+  4.8, 5.6, 6.4, 7.2, 8, 9.6, 11.2, 12.8, 14.4, 16,
+  20, 24, 28, 32, 36, 44, 52, 60, 68, 75,
+  90, 105, 120, 135, 150, 180, 210, 240, 270, 300,
+  360, 420, 480, 540, 600, 760, 920, 1080, 1240, 1400,
+  2000, 2600, 3200, 3800, 4400, 5800, 7200, 8600, 10000, 12000,
+  15000, 18000, 21000, 24000, 27000, 34000, 41000, 48000, 55000, 62000,
+  80000, 98000, 116000, 134000, 150000, 194000, 238000, 282000, 326000, 331000,
+  337000, 344000, 352000, 361000, 370000, 380000, 400000, 440000, 490000, 550000,
+  610000, 670000, 730000, 850000, 1000000, 1100000, 1200000, 1300000, 1400000, 1530000,
+  1660000, 1800000, 1930000, 2060000, 2200000, 2330000, 2460000, 2600000, 2780000, 3000000,
+  3200000, 3500000, 3900000, 4400000, 5100000, 5400000, 5820000, 6360000, 7020000, 7920000,
+  8340000, 8900000, 9600000, 10440000, 11560000, 12120000, 12840000, 13720000, 14760000, 16120000,
+  16920000, 17920000, 19120000, 20520000, 22320000, 24320000, 26720000, 29520000, 32720000, 36720000,
+  null, 110160000, 220320000, 440640000, 881280000, 1762560000, 3525120000, 7050240000, 14100480000, 28200960000,
+  56401920000, 112803840000, 225607680000, 451215360000, 902430720000, 1804861440000, 3609722880000, 7219445760000, null, null,
+  null, null, null, null, null, null, null, null, null, null,
+]);
+
+const GOLD_UPGRADE_COST_BY_LEVEL: readonly (number | null)[] = Object.freeze([
+  null, 1, 1, 1, 2, 1, 1, 1, 1, 2,
+  1, 1, 1, 1, 4, 2, 2, 2, 2, 10,
+  5, 5, 5, 5, 16, 8, 8, 8, 8, 20,
+  10, 10, 10, 10, 30, 15, 15, 15, 15, 40,
+  20, 20, 20, 20, 60, 30, 30, 30, 30, 100,
+  50, 50, 50, 50, 200, 100, 100, 100, 100, 400,
+  400, 400, 400, 400, 800, 800, 800, 800, 800, 1600,
+  1600, 1600, 1600, 1600, 3200, 3200, 3200, 3200, 3200, 6400,
+  6400, 6400, 6400, 6400, 12500, 12500, 12500, 12500, 12500, 3000,
+  3400, 3800, 4200, 4800, 5800, 2500, 3000, 3500, 4000, 4500,
+  5000, 5500, 6000, 7000, 9000, 3000, 3000, 4000, 4000, 4800,
+  4800, 5600, 5600, 6000, 7000, 8000, 8400, 10000, 10800, 15000,
+  4000, 6000, 8000, 10000, 14000, 6000, 8400, 10800, 13200, 18000,
+  8400, 11200, 14000, 16800, 22400, 11200, 14400, 17600, 20800, 27200,
+  14400, 18000, 21600, 25200, 32400, 20000, 24000, 28000, 32000, 36000,
+  14400, 18000, 21600, 25200, 32400, 20000, 24000, 28000, 32000, 36000,
+  14400, 18000, 21600, 25200, 32400, 20000, 24000, 28000, 32000, 36000,
+  14400, 18000, 21600, 25200, 32400, 20000, 24000, 28000, 32000, 40000,
+]);
+
+const MINIMUM_GOLD_COST_BY_LEVEL: readonly (number | null)[] = Object.freeze([
+  null, null, null, null, 1, null, null, null, null, 1,
+  null, null, null, null, 2, null, null, null, null, 5,
+  null, null, null, null, 8, null, null, null, null, 10,
+  null, null, null, null, 15, null, null, null, null, 20,
+  null, null, null, null, 30, null, null, null, null, 50,
+  null, null, null, null, 100, null, null, null, null, 200,
+  null, null, null, null, 400, null, null, null, null, 800,
+  null, null, null, null, 1600, null, null, null, null, 3200,
+  null, null, null, null, 6250, null, null, null, null, 1500,
+  1700, 1900, 2100, 2400, 2900, 1250, 1500, 1750, 2000, 2250,
+  2500, 2750, 3000, 3500, 4500, 1500, 1500, 2000, 2000, 2400,
+  2400, 2800, 2800, 3000, 3500, 4000, 4200, 5000, 5400, 7500,
+  2000, 3000, 4000, 5000, 7000, 3000, 4200, 5400, 6600, 9000,
+  4200, 5600, 7000, 8400, 11200, 5600, 7200, 8800, 10400, 13600,
+  7200, 9000, 10800, 12600, 16200, 10000, 12000, 14000, 16000, 18000,
+  7200, 9000, 10800, 12600, 16200, 10000, 12000, 14000, 16000, 18000,
+  7200, 9000, 10800, 12600, 16200, 10000, 12000, 14000, 16000, 18000,
+  7200, 9000, 10800, 12600, 16200, 10000, 12000, 14000, 16000, 20000,
+]);
 
 export const CARD_LEVEL_TABLE: readonly Readonly<CardLevelTableEntry>[] = Object.freeze(
   BASE_POWER_BY_LEVEL.map((basePower, index) => {
     const level = index + 1;
-    const confirmed = CONFIRMED_LEVEL_DATA[level];
     return Object.freeze({
       level,
       basePower,
       powerIncrease: index === 0 ? null : basePower - BASE_POWER_BY_LEVEL[index - 1]!,
-      goldUpgradeCost: confirmed?.goldUpgradeCost ?? null,
-      minimumGoldCost: confirmed?.minimumGoldCost ?? null,
-      elementValue: confirmed?.elementValue ?? null,
+      goldUpgradeCost: GOLD_UPGRADE_COST_BY_LEVEL[index] ?? null,
+      minimumGoldCost: MINIMUM_GOLD_COST_BY_LEVEL[index] ?? null,
+      elementValue: ELEMENT_VALUE_BY_LEVEL[index] ?? null,
     });
   }),
 );
@@ -114,9 +166,19 @@ function assertBonusPower(bonusPower: number) {
 }
 
 function assertProgressValue(value: number, field: string) {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(`${field} must be a non-negative safe integer`);
+  const rounded = Math.round(value * 100);
+  if (
+    !Number.isFinite(value)
+    || value < 0
+    || !Number.isSafeInteger(rounded)
+    || Math.abs(value - rounded / 100) > 1e-9
+  ) {
+    throw new RangeError(`${field} must be a non-negative number with at most two decimal places`);
   }
+}
+
+function roundProgressValue(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export function getRarityLevelRange(rarity: CardRarity) {
@@ -153,13 +215,15 @@ export function getElementValueForLevel(level: number) {
   return getCardLevelTableEntry(level).elementValue;
 }
 
+export function getRequiredProgressElements(level: number) {
+  return getElementValueForLevel(level) ?? MINIMUM_TRANSFERABLE_ELEMENT_VALUE;
+}
+
 export function getTransferableElementValue(state: CardProgressionState) {
   assertProgressValue(state.levelProgressElements, "Level progress");
   assertProgressValue(state.storedElements, "Stored elements");
-  const nativeValue = getElementValueForLevel(state.level);
-  return nativeValue === null
-    ? null
-    : nativeValue + state.levelProgressElements + state.storedElements;
+  const nativeValue = getElementValueForLevel(state.level) ?? MINIMUM_TRANSFERABLE_ELEMENT_VALUE;
+  return roundProgressValue(nativeValue + state.levelProgressElements + state.storedElements);
 }
 
 export function applyElementalPotential(
@@ -178,26 +242,31 @@ export function applyElementalPotential(
     };
   }
 
-  const total = state.levelProgressElements + state.storedElements + addedElements;
+  const total = roundProgressValue(state.levelProgressElements + state.storedElements + addedElements);
+  const requiredElements = getRequiredProgressElements(state.level);
   return {
-    levelProgressElements: Math.min(CARD_LEVEL_PROGRESS_REQUIRED, total),
-    storedElements: Math.max(0, total - CARD_LEVEL_PROGRESS_REQUIRED),
+    levelProgressElements: Math.min(requiredElements, total),
+    storedElements: roundProgressValue(Math.max(0, total - requiredElements)),
   };
 }
 
-export function getUpgradeProgress(levelProgressElements: number) {
+export function getUpgradeProgress(levelProgressElements: number, level: number) {
+  assertCardLevel(level);
   assertProgressValue(levelProgressElements, "Level progress");
-  const filledElements = Math.min(levelProgressElements, CARD_LEVEL_PROGRESS_REQUIRED);
+  const requiredElements = getRequiredProgressElements(level);
+  const filledElements = Math.min(levelProgressElements, requiredElements);
   return {
     filledElements,
-    requiredElements: CARD_LEVEL_PROGRESS_REQUIRED,
-    percent: Math.floor((filledElements * 100) / CARD_LEVEL_PROGRESS_REQUIRED),
+    requiredElements,
+    percent: roundProgressValue((filledElements * 100) / requiredElements),
   };
 }
 
 export function getUpgradeGoldPrice(targetLevel: number, levelProgressElements: number) {
+  assertCardLevel(targetLevel);
+  if (targetLevel === MIN_CARD_LEVEL) throw new RangeError("Target level must be above the minimum card level");
   const entry = getCardLevelTableEntry(targetLevel);
-  const progress = getUpgradeProgress(levelProgressElements);
+  const progress = getUpgradeProgress(levelProgressElements, targetLevel - 1);
   if (entry.goldUpgradeCost === null) return null;
 
   const minimum = isGoldLevel(targetLevel) ? entry.minimumGoldCost : 0;
@@ -220,6 +289,9 @@ export function canLevelUp(
   if (requiredGold === null) {
     return { availability: "unsupported_level_data", requiredGold: null };
   }
+  // Gold is the alternative to filling the elemental progress. Absorption
+  // only lowers the confirmed price; it must not be a prerequisite for the
+  // upgrade itself.
   return {
     availability: availableGold >= requiredGold ? "ready" : "insufficient_gold",
     requiredGold,
@@ -232,7 +304,12 @@ export function advanceCardLevel(state: CardProgressionState) {
   assertProgressValue(state.levelProgressElements, "Level progress");
   assertProgressValue(state.storedElements, "Stored elements");
   const level = state.level + 1;
-  return { level, ...applyElementalPotential({ level, levelProgressElements: 0, storedElements: state.storedElements }, 0) };
+  const currentLevelOverflow = Math.max(
+    0,
+    state.levelProgressElements - getRequiredProgressElements(state.level),
+  );
+  const transferableOverflow = roundProgressValue(currentLevelOverflow + state.storedElements);
+  return { level, ...applyElementalPotential({ level, levelProgressElements: 0, storedElements: 0 }, transferableOverflow) };
 }
 
 export function getCardPower(instance: CardPowerInput) {

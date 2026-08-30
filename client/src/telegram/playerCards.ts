@@ -7,6 +7,7 @@ import type {
   WeakPlayerCardsResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 import { isPlayerCardInstance, PlayerDataError } from "./playerDeck";
 
 function isPagination(value: unknown): value is WeakPlayerCardsResponse {
@@ -27,7 +28,7 @@ function isDetail(value: unknown): value is PlayerCardDetailResponse {
   return isPlayerCardInstance(response.card)
     && typeof response.inActiveDeck === "boolean"
     && Boolean(progression)
-    && Number.isSafeInteger(progression?.percent)
+    && Number.isFinite(progression?.percent)
     && Number(progression?.percent) >= 0
     && Number(progression?.percent) <= 100
     && typeof progression?.availability === "string";
@@ -38,11 +39,12 @@ async function request(
   path: string,
   signal?: AbortSignal,
   body?: AbsorbCardsRequest,
+  method?: "GET" | "POST",
 ) {
   const response = await fetch(getApiEndpoint(path), {
-    method: body ? "POST" : "GET",
+    method: method ?? (body ? "POST" : "GET"),
     headers: {
-      Authorization: `tma ${initData}`,
+      Authorization: getPlayerAuthHeader(initData),
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -100,10 +102,13 @@ export async function previewCardAbsorption(
   const preview = value as Partial<AbsorptionPreviewResponse>;
   if (
     !value || typeof value !== "object"
-    || !Number.isSafeInteger(preview.beforePercent)
-    || !Number.isSafeInteger(preview.afterPercent)
+    || !Number.isFinite(preview.beforePercent)
+    || !Number.isFinite(preview.afterPercent)
+    || !Number.isFinite(preview.beforeElements)
+    || !Number.isFinite(preview.afterElements)
+    || !Number.isFinite(preview.requiredElements)
     || !Number.isSafeInteger(preview.selectedCards)
-    || !Number.isSafeInteger(preview.resultingStoredElements)
+    || !Number.isFinite(preview.resultingStoredElements)
   ) throw new PlayerDataError(502);
   return value as AbsorptionPreviewResponse;
 }
@@ -111,7 +116,11 @@ export async function previewCardAbsorption(
 function parseAction(value: unknown) {
   if (!isDetail(value)) throw new PlayerDataError(502);
   const action = value as Partial<CardProgressionActionResponse>;
-  if (!Array.isArray(action.consumedInstanceIds) || !Number.isSafeInteger(action.playerGold)) {
+  if (
+    !Array.isArray(action.consumedInstanceIds)
+    || !Number.isSafeInteger(action.playerGold)
+    || (action.deckPower !== undefined && (!Number.isSafeInteger(action.deckPower) || action.deckPower < 0))
+  ) {
     throw new PlayerDataError(502);
   }
   return value as CardProgressionActionResponse;
@@ -129,7 +138,7 @@ export async function absorbCards(initData: string, instanceId: string, fodderIn
 export async function levelUpCard(initData: string, instanceId: string) {
   const response = await fetch(getApiEndpoint(`/api/player/cards/${encodeURIComponent(instanceId)}/level-up`), {
     method: "POST",
-    headers: { Authorization: `tma ${initData}` },
+    headers: { Authorization: getPlayerAuthHeader(initData) },
     cache: "no-store",
     credentials: "same-origin",
   });
@@ -139,4 +148,14 @@ export async function levelUpCard(initData: string, instanceId: string) {
     throw new PlayerDataError(response.status, typeof code === "string" ? code : undefined);
   }
   return parseAction(value);
+}
+
+export async function toggleCardProtection(initData: string, instanceId: string) {
+  return parseAction(await request(
+    initData,
+    `/api/player/cards/${encodeURIComponent(instanceId)}/protection`,
+    undefined,
+    undefined,
+    "POST",
+  ));
 }

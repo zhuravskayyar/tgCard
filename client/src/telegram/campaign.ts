@@ -7,6 +7,7 @@ import type {
   DuelActionRequest,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 
 export class CampaignApiError extends Error {
   constructor(
@@ -26,7 +27,7 @@ async function request<T>(
   const response = await fetch(getApiEndpoint(path), {
     method: options.method ?? "GET",
     headers: {
-      Authorization: `tma ${initData}`,
+      Authorization: getPlayerAuthHeader(initData),
       ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),

@@ -43,6 +43,8 @@ export async function createStandardCardInstance(
     element: definition.element,
     level,
     levelProgressElements: 0,
+    limited: definition.limited ?? false,
+    protectedFromAbsorption: false,
     basePower,
     bonusPower,
     finalPower: getCardPower({ level, bonusPower }),

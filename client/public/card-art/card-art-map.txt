@@ -1,0 +1,180 @@
+# Cardastika — мапа арту карт
+#
+# Формат: card_id | нормальна назва карти | файл_без_розширення або файл_з_розширенням
+#
+# Найпростіший варіант: поклади файл у цю ж папку з таким ім'ям, як ID карти:
+#   starter_01.webp
+#   predators_01.webp
+# Підтримуються webp, png, jpg і jpeg. Розширення можна не вказувати —
+# клієнт перевірить їх у цьому порядку. Якщо арт має інше ім'я, вкажи його
+# праворуч, наприклад: starter_01 = salamandra-v2.webp
+#
+# Після копіювання нового файлу перезавантаж веб-сторінку або повторно відкрий
+# Mini App у Telegram. Базовий варіант нижче вже прив'язаний до ID, тому цей
+# файл не потрібно редагувати для кожної нової картинки.
+
+# Стартові карти
+starter_01 | Саламандра | starter_01
+starter_02 | Лис | starter_02
+starter_03 | Жук-бомбардир | starter_03
+starter_04 | Вугор | starter_04
+starter_05 | Щука | starter_05
+starter_06 | Ворон | starter_06
+starter_07 | Сокіл | starter_07
+starter_08 | Кріт | starter_08
+starter_09 | Вепр | starter_09
+
+# Хижаки
+predators_01 | Вовк | predators_01
+predators_02 | Рись | predators_02
+predators_03 | Росомаха | predators_03
+predators_04 | Гієна | predators_04
+predators_05 | Каракал | predators_05
+predators_06 | Мангуст | predators_06
+
+# Панцирні
+armored_01 | Броненосець | armored_01
+armored_02 | Панголін | armored_02
+armored_03 | Мечохвіст | armored_03
+armored_04 | Жук-олень | armored_04
+armored_05 | Краб-павук | armored_05
+armored_06 | Черепаха-алігатор | armored_06
+
+# Нічні
+nocturnal_01 | Пугач | nocturnal_01
+nocturnal_02 | Кажан | nocturnal_02
+nocturnal_03 | Генета | nocturnal_03
+nocturnal_04 | Тасманійський диявол | nocturnal_04
+nocturnal_05 | Фенек | nocturnal_05
+nocturnal_06 | Ай-ай | nocturnal_06
+
+# Бурекрилі
+stormwings_01 | Альбатрос | stormwings_01
+stormwings_02 | Беркут | stormwings_02
+stormwings_03 | Кондор | stormwings_03
+stormwings_04 | Сапсан | stormwings_04
+stormwings_05 | Фрегат | stormwings_05
+stormwings_06 | Буревісник | stormwings_06
+
+# Глибинники
+deepborn_01 | Мурена | deepborn_01
+deepborn_02 | Риба-вудильник | deepborn_02
+deepborn_03 | Гігантський кальмар | deepborn_03
+deepborn_04 | Наутилус | deepborn_04
+deepborn_05 | Кашалот | deepborn_05
+deepborn_06 | Латимерія | deepborn_06
+deepborn_07 | Креветка-богомол | deepborn_07
+
+# Болотники
+swampborn_01 | Алігатор | swampborn_01
+swampborn_02 | Марабу | swampborn_02
+swampborn_03 | Капібара | swampborn_03
+swampborn_04 | Піранья | swampborn_04
+swampborn_05 | Анаконда | swampborn_05
+swampborn_06 | Жаба-бик | swampborn_06
+swampborn_07 | Водяний скорпіон | swampborn_07
+
+# Печерники
+caveborn_01 | Протей | caveborn_01
+caveborn_02 | Сліпак | caveborn_02
+caveborn_03 | Печерний лев | caveborn_03
+caveborn_04 | Сольпуга | caveborn_04
+caveborn_05 | Печерний скорпіон | caveborn_05
+caveborn_06 | Сліпа тетеря | caveborn_06
+caveborn_07 | Підковоніс | caveborn_07
+
+# Грозові
+thunderborn_01 | Громоптах | thunderborn_01
+thunderborn_02 | Рух | thunderborn_02
+thunderborn_03 | Симург | thunderborn_03
+thunderborn_04 | Грифон | thunderborn_04
+thunderborn_05 | Пегас | thunderborn_05
+thunderborn_06 | Кецаль | thunderborn_06
+thunderborn_07 | Анзу | thunderborn_07
+
+# Отруйні
+venomous_01 | Мамба | venomous_01
+venomous_02 | Габона | venomous_02
+venomous_03 | Тайпан | venomous_03
+venomous_04 | Сколопендра | venomous_04
+venomous_05 | Тарантул | venomous_05
+venomous_06 | Андроктонус | venomous_06
+venomous_07 | Дереволаз | venomous_07
+venomous_08 | Синько | venomous_08
+
+# Рогаті
+horned_01 | Муфлон | horned_01
+horned_02 | Бізон | horned_02
+horned_03 | Носоріг | horned_03
+horned_04 | Буйвол | horned_04
+horned_05 | Козоріг | horned_05
+horned_06 | Сайгак | horned_06
+horned_07 | Як | horned_07
+horned_08 | Жук-носоріг | horned_08
+
+# Первозвірі
+primeval_01 | Смилодон | primeval_01
+primeval_02 | Мегатерій | primeval_02
+primeval_03 | Ентелодон | primeval_03
+primeval_04 | Аргентавіс | primeval_04
+primeval_05 | Мегаланія | primeval_05
+primeval_06 | Дунклеостей | primeval_06
+primeval_07 | Дейнотерій | primeval_07
+primeval_08 | Еласмотерій | primeval_08
+
+# Стихійні
+elementals_01 | Фенікс | elementals_01
+elementals_02 | Келпі | elementals_02
+elementals_03 | Кірін | elementals_03
+elementals_04 | Тараск | elementals_04
+elementals_05 | Амфісбена | elementals_05
+elementals_06 | Кокатріс | elementals_06
+elementals_07 | Баніп | elementals_07
+elementals_08 | Волпертінгер | elementals_08
+
+# Велетні
+giants_01 | Мамонт | giants_01
+giants_02 | Мегалодон | giants_02
+giants_03 | Титанобоа | giants_03
+giants_04 | Парацератерій | giants_04
+giants_05 | Мозазавр | giants_05
+giants_06 | Саркозух | giants_06
+giants_07 | Аргентиносавр | giants_07
+giants_08 | Меганевра | giants_08
+giants_09 | Гігантська манта | giants_09
+
+# Дракони
+dragons_01 | Віверна | dragons_01
+dragons_02 | Дрейк | dragons_02
+dragons_03 | Амфіптер | dragons_03
+dragons_04 | Ліндворм | dragons_04
+dragons_05 | Нідхегг | dragons_05
+dragons_06 | Фафнір | dragons_06
+dragons_07 | Уроборос | dragons_07
+dragons_08 | Лун | dragons_08
+dragons_09 | Зілант | dragons_09
+
+# Дикі духи
+wild_spirits_01 | Інугамі | wild_spirits_01
+wild_spirits_02 | Некомата | wild_spirits_02
+wild_spirits_03 | Камайтачі | wild_spirits_03
+wild_spirits_04 | Куда-гіцуне | wild_spirits_04
+wild_spirits_05 | Нуе | wild_spirits_05
+wild_spirits_06 | Шиса | wild_spirits_06
+wild_spirits_07 | Баргест | wild_spirits_07
+wild_spirits_08 | Пука | wild_spirits_08
+wild_spirits_09 | Татцельвурм | wild_spirits_09
+
+# Потвори
+monsters_01 | Гідра | monsters_01
+monsters_02 | Химера | monsters_02
+monsters_03 | Мантикора | monsters_03
+monsters_04 | Василіск | monsters_04
+monsters_05 | Кракен | monsters_05
+monsters_06 | Левіафан | monsters_06
+monsters_07 | Цербер | monsters_07
+monsters_08 | Орф | monsters_08
+monsters_09 | Катоблепас | monsters_09
+
+# Лімітовані карти
+limited_rabbit_carter | Кролик Картер | rabbit_carter.png

@@ -1,4 +1,4 @@
-import type { CardRarity, PlayerCard } from "./card.js";
+import type { CardElement, CardRarity, PlayerCard } from "./card.js";
 import type { CollectionCompletionNotice } from "./collection.js";
 
 export const SHOP_CURRENCIES = ["silver", "gold"] as const;
@@ -21,7 +21,33 @@ export interface ShopOffer {
 }
 
 export interface ShopCatalogResponse {
+  limitedEvent?: LimitedShopEvent;
   offers: ShopOffer[];
+}
+
+export interface LimitedShopEvent {
+  artKey: string | null;
+  description: string;
+  displayName: string;
+  element: CardElement;
+  endsAt: string;
+  id: string;
+  limited: true;
+  rarity: CardRarity;
+  redeemed: boolean;
+}
+
+export interface LimitedCardRedeemRequest {
+  eventId: string;
+  promoCode: string;
+}
+
+export interface LimitedCardRedeemResponse {
+  deckChanged: boolean;
+  deckPower?: number;
+  message: "Лімітовану карту отримано";
+  previousDeckPower?: number;
+  reward: PlayerCard;
 }
 
 export interface ShopPurchaseRequest {
@@ -47,4 +73,32 @@ export interface ShopPurchaseResponse {
   reward: PlayerCard;
   updatedBalance: PlayerBalance;
   updatedChances: ShopChanceState[];
+}
+
+export interface CardWorkshopCard {
+  artKey: string | null;
+  cardId: string;
+  cost: number;
+  displayName: string | null;
+  element: CardElement;
+  ownedQuantity: number;
+  rarity: CardRarity;
+}
+
+export interface CardWorkshopResponse {
+  cardShards: number;
+  cards: CardWorkshopCard[];
+  rotationEndsAt: string;
+}
+
+export interface CardWorkshopCraftRequest {
+  cardId: string;
+}
+
+export interface CardWorkshopCraftResponse {
+  cardId: string;
+  cardShards: number;
+  quantity: number;
+  shardsSpent: number;
+  success: true;
 }

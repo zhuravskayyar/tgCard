@@ -12,8 +12,11 @@ progress or completion.
 
 Collection bonuses are additive player modifiers aggregated in `game-core`.
 They never mutate persisted instance `finalPower`. Existing absorption applies
-`absorption_efficiency_pct`; battle and reward systems can consume the same
-aggregated modifier object as those systems are implemented.
+`absorption_efficiency_pct`. The authenticated `PlayerSummary` exposes every
+completed collection bonus in `collectionBonuses`, and battle, silver-reward,
+experience, and absorption systems recalculate the permanent bonuses from the
+completion rows on every relevant request. Fixed campaign quest rewards remain
+unchanged.
 
 The permanent Shop resolves pity rarity first, filters canonical cards by
 `minRarity <= resolved rarity`, then selects a uniform integer level from the

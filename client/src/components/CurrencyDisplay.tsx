@@ -1,7 +1,7 @@
 import type { PlayerSummaryState } from "../types/player";
-import { AppIcon } from "./AppIcon";
+import { getUiNumberLocale } from "../i18n";
 
-type CurrencyKind = "silver" | "gold";
+export type CurrencyKind = "silver" | "gold";
 
 interface CurrencyDisplayProps {
   kind: CurrencyKind;
@@ -10,22 +10,43 @@ interface CurrencyDisplayProps {
   value?: number;
 }
 
-const numberFormatter = new Intl.NumberFormat("uk-UA");
+export const CURRENCY_ICON_SOURCES: Readonly<Record<CurrencyKind, string>> = {
+  silver: "/assets/ui/world-tree/currency-silver-moon-v1.png",
+  gold: "/assets/ui/world-tree/currency-gold-sun-v1.png",
+};
+
+interface CurrencyIconProps {
+  kind: CurrencyKind;
+  size?: number;
+}
+
+export function CurrencyIcon({ kind, size = 20 }: CurrencyIconProps) {
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className={`currency-icon currency-icon--${kind}`}
+      height={size}
+      src={CURRENCY_ICON_SOURCES[kind]}
+      width={size}
+    />
+  );
+}
 
 export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayProps) {
   const isReady = state === "ready" && value !== undefined;
-  const displayValue = isReady ? numberFormatter.format(value) : "—";
+  const displayValue = isReady ? new Intl.NumberFormat(getUiNumberLocale()).format(value) : "—";
 
   return (
     <div
       className={`currency-display currency-display--${kind}`}
       aria-label={`${label}: ${isReady ? displayValue : "недоступно"}`}
     >
-      <AppIcon name={kind} size={17} />
+      <CurrencyIcon kind={kind} />
       {state === "loading" ? (
         <span className="skeleton skeleton--currency" />
       ) : (
-        <span className="currency-display__value">{displayValue}</span>
+        <span className="currency-display__value" key={displayValue}>{displayValue}</span>
       )}
     </div>
   );

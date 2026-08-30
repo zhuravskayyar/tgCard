@@ -1,6 +1,6 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import type { AbsorbCardsRequest, PlayerSummary } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import type { AbsorbCardsRequest } from "@cardastika/shared";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { InventoryPersistenceError } from "../inventory/inventoryRepository.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
@@ -15,29 +15,18 @@ export type CardProgressionRouteAction =
   | "absorption-candidates"
   | "absorption-preview"
   | "absorb"
-  | "level-up";
+  | "level-up"
+  | "protection";
 
-interface PlayerLookup {
-  findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
-}
-
-interface CardProgressionRouteDependencies {
-  botToken: string;
-  players: PlayerLookup;
+interface CardProgressionRouteDependencies extends RouteAuthDependencies {
   progression: Pick<
     CardProgressionService,
-    "getDetail" | "getAbsorptionCandidates" | "previewAbsorption" | "absorb" | "levelUp"
+    "getDetail" | "getAbsorptionCandidates" | "previewAbsorption" | "absorb" | "levelUp" | "toggleProtection"
   >;
   responseHeaders?: OutgoingHttpHeaders;
   campaign?: {
     recordExternalEvent(playerId: string, type: "CARD_DETAIL_OPENED"): Promise<void>;
   };
-}
-
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-  if (!authorization?.startsWith("tma ")) throw new TelegramInitDataError("missing_init_data");
-  return authorization.slice(4).trim();
 }
 
 function readPage(request: IncomingMessage) {
@@ -64,7 +53,7 @@ function sendError(response: ServerResponse, error: unknown, headers: OutgoingHt
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
     return;
   }
-  if (error instanceof TelegramInitDataError) {
+  if (isAuthFailure(error)) {
     sendJson(response, 401, { error: { code: error.code, message: "Telegram authentication failed" } }, headers);
     return;
   }
@@ -98,8 +87,7 @@ export async function handleCardProgressionRequest(
 ) {
   const headers = dependencies.responseHeaders ?? {};
   try {
-    const telegramUser = validateTelegramInitData(readTelegramInitData(request), dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
 
     if (action === "detail" && request.method === "GET") {
       const detail = await dependencies.progression.getDetail(player.id, instanceId);
@@ -127,8 +115,12 @@ export async function handleCardProgressionRequest(
       sendJson(response, 200, result, headers);
       return;
     }
-    if (action === "level-up" && request.method === "POST") {
+  if (action === "level-up" && request.method === "POST") {
       sendJson(response, 200, await dependencies.progression.levelUp(player.id, instanceId), headers);
+      return;
+    }
+    if (action === "protection" && request.method === "POST") {
+      sendJson(response, 200, await dependencies.progression.toggleProtection(player.id, instanceId), headers);
       return;
     }
     sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, headers);

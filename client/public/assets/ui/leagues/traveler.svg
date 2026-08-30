@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <radialGradient id="traveler-core" cx="32" cy="27" r="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#21303a"/>
+      <stop offset="1" stop-color="#080b0f"/>
+    </radialGradient>
+    <linearGradient id="traveler-rim" x1="14" y1="10" x2="50" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d5dadd"/>
+      <stop offset=".45" stop-color="#7d8991"/>
+      <stop offset="1" stop-color="#3d4a53"/>
+    </linearGradient>
+    <filter id="traveler-glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="1.6"/>
+    </filter>
+  </defs>
+  <circle cx="32" cy="32" r="28" fill="#05070a" stroke="#202a31" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="25.6" stroke="#a8b2b8" stroke-opacity=".38" stroke-width="5" filter="url(#traveler-glow)"/>
+  <circle cx="32" cy="32" r="25.2" stroke="url(#traveler-rim)" stroke-width="4"/>
+  <circle cx="32" cy="32" r="21.6" fill="url(#traveler-core)" stroke="#c4ccd0" stroke-opacity=".28" stroke-width="1.2"/>
+  <circle cx="32" cy="32" r="11" stroke="#c2cbd0" stroke-opacity=".72" stroke-width="1.8"/>
+  <path d="m32 20.5 4.2 11.3L32 43.5l-4.2-11.7L32 20.5Z" fill="#c7d0d4" fill-opacity=".36" stroke="#d7dddf" stroke-opacity=".78" stroke-width="1.2"/>
+  <path d="M32 23v18M23 32h18" stroke="#d7dddf" stroke-opacity=".48" stroke-width="1.1"/>
+</svg>

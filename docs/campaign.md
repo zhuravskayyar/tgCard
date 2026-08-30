@@ -5,6 +5,9 @@ quests each. The 36 quest definitions and Ukrainian copy live in
 `server/src/campaign/campaignConfig.ts`. Quests inside the active stage can be
 completed in any order; the next stage opens only after all six rewards are
 claimed. The final boss is a separate battle and unlocks only after 36 claims.
+The Campaign overview renders only the current active stage; completed and future
+stages stay out of the menu. Once all 36 rewards are claimed, completed Stage 6
+remains as the final campaign anchor above the boss entry.
 
 ## Quest state and progress
 
@@ -32,14 +35,19 @@ Routes:
 - `GET /api/player/campaign/boss/:battleId`
 - `POST /api/player/campaign/boss/:battleId/action`
 
-## Варт and dialogue data
+## Лариска and dialogue data
 
-Варт is the non-playable stone raven spirit and is never a card. Dialogues are
-configuration records with trigger, NPC, emotion, paragraphs, art key and an
-optional navigation target. The client uses one reusable dialogue view and falls
-back to the Campaign glyph when an emotion sprite asset is absent. Supported art
-keys cover neutral, serious, happy, proud, warning, surprised, angry, sad,
-mysterious and battle.
+Лариска is the non-playable fairy mascot and is never a card. Dialogues are
+configuration records with trigger, mascot, emotion, paragraphs and an optional
+navigation target. The client uses one reusable dialogue view and one
+centralized `Lariska` portrait component. Its six supported emotions are
+`neutral`, `happy`, `angry`, `sad`, `surprised` and `sly`.
+
+The supplied transparent sprites live in
+`client/public/assets/mascot/lariska/` and are selected through
+`client/src/components/Lariska.tsx`. The same dialogue component and mascot
+mapping are used in the Campaign overview, stage screens, boss story and Duel
+results.
 
 ## Referral, friendship and boost
 
@@ -75,3 +83,9 @@ modifiers/boost, creates one standard Lv15 Rare Мантикора instance, rec
 discovery and collection completion, recalculates the automatic deck, and marks
 Campaign 1 complete. The campaign-state guard and locked Duel row prevent reward
 duplication on reload or retry.
+
+The Campaign overview does not render a locked boss preview. After all 36 quest
+rewards are claimed, Stage 6 becomes completed and a compact `Фінальне
+випробування` entry opens a dedicated Мантикора presentation. Starting or
+resuming the battle remains an explicit action from that screen; completing the
+boss keeps the entry visible with a completed state.

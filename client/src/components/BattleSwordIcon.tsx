@@ -1,12 +1,13 @@
 interface BattleSwordIconProps {
   tone: "gold" | "gray";
+  direction?: "left" | "right";
 }
 
-export function BattleSwordIcon({ tone }: BattleSwordIconProps) {
+export function BattleSwordIcon({ direction, tone }: BattleSwordIconProps) {
   return (
     <svg
       aria-hidden="true"
-      className={`battle-sword battle-sword--${tone}`}
+      className={`battle-sword battle-sword--${tone}${direction ? ` battle-sword--${direction}` : ""}`}
       fill="none"
       viewBox="0 0 24 24"
     >

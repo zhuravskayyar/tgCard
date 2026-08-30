@@ -17,9 +17,11 @@ export interface CardDefinition {
   artKey: string | null;
   code: string;
   collectionId: string | null;
+  description: string;
   displayName: string | null;
   element: CardElement;
   id: string;
+  limited?: boolean;
   minRarity: CardRarity;
   shopEligible: boolean;
 }
@@ -37,6 +39,8 @@ export interface PlayerCardInstance {
   instanceId: string;
   level: number;
   levelProgressElements: number;
+  limited?: boolean;
+  protectedFromAbsorption: boolean;
   rarity: CardRarity;
   storedElements: number;
 }
@@ -57,6 +61,7 @@ export interface WeakPlayerCardsResponse {
 
 export type CardUpgradeAvailability =
   | "ready"
+  | "insufficient_elements"
   | "insufficient_gold"
   | "maximum_level"
   | "unsupported_level_data";
@@ -90,12 +95,16 @@ export interface AbsorbCardsRequest {
 export interface AbsorptionPreviewResponse {
   addedElements: number;
   afterPercent: number;
+  afterElements: number;
   beforePercent: number;
+  beforeElements: number;
+  requiredElements: number;
   resultingStoredElements: number;
   selectedCards: number;
 }
 
 export interface CardProgressionActionResponse extends PlayerCardDetailResponse {
   consumedInstanceIds: string[];
+  deckPower?: number;
   playerGold: number;
 }

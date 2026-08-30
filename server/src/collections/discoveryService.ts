@@ -3,6 +3,7 @@ import type {
   CollectionCompletionNotice,
   CollectionModifier,
   CollectionModifierType,
+  PlayerCollectionBonus,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 
@@ -111,7 +112,15 @@ export async function recordCardDiscovery(
 export async function getCompletedCollectionModifiers(
   database: Queryable,
   playerId: string,
-) {
+): Promise<CollectionModifier[]> {
+  const bonuses = await getCompletedCollectionBonuses(database, playerId);
+  return bonuses.map(({ bonus }) => bonus);
+}
+
+export async function getCompletedCollectionBonuses(
+  database: Queryable,
+  playerId: string,
+): Promise<PlayerCollectionBonus[]> {
   const result = await database.query<CompletionRow>(
     `
       SELECT collections.id, collections.display_name, collections.buff_type,
@@ -124,7 +133,12 @@ export async function getCompletedCollectionModifiers(
     `,
     [playerId],
   );
-  return result.rows.map(toModifier);
+  return result.rows.map((row) => ({
+    bonus: toModifier(row),
+    bonusLabel: row.bonus_label,
+    collectionId: row.id,
+    collectionName: row.display_name,
+  }));
 }
 
 export async function backfillCardDiscoveries(pool: Pool) {

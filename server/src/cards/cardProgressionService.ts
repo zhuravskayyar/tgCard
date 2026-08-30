@@ -52,7 +52,9 @@ const CARD_PROJECTION = `
   player_card_instances.level,
   player_card_instances.bonus_power,
   player_card_instances.level_progress_elements,
+  player_card_instances.protected_from_absorption,
   player_card_instances.stored_elements,
+  cards.limited,
   cards.collection_id
 `;
 
@@ -65,7 +67,9 @@ export type CardProgressionErrorCode =
   | "different_element"
   | "unsupported_level_data"
   | "insufficient_gold"
-  | "maximum_level";
+  | "insufficient_elements"
+  | "maximum_level"
+  | "protected_card";
 
 export class CardProgressionDomainError extends Error {
   constructor(public readonly code: CardProgressionErrorCode, message: string) {
@@ -87,8 +91,22 @@ function toNonNegativeInteger(value: string | number, field: string) {
   return parsed;
 }
 
+function toProgressNumber(value: string | number, field: string) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  const rounded = Math.round(parsed * 100);
+  if (
+    !Number.isFinite(parsed)
+    || parsed < 0
+    || !Number.isSafeInteger(rounded)
+    || Math.abs(parsed - rounded / 100) > 1e-9
+  ) {
+    throw new Error(`Invalid ${field} returned by database`);
+  }
+  return parsed;
+}
+
 function toProgressionView(card: PlayerCardInstance, availableGold: number): CardProgressionView {
-  const progress = getUpgradeProgress(card.levelProgressElements);
+  const progress = getUpgradeProgress(card.levelProgressElements, card.level);
   if (card.level === MAX_CARD_LEVEL) {
     return {
       availability: "maximum_level",
@@ -211,6 +229,9 @@ async function loadValidatedAbsorption(
     if (row.player_id !== playerId) {
       throw new CardProgressionDomainError("fodder_not_owned", "A fodder card belongs to another player");
     }
+    if (row.protected_from_absorption) {
+      throw new CardProgressionDomainError("protected_card", "A protected card cannot be absorbed");
+    }
     if (row.element !== target.element) {
       throw new CardProgressionDomainError("different_element", "Only cards of the same element can be absorbed");
     }
@@ -233,16 +254,10 @@ async function loadValidatedAbsorption(
 
   const transferableValues = fodder.map((row) => getTransferableElementValue({
     level: toNonNegativeInteger(row.level, "fodder level"),
-    levelProgressElements: toNonNegativeInteger(row.level_progress_elements, "fodder progress"),
-    storedElements: toNonNegativeInteger(row.stored_elements, "fodder stored elements"),
+    levelProgressElements: toProgressNumber(row.level_progress_elements, "fodder progress"),
+    storedElements: toProgressNumber(row.stored_elements, "fodder stored elements"),
   }));
-  if (transferableValues.some((value) => value === null)) {
-    throw new CardProgressionDomainError(
-      "unsupported_level_data",
-      "The canonical elemental value for a selected card level is unknown",
-    );
-  }
-  const baseElements = transferableValues.reduce<number>((total, value) => total + (value ?? 0), 0);
+  const baseElements = transferableValues.reduce((total, value) => total + value, 0);
   const modifiers = getPlayerCollectionModifiers(
     await getCompletedCollectionModifiers(database, playerId),
   );
@@ -263,6 +278,36 @@ export class CardProgressionService {
   async getDetail(playerId: string, instanceId: string) {
     try {
       return await loadDetail(this.pool, playerId, instanceId);
+    } catch (error) {
+      if (error instanceof CardProgressionDomainError) throw error;
+      throw new CardProgressionPersistenceError({ cause: error });
+    }
+  }
+
+  async toggleProtection(playerId: string, instanceId: string) {
+    try {
+      const playerResult = await this.pool.query<PlayerGoldRow>(
+        "SELECT id, gold FROM players WHERE id = $1",
+        [playerId],
+      );
+      const player = playerResult.rows[0];
+      if (!player) throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
+      const result = await this.pool.query<{ id: string; protected_from_absorption: boolean }>(
+        `
+          UPDATE player_card_instances
+          SET protected_from_absorption = NOT protected_from_absorption
+          WHERE player_id = $1 AND id = $2
+          RETURNING id, protected_from_absorption
+        `,
+        [playerId, instanceId],
+      );
+      if (!result.rows[0]) throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
+      const playerGold = toNonNegativeInteger(player.gold, "player gold");
+      return {
+        ...(await loadDetail(this.pool, playerId, instanceId, playerGold)),
+        consumedInstanceIds: [],
+        playerGold,
+      };
     } catch (error) {
       if (error instanceof CardProgressionDomainError) throw error;
       throw new CardProgressionPersistenceError({ cause: error });
@@ -318,16 +363,20 @@ export class CardProgressionService {
         false,
       );
       const targetCard = mapCardInstanceRow(validated.target);
-      const before = getUpgradeProgress(targetCard.levelProgressElements);
+      const before = getUpgradeProgress(targetCard.levelProgressElements, targetCard.level);
       const afterState = applyElementalPotential({
         level: targetCard.level,
         levelProgressElements: targetCard.levelProgressElements,
         storedElements: targetCard.storedElements,
       }, validated.addedElements);
+      const after = getUpgradeProgress(afterState.levelProgressElements, targetCard.level);
       return {
         addedElements: validated.addedElements,
-        afterPercent: getUpgradeProgress(afterState.levelProgressElements).percent,
+        afterPercent: after.percent,
+        afterElements: after.filledElements,
         beforePercent: before.percent,
+        beforeElements: before.filledElements,
+        requiredElements: before.requiredElements,
         resultingStoredElements: afterState.storedElements,
         selectedCards: validated.fodder.length,
       };
@@ -370,18 +419,26 @@ export class CardProgressionService {
          WHERE id = $1`,
         [targetInstanceId, afterState.levelProgressElements, afterState.storedElements],
       );
-      await client.query(
-        "DELETE FROM player_card_instances WHERE id = ANY($1::uuid[])",
+      const deleted = await client.query<{ id: string }>(
+        "DELETE FROM player_card_instances WHERE id = ANY($1::uuid[]) RETURNING id",
         [fodderInstanceIds],
       );
-      await recalculateAutomaticDeck(client, playerId);
+      if (deleted.rowCount !== fodderInstanceIds.length) {
+        throw new CardProgressionPersistenceError();
+      }
+      const deckResult = await recalculateAutomaticDeck(client, playerId);
       await this.campaign?.recordEvent(client, playerId, "CARD_ABSORBED", {
         absorbedCards: fodderInstanceIds.length,
       });
       const gold = toNonNegativeInteger(player.gold, "player gold");
       const detail = await loadDetail(client, playerId, targetInstanceId, gold);
       await client.query("COMMIT");
-      return { ...detail, consumedInstanceIds: [...fodderInstanceIds], playerGold: gold };
+      return {
+        ...detail,
+        consumedInstanceIds: [...fodderInstanceIds],
+        deckPower: deckResult.status === "insufficient_valid_cards" ? undefined : deckResult.totalPower,
+        playerGold: gold,
+      };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       if (error instanceof CardProgressionDomainError) throw error;
@@ -430,6 +487,9 @@ export class CardProgressionService {
       if (levelAvailability.availability === "insufficient_gold") {
         throw new CardProgressionDomainError("insufficient_gold", "Player does not have enough gold");
       }
+      if (levelAvailability.availability === "insufficient_elements") {
+        throw new CardProgressionDomainError("insufficient_elements", "Card does not have enough magic elements");
+      }
       const next = advanceCardLevel({
         level: target.level,
         levelProgressElements: target.levelProgressElements,
@@ -443,11 +503,16 @@ export class CardProgressionService {
          WHERE id = $1`,
         [targetInstanceId, next.level, next.levelProgressElements, next.storedElements],
       );
-      await recalculateAutomaticDeck(client, playerId);
+      const deckResult = await recalculateAutomaticDeck(client, playerId);
       await this.campaign?.recordEvent(client, playerId, "CARD_LEVEL_UP");
       const detail = await loadDetail(client, playerId, targetInstanceId, nextGold);
       await client.query("COMMIT");
-      return { ...detail, consumedInstanceIds: [], playerGold: nextGold };
+      return {
+        ...detail,
+        consumedInstanceIds: [],
+        deckPower: deckResult.status === "insufficient_valid_cards" ? undefined : deckResult.totalPower,
+        playerGold: nextGold,
+      };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       if (error instanceof CardProgressionDomainError) throw error;

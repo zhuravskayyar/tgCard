@@ -6,6 +6,7 @@ import type {
   DuelView,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 
 export class DuelApiError extends Error {
   constructor(
@@ -25,7 +26,7 @@ async function request<T>(
   const response = await fetch(getApiEndpoint(path), {
     method: options.method ?? "GET",
     headers: {
-      Authorization: `tma ${initData}`,
+      Authorization: getPlayerAuthHeader(initData),
       ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
@@ -47,8 +48,8 @@ export function searchDuelOpponent(initData: string, signal?: AbortSignal) {
   return request<DuelSearchResponse>(initData, "/api/duel/search", { method: "POST", signal });
 }
 
-export function startDuel(initData: string, searchId: string, signal?: AbortSignal) {
-  const body: DuelStartRequest = { searchId };
+export function startDuel(initData: string, searchId: string, tutorial = false, signal?: AbortSignal) {
+  const body: DuelStartRequest = tutorial ? { searchId, tutorial: true } : { searchId };
   return request<DuelView>(initData, "/api/duel/start", { method: "POST", body, signal });
 }
 

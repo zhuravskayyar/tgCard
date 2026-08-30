@@ -54,8 +54,14 @@ export function applyAbsorptionEfficiency(
   baseElements: number,
   modifiers: PlayerCollectionModifiers,
 ) {
-  if (!Number.isSafeInteger(baseElements) || baseElements < 0) {
-    throw new RangeError("Base absorption elements must be a non-negative integer");
+  const rounded = Math.round(baseElements * 100);
+  if (
+    !Number.isFinite(baseElements)
+    || baseElements < 0
+    || !Number.isSafeInteger(rounded)
+    || Math.abs(baseElements - rounded / 100) > 1e-9
+  ) {
+    throw new RangeError("Base absorption elements must be a non-negative number with at most two decimal places");
   }
-  return Math.floor(baseElements * (100 + modifiers.absorptionEfficiencyPct) / 100);
+  return Math.round((baseElements * (100 + modifiers.absorptionEfficiencyPct) / 100 + Number.EPSILON) * 100) / 100;
 }

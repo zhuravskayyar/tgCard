@@ -27,8 +27,20 @@ workspace packages only when those modules contain real code that needs building
 
 The server uses PostgreSQL through `DATABASE_URL`. Schema changes are explicit,
 versioned SQL migrations under `server/migrations`; application startup never
-applies destructive or automatic schema changes. The first persistence boundary
-contains only Telegram-authenticated player accounts.
+applies destructive or automatic schema changes. A player is the single owner
+of game data. `auth_identities` maps verified Telegram and Google provider IDs
+to that player, while `player_sessions` stores hashes of Cardastika session
+tokens. Provider IDs are never accepted from the client without backend
+verification, and linking never merges two existing players.
+
+## Player mail
+
+`GET /api/player/mail` returns the authenticated player's mail and unread count.
+`POST /api/player/mail/:messageId/claim` claims one unclaimed mail reward. The
+claim transaction locks the mail row and player balance, adds the stored silver
+and gold, marks the message claimed, and is idempotent for repeat requests.
+Migration `017_create_player_mail.sql` seeds one compensation gift for every
+player that already exists when the migration is applied.
 
 ## Shop transaction boundary
 
@@ -46,3 +58,14 @@ Offer prices and increments live in server configuration. Player chances live
 in PostgreSQL per player, offer, and target rarity. The client receives only
 current percentages and safe purchase results, never RNG state or database
 details.
+
+## Daily reward transaction boundary
+
+`GET /api/player/battle-pass` includes the authenticated player's Lariska daily
+reward view. `POST /api/player/battle-pass/daily-login/claim` advances the
+server-side calendar exactly once for the UTC date; choice days accept a
+`choiceIndex` from 0 to 2. The claim transaction locks the Lariska state and
+player row, resolves the reward, creates card/equipment inventory entries or
+updates currencies and XP, records the immutable claim, then commits all
+changes together. Choice candidates are persisted before display and cannot be
+rerolled by the client.

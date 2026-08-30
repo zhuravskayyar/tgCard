@@ -1,6 +1,9 @@
 import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
+import { ElementSymbol } from "../components/ElementSymbol";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
+import { getUpgradeProgress, isGoldLevel, MAX_CARD_LEVEL } from "@cardastika/game-core";
+import type { PlayerDeckCard } from "@cardastika/shared";
 
 interface DeckScreenProps {
   onBack: () => void;
@@ -8,8 +11,18 @@ interface DeckScreenProps {
   onOpenShop: () => void;
 }
 
+function getUpgradeIndicator(card: PlayerDeckCard): "element" | "gold" | undefined {
+  if (card.level >= MAX_CARD_LEVEL) return undefined;
+  const progress = getUpgradeProgress(card.levelProgressElements, card.level);
+  if (progress.filledElements < progress.requiredElements) return undefined;
+  return isGoldLevel(card.level + 1) ? "gold" : "element";
+}
+
 export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
   const { retry, state } = usePlayerDeck();
+  const elementCounts = state.status === "ready"
+    ? state.deck.cards.reduce<Record<string, number>>((counts, card) => ({ ...counts, [card.element]: (counts[card.element] ?? 0) + 1 }), {})
+    : null;
 
   return (
     <section className="deck-screen">
@@ -34,11 +47,19 @@ export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
       ) : null}
 
       {state.status === "ready" ? (
-        <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
-          {state.deck.cards.map((card) => (
-            <DeckCard card={card} key={card.slot} onClick={() => onOpenCard(card.instanceId)} />
-          ))}
-        </div>
+        <>
+          <section className="deck-rule-note" data-tutorial-target="deck-rule" aria-label="Правило бойової колоди">
+            <div><strong>9 карт у бойовій колоді</strong><span>Автоматично обрані найсильніші допустимі карти</span></div>
+            <div className="deck-rule-note__elements">
+              {(["fire", "water", "earth", "air"] as const).map((element) => <span key={element}><ElementSymbol element={element} /><strong>{elementCounts?.[element] ?? 0}</strong></span>)}
+            </div>
+          </section>
+          <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
+            {state.deck.cards.map((card, index) => (
+              <DeckCard card={card} dataTutorialTarget={index === 0 ? "deck-card" : undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} upgradeIndicator={getUpgradeIndicator(card)} />
+            ))}
+          </div>
+        </>
       ) : null}
     </section>
   );

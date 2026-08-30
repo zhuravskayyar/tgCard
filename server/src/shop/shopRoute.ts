@@ -1,11 +1,10 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type {
-  PlayerSummary,
   ShopCatalogResponse,
   ShopPurchaseRequest,
   ShopPurchaseResponse,
 } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
@@ -17,28 +16,14 @@ import {
 } from "./shopService.js";
 import { ShopRewardUnavailableError } from "./shopRewardSelector.js";
 
-interface PlayerLookup {
-  findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
-}
-
 interface ShopPurchaseService {
   getCardsCatalog(playerId: string): Promise<ShopCatalogResponse>;
   purchase(playerId: string, offerId: string): Promise<ShopPurchaseResponse>;
 }
 
-interface ShopRouteDependencies {
-  botToken: string;
-  players: PlayerLookup;
+interface ShopRouteDependencies extends RouteAuthDependencies {
   responseHeaders?: OutgoingHttpHeaders;
   shop: ShopPurchaseService;
-}
-
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-  if (!authorization?.startsWith("tma ")) {
-    throw new TelegramInitDataError("missing_init_data");
-  }
-  return authorization.slice(4).trim();
 }
 
 export function isShopPurchaseRequest(value: unknown): value is ShopPurchaseRequest {
@@ -48,9 +33,7 @@ export function isShopPurchaseRequest(value: unknown): value is ShopPurchaseRequ
 }
 
 async function authenticatePlayer(request: IncomingMessage, dependencies: ShopRouteDependencies) {
-  const initData = readTelegramInitData(request);
-  const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
-  return dependencies.players.findOrCreateFromTelegram(telegramUser);
+  return (await authenticateRoutePlayer(request, dependencies)).player;
 }
 
 function sendShopError(
@@ -62,7 +45,7 @@ function sendShopError(
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, responseHeaders);
     return;
   }
-  if (error instanceof TelegramInitDataError) {
+  if (isAuthFailure(error)) {
     sendJson(response, 401, {
       error: { code: error.code, message: "Telegram authentication failed" },
     }, responseHeaders);

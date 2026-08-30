@@ -64,6 +64,50 @@ test("new player receives nine starters and a second login does not duplicate th
   }
 });
 
+test("a consumed starter is not re-granted on the next authenticated request", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const inventory = new InventoryRepository(pool);
+  const user = createTelegramUser("consumed starter");
+
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    const starter = (await pool.query<{ id: string }>(
+      `SELECT player_card_instances.id
+       FROM player_card_instances
+       INNER JOIN cards ON cards.id = player_card_instances.card_id
+       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+      [player.id],
+    )).rows[0];
+    assert.ok(starter);
+
+    await pool.query("DELETE FROM deck_slots WHERE card_instance_id = $1", [starter.id]);
+    await pool.query("DELETE FROM player_card_instances WHERE id = $1", [starter.id]);
+
+    await players.findOrCreateFromTelegram(user);
+    const afterLogin = await inventory.findByPlayerId(player.id);
+    assert.equal(afterLogin.length, STARTER_CARD_COUNT - 1);
+    assert.ok(!afterLogin.some(({ instanceId }) => instanceId === starter.id));
+    assert.equal(
+      Number((await pool.query<{ count: string }>(
+        `SELECT COUNT(*) AS count
+         FROM player_card_instances
+         INNER JOIN cards ON cards.id = player_card_instances.card_id
+         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+        [player.id],
+      )).rows[0]?.count),
+      0,
+    );
+  } finally {
+    await cleanupPlayers(pool, [user.id]);
+    await pool.end();
+  }
+});
+
 test("concurrent bootstrap requests cannot duplicate starter ownership", {
   skip: !databaseUrl,
 }, async () => {

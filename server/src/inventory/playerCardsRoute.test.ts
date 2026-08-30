@@ -50,6 +50,7 @@ test("weak cards endpoint uses the authenticated player and returns derived inst
     element: "fire",
     level: 1,
     levelProgressElements: 0,
+    protectedFromAbsorption: false,
     basePower: 10,
     bonusPower: 2,
     finalPower: 12,

@@ -63,18 +63,20 @@ export async function seedCollectionDefinitions(client: PoolClient) {
       await client.query(
         `
           INSERT INTO cards (
-            id, code, display_name, art_key, element, collection_id,
-            min_rarity, shop_eligible
+          id, code, display_name, art_key, element, collection_id,
+          min_rarity, shop_eligible, description, limited
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           ON CONFLICT (id) DO UPDATE SET
             code = EXCLUDED.code,
             display_name = EXCLUDED.display_name,
             art_key = EXCLUDED.art_key,
             element = EXCLUDED.element,
-            collection_id = EXCLUDED.collection_id,
-            min_rarity = EXCLUDED.min_rarity,
-            shop_eligible = EXCLUDED.shop_eligible
+          collection_id = EXCLUDED.collection_id,
+          min_rarity = EXCLUDED.min_rarity,
+          shop_eligible = EXCLUDED.shop_eligible,
+          description = EXCLUDED.description,
+          limited = EXCLUDED.limited
         `,
         [
           card.id,
@@ -85,19 +87,24 @@ export async function seedCollectionDefinitions(client: PoolClient) {
           card.collectionId,
           card.minRarity,
           card.shopEligible,
+          card.description,
+          card.limited ?? false,
         ],
       );
     }
   }
 
   const canonicalIds = [...STARTER_CARDS, ...COLLECTION_CARDS].map(({ id }) => id);
-  const databaseValidation = await client.query<{ canonical_cards: string; external_starters: string }>(
+  const databaseValidation = await client.query<{ canonical_cards: string; external_starters: string; described_cards: string }>(
     `
       SELECT
         COUNT(*) FILTER (WHERE id = ANY($1::text[])) AS canonical_cards,
         COUNT(*) FILTER (
           WHERE id = ANY($2::text[]) AND collection_id IS NULL
-        ) AS external_starters
+        ) AS external_starters,
+        COUNT(*) FILTER (
+          WHERE id = ANY($1::text[]) AND char_length(description) > 0
+        ) AS described_cards
       FROM cards
     `,
     [canonicalIds, STARTER_CARDS.map(({ id }) => id)],
@@ -107,6 +114,9 @@ export async function seedCollectionDefinitions(client: PoolClient) {
   }
   if (Number(databaseValidation.rows[0]?.external_starters) !== 9) {
     throw new Error("All 9 starter cards must remain outside collections");
+  }
+  if (Number(databaseValidation.rows[0]?.described_cards) !== 129) {
+    throw new Error("All 129 canonical cards must have non-empty descriptions");
   }
 
   return validation;

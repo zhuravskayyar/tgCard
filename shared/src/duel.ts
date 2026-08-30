@@ -1,5 +1,7 @@
 import type { CardElement, CardRarity } from "./card.js";
+import type { EquipmentBattleModifiers, EquipmentBattleState } from "./equipment.js";
 import type { PlayerSummary } from "./player.js";
+import type { LeagueProgressionResult } from "./leagues.js";
 
 export type DuelStatus = "active" | "won" | "lost";
 export type DuelOutcome = "win" | "loss";
@@ -12,6 +14,8 @@ export interface DuelBattleModifiers {
   elementDamagePct: Record<CardElement, number>;
   experienceRewardPct: number;
   silverRewardPct: number;
+  equipment?: EquipmentBattleModifiers;
+  equipmentState?: EquipmentBattleState;
 }
 
 export interface DuelCardSnapshot {
@@ -25,6 +29,7 @@ export interface DuelCardSnapshot {
   finalPower: number;
   instanceId: string;
   level: number;
+  limited?: boolean;
   rarity: CardRarity;
 }
 
@@ -53,6 +58,7 @@ export interface DuelSearchResponse {
 
 export interface DuelStartRequest {
   searchId: string;
+  tutorial?: boolean;
 }
 
 export interface DuelActionRequest {
@@ -77,11 +83,17 @@ export type DuelLogVisualState = "player_strong" | "enemy_strong" | "neutral";
 export interface DuelResult {
   accountBoostMultiplier: 1 | 2;
   boostExpiresAt: string | null;
+  duelGoldReward?: number;
   gold: number;
+  levelUpGoldReward?: number;
   outcome: DuelOutcome;
   player: PlayerSummary;
+  leagueProgression?: LeagueProgressionResult;
   reachedLevels: number[];
+  promotionReward?: number;
   silver: number;
+  silverReward?: number;
+  totalSilverEarned?: number;
   winStreak: number;
   xp: number;
 }

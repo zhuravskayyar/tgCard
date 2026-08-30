@@ -11,6 +11,8 @@ import {
   generateStandardBonusPower,
   getBasePowerForLevel,
   getCardPower,
+  getRequiredProgressElements,
+  getUpgradeProgress,
   getRarityForLevel,
   getTransferableElementValue,
   getUpgradeGoldPrice,
@@ -45,6 +47,10 @@ test("contains and exposes the exhaustive canonical 180-level base-power table",
   assert.throws(() => getBasePowerForLevel(0), RangeError);
   assert.throws(() => getBasePowerForLevel(181), RangeError);
   assert.equal(CARD_LEVEL_TABLE.length, 180);
+  assert.equal(CARD_LEVEL_TABLE[0]?.elementValue, 0.02);
+  assert.equal(CARD_LEVEL_TABLE[9]?.elementValue, 0.8);
+  assert.equal(CARD_LEVEL_TABLE[19]?.elementValue, 4);
+  assert.equal(CARD_LEVEL_TABLE[150]?.elementValue, null);
   assert.deepEqual(CARD_LEVEL_TABLE[14], {
     level: 15,
     basePower: 310,
@@ -61,26 +67,53 @@ test("gold-level boundaries use the one permanent rule", () => {
 });
 
 test("canonical price reduction preserves the mandatory gold minimum", () => {
+  assert.equal(getUpgradeGoldPrice(74, getRequiredProgressElements(73)), 0);
   assert.equal(getUpgradeGoldPrice(15, 0), 4);
-  assert.equal(getUpgradeGoldPrice(15, 50), 3);
-  assert.equal(getUpgradeGoldPrice(15, 100), 2);
-  assert.equal(getUpgradeGoldPrice(14, 100), null);
+  assert.equal(getUpgradeGoldPrice(15, 0.88), 3);
+  assert.equal(getUpgradeGoldPrice(15, 1.76), 2);
+  assert.equal(getUpgradeGoldPrice(14, 1.52), 0);
   assert.deepEqual(
-    canLevelUp({ level: 14, levelProgressElements: 100, storedElements: 0 }, 1),
+    canLevelUp({ level: 14, levelProgressElements: 1.76, storedElements: 0 }, 1),
     { availability: "insufficient_gold", requiredGold: 2 },
+  );
+  assert.deepEqual(
+    canLevelUp({ level: 22, levelProgressElements: 2.8, storedElements: 0 }, 100),
+    { availability: "ready", requiredGold: 3 },
+  );
+  assert.deepEqual(
+    canLevelUp({ level: 22, levelProgressElements: 2.8, storedElements: 0 }, 2),
+    { availability: "insufficient_gold", requiredGold: 3 },
   );
 });
 
 test("absorbed potential and overflow remain transferable across cards", () => {
-  assert.equal(getTransferableElementValue({ level: 10, levelProgressElements: 7, storedElements: 11 }), 20);
+  assert.equal(getTransferableElementValue({ level: 1, levelProgressElements: 0, storedElements: 0 }), 0.02);
+  assert.equal(getTransferableElementValue({ level: 10, levelProgressElements: 7, storedElements: 11 }), 18.8);
   assert.deepEqual(
-    applyElementalPotential({ level: 14, levelProgressElements: 96, storedElements: 2 }, 10),
-    { levelProgressElements: 100, storedElements: 8 },
+    applyElementalPotential({ level: 22, levelProgressElements: 0, storedElements: 0 }, 8),
+    { levelProgressElements: 5.6, storedElements: 2.4 },
   );
   assert.deepEqual(
-    advanceCardLevel({ level: 14, levelProgressElements: 100, storedElements: 8 }),
-    { level: 15, levelProgressElements: 8, storedElements: 0 },
+    advanceCardLevel({ level: 22, levelProgressElements: 5.6, storedElements: 2.4 }),
+    { level: 23, levelProgressElements: 2.4, storedElements: 0 },
   );
+  assert.deepEqual(
+    advanceCardLevel({ level: 22, levelProgressElements: 8, storedElements: 0 }),
+    { level: 23, levelProgressElements: 2.4, storedElements: 0 },
+  );
+});
+
+test("progress is measured against the current level's magic-element threshold", () => {
+  assert.deepEqual(getUpgradeProgress(2.8, 17), {
+    filledElements: 2.8,
+    requiredElements: 2.8,
+    percent: 100,
+  });
+  assert.deepEqual(getUpgradeProgress(2.8, 22), {
+    filledElements: 2.8,
+    requiredElements: 5.6,
+    percent: 50,
+  });
 });
 
 test("starter and level-up power retain the instance bonus", () => {

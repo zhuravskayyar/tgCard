@@ -8,6 +8,7 @@ import {
   seedStarterCardDefinitions,
 } from "./starterCardSeed.js";
 import { seedCollectionDefinitions } from "./collectionSeed.js";
+import { seedLimitedCardDefinition } from "./limitedCardSeed.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
@@ -22,6 +23,8 @@ try {
 
   try {
     await client.query("BEGIN");
+    await seedStarterCardDefinitions(client);
+    await seedLimitedCardDefinition(client);
     for (const seedName of [STARTER_CARD_SEED_NAME, STARTER_CARD_CONTENT_SEED_NAME]) {
       const applied = await client.query(
         "SELECT 1 FROM schema_seeds WHERE name = $1",
@@ -29,7 +32,6 @@ try {
       );
 
       if (!applied.rowCount) {
-        await seedStarterCardDefinitions(client);
         await client.query("INSERT INTO schema_seeds (name) VALUES ($1)", [seedName]);
       }
     }

@@ -73,6 +73,8 @@ test("absorption validates ownership, weak membership and element while preservi
     const validFodderId = randomUUID();
     const secondValidId = randomUUID();
     const differentElementId = randomUUID();
+    const levelOneTargetId = randomUUID();
+    const levelOneFodderId = randomUUID();
     await pool.query(
       `INSERT INTO player_card_instances
         (id, player_id, card_id, level, bonus_power, level_progress_elements, stored_elements)
@@ -80,11 +82,41 @@ test("absorption validates ownership, weak membership and element while preservi
         ($1, $5, $6, 10, 0, 3, 5),
         ($2, $5, $6, 10, 0, 0, 0),
         ($3, $5, $7, 10, 0, 0, 0),
-        ($4, $5, $6, 14, 40, 96, 2)`,
-      [validFodderId, secondValidId, differentElementId, targetId, owner.id, STARTER_CARDS[0]!.id, STARTER_CARDS[3]!.id],
+        ($4, $5, $6, 14, 40, 1, 0),
+        ($8, $5, $6, 1, 0, 0, 0),
+        ($9, $5, $6, 1, 0, 0, 0)`,
+      [
+        validFodderId,
+        secondValidId,
+        differentElementId,
+        targetId,
+        owner.id,
+        STARTER_CARDS[0]!.id,
+        STARTER_CARDS[3]!.id,
+        levelOneTargetId,
+        levelOneFodderId,
+      ],
     );
     await recalculateAutomaticDeckForPlayer(pool, owner.id);
     assert.ok(!(await new DeckRepository(pool).findByPlayerId(owner.id)).cards.some(({ instanceId }) => instanceId === targetId));
+    const levelOnePreview = await progression.previewAbsorption(owner.id, levelOneTargetId, [levelOneFodderId]);
+    assert.equal(levelOnePreview.addedElements, 0.02);
+    assert.equal(levelOnePreview.beforePercent, 0);
+    assert.equal(levelOnePreview.afterPercent, 100);
+    assert.equal(levelOnePreview.beforeElements, 0);
+    assert.equal(levelOnePreview.afterElements, 0.02);
+    assert.equal(levelOnePreview.requiredElements, 0.02);
+    const levelOneAbsorbed = await progression.absorb(owner.id, levelOneTargetId, [levelOneFodderId]);
+    assert.equal(levelOneAbsorbed.card.levelProgressElements, 0.02);
+    assert.equal(typeof levelOneAbsorbed.deckPower, "number");
+    assert.deepEqual(levelOneAbsorbed.consumedInstanceIds, [levelOneFodderId]);
+
+    const protectedCard = await progression.toggleProtection(owner.id, secondValidId);
+    assert.equal(protectedCard.card.protectedFromAbsorption, true);
+    await expectCode(progression.absorb(owner.id, targetId, [secondValidId]), "protected_card");
+    const unprotectedCard = await progression.toggleProtection(owner.id, secondValidId);
+    assert.equal(unprotectedCard.card.protectedFromAbsorption, false);
+
     const otherFireId = (await pool.query<{ id: string }>(
       `SELECT player_card_instances.id
        FROM player_card_instances
@@ -105,13 +137,17 @@ test("absorption validates ownership, weak membership and element while preservi
     )).rows[0]!.count), 1, "rollback keeps a valid card when another selected card fails validation");
 
     const absorbed = await progression.absorb(owner.id, targetId, [validFodderId]);
-    assert.equal(absorbed.card.levelProgressElements, 100);
-    assert.equal(absorbed.card.storedElements, 8);
+    assert.equal(absorbed.card.levelProgressElements, 1.76);
+    assert.equal(absorbed.card.storedElements, 8.04);
+    assert.equal(typeof absorbed.deckPower, "number");
     assert.deepEqual(absorbed.consumedInstanceIds, [validFodderId]);
     assert.equal(Number((await pool.query<{ count: string }>(
       "SELECT COUNT(*) AS count FROM player_card_instances WHERE id = $1",
       [validFodderId],
     )).rows[0]!.count), 0);
+    assert.ok(!(await inventory.findWeakByPlayerId(owner.id)).some(
+      ({ instanceId }) => instanceId === validFodderId,
+    ));
 
     await pool.query("UPDATE players SET gold = 10 WHERE id = $1", [owner.id]);
     const upgraded = await progression.levelUp(owner.id, targetId);
@@ -119,10 +155,11 @@ test("absorption validates ownership, weak membership and element while preservi
     assert.equal(upgraded.card.basePower, 310);
     assert.equal(upgraded.card.bonusPower, 40);
     assert.equal(upgraded.card.finalPower, 350);
-    assert.equal(upgraded.card.levelProgressElements, 8);
-    assert.equal(upgraded.card.storedElements, 0);
+    assert.equal(upgraded.card.levelProgressElements, 2);
+    assert.equal(upgraded.card.storedElements, 6.04);
     assert.equal(upgraded.playerGold, 8);
     const deck = await new DeckRepository(pool).findByPlayerId(owner.id);
+    assert.equal(upgraded.deckPower, deck.totalPower);
     assert.ok(deck.cards.some(({ instanceId }) => instanceId === targetId));
     const weakAfterUpgrade = await inventory.findWeakByPlayerId(owner.id);
     assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === displacedFireId));

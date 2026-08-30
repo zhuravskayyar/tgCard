@@ -8,8 +8,10 @@ interface CanonicalCardRow {
   card_id: string;
   code: string;
   collection_id: string | null;
+  description: string;
   display_name: string | null;
   element: CardDefinition["element"];
+  limited: boolean;
   min_rarity: CardRarity;
   target_rarity: CardRarity;
 }
@@ -46,9 +48,12 @@ export async function selectCanonicalShopReward(
         cards.element,
         cards.collection_id,
         cards.min_rarity,
+        cards.description,
+        cards.limited,
         $1::text AS target_rarity
       FROM cards
       WHERE cards.shop_eligible = TRUE
+        AND cards.limited = FALSE
         AND array_position(
           ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
           cards.min_rarity
@@ -75,8 +80,10 @@ export async function selectCanonicalShopReward(
     artKey: row.art_key,
     element: row.element,
     collectionId: row.collection_id,
+    description: row.description,
     minRarity: row.min_rarity,
     shopEligible: true,
+    limited: row.limited,
     targetRarity: row.target_rarity,
   };
 }

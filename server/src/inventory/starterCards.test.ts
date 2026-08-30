@@ -14,7 +14,7 @@ test("starter definitions are canonical and unique", () => {
     [
       { code: "starter_01", displayName: "Саламандра", element: "fire" },
       { code: "starter_02", displayName: "Лис", element: "fire" },
-      { code: "starter_03", displayName: "Жук", element: "fire" },
+      { code: "starter_03", displayName: "Жук-бомбардир", element: "fire" },
       { code: "starter_04", displayName: "Вугор", element: "water" },
       { code: "starter_05", displayName: "Щука", element: "water" },
       { code: "starter_06", displayName: "Ворон", element: "air" },

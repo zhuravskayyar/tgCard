@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import type { PlayerSummary } from "@cardastika/shared";
-import { getTelegramInitData } from "../telegram";
-import { authenticateTelegramPlayer } from "../telegram/authenticatePlayer";
+import type { CollectionCompletionNotice, PlayerNicknameUpdateResponse, PlayerSummary } from "@cardastika/shared";
+import { getRawTelegramInitData, getTelegramInitData } from "../telegram";
+import { authenticateTelegramPlayer, loadCurrentPlayer, PlayerBootstrapError } from "../telegram/authenticatePlayer";
+import { updatePlayerNickname } from "../telegram/nickname";
+import { getSessionToken } from "../auth/session";
 import type { PlayerSummaryState } from "../types/player";
 
 export function usePlayerSummary() {
@@ -12,16 +14,49 @@ export function usePlayerSummary() {
     setAttempt((currentAttempt) => currentAttempt + 1);
   }, []);
 
-  const updateBalance = useCallback((balance: Partial<Pick<PlayerSummary, "gold" | "level" | "silver">>) => {
+  const updateBalance = useCallback((balance: Partial<Pick<PlayerSummary, "accountXp" | "accountXpRequired" | "arenaLeagueIndex" | "arenaRating" | "arenaTokens" | "arenaTop3Count" | "arenaWins" | "cardShards" | "duelHighestLeagueIndex" | "duelRating" | "duelWins" | "equipment" | "equippedNicknameSkin" | "gold" | "level" | "silver">>) => {
     setState((current) => current.status === "ready"
       ? { status: "ready", data: { ...current.data, ...balance } }
       : current);
   }, []);
 
+  const addCollectionBonus = useCallback((completion: CollectionCompletionNotice) => {
+    setState((current) => {
+      if (current.status !== "ready") return current;
+      const bonuses = current.data.collectionBonuses ?? [];
+      if (bonuses.some(({ collectionId }) => collectionId === completion.id)) return current;
+      return {
+        status: "ready",
+        data: {
+          ...current.data,
+          collectionBonuses: [
+            ...bonuses,
+            {
+              bonus: completion.bonus,
+              bonusLabel: completion.bonusLabel,
+              collectionId: completion.id,
+              collectionName: completion.name,
+            },
+          ],
+        },
+      };
+    });
+  }, []);
+
+  const updateNickname = useCallback(async (nickname: string): Promise<PlayerNicknameUpdateResponse> => {
+    const credential = getTelegramInitData();
+    if (!credential) throw new Error("nickname_auth_required");
+    const result = await updatePlayerNickname(credential, nickname, new AbortController().signal);
+    setState((current) => current.status === "ready"
+      ? { status: "ready", data: { ...current.data, nickname: result.nickname } }
+      : current);
+    return result;
+  }, []);
+
   useEffect(() => {
-    const initData = getTelegramInitData();
-    if (!initData) {
-      setState({ status: "unavailable" });
+    const initData = getRawTelegramInitData();
+    if (!initData && !getSessionToken()) {
+      setState({ status: "unauthenticated" });
       return;
     }
 
@@ -29,7 +64,10 @@ export function usePlayerSummary() {
     let active = true;
     setState({ status: "loading" });
 
-    void authenticateTelegramPlayer(initData, controller.signal)
+    const authentication = initData
+      ? authenticateTelegramPlayer(initData, controller.signal)
+      : loadCurrentPlayer(controller.signal);
+    void authentication
       .then((data) => {
         if (active) setState({ status: "ready", data });
       })
@@ -38,7 +76,9 @@ export function usePlayerSummary() {
           return;
         }
 
-        setState({ status: "error", message: "Не вдалося завантажити профіль" });
+        setState(error instanceof PlayerBootstrapError && error.status === 401
+          ? { status: "unauthenticated" }
+          : { status: "error", message: "Не вдалося завантажити профіль" });
       });
 
     return () => {
@@ -47,5 +87,5 @@ export function usePlayerSummary() {
     };
   }, [attempt]);
 
-  return { retry, state, updateBalance };
+  return { addCollectionBonus, retry, state, updateBalance, updateNickname };
 }

@@ -49,6 +49,17 @@ value, filled level progress, and stored overflow are all transferred to the
 target. `level_progress_elements` is the amount assigned to the current level;
 `stored_elements` preserves overflow. Neither deletion nor a gold barrier may
 discard potential. The target itself may be in or outside the active deck.
+The required amount is the canonical elemental value of the target's current
+level, not a fixed 100-point percentage: a level-17 card contributes `2.8`,
+and a level-22 card requires `5.6`. The UI derives the percentage only for
+display (`2.8 / 5.6 = 50%`); the database stores the raw elemental amounts.
+When absorption crosses a threshold, the current level is filled and the
+remaining raw amount stays in `stored_elements` for the next level.
+Source-table elemental values are kept with two decimal places, so a level-1
+card transfers `0.02` rather than being rounded up to a false 1% of progress.
+When the source table has no value, absorption uses the universal minimum native
+value of 1. Missing upgrade-price data remains unsupported and cannot block
+absorption.
 
 The client submits only instance IDs. Absorption preview, transferable values,
 price, resulting power/rarity, balance, and replacement deck are authoritative
@@ -70,13 +81,12 @@ automatic-deck service in the transaction.
 
 `CARD_LEVEL_TABLE` is the single canonical `game-core` view for level, base
 power, increase, full gold price, minimum gold price, and elemental value.
-Known source values are copied literally. Unknown source cells are `null`, not
-zero and not extrapolated. An absorption or level-up that needs an unknown cell
-returns `unsupported_level_data` without changing cards, progress, deck, or
-currency. The supplied material confirms the complete 180-level base-power
-column and only a subset of economy/element cells (including the documented
-level-15 row and visible level-20 price); the remaining source cells still need
-the actual reference table before they can be enabled.
+Known source values are copied literally, including the full price/minimum-price
+rows and the two-decimal elemental values. Unknown source cells are `null`, not
+zero and not extrapolated. Absorption alone applies the universal minimum native
+value of 1 for a null elemental cell so every eligible weak card remains usable.
+A level-up that needs an unknown economy cell still returns
+`unsupported_level_data` without changing cards, progress, deck, or currency.
 
 ### Magic Source
 
@@ -87,9 +97,9 @@ all source state are deferred.
 
 ### Protection
 
-Future progression must support protecting valuable instances from accidental
-absorption. No field or UI is added until the consumption workflow is designed;
-stable instance identity keeps that addition straightforward.
+Each instance can be protected from absorption. A protected card is excluded
+from weak-card candidates and server-side absorption validation rejects it until
+the owner removes the protection.
 
 Magic-source conversion, protection, bulk consumption, recommended fodder,
 free-upgrade items, and unrelated world/event systems remain outside this

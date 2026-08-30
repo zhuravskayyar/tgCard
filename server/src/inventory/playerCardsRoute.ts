@@ -1,12 +1,11 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type { PlayerCardsResponse, WeakPlayerCardsResponse } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError, type PlayerRepository } from "../users/playerRepository.js";
 import { InventoryPersistenceError, type InventoryRepository } from "./inventoryRepository.js";
 
-interface PlayerCardsDependencies {
-  botToken: string;
+interface PlayerCardsDependencies extends RouteAuthDependencies {
   inventory: Pick<InventoryRepository, "findByPlayerId" | "findWeakPageByPlayerId">;
   players: Pick<PlayerRepository, "findOrCreateFromTelegram">;
   responseHeaders?: OutgoingHttpHeaders;
@@ -24,16 +23,6 @@ function readWeakPage(request: IncomingMessage) {
   return page;
 }
 
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-
-  if (!authorization?.startsWith("tma ")) {
-    throw new TelegramInitDataError("missing_init_data");
-  }
-
-  return authorization.slice(4).trim();
-}
-
 export async function handlePlayerCards(
   request: IncomingMessage,
   response: ServerResponse,
@@ -42,14 +31,12 @@ export async function handlePlayerCards(
   const responseHeaders = dependencies.responseHeaders ?? {};
 
   try {
-    const initData = readTelegramInitData(request);
-    const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
     const cards = await dependencies.inventory.findByPlayerId(player.id);
     const body: PlayerCardsResponse = { cards };
     sendJson(response, 200, body, responseHeaders);
   } catch (error) {
-    if (error instanceof TelegramInitDataError) {
+    if (isAuthFailure(error)) {
       sendJson(response, 401, {
         error: { code: error.code, message: "Telegram authentication failed" },
       }, responseHeaders);
@@ -86,9 +73,7 @@ export async function handleWeakPlayerCards(
       }, responseHeaders);
       return;
     }
-    const initData = readTelegramInitData(request);
-    const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
     const result = await dependencies.inventory.findWeakPageByPlayerId(player.id, page, WEAK_PAGE_SIZE);
     const body: WeakPlayerCardsResponse = {
       cards: result.cards,
@@ -99,7 +84,7 @@ export async function handleWeakPlayerCards(
     };
     sendJson(response, 200, body, responseHeaders);
   } catch (error) {
-    if (error instanceof TelegramInitDataError) {
+    if (isAuthFailure(error)) {
       sendJson(response, 401, {
         error: { code: error.code, message: "Telegram authentication failed" },
       }, responseHeaders);

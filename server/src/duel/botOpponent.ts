@@ -44,6 +44,7 @@ export interface BotCardTemplate {
   code: string;
   displayName: string | null;
   element: CardElement;
+  limited?: boolean;
 }
 
 function randomIndex(length: number, random: RandomSource): number {
@@ -55,6 +56,20 @@ function randomIndex(length: number, random: RandomSource): number {
     throw new Error("Bot opponent RNG must return a value from 0 inclusive to 1 exclusive");
   }
   return Math.floor(value * length);
+}
+
+export function getBotCardArtAvatarUrl(cards: readonly DuelCardSnapshot[], random: RandomSource): string | null {
+  const candidates = cards.filter(({ artKey, cardId, limited }) => !limited && Boolean(artKey?.trim() || cardId?.trim()));
+  if (!candidates.length) return null;
+  const selected = candidates[randomIndex(candidates.length, random)]!;
+  const artKey = (selected.artKey?.trim() || selected.cardId.trim());
+  const path = artKey
+    .split("/")
+    .filter((segment) => segment && segment !== "." && segment !== "..")
+    .map(encodeURIComponent)
+    .join("/");
+  if (!path) return null;
+  return `/card-art/${path}${/\.[a-zA-Z0-9]+$/.test(path) ? "" : ".webp"}`;
 }
 
 function capitalize(value: string): string {
@@ -116,7 +131,7 @@ function selectBotCardTemplates(
   for (const element of CARD_ELEMENTS) {
     const required = element === threeCardElement ? 3 : 2;
     const pool = templates.filter((template) => (
-      template.element === element && !challengerCardIds.has(template.cardId)
+      template.element === element && !template.limited && !challengerCardIds.has(template.cardId)
     ));
     if (pool.length < required) {
       throw new RangeError(`Bot card catalog needs at least ${required} alternative ${element} templates`);
@@ -189,12 +204,15 @@ export function createBotOpponentSnapshot(
     ...progressionForPower(cardPowers[index]!),
     finalPower: cardPowers[index]!,
     instanceId: `bot:${botId}:${index + 1}`,
+    limited: false,
   }));
   const levelOffset = randomIndex(3, random) - 1;
+  const name = generateBotNickname(random);
+  const photoUrl = getBotCardArtAvatarUrl(cards, random);
 
   return {
-    name: generateBotNickname(random),
-    photoUrl: null,
+    name,
+    photoUrl,
     level: Math.max(1, challenger.level + levelOffset),
     cards,
     modifiers: {

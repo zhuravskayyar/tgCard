@@ -3,9 +3,8 @@ import type {
   ActiveCampaignBossResponse,
   CampaignBossView,
   DuelActionRequest,
-  PlayerSummary,
 } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
@@ -23,21 +22,9 @@ interface BossOperations {
   start(playerId: string): Promise<CampaignBossView>;
 }
 
-interface PlayerLookup {
-  findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
-}
-
-interface CampaignBossRouteDependencies {
+interface CampaignBossRouteDependencies extends RouteAuthDependencies {
   boss: BossOperations;
-  botToken: string;
-  players: PlayerLookup;
   responseHeaders?: OutgoingHttpHeaders;
-}
-
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-  if (!authorization?.startsWith("tma ")) throw new TelegramInitDataError("missing_init_data");
-  return authorization.slice(4).trim();
 }
 
 function isActionRequest(value: unknown): value is DuelActionRequest {
@@ -58,8 +45,7 @@ export async function handleCampaignBossRequest(
   const battleMatch = url.pathname.match(/^\/api\/player\/campaign\/boss\/([^/]+)$/);
   const actionMatch = url.pathname.match(/^\/api\/player\/campaign\/boss\/([^/]+)\/action$/);
   try {
-    const user = validateTelegramInitData(readTelegramInitData(request), dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(user);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
     if (request.method === "POST" && url.pathname === "/api/player/campaign/boss/start") {
       sendJson(response, 201, await dependencies.boss.start(player.id), headers);
       return;
@@ -92,7 +78,7 @@ export async function handleCampaignBossRequest(
       sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
       return;
     }
-    if (error instanceof TelegramInitDataError) {
+    if (isAuthFailure(error)) {
       sendJson(response, 401, { error: { code: error.code, message: "Telegram authentication failed" } }, headers);
       return;
     }

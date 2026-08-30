@@ -14,6 +14,18 @@ These are the current product constraints.
 - Battle calculations must live in `game-core` and the server must remain
   authoritative over battle outcomes.
 
+## Account experience
+
+- Battle XP is based on the player's total damage dealt in the battle. The
+  server accumulates that total separately from the truncated display log, so
+  long battles do not lose experience.
+- Experience bonuses are additive percentages of the damage-based base XP. The
+  current account-wide x2 boost contributes +100% to XP.
+- Account progression uses the explicit level-2 through level-120 XP table in
+  `game-core`. Each table entry is the XP required for that target level.
+- Reaching a level grants one-time gold equal to the new level. Level 120 is
+  the progression cap.
+
 ## Deck element balance
 
 - The battle deck is automatic; players do not manually edit or save deck slots.
@@ -71,6 +83,29 @@ Shop-pool membership is configuration attached to canonical definitions, not
 owned-card rarity. Instance rarity and power derive from the generated level.
 The exact level-selection distribution inside a resolved rarity remains an
 explicit unresolved product rule; see `docs/card-progression.md`.
+
+## Lariska daily finds
+
+Daily login rewards are server-owned and persisted independently from daily
+Battle Pass tasks. A player may claim once per UTC date. Missing a date does not
+reset the calendar: the next claim continues from the next accumulated day.
+
+Each seven-day cycle contains:
+
+- Day 1: one Common card.
+- Day 2: one Uncommon-or-better equipment item.
+- Day 3: one Rare-or-better card.
+- Day 4: 5–10 Gold.
+- Day 5: 10 Arena tokens and 250 account XP.
+- Day 6: a choice of one of three Rare-or-better cards.
+- Day 7: an Epic card with a 5% Legendary upgrade chance.
+
+The seventh-day reward improves in later accumulated cycles: cycle 2 adds 15
+Gold, cycle 3 grants Epic equipment, and cycle 4 becomes a choice of a
+Legendary card, Epic equipment, or 30 Gold. The cycle position and choice
+options are generated and stored by the server before the claim, so refreshing
+the Mini App cannot reroll them. Seven-, fourteen-, and thirty-claim streaks
+also have one-time bonuses (an extra Common card, 5 Gold, and a title).
 
 ## Permanent card content rules
 

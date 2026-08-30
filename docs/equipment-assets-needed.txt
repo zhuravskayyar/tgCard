@@ -1,0 +1,93 @@
+CARDastika — план асетів спорядження (нова схема)
+==================================================
+
+Статус: 21 базовий спрайт + CSS-рідкість.
+Джерело каталогу: game-core/src/equipment.ts
+
+ПІДСУМОК
+--------
+Базові asset-файли: 21
+  Речі: 16 = 4 слоти × 4 стихії
+  Артефакти: 5 = weapon, shield, relic, amulet, voodoo
+Записи каталогу/БД: 126
+  Речі: 96 = 16 базових спрайтів × 6 рідкостей
+  Артефакти: 30 = 5 базових спрайтів × 6 рідкостей
+Файли рідкості: 0 — рідкість повністю задається CSS.
+Файли effectKey на кожну рідкість: 0 — Legendary/Mythic VFX також CSS-only.
+
+КАНОНІЧНА СХЕМА ДАНИХ
+---------------------
+Річ: assetKey = {slot}-{element}, наприклад boots-fire.
+Артефакт: assetKey = {artifact}, наприклад amulet.
+frameKey = rarity-{rarity}, це CSS-клас, а не шлях до PNG/WebP.
+iconKey = {slot}, стабільна fallback-іконка UI.
+effectKey не задається для рідкіснісного VFX; за потреби окремий non-rarity ефект може мати один стабільний ключ.
+
+Приклад запису:
+  code: equipment_boots_fire_epic
+  slot: boots
+  element: fire
+  rarity: epic
+  assetKey: boots-fire
+  frameKey: rarity-epic
+  iconKey: boots
+  sprite: /assets/equipment/items/boots-fire.webp
+
+СПРАЙТИ РЕЧЕЙ — 16 ФАЙЛІВ
+-------------------------
+[THING] assetKey=head-fire   | file=/assets/equipment/items/head-fire.webp   | Головний убір · Вогонь   | 6 записів: equipment_head_fire_{rarity}
+[THING] assetKey=head-water  | file=/assets/equipment/items/head-water.webp  | Головний убір · Вода     | 6 записів: equipment_head_water_{rarity}
+[THING] assetKey=head-earth  | file=/assets/equipment/items/head-earth.webp  | Головний убір · Земля    | 6 записів: equipment_head_earth_{rarity}
+[THING] assetKey=head-air    | file=/assets/equipment/items/head-air.webp    | Головний убір · Повітря  | 6 записів: equipment_head_air_{rarity}
+
+[THING] assetKey=cloak-fire  | file=/assets/equipment/items/cloak-fire.webp  | Плащ · Вогонь            | 6 записів: equipment_cloak_fire_{rarity}
+[THING] assetKey=cloak-water | file=/assets/equipment/items/cloak-water.webp | Плащ · Вода              | 6 записів: equipment_cloak_water_{rarity}
+[THING] assetKey=cloak-earth | file=/assets/equipment/items/cloak-earth.webp | Плащ · Земля             | 6 записів: equipment_cloak_earth_{rarity}
+[THING] assetKey=cloak-air   | file=/assets/equipment/items/cloak-air.webp   | Плащ · Повітря           | 6 записів: equipment_cloak_air_{rarity}
+
+[THING] assetKey=gloves-fire  | file=/assets/equipment/items/gloves-fire.webp  | Одяг · Вогонь            | 6 записів: equipment_gloves_fire_{rarity}
+[THING] assetKey=gloves-water | file=/assets/equipment/items/gloves-water.webp | Одяг · Вода              | 6 записів: equipment_gloves_water_{rarity}
+[THING] assetKey=gloves-earth | file=/assets/equipment/items/gloves-earth.webp | Одяг · Земля             | 6 записів: equipment_gloves_earth_{rarity}
+[THING] assetKey=gloves-air   | file=/assets/equipment/items/gloves-air.webp   | Одяг · Повітря           | 6 записів: equipment_gloves_air_{rarity}
+
+[THING] assetKey=boots-fire  | file=/assets/equipment/items/boots-fire.webp  | Взуття · Вогонь          | 6 записів: equipment_boots_fire_{rarity}
+[THING] assetKey=boots-water | file=/assets/equipment/items/boots-water.webp | Взуття · Вода            | 6 записів: equipment_boots_water_{rarity}
+[THING] assetKey=boots-earth | file=/assets/equipment/items/boots-earth.webp | Взуття · Земля           | 6 записів: equipment_boots_earth_{rarity}
+[THING] assetKey=boots-air   | file=/assets/equipment/items/boots-air.webp   | Взуття · Повітря         | 6 записів: equipment_boots_air_{rarity}
+
+СПРАЙТИ АРТЕФАКТІВ — 5 ФАЙЛІВ
+-----------------------------
+[ARTIFACT] assetKey=weapon | file=/assets/equipment/artifacts/weapon.webp | Коп'є мага | 6 записів: equipment_weapon_{rarity}
+[ARTIFACT] assetKey=shield | file=/assets/equipment/artifacts/shield.webp | Щит мага | 6 записів: equipment_shield_{rarity}
+[ARTIFACT] assetKey=relic  | file=/assets/equipment/artifacts/relic.webp  | Дзеркало магії | 6 записів: equipment_relic_{rarity}
+[ARTIFACT] assetKey=amulet | file=/assets/equipment/artifacts/amulet.webp | Амулет життя | 6 записів: equipment_amulet_{rarity}
+[ARTIFACT] assetKey=voodoo | file=/assets/equipment/artifacts/voodoo.webp | Кукла Вуду | 6 записів: equipment_voodoo_{rarity}
+
+CSS-РІДКІСТЬ — 6 СПІЛЬНИХ СТИЛІВ
+--------------------------------
+rarity-common    | сіро-темний фон, тонкий нейтральний контур
+rarity-uncommon  | зелений відтінок, легке зелене світіння
+rarity-rare     | синій відтінок, холодне світіння
+rarity-epic     | фіолетовий відтінок, насичене світіння
+rarity-legendary | золотий відтінок, повільна пульсація
+rarity-mythic   | червоний відтінок, сильніша пульсація/glow
+
+ЩО НЕ СТВОРЮВАТИ
+----------------
+Не створювати boots-fire-common.webp та інші файли з суфіксом рідкості.
+Не створювати окремі rarity frame PNG/WebP.
+Не створювати окремий effect/VFX-файл для кожної рідкості.
+Не запікати колір рідкості або glow у базовий спрайт.
+
+ВИМОГИ ДО СПРАЙТА
+-----------------
+Формат: WebP з прозорим фоном.
+Один квадратний canvas, предмет по центру, без тексту і без рамки.
+Речі мають бути читабельними у малому слоті та у великому preview.
+Артефакти не мають стихії; їхній базовий спрайт не змінюється від рідкості.
+
+Готово в коді:
+- game-core генерує 126 записів, але повторно використовує 21 assetKey.
+- client/src/equipment/equipmentAssets.ts будує URL за category + assetKey.
+- EquipmentArt додає rarity-* CSS-клас і fallback на generic slot icon.
+- Legendary/Mythic VFX працює CSS-анімацією з prefers-reduced-motion fallback.

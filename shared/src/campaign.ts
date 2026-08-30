@@ -12,17 +12,14 @@ import type { PlayerSummary } from "./player.js";
 export type CampaignQuestState = "locked" | "active" | "completed" | "claimed";
 export type CampaignStageState = "locked" | "active" | "completed";
 export type CampaignBossState = "locked" | "unlocked" | "completed";
-export type CampaignDialogueEmotion =
+export type LariskaEmotion =
   | "neutral"
-  | "serious"
   | "happy"
-  | "proud"
-  | "warning"
-  | "surprised"
   | "angry"
   | "sad"
-  | "mysterious"
-  | "battle";
+  | "surprised"
+  | "sly";
+export type CampaignDialogueEmotion = LariskaEmotion;
 export type CampaignDialogueTrigger =
   | "campaign_start"
   | "stage_start"
@@ -43,9 +40,8 @@ export interface CampaignDialogue {
   action?: CampaignNavigationTarget;
   emotion: CampaignDialogueEmotion;
   id: string;
-  npcArtKey: string | null;
-  npcId: "vart";
-  npcName: "Варт";
+  mascotId: "lariska";
+  mascotName: "Лариска";
   questId?: string;
   stageId?: string;
   text: string[];
@@ -83,7 +79,17 @@ export interface AccountBoostStatus {
 
 export interface CampaignBossSummary {
   dialogue: CampaignDialogue;
+  deckSize: number;
+  hiddenCardCount: number;
+  level: number;
   name: "Мантикора";
+  reward: CampaignReward & {
+    card: {
+      level: number;
+      name: "Мантикора";
+      rarity: "rare";
+    };
+  };
   state: CampaignBossState;
   warning: string;
 }
@@ -130,6 +136,7 @@ export interface CampaignBossResult {
   accountBoostMultiplier: 1 | 2;
   boostExpiresAt: string | null;
   collectionCompleted?: CollectionCompletionNotice;
+  deckPower?: number;
   dialogues?: CampaignDialogue[];
   gold: number;
   newDiscovery?: boolean;

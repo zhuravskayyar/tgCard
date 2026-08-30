@@ -21,7 +21,13 @@ function telegramUser(label: string): ValidatedTelegramUser {
   };
 }
 
-async function completeAndClaimStage(pool: Pool, campaign: CampaignService, playerId: string, stageNumber: number) {
+async function completeAndClaimStage(
+  pool: Pool,
+  campaign: CampaignService,
+  playerId: string,
+  stageNumber: number,
+  claimCount = 6,
+) {
   await campaign.getCampaign(playerId);
   const stage = CAMPAIGN_STAGES[stageNumber - 1]!;
   await pool.query(
@@ -32,7 +38,7 @@ async function completeAndClaimStage(pool: Pool, campaign: CampaignService, play
     `,
     [playerId, stageNumber],
   );
-  for (const quest of stage.quests) await campaign.claim(playerId, quest.id);
+  for (const quest of stage.quests.slice(0, claimCount)) await campaign.claim(playerId, quest.id);
 }
 
 test("Campaign stages unlock sequentially and the boss unlocks only after all 36 claims", {
@@ -49,19 +55,30 @@ test("Campaign stages unlock sequentially and the boss unlocks only after all 36
     assert.equal(view.stages[1]?.state, "locked");
     assert.equal(view.boss.state, "locked");
 
-    for (let stageNumber = 1; stageNumber <= 6; stageNumber += 1) {
+    for (let stageNumber = 1; stageNumber <= 5; stageNumber += 1) {
       await completeAndClaimStage(pool, campaign, player.id, stageNumber);
       view = await campaign.getCampaign(player.id);
-      if (stageNumber < 6) {
-        assert.equal(view.stages[stageNumber]?.state, "active");
-        assert.equal(view.boss.state, "locked");
-      }
+      assert.equal(view.stages[stageNumber]?.state, "active");
+      assert.equal(view.boss.state, "locked");
     }
 
+    await completeAndClaimStage(pool, campaign, player.id, 6, 5);
+    view = await campaign.getCampaign(player.id);
+    assert.equal(view.stages[5]?.state, "active");
+    assert.equal(view.stages.reduce((total, stage) => total + stage.claimedCount, 0), 35);
+    assert.equal(view.boss.state, "locked");
+
+    await campaign.claim(player.id, CAMPAIGN_STAGES[5]!.quests[5]!.id);
     view = await campaign.getCampaign(player.id);
     assert.equal(view.stages.every(({ claimedCount }) => claimedCount === 6), true);
+    assert.equal(view.stages[5]?.state, "completed");
     assert.equal(view.stages.reduce((total, stage) => total + stage.claimedCount, 0), 36);
     assert.equal(view.boss.state, "unlocked");
+    assert.deepEqual(view.boss.reward, {
+      xp: 600,
+      silver: 1_000,
+      card: { level: 15, name: "Мантикора", rarity: "rare" },
+    });
   } finally {
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
     await pool.end();

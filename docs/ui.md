@@ -9,13 +9,59 @@ screen-independent React behavior in `hooks`. Prefer existing components and
 small CSS modules or focused styles over premature design systems.
 
 The current client includes the persistent shell, automatic deck and card-detail
-views, and the base card shop. Battles, elaborate reward animations, and final
-visual polish remain out of scope.
+views, the base card shop, and the authenticated in-game mail screen. Battles,
+elaborate reward animations, and final visual polish remain out of scope.
 
 The Shop navigation is prepared for `Карти`, `Підсилення`, and `Готові набори`.
 Only `Карти` is active. Its offer panels show the guaranteed rarity, real
 per-player accumulated upgrade chances, miss increments, and authoritative
 affordability; the other sections contain no gameplay logic yet.
+
+## Profile and mail
+
+The Profile screen follows the reference structure: player identity, empty
+equipment layout, deck power, mail/deck/equipment/records rows, distinctions,
+ratings, bonuses, activity, and gifts. It uses the authenticated player summary
+and active automatic deck where real data exists. Completed collection bonuses
+come from the authoritative player summary and remain visible as permanently
+active effects. Equipment, records, combat ratings, experience, and gifts are
+not yet authoritative, so they render disabled controls, dashes, or explicit
+empty states instead of invented values. Authenticated mail is available from Home and Profile; unread mail
+marks the envelope with an attention animation. Promotional blocks are not
+included.
+
+## Interactive first-session tutorial and campaign route
+
+Only a server-marked new account receives the versioned, client-persisted
+interactive introduction; existing accounts never get it automatically. Лариска
+opens the actual training Duel immediately. It follows the reference sequence:
+the first card is enabled, then the second card after the first exchange, then
+all cards after the second exchange. The server fixes the tutorial exchange to
+`35 → 23 → 5 → 0` enemy HP and `180 → 168 → 162` player HP, so the explanation
+and visual state cannot drift between accounts.
+
+The dialogue uses a dark navy panel, readable yellow copy, the NPC portrait,
+one current target, and no numbered progress counter. The three mandatory
+messages are: `Твої карти внизу. Карти суперника — вгорі. Атакуй своєю
+картою!`, `Критичні удари в 1,5 раза сильніші! Атакуй!`, and `Добий ворога
+будь-якою картою!`. The victory screen keeps the reference order: rewards,
+duel-win text, a short Лариска message, and `За нагородою`.
+
+The introduction then hands the player to the Campaign. It is an ongoing route,
+not a numbered checklist: the player stays in the campaign until the campaign
+is complete, while campaign quests can open the relevant deck, Duel, shop, weak
+cards, and collection screens and return to the current campaign stage. Direct
+navigation to unrelated modes is redirected back to Campaign during this route.
+
+The tutorial uses `data-tutorial-target` markers on existing UI controls and
+renders through the persistent `AppShell`. It never inserts mock cards, player
+data, currency, or deck state; all displayed game values come from the
+authoritative tutorial Duel/API state. A migration preserves players who had
+already reached Campaign before the reference-aligned flow was deployed.
+
+Home must make unavailable content explicit. Modes and sections without a
+working route render disabled with a `Скоро` state instead of behaving like
+active navigation targets.
 
 ## Global UI rule: persistent application shell
 

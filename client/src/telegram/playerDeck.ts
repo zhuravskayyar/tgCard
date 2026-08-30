@@ -6,6 +6,7 @@ import {
   type PlayerDeckResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 
 export class PlayerDataError extends Error {
   constructor(public readonly status: number, public readonly code?: string) {
@@ -34,12 +35,14 @@ export function isPlayerCardInstance(value: unknown): value is Omit<PlayerDeckCa
     (card.collectionId === null || typeof card.collectionId === "string") &&
     isCardElement(card.element) &&
     Number.isSafeInteger(card.level) && Number(card.level) >= 1 && Number(card.level) <= 180 &&
-    Number.isSafeInteger(card.levelProgressElements) && Number(card.levelProgressElements) >= 0 && Number(card.levelProgressElements) <= 100 &&
-    Number.isSafeInteger(card.storedElements) && Number(card.storedElements) >= 0 &&
+    Number.isFinite(card.levelProgressElements) && Number(card.levelProgressElements) >= 0 &&
+    Number.isFinite(card.storedElements) && Number(card.storedElements) >= 0 &&
     Number.isSafeInteger(card.basePower) && Number(card.basePower) > 0 &&
     Number.isSafeInteger(card.bonusPower) && Number(card.bonusPower) >= 0 &&
     Number.isSafeInteger(card.finalPower) && Number(card.finalPower) > 0 &&
     Number(card.finalPower) === Number(card.basePower) + Number(card.bonusPower) &&
+    typeof card.protectedFromAbsorption === "boolean" &&
+    (card.limited === undefined || typeof card.limited === "boolean") &&
     isCardRarity(card.rarity)
   );
 }
@@ -71,7 +74,7 @@ function parseDeck(value: unknown): PlayerDeckResponse {
 
 async function requestPlayerDeck(initData: string, signal: AbortSignal) {
   const response = await fetch(getApiEndpoint("/api/player/deck"), {
-    headers: { Authorization: `tma ${initData}` },
+    headers: { Authorization: getPlayerAuthHeader(initData) },
     cache: "no-store",
     credentials: "same-origin",
     signal,

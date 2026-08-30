@@ -1,0 +1,17 @@
+{
+  "name": "Cardastika — Світове Дерево",
+  "short_name": "Cardastika",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071014",
+  "theme_color": "#071014",
+  "lang": "uk",
+  "icons": [
+    {
+      "src": "/assets/ui/auth/cardastika-logo.webp",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

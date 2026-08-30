@@ -1,0 +1,195 @@
+БАЗА КАРТ CARDASTIKA
+=====================
+
+Канонічний каталог: 129 карт
+Стартові карти: 9
+Карти колекцій: 120
+
+Формат рядка:
+ID | Назва | Стихія | Колекція | Мінімальна рідкісність | Магазин
+
+СТАРТОВІ КАРТИ
+--------------
+starter_01 | Саламандра | fire | Стартові | common | no
+starter_02 | Лис | fire | Стартові | common | no
+starter_03 | Жук-бомбардир | fire | Стартові | common | no
+starter_04 | Вугор | water | Стартові | common | no
+starter_05 | Щука | water | Стартові | common | no
+starter_06 | Ворон | air | Стартові | common | no
+starter_07 | Сокіл | air | Стартові | common | no
+starter_08 | Кріт | earth | Стартові | common | no
+starter_09 | Вепр | earth | Стартові | common | no
+
+ХИЖАКИ
+------
+predators_01 | Вовк | fire | Хижаки | common | yes
+predators_02 | Рись | water | Хижаки | common | yes
+predators_03 | Росомаха | air | Хижаки | uncommon | yes
+predators_04 | Гієна | earth | Хижаки | uncommon | yes
+predators_05 | Каракал | fire | Хижаки | rare | yes
+predators_06 | Мангуст | water | Хижаки | epic | yes
+
+ПАНЦИРНІ
+--------
+armored_01 | Броненосець | air | Панцирні | common | yes
+armored_02 | Панголін | earth | Панцирні | common | yes
+armored_03 | Мечохвіст | fire | Панцирні | uncommon | yes
+armored_04 | Жук-олень | water | Панцирні | uncommon | yes
+armored_05 | Краб-павук | air | Панцирні | rare | yes
+armored_06 | Черепаха-алігатор | earth | Панцирні | epic | yes
+
+НІЧНІ
+-----
+nocturnal_01 | Пугач | fire | Нічні | common | yes
+nocturnal_02 | Кажан | water | Нічні | common | yes
+nocturnal_03 | Генета | air | Нічні | uncommon | yes
+nocturnal_04 | Тасманійський диявол | earth | Нічні | uncommon | yes
+nocturnal_05 | Фенек | fire | Нічні | rare | yes
+nocturnal_06 | Ай-ай | water | Нічні | epic | yes
+
+БУРЕКРИЛІ
+---------
+stormwings_01 | Альбатрос | air | Бурекрилі | common | yes
+stormwings_02 | Беркут | earth | Бурекрилі | common | yes
+stormwings_03 | Кондор | fire | Бурекрилі | uncommon | yes
+stormwings_04 | Сапсан | water | Бурекрилі | uncommon | yes
+stormwings_05 | Фрегат | air | Бурекрилі | rare | yes
+stormwings_06 | Буревісник | earth | Бурекрилі | epic | yes
+
+ГЛИБИННИКИ
+----------
+deepborn_01 | Мурена | fire | Глибинники | common | yes
+deepborn_02 | Риба-вудильник | water | Глибинники | uncommon | yes
+deepborn_03 | Гігантський кальмар | air | Глибинники | uncommon | yes
+deepborn_04 | Наутилус | earth | Глибинники | rare | yes
+deepborn_05 | Кашалот | fire | Глибинники | rare | yes
+deepborn_06 | Латимерія | water | Глибинники | epic | yes
+deepborn_07 | Креветка-богомол | air | Глибинники | legendary | yes
+
+БОЛОТНИКИ
+---------
+swampborn_01 | Алігатор | earth | Болотники | common | yes
+swampborn_02 | Марабу | fire | Болотники | uncommon | yes
+swampborn_03 | Капібара | water | Болотники | uncommon | yes
+swampborn_04 | Піранья | air | Болотники | rare | yes
+swampborn_05 | Анаконда | earth | Болотники | rare | yes
+swampborn_06 | Жаба-бик | fire | Болотники | epic | yes
+swampborn_07 | Водяний скорпіон | water | Болотники | legendary | yes
+
+ПЕЧЕРНИКИ
+---------
+caveborn_01 | Протей | air | Печерники | common | yes
+caveborn_02 | Сліпак | earth | Печерники | uncommon | yes
+caveborn_03 | Печерний лев | fire | Печерники | uncommon | yes
+caveborn_04 | Сольпуга | water | Печерники | rare | yes
+caveborn_05 | Печерний скорпіон | air | Печерники | rare | yes
+caveborn_06 | Сліпа тетра | earth | Печерники | epic | yes
+caveborn_07 | Підковоніс | fire | Печерники | legendary | yes
+
+ГРОЗОВІ
+-------
+thunderborn_01 | Громоптах | water | Грозові | common | yes
+thunderborn_02 | Птах Рух | air | Грозові | uncommon | yes
+thunderborn_03 | Симург | earth | Грозові | uncommon | yes
+thunderborn_04 | Грифон | fire | Грозові | rare | yes
+thunderborn_05 | Пегас | water | Грозові | rare | yes
+thunderborn_06 | Кецаль | air | Грозові | epic | yes
+thunderborn_07 | Анзу | earth | Грозові | legendary | yes
+
+ОТРУЙНІ
+-------
+venomous_01 | Чорна мамба | fire | Отруйні | common | yes
+venomous_02 | Габонська гадюка | water | Отруйні | uncommon | yes
+venomous_03 | Тайпан | air | Отруйні | uncommon | yes
+venomous_04 | Сколопендра | earth | Отруйні | rare | yes
+venomous_05 | Тарантул | fire | Отруйні | rare | yes
+venomous_06 | Андроктонус | water | Отруйні | epic | yes
+venomous_07 | Дереволаз | air | Отруйні | epic | yes
+venomous_08 | Синьокільчастий восьминіг | earth | Отруйні | legendary | yes
+
+РОГАТІ
+------
+horned_01 | Муфлон | fire | Рогаті | common | yes
+horned_02 | Бізон | water | Рогаті | uncommon | yes
+horned_03 | Носоріг | air | Рогаті | uncommon | yes
+horned_04 | Буйвол | earth | Рогаті | rare | yes
+horned_05 | Козоріг | fire | Рогаті | rare | yes
+horned_06 | Сайгак | water | Рогаті | epic | yes
+horned_07 | Як | air | Рогаті | epic | yes
+horned_08 | Жук-носоріг | earth | Рогаті | legendary | yes
+
+ПЕРВОЗВІРІ
+----------
+primeval_01 | Смилодон | fire | Первозвірі | common | yes
+primeval_02 | Мегатерій | water | Первозвірі | uncommon | yes
+primeval_03 | Ентелодон | air | Первозвірі | uncommon | yes
+primeval_04 | Аргентавіс | earth | Первозвірі | rare | yes
+primeval_05 | Мегаланія | fire | Первозвірі | rare | yes
+primeval_06 | Дунклеостей | water | Первозвірі | epic | yes
+primeval_07 | Дейнотерій | air | Первозвірі | epic | yes
+primeval_08 | Еласмотерій | earth | Первозвірі | legendary | yes
+
+СТИХІЙНІ
+---------
+elementals_01 | Фенікс | fire | Стихійні | common | yes
+elementals_02 | Келпі | water | Стихійні | uncommon | yes
+elementals_03 | Кірін | air | Стихійні | uncommon | yes
+elementals_04 | Тараск | earth | Стихійні | rare | yes
+elementals_05 | Амфісбена | fire | Стихійні | rare | yes
+elementals_06 | Кокатріс | water | Стихійні | epic | yes
+elementals_07 | Баніп | air | Стихійні | epic | yes
+elementals_08 | Волпертінгер | earth | Стихійні | legendary | yes
+
+ВЕЛЕТНІ
+-------
+giants_01 | Мамонт | fire | Велетні | uncommon | yes
+giants_02 | Мегалодон | water | Велетні | rare | yes
+giants_03 | Титанобоа | air | Велетні | rare | yes
+giants_04 | Парацератерій | earth | Велетні | epic | yes
+giants_05 | Мозазавр | fire | Велетні | epic | yes
+giants_06 | Саркозух | water | Велетні | legendary | yes
+giants_07 | Аргентиносавр | air | Велетні | legendary | yes
+giants_08 | Меганевра | earth | Велетні | mythic | yes
+giants_09 | Гігантська манта | fire | Велетні | mythic | yes
+
+ДРАКОНИ
+-------
+dragons_01 | Віверна | water | Дракони | uncommon | yes
+dragons_02 | Дрейк | air | Дракони | rare | yes
+dragons_03 | Амфіптер | earth | Дракони | rare | yes
+dragons_04 | Ліндворм | fire | Дракони | epic | yes
+dragons_05 | Нідхегг | water | Дракони | epic | yes
+dragons_06 | Фафнір | air | Дракони | legendary | yes
+dragons_07 | Уроборос | earth | Дракони | legendary | yes
+dragons_08 | Лун | fire | Дракони | mythic | yes
+dragons_09 | Зілант | water | Дракони | mythic | yes
+
+ДИКІ ДУХИ
+---------
+wild_spirits_01 | Інугамі | air | Дикі духи | uncommon | yes
+wild_spirits_02 | Некомата | earth | Дикі духи | rare | yes
+wild_spirits_03 | Камайтачі | fire | Дикі духи | rare | yes
+wild_spirits_04 | Куда-гіцуне | water | Дикі духи | epic | yes
+wild_spirits_05 | Нуе | air | Дикі духи | epic | yes
+wild_spirits_06 | Шиса | earth | Дикі духи | legendary | yes
+wild_spirits_07 | Баргест | fire | Дикі духи | legendary | yes
+wild_spirits_08 | Пука | water | Дикі духи | mythic | yes
+wild_spirits_09 | Татцельвурм | air | Дикі духи | mythic | yes
+
+ПОТВОРИ
+-------
+monsters_01 | Гідра | earth | Потвори | uncommon | yes
+monsters_02 | Химера | fire | Потвори | rare | yes
+monsters_03 | Мантикора | water | Потвори | rare | yes
+monsters_04 | Василіск | air | Потвори | epic | yes
+monsters_05 | Кракен | earth | Потвори | epic | yes
+monsters_06 | Левіафан | fire | Потвори | legendary | yes
+monsters_07 | Цербер | water | Потвори | legendary | yes
+monsters_08 | Орф | air | Потвори | mythic | yes
+monsters_09 | Катоблепас | earth | Потвори | mythic | yes
+
+Примітки:
+- fire = Вогонь; water = Вода; air = Повітря; earth = Земля.
+- Рідкісність: common, uncommon, rare, epic, legendary, mythic.
+- Рівень, сила та bonus power належать екземпляру карти, а не виду карти.
+- Джерело правди: server/src/collections/collectionCatalog.ts і server/src/inventory/starterCards.ts.

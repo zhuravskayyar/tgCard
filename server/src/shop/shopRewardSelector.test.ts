@@ -15,6 +15,7 @@ test("reward selection filters canonical Shop cards by minimum rarity", async ()
           card_id: "eligible_rare",
           code: "eligible_rare",
           display_name: "Eligible rare",
+          description: "Static test description for an eligible rare card returned by the selector fixture.",
           art_key: null,
           element: "air",
           min_rarity: "uncommon",

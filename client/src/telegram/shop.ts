@@ -1,6 +1,8 @@
 import {
   CARD_ELEMENTS,
   CARD_RARITIES,
+  type LimitedCardRedeemResponse,
+  type LimitedShopEvent,
   SHOP_CURRENCIES,
   type PlayerCard,
   type ShopCatalogResponse,
@@ -8,6 +10,7 @@ import {
   type ShopPurchaseResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
+import { getPlayerAuthHeader } from "./index";
 
 export class ShopApiError extends Error {
   constructor(
@@ -47,8 +50,23 @@ function isPlayerCard(value: unknown): value is PlayerCard {
     isPositiveInteger(card.basePower) &&
     isNonNegativeInteger(card.bonusPower) &&
     isPositiveInteger(card.finalPower) &&
-    Number(card.finalPower) === Number(card.basePower) + Number(card.bonusPower)
+    Number(card.finalPower) === Number(card.basePower) + Number(card.bonusPower) &&
+    (card.limited === undefined || typeof card.limited === "boolean")
   );
+}
+
+function isLimitedShopEvent(value: unknown): value is LimitedShopEvent {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Partial<LimitedShopEvent>;
+  return typeof event.id === "string"
+    && typeof event.displayName === "string"
+    && typeof event.description === "string"
+    && (event.artKey === null || typeof event.artKey === "string")
+    && typeof event.element === "string" && CARD_ELEMENTS.some((element) => element === event.element)
+    && typeof event.rarity === "string" && CARD_RARITIES.some((rarity) => rarity === event.rarity)
+    && typeof event.endsAt === "string"
+    && event.limited === true
+    && typeof event.redeemed === "boolean";
 }
 
 function isShopOffer(value: unknown): value is ShopOffer {
@@ -83,7 +101,13 @@ function parseCatalog(value: unknown): ShopCatalogResponse {
   if (!Array.isArray(catalog.offers) || !catalog.offers.every(isShopOffer)) {
     throw new ShopApiError(502, "invalid_response");
   }
-  return { offers: catalog.offers };
+  if (catalog.limitedEvent !== undefined && !isLimitedShopEvent(catalog.limitedEvent)) {
+    throw new ShopApiError(502, "invalid_response");
+  }
+  return {
+    offers: catalog.offers,
+    ...(catalog.limitedEvent ? { limitedEvent: catalog.limitedEvent } : {}),
+  };
 }
 
 function parsePurchase(value: unknown): ShopPurchaseResponse {
@@ -124,7 +148,7 @@ async function parseError(response: Response): Promise<never> {
 
 export async function loadShopCatalog(initData: string, signal: AbortSignal) {
   const response = await fetch(getApiEndpoint("/api/shop/cards"), {
-    headers: { Authorization: `tma ${initData}` },
+    headers: { Authorization: getPlayerAuthHeader(initData) },
     cache: "no-store",
     credentials: "same-origin",
     signal,
@@ -137,7 +161,7 @@ export async function purchaseShopOffer(initData: string, offerId: string, signa
   const response = await fetch(getApiEndpoint("/api/shop/cards/purchase"), {
     method: "POST",
     headers: {
-      Authorization: `tma ${initData}`,
+      Authorization: getPlayerAuthHeader(initData),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ offerId }),
@@ -147,4 +171,35 @@ export async function purchaseShopOffer(initData: string, offerId: string, signa
   });
   if (!response.ok) return parseError(response);
   return parsePurchase(await response.json());
+}
+
+export async function redeemLimitedCard(
+  initData: string,
+  eventId: string,
+  promoCode: string,
+  signal: AbortSignal,
+): Promise<LimitedCardRedeemResponse> {
+  const response = await fetch(getApiEndpoint("/api/shop/limited/redeem"), {
+    method: "POST",
+    headers: {
+      Authorization: getPlayerAuthHeader(initData),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ eventId, promoCode }),
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<LimitedCardRedeemResponse>;
+  if (
+    !isPlayerCard(value.reward) ||
+    value.message !== "Лімітовану карту отримано" ||
+    typeof value.deckChanged !== "boolean" ||
+    (value.deckPower !== undefined && !isNonNegativeInteger(value.deckPower)) ||
+    (value.previousDeckPower !== undefined && !isNonNegativeInteger(value.previousDeckPower))
+  ) {
+    throw new ShopApiError(502, "invalid_response");
+  }
+  return value as LimitedCardRedeemResponse;
 }

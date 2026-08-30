@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ShopCatalogResponse, ShopPurchaseResponse } from "@cardastika/shared";
+import type { LimitedCardRedeemResponse, ShopCatalogResponse, ShopPurchaseResponse } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
-import { loadShopCatalog, purchaseShopOffer, ShopApiError } from "../telegram/shop";
+import { loadShopCatalog, purchaseShopOffer, redeemLimitedCard, ShopApiError } from "../telegram/shop";
 
 export type ShopCatalogState =
   | { status: "loading" }
@@ -14,7 +14,10 @@ export function useShop() {
   const [catalogState, setCatalogState] = useState<ShopCatalogState>({ status: "loading" });
   const [purchaseErrorCode, setPurchaseErrorCode] = useState<string | null>(null);
   const [purchasingOfferId, setPurchasingOfferId] = useState<string | null>(null);
+  const [limitedRedeemErrorCode, setLimitedRedeemErrorCode] = useState<string | null>(null);
+  const [redeemingLimited, setRedeemingLimited] = useState(false);
   const purchaseControllerRef = useRef<AbortController | null>(null);
+  const limitedControllerRef = useRef<AbortController | null>(null);
   const purchaseInFlightRef = useRef(false);
 
   const retryCatalog = useCallback(() => setAttempt((current) => current + 1), []);
@@ -37,7 +40,10 @@ export function useShop() {
     return () => controller.abort();
   }, [attempt]);
 
-  useEffect(() => () => purchaseControllerRef.current?.abort(), []);
+  useEffect(() => () => {
+    purchaseControllerRef.current?.abort();
+    limitedControllerRef.current?.abort();
+  }, []);
 
   const purchase = useCallback(async (offerId: string): Promise<ShopPurchaseResponse | null> => {
     const initData = getTelegramInitData();
@@ -81,11 +87,45 @@ export function useShop() {
     }
   }, []);
 
+  const redeemLimited = useCallback(async (eventId: string, promoCode: string): Promise<LimitedCardRedeemResponse | null> => {
+    const initData = getTelegramInitData();
+    if (!initData || limitedControllerRef.current) return null;
+
+    const controller = new AbortController();
+    limitedControllerRef.current = controller;
+    setLimitedRedeemErrorCode(null);
+    setRedeemingLimited(true);
+    try {
+      const result = await redeemLimitedCard(initData, eventId, promoCode, controller.signal);
+      setCatalogState((current) => current.status === "ready" && current.catalog.limitedEvent
+        ? {
+            status: "ready",
+            catalog: {
+              ...current.catalog,
+              limitedEvent: { ...current.catalog.limitedEvent, redeemed: true },
+            },
+          }
+        : current);
+      return result;
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setLimitedRedeemErrorCode(error instanceof ShopApiError ? error.code : "limited_card_request_failed");
+      }
+      return null;
+    } finally {
+      if (limitedControllerRef.current === controller) limitedControllerRef.current = null;
+      setRedeemingLimited(false);
+    }
+  }, []);
+
   return {
     catalogState,
+    limitedRedeemErrorCode,
     purchase,
     purchaseErrorCode,
     purchasingOfferId,
+    redeemLimited,
+    redeemingLimited,
     retryCatalog,
   };
 }

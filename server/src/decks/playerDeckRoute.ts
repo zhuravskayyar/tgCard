@@ -1,34 +1,19 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import type { PlayerSummary } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import { DeckMissingError, DeckPersistenceError } from "./deckRepository.js";
-
-interface PlayerLookup {
-  findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
-}
 
 interface DeckLookup {
   findByPlayerId(playerId: string): ReturnType<import("./deckRepository.js").DeckRepository["findByPlayerId"]>;
 }
 
-interface PlayerDeckDependencies {
-  botToken: string;
+interface PlayerDeckDependencies extends RouteAuthDependencies {
   decks: DeckLookup;
-  players: PlayerLookup;
   responseHeaders?: OutgoingHttpHeaders;
   campaign?: {
     recordExternalEvent(playerId: string, type: "DECK_OPENED"): Promise<void>;
   };
-}
-
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-  if (!authorization?.startsWith("tma ")) {
-    throw new TelegramInitDataError("missing_init_data");
-  }
-  return authorization.slice(4).trim();
 }
 
 export async function handlePlayerDeck(
@@ -44,15 +29,13 @@ export async function handlePlayerDeck(
   }
 
   try {
-    const initData = readTelegramInitData(request);
-    const telegramUser = validateTelegramInitData(initData, dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
 
     const deck = await dependencies.decks.findByPlayerId(player.id);
     await dependencies.campaign?.recordExternalEvent(player.id, "DECK_OPENED");
     sendJson(response, 200, deck, responseHeaders);
   } catch (error) {
-    if (error instanceof TelegramInitDataError) {
+    if (isAuthFailure(error)) {
       sendJson(response, 401, {
         error: { code: error.code, message: "Telegram authentication failed" },
       }, responseHeaders);

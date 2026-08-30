@@ -25,6 +25,13 @@ export interface CollectionCompletionNotice {
   name: string;
 }
 
+export interface PlayerCollectionBonus {
+  bonus: CollectionModifier;
+  bonusLabel: string;
+  collectionId: string;
+  collectionName: string;
+}
+
 export interface PlayerCollectionSummary {
   bonus: CollectionModifier;
   bonusLabel: string;
@@ -41,11 +48,13 @@ export interface PlayerCollectionSummary {
 export interface PlayerCollectionCard {
   artKey: string | null;
   code: string;
-  collectionId: string;
+  collectionId: string | null;
+  description: string;
   discovered: boolean;
   displayName: string;
   element: CardElement;
   id: string;
+  limited?: boolean;
   minRarity: CardRarity;
   ownedCopies: number;
   strongestInstanceId: string | null;
@@ -53,6 +62,7 @@ export interface PlayerCollectionCard {
 
 export interface PlayerCollectionsResponse {
   collections: PlayerCollectionSummary[];
+  limitedCards?: PlayerCollectionCard[];
 }
 
 export interface PlayerCollectionResponse {

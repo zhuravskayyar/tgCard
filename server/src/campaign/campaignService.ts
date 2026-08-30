@@ -1,4 +1,4 @@
-import { applyAccountXp } from "@cardastika/game-core";
+import { applyAccountXp, getRequiredAccountXp } from "@cardastika/game-core";
 import type {
   CampaignQuestClaimResponse,
   CampaignQuestState,
@@ -11,6 +11,11 @@ import type {
 import type { Pool, PoolClient } from "pg";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
 import {
+  CAMPAIGN_BOSS_BASE_REWARD,
+  CAMPAIGN_BOSS_CARD_CONFIG,
+  CAMPAIGN_BOSS_HIDDEN_CARD_COUNT,
+  CAMPAIGN_BOSS_LEVEL,
+  CAMPAIGN_BOSS_REWARD_CARD,
   BOSS_UNLOCKED_DIALOGUE,
   BOSS_VICTORY_DIALOGUES,
   CAMPAIGN_ID,
@@ -127,6 +132,8 @@ function toIso(value: Date | string | null) {
 
 function toPlayerSummary(row: PlayerRewardRow): PlayerSummary {
   return {
+    accountXp: toSafeInteger(row.account_xp, "campaign account XP"),
+    accountXpRequired: getRequiredAccountXp(row.level),
     id: row.id,
     username: row.username,
     firstName: row.first_name,
@@ -461,7 +468,14 @@ async function buildCampaignView(database: Queryable, playerId: string, now: Dat
       acceptedFriends: friendCount,
     },
     boss: {
+      deckSize: CAMPAIGN_BOSS_CARD_CONFIG.length,
+      hiddenCardCount: CAMPAIGN_BOSS_HIDDEN_CARD_COUNT,
+      level: CAMPAIGN_BOSS_LEVEL,
       name: "Мантикора",
+      reward: {
+        ...CAMPAIGN_BOSS_BASE_REWARD,
+        card: CAMPAIGN_BOSS_REWARD_CARD,
+      },
       state: completedAt ? "completed" : stageSixClaimed ? "unlocked" : "locked",
       warning: "Карти боса приховані до удару.",
       dialogue: completedAt ? BOSS_VICTORY_DIALOGUES[2]! : BOSS_UNLOCKED_DIALOGUE,
@@ -557,7 +571,7 @@ export class CampaignService {
       if (!alreadyClaimed) {
         const progression = applyAccountXp({
           level: player.level,
-          xp: player.account_xp,
+          xp: toSafeInteger(player.account_xp, "campaign account XP"),
           gainedXp: definition.reward.xp,
         });
         reachedLevels = progression.reachedLevels;

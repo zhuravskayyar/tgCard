@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
+import { DeckRepository } from "../decks/deckRepository.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { CampaignBossBattleConflictError, CampaignBossService } from "./campaignBossService.js";
 import { CAMPAIGN_STAGES, MANTICORE_CARD_CODE } from "./campaignConfig.js";
@@ -101,6 +102,7 @@ test("first boss victory grants one standard Lv15 Rare Мантикора and fi
       expectedVersion: started.version,
     }, now);
     assert.equal(won.status, "won");
+    assert.equal(won.result?.deckPower, (await new DeckRepository(pool).findByPlayerId(player.id)).totalPower);
     assert.deepEqual(won.result && {
       outcome: won.result.outcome,
       xp: won.result.xp,
@@ -110,7 +112,7 @@ test("first boss victory grants one standard Lv15 Rare Мантикора and fi
       cardRarity: won.result.rewardCard?.rarity,
     }, {
       outcome: "win",
-      xp: 600,
+      xp: 12,
       silver: 1_000,
       cardName: "Мантикора",
       cardLevel: 15,
@@ -142,7 +144,9 @@ test("first boss victory grants one standard Lv15 Rare Мантикора and fi
       discoveries: Number(persisted.rows[0]?.discoveries),
       deckCount: Number(persisted.rows[0]?.deck_count),
     }, { instances: 1, discoveries: 1, deckCount: 1 });
-    assert.equal((await campaign.getCampaign(player.id, now)).boss.state, "completed");
+    const completedCampaign = await campaign.getCampaign(player.id, now);
+    assert.equal(completedCampaign.stages[5]?.state, "completed");
+    assert.equal(completedCampaign.boss.state, "completed");
   } finally {
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
     await pool.end();

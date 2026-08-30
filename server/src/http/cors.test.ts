@@ -20,6 +20,13 @@ test("rejects an unconfigured browser origin", () => {
   });
 });
 
+test("allows localhost development origins while preserving the configured origin", () => {
+  const policy = getCorsPolicy("http://localhost:5173", allowedOrigin);
+
+  assert.equal(policy.allowed, true);
+  assert.equal(policy.headers["Access-Control-Allow-Origin"], "http://localhost:5173");
+});
+
 test("allows non-browser requests without adding CORS headers", () => {
   assert.deepEqual(getCorsPolicy(undefined, allowedOrigin), {
     allowed: true,

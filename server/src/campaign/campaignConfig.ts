@@ -1,8 +1,8 @@
 import type {
   CampaignDialogue,
-  CampaignDialogueEmotion,
   CampaignNavigationTarget,
   CampaignReward,
+  LariskaEmotion,
 } from "@cardastika/shared";
 
 export const CAMPAIGN_ID = "campaign_1" as const;
@@ -49,19 +49,18 @@ export interface CampaignStageDefinition {
   title: string;
 }
 
-function vartDialogue(
+function lariskaDialogue(
   id: string,
   trigger: CampaignDialogue["trigger"],
-  emotion: CampaignDialogueEmotion,
+  emotion: LariskaEmotion,
   text: string[],
   options: Pick<CampaignDialogue, "action" | "questId" | "stageId"> = {},
 ): CampaignDialogue {
   return {
     id,
     trigger,
-    npcId: "vart",
-    npcName: "Варт",
-    npcArtKey: `npc/vart/${emotion}`,
+    mascotId: "lariska",
+    mascotName: "Лариска",
     emotion,
     text,
     ...options,
@@ -85,9 +84,9 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_1",
     number: 1,
     title: "Початок",
-    dialogue: vartDialogue("stage_1_start", "campaign_start", "neutral", [
+    dialogue: lariskaDialogue("stage_1_start", "campaign_start", "neutral", [
       "Ти нарешті тут. Добре.",
-      "Я — Варт. Якщо хочеш вижити, почнемо з твоєї колоди.",
+      "Я — Лариска. Давай гляну, що в тебе за колода.",
     ], { stageId: "stage_1", action: "deck" }),
     quests: [
       quest("1.1", "Моя колода", "Відкрий бойову колоду та деталі будь-якої своєї карти.", "deck_and_card_opened", 2, { xp: 0, silver: 100 }, "deck"),
@@ -102,9 +101,9 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_2",
     number: 2,
     title: "Збирач",
-    dialogue: vartDialogue("stage_2_start", "stage_start", "happy", [
-      "Навіть найкраща колода не робить світ менш порожнім.",
-      "Поклич когось із собою.",
+    dialogue: lariskaDialogue("stage_2_start", "stage_start", "happy", [
+      "О, ти ще не втік. Непогано.",
+      "Поклич когось із собою — удвох цікавіше.",
     ], { stageId: "stage_2" }),
     quests: [
       quest("2.1", "Перша перемога", "Виграй одну дуель.", "duel_won", 1, { xp: 150, silver: 100 }, "duel"),
@@ -119,9 +118,9 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_3",
     number: 3,
     title: "Сильніша колода",
-    dialogue: vartDialogue("stage_3_start", "stage_start", "mysterious", [
-      "Деякі сліди повторюються.",
-      "І мені це не подобається.",
+    dialogue: lariskaDialogue("stage_3_start", "stage_start", "sly", [
+      "Ці сліди повторюються.",
+      "І це вже пахне не випадковістю.",
     ], { stageId: "stage_3" }),
     quests: [
       quest("3.1", "Три перемоги", "Виграй три дуелі.", "duel_won", 3, { xp: 250, silver: 0 }, "duel"),
@@ -136,8 +135,8 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_4",
     number: 4,
     title: "Стихії",
-    dialogue: vartDialogue("stage_4_start", "stage_start", "warning", [
-      "Тепер я впевнений: хтось використовує цей розлад навмисно.",
+    dialogue: lariskaDialogue("stage_4_start", "stage_start", "surprised", [
+      "Ого. Хтось справді крутить цей розлад навмисно.",
     ], { stageId: "stage_4" }),
     quests: [
       quest("4.1", "Перевага", "Виконай десять ударів із множником ×1.5 у Duel.", "duel_strong_hit", 10, { xp: 250, silver: 0 }, "duel"),
@@ -152,9 +151,9 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_5",
     number: 5,
     title: "Слід",
-    dialogue: vartDialogue("stage_5_start", "stage_start", "serious", [
+    dialogue: lariskaDialogue("stage_5_start", "stage_start", "sly", [
       "Тепер я знаю, кого ми шукаємо.",
-      "Але ім'я скажу тоді, коли ти будеш готовий піти до кінця.",
+      "Ім'я скажу, коли ти перестанеш озиратися.",
     ], { stageId: "stage_5" }),
     quests: [
       quest("5.1", "П'ять перемог", "Виграй п'ять дуелей.", "duel_won", 5, { xp: 350, silver: 0 }, "duel"),
@@ -169,9 +168,9 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
     id: "stage_6",
     number: 6,
     title: "Перед лігвом",
-    dialogue: vartDialogue("stage_6_start", "stage_start", "warning", [
+    dialogue: lariskaDialogue("stage_6_start", "stage_start", "surprised", [
       "Мантикора. Ось хто стоїть у кінці цього сліду.",
-      "Вона ховає свої карти. Ти не побачиш ні стихії, ні сили, ні переваги, поки не атакуєш.",
+      "Вона ховає карти. Доведеться бити й дивитися, що випаде.",
     ], { stageId: "stage_6" }),
     quests: [
       quest("6.1", "П'ять боїв", "Заверши п'ять дуелей.", "duel_finished", 5, { xp: 400, silver: 0 }, "duel"),
@@ -184,24 +183,24 @@ export const CAMPAIGN_STAGES: readonly CampaignStageDefinition[] = Object.freeze
   },
 ]);
 
-export const BOSS_UNLOCKED_DIALOGUE = vartDialogue("boss_unlocked", "boss_unlocked", "battle", [
-  "Все.",
-  "Далі — тільки Мантикора.",
+export const BOSS_UNLOCKED_DIALOGUE = lariskaDialogue("boss_unlocked", "boss_unlocked", "sly", [
+  "Все. Далі — тільки Мантикора.",
+  "Я б побажала удачі, але не люблю брехати.",
 ]);
 
 export const BOSS_INTRO_DIALOGUES = Object.freeze([
-  vartDialogue("boss_intro_1", "boss_intro", "mysterious", ["Не намагайся вгадати те, чого не бачиш."]),
-  vartDialogue("boss_intro_2", "boss_intro", "warning", [
-    "Мантикора приховує карти до самої атаки.",
+  lariskaDialogue("boss_intro_1", "boss_intro", "sly", ["Не вгадуй те, чого не бачиш. Це погано закінчується."]),
+  lariskaDialogue("boss_intro_2", "boss_intro", "surprised", [
+    "Мантикора ховає карти до самої атаки.",
     "Після удару дивись у журнал. Там брехні не буде.",
   ]),
-  vartDialogue("boss_intro_3", "boss_intro", "battle", ["Обирай слот.", "І не витрачай час на страх."]),
+  lariskaDialogue("boss_intro_3", "boss_intro", "angry", ["Обирай слот.", "Не змушуй мене рахувати до трьох."]),
 ]);
 
 export const BOSS_VICTORY_DIALOGUES = Object.freeze([
-  vartDialogue("boss_victory_1", "boss_victory", "surprised", ["Ти справді її здолав."]),
-  vartDialogue("boss_victory_2", "boss_victory", "proud", ["Забери її карту.", "Тепер ця сила працюватиме на тебе."]),
-  vartDialogue("boss_victory_3", "boss_victory", "mysterious", ["Але розлад не зник.", "Ми закрили лише перший слід."]),
+  lariskaDialogue("boss_victory_1", "boss_victory", "happy", ["Ти справді її здолав. Оце вже цікаво."]),
+  lariskaDialogue("boss_victory_2", "boss_victory", "surprised", ["Забери її карту.", "Такі знахідки самі в руки не стрибають."]),
+  lariskaDialogue("boss_victory_3", "boss_victory", "sly", ["Але розлад не зник.", "Ми знайшли лише перший слід."]),
 ]);
 
 export const CAMPAIGN_BOSS_CARD_CONFIG = Object.freeze([
@@ -217,6 +216,14 @@ export const CAMPAIGN_BOSS_CARD_CONFIG = Object.freeze([
 ]);
 
 export const MANTICORE_CARD_CODE = "monsters_03";
+export const CAMPAIGN_BOSS_LEVEL = Math.max(...CAMPAIGN_BOSS_CARD_CONFIG.map(({ level }) => level));
+export const CAMPAIGN_BOSS_BASE_REWARD = Object.freeze({ xp: 600, silver: 1_000 });
+export const CAMPAIGN_BOSS_REWARD_CARD = Object.freeze({
+  level: 15,
+  name: "Мантикора" as const,
+  rarity: "rare" as const,
+});
+export const CAMPAIGN_BOSS_HIDDEN_CARD_COUNT = 3;
 
 export function getCampaignStage(stageNumber: number) {
   return CAMPAIGN_STAGES[stageNumber - 1];
@@ -230,7 +237,7 @@ export function getQuestDialogue(
   stageId: string,
   definition: CampaignQuestDefinition,
 ): CampaignDialogue {
-  return vartDialogue(`quest_${definition.id}_intro`, "quest_intro", "serious", [definition.description], {
+  return lariskaDialogue(`quest_${definition.id}_intro`, "quest_intro", "neutral", [definition.description], {
     stageId,
     questId: definition.id,
     ...(definition.navigation ? { action: definition.navigation } : {}),

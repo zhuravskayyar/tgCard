@@ -1,7 +1,8 @@
-import type { CardElement, CardRarity, CollectionCompletionNotice, PlayerCard } from "@cardastika/shared";
-import { CardArtwork } from "./CardArtwork";
+import { useEffect, useState } from "react";
+import type { CardElement, CardRarity, ShopPurchaseResponse } from "@cardastika/shared";
 import { CardNameBadge } from "./CardNameBadge";
-import { ElementSymbol } from "./ElementSymbol";
+import { CardHud } from "./CardHud";
+import { CardFxWrapper } from "./CardFxWrapper";
 
 const elementLabels: Record<CardElement, string> = {
   fire: "Вогонь",
@@ -20,26 +21,48 @@ const rarityLabels: Record<CardRarity, string> = {
 };
 
 interface ShopRewardRevealProps {
-  collectionCompleted?: CollectionCompletionNotice;
-  deckPower?: number;
-  deckChanged: boolean;
+  canBuyTen?: boolean;
+  errorMessage?: string | null;
+  onBuyAgain?: () => void;
+  onBuyTen?: () => void;
   onContinue: () => void;
-  previousDeckPower?: number;
-  reward: PlayerCard;
+  purchasing?: boolean;
+  purchases: readonly ShopPurchaseResponse[];
 }
 
 export function ShopRewardReveal({
-  collectionCompleted,
-  deckChanged,
-  deckPower,
+  canBuyTen = false,
+  errorMessage,
+  onBuyAgain,
+  onBuyTen,
   onContinue,
-  previousDeckPower,
-  reward,
+  purchasing = false,
+  purchases,
 }: ShopRewardRevealProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => setActiveIndex(0), [purchases]);
+
+  const activePurchase = purchases[activeIndex] ?? purchases[0];
+  if (!activePurchase) return null;
+
+  const { collectionCompleted, deckChanged, deckPower, previousDeckPower, reward } = activePurchase;
+  const isBatch = purchases.length > 1;
+  const hasNextCard = activeIndex < purchases.length - 1;
   const deckImproved = deckChanged && previousDeckPower !== undefined && deckPower !== undefined
     && deckPower > previousDeckPower;
+
+  function showNextCard() {
+    if (hasNextCard) setActiveIndex((current) => current + 1);
+  }
+
+  const rewardCard = (
+    <CardFxWrapper artKey={reward.artKey} cardId={reward.cardId} element={reward.element} rarity={reward.rarity}>
+      <CardHud element={reward.element} power={reward.finalPower} rarity={reward.rarity} />
+    </CardFxWrapper>
+  );
+
   return (
-    <section className="shop-reveal" aria-live="polite">
+    <section className="shop-reveal" aria-live="polite" data-tutorial-target="shop-reveal">
       <header className="shop-reveal__heading">
         <span>Отримано карту</span>
         {reward.displayName ? (
@@ -49,14 +72,24 @@ export function ShopRewardReveal({
         )}
       </header>
 
-      <div className={`shop-reveal__card deck-card--${reward.element} deck-card--${reward.rarity}`}>
-        <CardArtwork artKey={reward.artKey} element={reward.element} />
-        <strong className="shop-reveal__power">{reward.finalPower}</strong>
-        <span className="shop-reveal__element" aria-hidden="true">
-          <ElementSymbol element={reward.element} />
-        </span>
-        <span className="shop-reveal__rarity" aria-hidden="true" />
-      </div>
+      {hasNextCard ? (
+        <button
+          aria-label={`Переглянути карту ${activeIndex + 1} з ${purchases.length}`}
+          className={`shop-reveal__card shop-reveal__card--interactive deck-card--${reward.element} deck-card--${reward.rarity}`}
+          onClick={showNextCard}
+          type="button"
+        >
+          {rewardCard}
+        </button>
+      ) : <div className={`shop-reveal__card deck-card--${reward.element} deck-card--${reward.rarity}`}>{rewardCard}</div>}
+
+      {isBatch ? (
+        <p className="shop-reveal__batch-summary">
+          <strong>Куплено пачкою</strong>
+          <span>Карта {activeIndex + 1} з {purchases.length}</span>
+          <small>{hasNextCard ? "Торкніться карти, щоб переглянути наступну" : "Це остання карта пачки"}</small>
+        </p>
+      ) : null}
 
       <dl className="shop-reveal__facts">
         <div><dt>Рівень</dt><dd>{reward.level}</dd></div>
@@ -68,7 +101,12 @@ export function ShopRewardReveal({
         <p className="shop-reveal__deck-note">Колода посилилась: {previousDeckPower} → {deckPower}</p>
       ) : null}
       {collectionCompleted ? <aside className="shop-collection-complete"><span>КОЛЕКЦІЮ ЗІБРАНО</span><strong>{collectionCompleted.name}</strong><p>{collectionCompleted.bonusLabel}</p></aside> : null}
-      <button className="shop-reveal__continue" onClick={onContinue} type="button">Продовжити</button>
+      {errorMessage ? <p className="shop-error" role="alert">{errorMessage}</p> : null}
+      <div className="shop-reveal__actions">
+        <button className="shop-reveal__continue" data-tutorial-target="shop-continue" disabled={purchasing} onClick={onContinue} type="button">Продовжити</button>
+        {onBuyAgain ? <button className="shop-reveal__buy-again" disabled={purchasing} onClick={onBuyAgain} type="button">{purchasing ? "Купуємо…" : "Купити ще"}</button> : null}
+        {canBuyTen && onBuyTen ? <button className="shop-reveal__buy-batch" disabled={purchasing || hasNextCard} onClick={onBuyTen} type="button">{purchasing ? "Купуємо 10…" : "Купити 10"}</button> : null}
+      </div>
     </section>
   );
 }

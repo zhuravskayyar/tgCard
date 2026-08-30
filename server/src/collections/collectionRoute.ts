@@ -3,9 +3,8 @@ import type {
   PlayerCollectionCardResponse,
   PlayerCollectionResponse,
   PlayerCollectionsResponse,
-  PlayerSummary,
 } from "@cardastika/shared";
-import { TelegramInitDataError, validateTelegramInitData } from "../auth/telegramInitData.js";
+import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
@@ -14,20 +13,14 @@ import {
   CollectionPersistenceError,
 } from "./collectionRepository.js";
 
-interface PlayerLookup {
-  findOrCreateFromTelegram(user: ReturnType<typeof validateTelegramInitData>): Promise<PlayerSummary>;
-}
-
 interface CollectionLookup {
   card(playerId: string, collectionId: string, cardId: string): Promise<PlayerCollectionCardResponse>;
   detail(playerId: string, collectionId: string): Promise<PlayerCollectionResponse>;
   list(playerId: string): Promise<PlayerCollectionsResponse>;
 }
 
-interface CollectionRouteDependencies {
-  botToken: string;
+interface CollectionRouteDependencies extends RouteAuthDependencies {
   collections: CollectionLookup;
-  players: PlayerLookup;
   responseHeaders?: OutgoingHttpHeaders;
   campaign?: {
     recordExternalEvent(
@@ -36,12 +29,6 @@ interface CollectionRouteDependencies {
       payload: { collectionScope: "detail" | "list" },
     ): Promise<void>;
   };
-}
-
-function readTelegramInitData(request: IncomingMessage) {
-  const authorization = request.headers.authorization?.trim();
-  if (!authorization?.startsWith("tma ")) throw new TelegramInitDataError("missing_init_data");
-  return authorization.slice(4).trim();
 }
 
 export async function handlePlayerCollections(
@@ -58,8 +45,7 @@ export async function handlePlayerCollections(
   }
 
   try {
-    const telegramUser = validateTelegramInitData(readTelegramInitData(request), dependencies.botToken);
-    const player = await dependencies.players.findOrCreateFromTelegram(telegramUser);
+    const { player } = await authenticateRoutePlayer(request, dependencies);
     const body = collectionId
       ? cardId
         ? await dependencies.collections.card(player.id, collectionId, cardId)
@@ -72,7 +58,7 @@ export async function handlePlayerCollections(
     }
     sendJson(response, 200, body, responseHeaders);
   } catch (error) {
-    if (error instanceof TelegramInitDataError) {
+    if (isAuthFailure(error)) {
       sendJson(response, 401, { error: { code: error.code, message: "Telegram authentication failed" } }, responseHeaders);
       return;
     }

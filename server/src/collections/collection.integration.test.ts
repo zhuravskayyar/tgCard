@@ -7,7 +7,7 @@ import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { CollectionRepository } from "./collectionRepository.js";
 import { COLLECTIONS } from "./collectionCatalog.js";
-import { getCompletedCollectionModifiers, recordCardDiscovery } from "./discoveryService.js";
+import { getCompletedCollectionBonuses, getCompletedCollectionModifiers, recordCardDiscovery } from "./discoveryService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
@@ -55,6 +55,11 @@ test("completed progress and bonus survive consuming four current instances", {
     const before = await repository.detail(player.id, predators.id);
     assert.equal(before.collection.discoveredCards, 6);
     assert.equal(before.collection.completed, true);
+    const collectionWithoutCover = COLLECTIONS.find(({ coverArtKey }) => coverArtKey === null);
+    assert.ok(collectionWithoutCover);
+    const fallbackCover = await repository.detail(player.id, collectionWithoutCover.id);
+    assert.equal(fallbackCover.collection.coverArtKey, collectionWithoutCover.cards[0]?.artKey);
+    assert.ok(before.cards.every(({ description }) => description.trim().length > 0));
 
     await pool.query(
       `DELETE FROM player_card_instances
@@ -63,9 +68,17 @@ test("completed progress and bonus survive consuming four current instances", {
     );
     const after = await repository.detail(player.id, predators.id);
     const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(pool, player.id));
+    const bonuses = await getCompletedCollectionBonuses(pool, player.id);
     assert.equal(after.collection.discoveredCards, 6);
     assert.equal(after.collection.completed, true);
     assert.equal(modifiers.battleDamagePct, 3);
+    assert.deepEqual(bonuses, [{
+      bonus: predators.bonus,
+      bonusLabel: predators.bonusLabel,
+      collectionId: predators.id,
+      collectionName: predators.displayName,
+    }]);
+    assert.deepEqual((await new PlayerRepository(pool).findSummaryById(player.id)).collectionBonuses, bonuses);
     assert.equal(after.cards.filter(({ ownedCopies }) => ownedCopies === 0).length, 4);
 
     const completionRows = await pool.query<{ count: string }>(

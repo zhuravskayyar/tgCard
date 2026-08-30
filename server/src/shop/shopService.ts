@@ -34,6 +34,7 @@ import {
   ShopRewardUnavailableError,
   type SelectedShopRewardDefinition,
 } from "./shopRewardSelector.js";
+import type { LimitedCardService } from "../limited/limitedCardService.js";
 
 interface PlayerBalanceRow {
   gold: string | number;
@@ -72,6 +73,7 @@ interface ShopServiceDependencies {
   ) => ShopRarityResolution;
   rng?: ShopRandomSource;
   selectReward?: ShopRewardSelector;
+  limitedCards?: Pick<LimitedCardService, "getActiveEvent">;
 }
 
 export class ShopOfferMissingError extends Error {
@@ -189,6 +191,7 @@ export class ShopService {
   private readonly resolveRarity: NonNullable<ShopServiceDependencies["resolveRarity"]>;
   private readonly rng: ShopRandomSource;
   private readonly selectReward: ShopRewardSelector;
+  private readonly limitedCards?: Pick<LimitedCardService, "getActiveEvent">;
 
   constructor(
     private readonly pool: Pick<Pool, "connect" | "query">,
@@ -200,6 +203,7 @@ export class ShopService {
     this.resolveRarity = dependencies.resolveRarity ?? resolveShopRarity;
     this.rng = dependencies.rng ?? new CryptoShopRandomSource();
     this.selectReward = dependencies.selectReward ?? selectCanonicalShopReward;
+    this.limitedCards = dependencies.limitedCards;
   }
 
   async getCardsCatalog(playerId: string): Promise<ShopCatalogResponse> {
@@ -220,7 +224,11 @@ export class ShopService {
         [playerId],
       );
       const balance = toBalance(player);
-      return { offers: SHOP_OFFERS.map((offer) => toPlayerFacingOffer(offer, balance, chanceResult.rows)) };
+      const limitedEvent = await this.limitedCards?.getActiveEvent(playerId);
+      return {
+        offers: SHOP_OFFERS.map((offer) => toPlayerFacingOffer(offer, balance, chanceResult.rows)),
+        ...(limitedEvent ? { limitedEvent } : {}),
+      };
     } catch (error) {
       if (error instanceof ShopPlayerMissingError) throw error;
       throw new ShopPersistenceError();

@@ -83,7 +83,7 @@ test("bot snapshot builds a distinct canonical 3/2/2/2 deck at the selected tota
 
   assert.equal(bot.name, "AlexAce7");
   assert.equal(bot.level, 7);
-  assert.equal(bot.photoUrl, null);
+  assert.equal(bot.photoUrl, "/card-art/bot-card-fire-1.webp");
   assert.equal(bot.effectiveDeckPower, range.minimum);
   assert.equal(bot.startingHp, bot.effectiveDeckPower);
   assert.equal(getDeckPower(bot.cards), bot.effectiveDeckPower);
@@ -106,6 +106,21 @@ test("bot snapshot builds a distinct canonical 3/2/2/2 deck at the selected tota
     silverRewardPct: 0,
   });
   assert.deepEqual(challenger, original);
+});
+
+test("bot snapshot never selects limited card templates", () => {
+  const limitedTemplate: BotCardTemplate = {
+    cardId: "limited-bot-card",
+    code: "limited_bot_card",
+    displayName: "Limited Bot Card",
+    artKey: null,
+    element: "fire",
+    limited: true,
+  };
+  const range = getMatchmakingRange(challenger.effectiveDeckPower, 0);
+  const bot = createBotOpponentSnapshot(challenger, range, [limitedTemplate, ...templates], () => 0, "limited-test");
+
+  assert.ok(bot.cards.every(({ cardId, limited }) => cardId !== limitedTemplate.cardId && limited === false));
 });
 
 test("different server RNG produces different bot identities, cards, and total strength", () => {

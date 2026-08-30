@@ -6,6 +6,8 @@ import {
   getCardPower,
   getDeckPower,
   getRarityForLevel,
+  getRequiredAccountXp,
+  getPlayerCollectionModifiers,
   getStartingHp,
   initializeCyclicCardPool,
   resolveDuelExchange,
@@ -28,13 +30,17 @@ import type {
 } from "@cardastika/shared";
 import type { Pool } from "pg";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
+import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
 import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
-import { recordCardDiscovery } from "../collections/discoveryService.js";
+import { getCompletedCollectionModifiers, recordCardDiscovery } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { loadDuelParticipant } from "../duel/duelService.js";
 import type { CampaignService } from "./campaignService.js";
 import {
+  CAMPAIGN_BOSS_BASE_REWARD,
   CAMPAIGN_BOSS_CARD_CONFIG,
+  CAMPAIGN_BOSS_LEVEL,
+  CAMPAIGN_BOSS_REWARD_CARD,
   CAMPAIGN_ID,
   CAMPAIGN_STAGES,
   BOSS_VICTORY_DIALOGUES,
@@ -42,15 +48,13 @@ import {
   MANTICORE_CARD_CODE,
 } from "./campaignConfig.js";
 
-const CAMPAIGN_BOSS_BASE_XP = 600;
-const CAMPAIGN_BOSS_BASE_SILVER = 1_000;
-const CAMPAIGN_BOSS_REWARD_LEVEL = 15;
 const MAX_BATTLE_LOG_ENTRIES = 10;
 
 interface BossCardDefinitionRow {
   art_key: string | null;
   code: string;
   collection_id: string | null;
+  description: string;
   display_name: string | null;
   element: CardElement;
   id: string;
@@ -69,6 +73,7 @@ interface BossDuelRow {
   id: string;
   opponent_kind: "bot" | "campaign_boss" | "real";
   opponent_snapshot: DuelSideSnapshot;
+  player_damage_total: number | string;
   player_active_slots: DuelCardSnapshot[];
   player_hp: number;
   player_reserve_queue: DuelCardSnapshot[];
@@ -101,7 +106,7 @@ const BOSS_DUEL_COLUMNS = `
   player_hp, enemy_hp,
   player_active_slots, enemy_active_slots,
   player_reserve_queue, enemy_reserve_queue,
-  battle_log, turn_number, version, result, rewards_granted
+  battle_log, player_damage_total, turn_number, version, result, rewards_granted
 `;
 
 const NO_BOSS_MODIFIERS: Readonly<DuelBattleModifiers> = Object.freeze({
@@ -156,6 +161,8 @@ function toSafeInteger(value: string | number, field: string) {
 
 function toPlayerSummary(row: PlayerRewardRow): PlayerSummary {
   return {
+    accountXp: toSafeInteger(row.account_xp, "boss account XP"),
+    accountXpRequired: getRequiredAccountXp(row.level),
     id: row.id,
     username: row.username,
     firstName: row.first_name,
@@ -207,6 +214,7 @@ function toCardDefinition(row: BossCardDefinitionRow): CardDefinition {
   return {
     id: row.id,
     code: row.code,
+    description: row.description,
     displayName: row.display_name,
     artKey: row.art_key,
     element: row.element,
@@ -220,7 +228,7 @@ async function loadBossSnapshot(client: Parameters<typeof loadDuelParticipant>[0
   const codes = CAMPAIGN_BOSS_CARD_CONFIG.map(({ code }) => code);
   const result = await client.query<BossCardDefinitionRow>(
     `
-      SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible
+      SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible, description
       FROM cards
       WHERE code = ANY($1::text[])
     `,
@@ -255,7 +263,7 @@ async function loadBossSnapshot(client: Parameters<typeof loadDuelParticipant>[0
   return {
     name: "Мантикора",
     photoUrl: null,
-    level: Math.max(...CAMPAIGN_BOSS_CARD_CONFIG.map(({ level }) => level)),
+    level: CAMPAIGN_BOSS_LEVEL,
     cards,
     modifiers: {
       ...NO_BOSS_MODIFIERS,
@@ -402,6 +410,9 @@ export class CampaignBossService {
         turnNumber: duel.turn_number,
       });
       const battleLog = [...duel.battle_log, resolved.exchange].slice(-MAX_BATTLE_LOG_ENTRIES);
+      const previousPlayerDamage = toSafeInteger(duel.player_damage_total, "Boss player damage total");
+      const playerDamageTotal = previousPlayerDamage + resolved.exchange.playerDamage;
+      if (!Number.isSafeInteger(playerDamageTotal)) throw new Error("Boss player damage total exceeds safe integer limits");
       let result: CampaignBossResult | null = null;
       let rewardsGranted = false;
 
@@ -416,6 +427,10 @@ export class CampaignBossService {
         let player = playerResult.rows[0];
         if (!player) throw new CampaignBossBattleMissingError();
         const boost = await getAccountBoostStatus(client, playerId, now);
+        const currencyBoost = await getCurrencyBoostStatus(client, playerId, now);
+        const currentModifiers = getPlayerCollectionModifiers(
+          await getCompletedCollectionModifiers(client, playerId),
+        );
         if (resolved.status === "won") {
           const stateResult = await client.query<CampaignStateRow>(
             `SELECT completed_at, boss_reward_granted_at FROM player_campaign_state WHERE player_id = $1 FOR UPDATE`,
@@ -426,18 +441,20 @@ export class CampaignBossService {
             throw new CampaignBossBattleConflictError();
           }
           const reward = calculateBattleReward(
-            CAMPAIGN_BOSS_BASE_XP,
-            CAMPAIGN_BOSS_BASE_SILVER,
-            duel.challenger_snapshot.modifiers,
+            playerDamageTotal,
+            CAMPAIGN_BOSS_BASE_REWARD.silver,
+            currentModifiers,
             boost.multiplier,
           );
           const progression = applyAccountXp({
             level: player.level,
-            xp: player.account_xp,
+            xp: toSafeInteger(player.account_xp, "boss account XP"),
             gainedXp: reward.xp,
           });
-          const nextSilver = toSafeInteger(player.silver, "boss silver") + reward.silver;
-          const nextGold = toSafeInteger(player.gold, "boss gold") + progression.goldReward;
+          const boostedSilver = reward.silver * currencyBoost.multiplier;
+          const boostedGold = progression.goldReward * currencyBoost.multiplier;
+          const nextSilver = toSafeInteger(player.silver, "boss silver") + boostedSilver;
+          const nextGold = toSafeInteger(player.gold, "boss gold") + boostedGold;
           if (!Number.isSafeInteger(nextSilver) || !Number.isSafeInteger(nextGold)) {
             throw new Error("Campaign boss reward exceeds safe balance limits");
           }
@@ -453,7 +470,7 @@ export class CampaignBossService {
           player = updatedPlayer.rows[0]!;
           const manticoreDefinitionResult = await client.query<BossCardDefinitionRow>(
             `
-              SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible
+              SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible, description
               FROM cards WHERE code = $1
             `,
             [MANTICORE_CARD_CODE],
@@ -466,14 +483,14 @@ export class CampaignBossService {
             client,
             playerId,
             toCardDefinition(manticoreRow),
-            CAMPAIGN_BOSS_REWARD_LEVEL,
+            CAMPAIGN_BOSS_REWARD_CARD.level,
             this.cardRandom,
           );
           if (rewardCard.rarity !== "rare") {
             throw new CampaignBossConfigurationError("Lv15 Мантикора must derive Rare rarity");
           }
           const discovery = await recordCardDiscovery(client, playerId, manticoreRow.id);
-          await recalculateAutomaticDeck(client, playerId);
+          const deckResult = await recalculateAutomaticDeck(client, playerId);
           await this.campaign.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: rewardCard.rarity }, now);
           if (discovery.newDiscovery) {
             await this.campaign.recordEvent(client, playerId, "CARD_DISCOVERED", {}, now);
@@ -496,6 +513,7 @@ export class CampaignBossService {
             player: toPlayerSummary(player),
             accountBoostMultiplier: boost.multiplier,
             boostExpiresAt: boost.expiresAt,
+            ...(deckResult.status !== "insufficient_valid_cards" ? { deckPower: deckResult.totalPower } : {}),
             dialogues: [...BOSS_VICTORY_DIALOGUES],
             rewardCard,
             newDiscovery: discovery.newDiscovery,
@@ -503,16 +521,40 @@ export class CampaignBossService {
           };
           rewardsGranted = true;
         } else {
+          const reward = calculateBattleReward(
+            playerDamageTotal,
+            0,
+            currentModifiers,
+            boost.multiplier,
+          );
+          const progression = applyAccountXp({
+            level: player.level,
+            xp: toSafeInteger(player.account_xp, "boss account XP"),
+            gainedXp: reward.xp,
+          });
+          const nextGold = toSafeInteger(player.gold, "boss gold") + progression.goldReward;
+          if (!Number.isSafeInteger(nextGold)) throw new Error("Boss loss reward exceeds safe balance limits");
+          const updatedPlayer = await client.query<PlayerRewardRow>(
+            `
+              UPDATE players
+              SET level = $2, account_xp = $3, gold = $4, updated_at = $5
+              WHERE id = $1
+              RETURNING id, username, first_name, photo_url, level, silver, gold, account_xp
+            `,
+            [playerId, progression.newLevel, progression.remainingXp, nextGold, now],
+          );
+          player = updatedPlayer.rows[0]!;
           result = {
             outcome: "loss",
-            xp: 0,
+            xp: reward.xp,
             silver: 0,
-            gold: 0,
-            reachedLevels: [],
+            gold: progression.goldReward,
+            reachedLevels: progression.reachedLevels,
             player: toPlayerSummary(player),
             accountBoostMultiplier: boost.multiplier,
             boostExpiresAt: boost.expiresAt,
           };
+          rewardsGranted = true;
         }
       }
 
@@ -522,10 +564,10 @@ export class CampaignBossService {
           SET player_hp = $2, enemy_hp = $3,
             player_active_slots = $4, enemy_active_slots = $5,
             player_reserve_queue = $6, enemy_reserve_queue = $7,
-            battle_log = $8, turn_number = $9, version = version + 1,
-            status = $10, result = $11, rewards_granted = $12,
-            updated_at = $13::timestamptz,
-            finished_at = CASE WHEN $10 = 'active' THEN NULL ELSE $13::timestamptz END
+            battle_log = $8, player_damage_total = $9, turn_number = $10, version = version + 1,
+            status = $11, result = $12, rewards_granted = $13,
+            updated_at = $14::timestamptz,
+            finished_at = CASE WHEN $11 = 'active' THEN NULL ELSE $14::timestamptz END
           WHERE id = $1
           RETURNING ${BOSS_DUEL_COLUMNS}
         `,
@@ -538,6 +580,7 @@ export class CampaignBossService {
           JSON.stringify(resolved.playerPool.reserveQueue),
           JSON.stringify(resolved.enemyPool.reserveQueue),
           JSON.stringify(battleLog),
+          playerDamageTotal,
           resolved.exchange.turnNumber,
           resolved.status,
           result ? JSON.stringify(result) : null,
