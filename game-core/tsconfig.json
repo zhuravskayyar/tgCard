@@ -4,7 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "noEmit": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
     "noUncheckedIndexedAccess": true,
     "types": ["node"]
   },
