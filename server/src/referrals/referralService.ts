@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 import type { CampaignService } from "../campaign/campaignService.js";
 
 const REFERRAL_PREFIX = "ref_";
-const REFERRAL_PATTERN = /^ref_([a-z0-9]{8,24})$/;
+const REFERRAL_PATTERN = /^ref_([a-z0-9]{8,24})$/i;
 const BOOST_DURATION_MS = 24 * 60 * 60 * 1_000;
 
 interface PlayerRow {
@@ -22,8 +22,51 @@ export interface ReferralAcceptanceResult {
   status: ReferralAcceptanceStatus;
 }
 
+const START_PARAMETER_KEYS = ["start_param", "startapp", "start"] as const;
+
+function referralCodeFromCandidate(value: string) {
+  const match = value.trim().match(REFERRAL_PATTERN);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+/**
+ * Extracts a referral code from Telegram's signed start parameter. The
+ * wrappers are accepted for compatibility with copied launch links, while the
+ * caller remains responsible for validating the outer Telegram initData.
+ */
+export function parseReferralStartParam(value: unknown) {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (!raw) return null;
+
+  const candidates = [raw];
+  try {
+    const url = new URL(raw, "https://cardastika.local");
+    for (const key of START_PARAMETER_KEYS) {
+      const nested = url.searchParams.get(key);
+      if (nested) candidates.push(nested);
+    }
+  } catch {
+    // Ignore malformed URL wrappers and try the direct value.
+  }
+
+  if (raw.startsWith("?") || raw.startsWith("#") || raw.includes("=")) {
+    const query = new URLSearchParams(raw.replace(/^[?#]/, ""));
+    for (const key of START_PARAMETER_KEYS) {
+      const nested = query.get(key);
+      if (nested) candidates.push(nested);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const code = referralCodeFromCandidate(candidate);
+    if (code) return code;
+  }
+  return null;
+}
+
 export function toReferralStartParam(referralCode: string) {
-  return `${REFERRAL_PREFIX}${referralCode}`;
+  return `${REFERRAL_PREFIX}${referralCode.trim().toLowerCase()}`;
 }
 
 export class ReferralService {
@@ -37,9 +80,9 @@ export class ReferralService {
     startParam: string | null,
     now: Date = new Date(),
   ): Promise<ReferralAcceptanceResult> {
-    if (!startParam) return { status: "not_present", boostExpiresAt: null };
-    const match = startParam.match(REFERRAL_PATTERN);
-    if (!match) return { status: "invalid", boostExpiresAt: null };
+    if (!startParam?.trim()) return { status: "not_present", boostExpiresAt: null };
+    const referralCode = parseReferralStartParam(startParam);
+    if (!referralCode) return { status: "invalid", boostExpiresAt: null };
 
     const client = await this.pool.connect();
     try {
@@ -52,7 +95,7 @@ export class ReferralService {
       if (!invited) throw new Error("Authenticated invited player no longer exists");
       const inviterResult = await client.query<PlayerRow>(
         "SELECT id FROM players WHERE referral_code = $1 FOR UPDATE",
-        [match[1]],
+        [referralCode],
       );
       const inviter = inviterResult.rows[0];
       if (!inviter) {

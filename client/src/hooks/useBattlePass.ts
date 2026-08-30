@@ -4,7 +4,6 @@ import { getTelegramInitData } from "../telegram";
 import {
   claimBattlePassMilestone,
   claimDailyBattlePassTask,
-  claimLariskaDailyReward,
   loadBattlePass,
 } from "../telegram/battlePass";
 
@@ -51,13 +50,5 @@ export function useBattlePass() {
     return response;
   }, []);
 
-  const claimDailyLogin = useCallback(async (choiceIndex?: number) => {
-    const initData = getTelegramInitData();
-    if (!initData) throw new Error("Telegram authentication is unavailable");
-    const response = await claimLariskaDailyReward(initData, choiceIndex);
-    setState({ status: "ready", data: response });
-    return response;
-  }, []);
-
-  return { claimDailyLogin, claimDailyTask, claimMilestone, retry, state };
+  return { claimDailyTask, claimMilestone, retry, state };
 }

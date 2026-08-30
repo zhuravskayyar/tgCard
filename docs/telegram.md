@@ -33,6 +33,7 @@ the session token, and linked identities. The auth endpoints are:
 - `POST /api/auth/google` for a Google Identity Services ID token;
 - `GET /api/auth/config` for public Telegram bot and Google client configuration;
 - `GET /api/auth/me` for the current Cardastika session;
+- `POST /api/player/tutorial/complete` to finalize the introductory tutorial;
 - `POST /api/auth/link` for explicit account linking;
 - `POST /api/auth/logout` for web-session revocation.
 
@@ -79,7 +80,9 @@ recipient when the recipient first opens the Mini App. That signed first start
 is the acceptance point and the one-time bonus is granted transactionally.
 `TELEGRAM_BOT_TOKEN` and raw `initData` remain server-only/authentication-only
 respectively. The server reads `start_param` only from the already
-signature-validated Telegram payload.
+signature-validated Telegram payload. The referral parser normalizes
+case/whitespace and accepts copied `startapp`/`start_param` wrappers without
+trusting an unsigned URL.
 
 Telegram Login Widget also requires the exact public web origin to be
 registered for the bot in BotFather (`/setdomain`). Without that provider-side

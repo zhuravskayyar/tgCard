@@ -1,5 +1,22 @@
 # Cardastika Agent Guide
 
+## Mandatory local-first workflow
+
+This workflow has priority for every project change:
+
+1. Start the project locally on `localhost` with a real local database connected.
+2. Make all UI, logic, API, database, and gameplay changes locally first.
+3. After changes, start the local frontend and backend/API, verify the PostgreSQL connection, check console and server logs for errors, and run all available tests, builds, and typechecks.
+4. Show the local result for user review.
+5. Never run `git push`, deploy to production, or change the production environment without the user's explicit command.
+6. Wait for explicit user confirmation such as `добре`, `пуш`, or `можна в прод` before proceeding.
+7. Only after confirmation, perform the final change review, create a commit, push to GitHub, wait for production deployment, and verify the production site, API, Telegram Mini App, and—when relevant—the Telegram bot/webhook.
+8. If production differs from localhost, first identify the concrete local-versus-production difference; do not make chaotic additional changes.
+9. Production must never be used for initial testing.
+10. Never push unfinished or unverified code.
+
+The required sequence is: `LOCALHOST + LOCAL DB → changes → local verification → user confirmation → commit → push → production site → Telegram`.
+
 ## Project map
 
 - `client/`: React UI and browser entry point.

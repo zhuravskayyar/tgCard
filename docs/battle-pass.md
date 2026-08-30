@@ -22,7 +22,16 @@
 - `GET /api/player/battle-pass` — поточний сезон, безкоштовна доріжка і щоденні завдання.
 - `POST /api/player/battle-pass/milestones/:id/claim` — забрати сезонну нагороду.
 - `POST /api/player/battle-pass/daily/:id/claim` — забрати денну нагороду в діамантах.
+- `POST /api/player/battle-pass/daily-login/claim` — атомарно забрати окрему
+  нагороду за вхід; цей endpoint викликається тільки модалкою `Нагорода за
+  вхід`, а не екраном `Завдання`.
 - Міграція `034_create_battle_pass.sql` створює стан сезону та таблиці claim-ів.
+
+Щоденний вхід не є завданням. Стан нагороди зберігається в PostgreSQL у
+`player_lariska_daily_state` і `player_lariska_daily_claims`; сервер визначає
+дату за UTC, а транзакція з блокуванням рядка не дозволяє подвійно видати
+нагороду при одночасних запитах. Конфігурація 7-денного циклу та цінна сьома
+нагорода живуть у server/game config, не у React-компонентах.
 
 ## Assets
 

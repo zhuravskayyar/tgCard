@@ -14,7 +14,7 @@ export function usePlayerSummary() {
     setAttempt((currentAttempt) => currentAttempt + 1);
   }, []);
 
-  const updateBalance = useCallback((balance: Partial<Pick<PlayerSummary, "accountXp" | "accountXpRequired" | "arenaLeagueIndex" | "arenaRating" | "arenaTokens" | "arenaTop3Count" | "arenaWins" | "cardShards" | "duelHighestLeagueIndex" | "duelRating" | "duelWins" | "equipment" | "equippedNicknameSkin" | "gold" | "level" | "silver">>) => {
+  const updateBalance = useCallback((balance: Partial<Pick<PlayerSummary, "accountXp" | "accountXpRequired" | "arenaLeagueIndex" | "arenaRating" | "arenaTokens" | "arenaTop3Count" | "arenaWins" | "cardShards" | "duelHighestLeagueIndex" | "duelRating" | "duelWins" | "equipment" | "equippedNicknameSkin" | "gold" | "level" | "silver" | "tutorialEligible">>) => {
     setState((current) => current.status === "ready"
       ? { status: "ready", data: { ...current.data, ...balance } }
       : current);

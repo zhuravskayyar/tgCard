@@ -32,6 +32,11 @@ included.
 
 ## Interactive first-session tutorial and campaign route
 
+The reference source of truth for this onboarding is
+[`https://elem.mobi/`](https://elem.mobi/), specifically its tutorial flow.
+Cardastika keeps the same gameplay order and instructional intent while using
+its own persistent `TopHud` and `BottomNav` shell and Ukrainian copy.
+
 Only a server-marked new account receives the versioned, client-persisted
 interactive introduction; existing accounts never get it automatically. Лариска
 opens the actual training Duel immediately. It follows the reference sequence:
@@ -47,11 +52,20 @@ messages are: `Твої карти внизу. Карти суперника —
 будь-якою картою!`. The victory screen keeps the reference order: rewards,
 duel-win text, a short Лариска message, and `За нагородою`.
 
-The introduction then hands the player to the Campaign. It is an ongoing route,
-not a numbered checklist: the player stays in the campaign until the campaign
-is complete, while campaign quests can open the relevant deck, Duel, shop, weak
-cards, and collection screens and return to the current campaign stage. Direct
-navigation to unrelated modes is redirected back to Campaign during this route.
+The introduction then hands the player to the Campaign. Pressing `За нагородою`
+finishes the tutorial on the server and releases the normal application
+navigation; Campaign remains the next recommended route, while its quests can
+open the relevant deck, Duel, shop, weak cards, and collection screens and
+return to the current campaign stage. A legacy client state of `campaign` is
+migrated to `complete` so an interrupted onboarding cannot trap the player in
+the campaign gate.
+
+Tutorial parity is an acceptance rule: a fresh or replayed tutorial must start
+in Duel, allow exactly one first-card action, then exactly one advantage-card
+action, then allow any remaining card; it must end on the victory screen with
+`За нагородою`. That action must persist completion before releasing navigation,
+and the tutorial Duel must remain authoritative server/API state rather than
+mock client data.
 
 The tutorial uses `data-tutorial-target` markers on existing UI controls and
 renders through the persistent `AppShell`. It never inserts mock cards, player
@@ -86,6 +100,22 @@ must not replace either persistent shell element.
 
 Only a future explicitly documented fullscreen gameplay mode may override this
 rule. Never introduce such an exception without explicit instruction.
+
+## Daily login reward modal
+
+`Нагорода за вхід` is a separate AppShell-level modal, visually based on the
+provided Cardastika reference: a dark fantasy panel, gold title bar, reward
+tiles in the center, Лариска on the right, and a large green `Забрати` button.
+It opens automatically after the authenticated profile has loaded when the
+server marks the current UTC date as claimable. Opening or closing the modal
+does not grant anything; only the button performs the server claim. After a
+successful claim the reward is highlighted, the updated player balance is
+reflected in `TopHud`, and the player can close the modal.
+
+The modal consumes the server-provided reward summary and the 7-day calendar.
+The `Завдання` screen contains only task progress and rewards for completing
+those tasks; it has no daily-login calendar or claim action. The backend remains
+the authority for the once-per-day check and atomic grant.
 
 ## Global UI rule: Card Detail actions
 

@@ -87,8 +87,10 @@ explicit unresolved product rule; see `docs/card-progression.md`.
 ## Lariska daily finds
 
 Daily login rewards are server-owned and persisted independently from daily
-Battle Pass tasks. A player may claim once per UTC date. Missing a date does not
-reset the calendar: the next claim continues from the next accumulated day.
+Battle Pass tasks. They are presented in one AppShell-level `Нагорода за вхід`
+modal after the profile is loaded; they must not be rendered or claimed from
+the `Завдання` screen. A player may claim once per UTC date. Missing a date does
+not reset the calendar: the next claim continues from the next accumulated day.
 
 Each seven-day cycle contains:
 

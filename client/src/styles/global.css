@@ -7866,6 +7866,114 @@ button.menu-row::before {
   .tutorial-overlay__spotlight, .tutorial-dialog { animation: none; }
 }
 
+.daily-login-modal {
+  position: fixed;
+  z-index: 55;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(54px + env(safe-area-inset-top, 0px)) 8px calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.daily-login-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgb(0 0 0 / 72%);
+  border: 0;
+  cursor: pointer;
+}
+
+.daily-login-modal__dialog {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 9px;
+  width: min(100%, 410px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 12px;
+  color: var(--text-primary);
+  background: radial-gradient(circle at 92% 35%, rgb(145 104 28 / 20%), transparent 31%), linear-gradient(145deg, #182c28, #071016 58%, #050a0e);
+  border: 1px solid #c29b4f;
+  border-radius: 5px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 72%), 0 0 0 2px rgb(218 172 65 / 10%), inset 0 0 28px rgb(209 158 45 / 9%);
+  animation: daily-login-modal-in 220ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.daily-login-modal__dialog--claimed {
+  border-color: #84c77e;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 72%), 0 0 22px rgb(114 205 111 / 25%), inset 0 0 28px rgb(117 202 109 / 10%);
+}
+
+.daily-login-modal__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 7px;
+  background: linear-gradient(180deg, #d5b31e, #987000 82%);
+  border: 1px solid #f5db62;
+  box-shadow: inset 0 1px rgb(255 255 255 / 40%), 0 3px 10px rgb(0 0 0 / 34%);
+}
+
+.daily-login-modal__header > div { display: grid; gap: 2px; min-width: 0; }
+.daily-login-modal__header span { color: #45330a; font-size: .52rem; font-weight: 850; letter-spacing: .12em; }
+.daily-login-modal__header h2 { margin: 0; color: #1d1706; font-family: "Lugatype", Georgia, "Times New Roman", serif; font-size: 1.08rem; line-height: 1.1; }
+.daily-login-modal__close { display: grid; width: 27px; height: 27px; flex: 0 0 auto; place-items: center; color: #241a06; background: rgb(255 238 135 / 32%); border: 1px solid rgb(61 42 1 / 38%); border-radius: 4px; cursor: pointer; }
+.daily-login-modal__close:active { transform: translateY(1px); }
+
+.daily-login-modal__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.daily-login-modal__day { display: grid; min-height: 24px; place-items: center; color: #71858a; background: rgb(2 8 12 / 72%); border: 1px solid rgb(111 145 145 / 35%); border-radius: 3px; font-size: .58rem; font-weight: 800; }
+.daily-login-modal__day--claimed { color: #c3e0b8; background: rgb(54 103 58 / 46%); border-color: rgb(119 195 109 / 55%); }
+.daily-login-modal__day--current { color: #201705; background: #e0bd45; border-color: #ffeb91; box-shadow: 0 0 12px rgb(240 192 64 / 34%); }
+
+.daily-login-modal__showcase { display: grid; grid-template-columns: minmax(0, 1fr) 118px; min-height: 155px; align-items: stretch; overflow: hidden; background: linear-gradient(105deg, rgb(5 11 14 / 93%), rgb(12 31 27 / 66%)); border: 1px solid rgb(140 177 135 / 42%); }
+.daily-login-modal__rewards { display: grid; align-content: center; gap: 7px; min-width: 0; padding: 10px 7px 10px 10px; }
+.daily-login-modal__eyebrow { color: #e5c76c; font-size: .51rem; font-weight: 850; letter-spacing: .13em; }
+.daily-login-modal__reward-tile { display: grid; min-height: 105px; align-content: center; justify-items: center; gap: 4px; padding: 7px; background: linear-gradient(145deg, #111d20, #050c11); border: 1px solid #735e2d; border-radius: 4px; box-shadow: inset 0 0 15px rgb(207 164 52 / 9%); text-align: center; }
+.daily-login-modal__reward-icon { display: grid; min-height: 46px; place-items: center; color: #e9c963; }
+.daily-login-modal__reward-icon .app-icon { color: #e9c963; }
+.daily-login-modal__reward-tile strong { max-width: 100%; color: #f1df9d; font-size: .67rem; line-height: 1.2; }
+.daily-login-modal__reward-tile small { max-width: 100%; overflow: hidden; color: #8aa5a1; font-size: .52rem; line-height: 1.25; text-overflow: ellipsis; }
+.daily-login-modal__reward-icons { display: inline-flex; align-items: center; gap: 1px; }
+.daily-login-modal__mascot { display: grid; min-width: 0; min-height: 155px; align-items: end; overflow: hidden; background: radial-gradient(circle at 45% 28%, rgb(84 137 75 / 32%), transparent 55%), linear-gradient(180deg, rgb(30 68 44 / 58%), rgb(5 12 13 / 15%)); }
+.daily-login-modal__mascot > .lariska-image { width: 100%; height: 100%; }
+
+.daily-login-modal__choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.daily-login-modal__choice { display: grid; min-width: 0; min-height: 91px; align-content: center; justify-items: center; gap: 3px; padding: 5px 3px; color: var(--text-muted); background: linear-gradient(145deg, #162a2d, #071116); border: 1px solid #536f6e; border-radius: 4px; text-align: center; cursor: pointer; }
+.daily-login-modal__choice-icon { display: grid; min-height: 36px; place-items: center; color: #e8c563; }
+.daily-login-modal__choice .app-icon { color: #e8c563; }
+.daily-login-modal__choice strong { width: 100%; overflow: hidden; color: #e9e7d1; font-size: .51rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.daily-login-modal__choice small { width: 100%; overflow: hidden; color: #8da9a2; font-size: .43rem; text-overflow: ellipsis; white-space: nowrap; }
+.daily-login-modal__choice--selected { border-color: #e7c55d; box-shadow: inset 0 0 0 1px rgb(239 204 101 / 36%), 0 0 15px rgb(219 169 47 / 24%); transform: translateY(-1px); }
+.daily-login-modal__choice:disabled { cursor: default; opacity: .82; }
+
+.daily-login-modal__dialogue { display: grid; gap: 2px; padding: 6px 8px; background: rgb(11 29 31 / 62%); border-left: 2px solid #6eb473; }
+.daily-login-modal__dialogue strong { color: #e3c16a; font-family: "Lugatype", Georgia, "Times New Roman", serif; font-size: .72rem; }
+.daily-login-modal__dialogue p { margin: 0; color: #ccd9d3; font-size: .58rem; line-height: 1.35; }
+.daily-login-modal__encouragement { display: grid; gap: 2px; padding: 0 8px; }
+.daily-login-modal__encouragement strong { color: #f1d339; font-size: .82rem; }
+.daily-login-modal__encouragement span { color: #65bfd1; font-size: .65rem; line-height: 1.25; }
+.daily-login-modal__status { min-height: 15px; color: #a9e39b; font-size: .58rem; line-height: 1.3; text-align: center; }
+.daily-login-modal__claim { min-height: 40px; padding: 7px 12px; color: #d6f8bd; background: linear-gradient(180deg, #45ad25, #176b0e); border: 1px solid #8ce25d; border-radius: 5px; box-shadow: 0 0 0 2px rgb(13 46 7 / 74%), inset 0 1px rgb(255 255 255 / 35%), 0 5px 14px rgb(0 0 0 / 35%); font-size: .86rem; font-weight: 850; cursor: pointer; text-shadow: 0 1px 2px rgb(0 0 0 / 55%); }
+.daily-login-modal__claim:active { transform: translateY(1px); }
+.daily-login-modal__claim:disabled { cursor: default; opacity: .7; }
+
+@keyframes daily-login-modal-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 390px) {
+  .daily-login-modal__dialog { padding: 9px; gap: 7px; }
+  .daily-login-modal__showcase { grid-template-columns: minmax(0, 1fr) 98px; min-height: 142px; }
+  .daily-login-modal__mascot { min-height: 142px; }
+  .daily-login-modal__reward-tile { min-height: 94px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-login-modal__dialog { animation: none; }
+}
+
 .first-visit-hint {
   display: grid;
   gap: 9px;
@@ -13424,138 +13532,6 @@ body {
   gap: 12px;
   padding: 10px 10px 24px;
   background: linear-gradient(180deg, rgb(6 13 22 / 38%), rgb(6 13 22 / 94%)), url("/assets/ui/world-tree/battle-pass-bg.png") center top / cover fixed;
-}
-
-.lariska-login {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  background: linear-gradient(145deg, rgb(48 68 41 / 52%), rgb(10 19 26 / 96%) 64%), var(--bg-panel);
-  border: 1px solid color-mix(in srgb, #8cc86c 46%, var(--border-default));
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 22%), inset 0 1px rgb(255 255 255 / 5%);
-}
-
-.lariska-login--final {
-  background: radial-gradient(circle at 86% 32%, rgb(231 193 91 / 18%), transparent 38%), linear-gradient(145deg, rgb(80 58 30 / 68%), rgb(12 19 25 / 96%) 66%), var(--bg-panel);
-  border-color: #c59b4c;
-  box-shadow: 0 0 0 1px rgb(227 184 76 / 12%), 0 8px 28px rgb(0 0 0 / 28%);
-}
-
-.lariska-login__heading,
-.lariska-login__action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.lariska-login__heading > div {
-  display: grid;
-  gap: 2px;
-}
-
-.lariska-login__heading span,
-.lariska-login__reward-head > span {
-  color: var(--accent-bronze);
-  font-size: .55rem;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-.lariska-login__heading h2 {
-  margin: 0;
-  color: #e9d18a;
-  font-family: "Lugatype", Georgia, "Times New Roman", serif;
-  font-size: 1.13rem;
-  letter-spacing: .06em;
-}
-
-.lariska-login__heading > strong {
-  color: var(--text-muted);
-  font-size: .58rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.lariska-login__calendar {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.lariska-login__day {
-  display: grid;
-  min-height: 38px;
-  place-items: center;
-  align-content: center;
-  gap: 1px;
-  color: #70858b;
-  background: rgb(4 11 16 / 64%);
-  border: 1px solid rgb(91 119 119 / 34%);
-  border-radius: 7px;
-  font-size: .63rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.lariska-login__day span { min-height: 10px; color: #86d68a; font-size: .55rem; line-height: 1; }
-.lariska-login__day--claimed { color: #d0e9cf; background: rgb(55 110 71 / 38%); border-color: rgb(118 198 119 / 58%); }
-.lariska-login__day--current { color: #17130d; background: var(--accent-gold); border-color: #f0d88f; box-shadow: 0 0 0 2px rgb(241 205 111 / 14%), 0 0 16px rgb(229 178 64 / 28%); transform: scale(1.06); }
-.lariska-login__day--current span { color: #5e481d; }
-
-.lariska-login__body {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  min-height: 78px;
-  align-items: center;
-  gap: 9px;
-  padding: 4px 8px 4px 2px;
-  background: linear-gradient(105deg, rgb(8 26 32 / 86%), rgb(8 14 21 / 65%));
-  border: 1px solid rgb(100 169 160 / 34%);
-  border-radius: 9px;
-}
-
-.lariska-login__mascot { display: grid; width: 84px; height: 78px; align-items: end; overflow: hidden; }
-.lariska-login__mascot > .lariska-image { width: 100%; height: 100%; }
-.lariska-login__copy { display: grid; align-content: center; gap: 3px; min-width: 0; }
-.lariska-login__copy > strong { color: #e4c46f; font-family: "Lugatype", Georgia, "Times New Roman", serif; font-size: .86rem; letter-spacing: .06em; }
-.lariska-login__copy p { margin: 0; color: #d1dbd6; font-size: .68rem; line-height: 1.4; }
-
-.lariska-login__reward {
-  display: grid;
-  gap: 5px;
-  padding: 9px;
-  background: rgb(5 12 18 / 62%);
-  border: 1px solid rgb(197 155 76 / 42%);
-  border-radius: 8px;
-}
-
-.lariska-login__reward-head { display: grid; gap: 2px; }
-.lariska-login__reward-head > strong { color: var(--text-primary); font-size: .75rem; }
-.lariska-login__reward p { margin: 0; color: var(--text-muted); font-size: .61rem; line-height: 1.35; }
-.lariska-login__choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding-top: 3px; }
-.lariska-login__choice { display: grid; min-width: 0; min-height: 62px; align-content: center; gap: 3px; padding: 6px 4px; color: var(--text-muted); background: linear-gradient(145deg, #152631, #0d1720); border: 1px solid #395565; border-radius: 7px; text-align: center; }
-.lariska-login__choice > span { display: grid; width: 18px; height: 18px; margin: 0 auto; place-items: center; color: #1a1610; background: #caa65b; border-radius: 50%; font-size: .55rem; font-weight: 850; }
-.lariska-login__choice strong { overflow: hidden; color: #e4e9e7; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
-.lariska-login__choice small { overflow: hidden; color: #86a4ac; font-size: .49rem; text-overflow: ellipsis; white-space: nowrap; }
-.lariska-login__choice--selected { border-color: #e3bf68; box-shadow: inset 0 0 0 1px rgb(228 191 104 / 28%), 0 0 13px rgb(226 176 58 / 17%); transform: translateY(-1px); }
-.lariska-login__choice:disabled { cursor: default; opacity: .72; }
-
-.lariska-login__streak { color: var(--text-muted); font-size: .6rem; }
-.lariska-login__streak strong { color: #e8c66f; font-size: .74rem; }
-.lariska-login__claim { min-height: 34px; padding: 6px 10px; color: #17130d; background: var(--accent-gold); border: 1px solid #efd58d; border-radius: 6px; font-size: .59rem; font-weight: 850; }
-.lariska-login__claim:disabled { cursor: default; opacity: .52; }
-.lariska-login__streak-rewards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-.lariska-login__streak-reward { display: grid; grid-template-columns: auto auto; align-items: center; gap: 3px; padding: 5px; color: #779198; background: rgb(5 12 18 / 46%); border: 1px solid rgb(93 122 126 / 28%); border-radius: 6px; font-size: .54rem; }
-.lariska-login__streak-reward strong { color: #c5a55c; font-size: .65rem; }
-.lariska-login__streak-reward small { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lariska-login__streak-reward--claimed { color: #b9e8ba; border-color: rgb(118 198 119 / 46%); }
-
-@media (max-width: 390px) {
-  .lariska-login { padding: 9px; }
-  .lariska-login__body { grid-template-columns: 72px minmax(0, 1fr); }
-  .lariska-login__mascot { width: 72px; }
-  .lariska-login__choice strong { font-size: .52rem; }
-  .lariska-login__choice small { font-size: .44rem; }
 }
 
 .tasks-screen__panel {

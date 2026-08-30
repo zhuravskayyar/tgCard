@@ -39,6 +39,7 @@ import { handlePlayerProfileRequest } from "./leaderboards/playerProfileRoute.js
 import { LeaderboardRepository } from "./leaderboards/leaderboardRepository.js";
 import { PlayerRepository } from "./users/playerRepository.js";
 import { handlePlayerNickname } from "./users/playerNicknameRoute.js";
+import { handlePlayerTutorialCompletion } from "./users/playerTutorialRoute.js";
 import { ReferralService } from "./referrals/referralService.js";
 import { handleDungeonComplete, handleDungeonStart } from "./dungeon/dungeonRoute.js";
 import { DungeonService } from "./dungeon/dungeonService.js";
@@ -211,6 +212,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const dungeonCompleteMatch = url.pathname.match(/^\/api\/dungeon\/([^/]+)\/complete$/);
   const isPlayerMailRoute = url.pathname === "/api/player/mail";
   const isPlayerNicknameRoute = url.pathname === "/api/player/nickname";
+  const isPlayerTutorialCompletionRoute = url.pathname === "/api/player/tutorial/complete";
   const isLeaderboardRoute = url.pathname === "/api/player/leaderboards";
   const playerProfileMatch = url.pathname.match(/^\/api\/player\/profiles\/([^/]+)$/);
   const mailClaimMatch = url.pathname.match(/^\/api\/player\/mail\/([^/]+)\/claim$/);
@@ -229,7 +231,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -528,6 +530,16 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (isPlayerNicknameRoute) {
     await handlePlayerNickname(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isPlayerTutorialCompletionRoute) {
+    await handlePlayerTutorialCompletion(request, response, {
       auth,
       botToken: environment.telegramBotToken,
       players,

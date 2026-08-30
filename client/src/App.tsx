@@ -24,10 +24,13 @@ import { BattlePassScreen } from "./screens/BattlePassScreen";
 import { TasksScreen } from "./screens/TasksScreen";
 import { getTelegramInitData, initializeTelegram } from "./telegram";
 import { authenticateGooglePlayer, authenticateTelegramWebPlayer } from "./telegram/authenticatePlayer";
+import { completeTutorial } from "./telegram/tutorial";
 import { savePlayerEquipment } from "./telegram/equipment";
 import type { BottomNavItem } from "./components/BottomNav";
 import { TutorialOverlay } from "./components/TutorialOverlay";
+import { DailyLoginModal } from "./components/DailyLoginModal";
 import { useMail } from "./hooks/useMail";
+import { useDailyLoginReward } from "./hooks/useDailyLoginReward";
 import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
 import { useTutorial } from "./hooks/useTutorial";
 import { getPlayerDisplayName, type DuelView, type EquippedEquipment } from "@cardastika/shared";
@@ -57,6 +60,7 @@ export function App() {
   const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
   const campaignTraining = tutorial.step === "campaign";
   const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);
+  const dailyLogin = useDailyLoginReward(playerSummaryState.status === "ready");
   const playerEquipmentState = usePlayerEquipment(true);
   const [tutorialDuel, setTutorialDuel] = useState<DuelView | null>(null);
   const [webAuthError, setWebAuthError] = useState<string | null>(null);
@@ -94,6 +98,26 @@ export function App() {
   const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
   const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
   const [deckPowerOverride, setDeckPowerOverride] = useState<number | undefined>(undefined);
+  const [dailyLoginDismissedDate, setDailyLoginDismissedDate] = useState<string | null>(null);
+  const [dailyLoginClaimedDate, setDailyLoginClaimedDate] = useState<string | null>(null);
+
+  const dailyLoginData = dailyLogin.state.status === "ready" ? dailyLogin.state.data : null;
+  const dailyLoginClaimed = dailyLoginData !== null && dailyLoginClaimedDate === dailyLoginData.claimDate;
+  const showDailyLogin = dailyLoginData !== null
+    && !tutorial.isActive
+    && dailyLoginDismissedDate !== dailyLoginData.claimDate
+    && (dailyLoginData.claimable || dailyLoginClaimed);
+
+  const handleDailyLoginClaim = useCallback(async (choiceIndex?: number) => {
+    const response = await dailyLogin.claim(choiceIndex);
+    updateBalance(response.rewardPlayer);
+    setDailyLoginClaimedDate(response.dailyLogin.claimDate);
+    return response;
+  }, [dailyLogin.claim, updateBalance]);
+
+  const closeDailyLogin = useCallback(() => {
+    if (dailyLoginData) setDailyLoginDismissedDate(dailyLoginData.claimDate);
+  }, [dailyLoginData]);
 
   const loadedEquipment = useMemo(() => (
     playerEquipmentState.state.status === "ready"
@@ -255,6 +279,20 @@ export function App() {
     updatePath("/campaign");
   }
 
+  async function finishTutorial() {
+    const initData = getTelegramInitData();
+    if (initData) {
+      try {
+        const player = await completeTutorial(initData);
+        updateBalance({ tutorialEligible: player.tutorialEligible });
+      } catch {
+        // Keep the local route unblocked if the server is temporarily unavailable.
+      }
+    }
+    tutorial.complete();
+    openCampaign();
+  }
+
   function openBattlePass() {
     if (campaignTraining) { openCampaign(); return; }
     setScreen("battle-pass");
@@ -331,11 +369,10 @@ export function App() {
         openDuel("home");
         return;
       case "duel-result":
-        tutorial.goTo("campaign");
-        openCampaign();
+        void finishTutorial();
         return;
       case "campaign":
-        openCampaign();
+        void finishTutorial();
         return;
       default:
         return;
@@ -401,6 +438,7 @@ export function App() {
       screenKey={screen}
       deckPowerOverride={deckPowerOverride}
       overlay={tutorial.isActive && !campaignTraining && tutorial.step !== "duel-result" ? <TutorialOverlay duel={tutorialDuel} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
+      modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onPlayerSummaryChange={updateBalance} /> : null}
     >
       {screen === "home" ? (
         <HomeScreen
@@ -425,7 +463,7 @@ export function App() {
           key={tutorialDuelTraining ? "tutorial-duel" : "normal-duel"}
           onBack={() => duelReturnScreen === "tasks" ? openTasks() : duelReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
           onPlayerSummaryChange={updateBalance}
-          onTutorialResult={() => { tutorial.goTo("campaign"); openCampaign(); }}
+          onTutorialResult={finishTutorial}
           onTutorialDuelState={handleTutorialDuelState}
           tutorialAllowedSlot={tutorial.step === "duel-first-card" ? 0 : tutorial.step === "duel-advantage" ? 1 : null}
           tutorialMode={tutorialDuelTraining}
@@ -494,7 +532,7 @@ export function App() {
       {screen === "campaign-stage" ? <CampaignStageScreen onBack={openCampaign} onNavigate={navigateFromCampaign} onPlayerSummaryChange={updateBalance} stageId={campaignStageId} /> : null}
       {screen === "campaign-boss" ? <CampaignBossScreen onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} /> : null}
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onPlayerSummaryChange={(balance) => updateBalance(balance)} /> : null}
-      {screen === "tasks" ? <TasksScreen onBack={goHome} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
+      {screen === "tasks" ? <TasksScreen onBack={goHome} onOpenTask={openTaskTarget} /> : null}
     </AppShell>
   );
 }

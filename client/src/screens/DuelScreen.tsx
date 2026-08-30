@@ -73,7 +73,7 @@ type DuelScreenState =
 interface DuelScreenProps {
   onBack: () => void;
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "duelHighestLeagueIndex" | "duelRating" | "level" | "silver" | "gold">>) => void;
-  onTutorialResult?: () => void;
+  onTutorialResult?: () => void | Promise<void>;
   onTutorialDuelState?: (duel: DuelView) => void;
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
@@ -488,8 +488,9 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   );
 }
 
-function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode }: { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void; tutorialMode?: boolean }) {
+function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode }: { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean }) {
   const result = duel.result;
+  const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
   if (tutorialMode) {
     return (
@@ -505,7 +506,21 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode }: { du
           <div aria-hidden="true"><Lariska emotion="happy" /></div>
           <p>Вперед за нагородою. І не загуби колоду дорогою!</p>
         </div>
-        <button className="tutorial-result__button" onClick={onTutorialResult ?? onReturn} type="button">За нагородою</button>
+        <button
+          className="tutorial-result__button"
+          disabled={tutorialResultPending}
+          onClick={() => {
+            if (!onTutorialResult) {
+              onReturn();
+              return;
+            }
+            setTutorialResultPending(true);
+            void Promise.resolve(onTutorialResult()).finally(() => setTutorialResultPending(false));
+          }}
+          type="button"
+        >
+          {tutorialResultPending ? "Завантаження…" : "За нагородою"}
+        </button>
       </section>
     );
   }

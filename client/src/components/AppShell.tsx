@@ -7,6 +7,7 @@ interface AppShellProps {
   activeNavigationItem: BottomNavItem;
   children: ReactNode;
   deckPowerOverride?: number;
+  modal?: ReactNode;
   overlay?: ReactNode;
   screenKey?: string;
   onNavigate: (item: BottomNavItem) => void;
@@ -18,6 +19,7 @@ export function AppShell({
   activeNavigationItem,
   children,
   deckPowerOverride,
+  modal,
   overlay,
   screenKey,
   onNavigate,
@@ -40,6 +42,7 @@ export function AppShell({
       </main>
       <BottomNav activeItem={activeNavigationItem} onSelect={onNavigate} />
       {overlay}
+      {modal}
     </div>
   );
 }

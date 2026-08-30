@@ -25,6 +25,18 @@ function isTutorialStep(value: unknown): value is TutorialStep {
   return typeof value === "string" && (TUTORIAL_STEPS as readonly string[]).includes(value);
 }
 
+function normalizeStoredState(parsed: Partial<StoredTutorialState>): StoredTutorialState {
+  const step = parsed.step === "campaign"
+    ? "complete"
+    : isTutorialStep(parsed.step)
+      ? parsed.step
+      : "intro";
+  return {
+    paused: step === "complete" ? false : parsed.paused === true,
+    step,
+  };
+}
+
 function storageKey(playerId: string) {
   return `${TUTORIAL_STORAGE_PREFIX}${playerId}`;
 }
@@ -39,13 +51,10 @@ function readState(playerId: string): StoredTutorialState {
     const parsed = JSON.parse(raw) as Partial<StoredTutorialState>;
     if (!currentRaw) {
       return parsed.step === "campaign" || parsed.step === "complete"
-        ? { paused: parsed.paused === true, step: parsed.step }
+        ? normalizeStoredState(parsed)
         : { paused: false, step: "intro" };
     }
-    return {
-      paused: parsed.paused === true,
-      step: isTutorialStep(parsed.step) ? parsed.step : "intro",
-    };
+    return normalizeStoredState(parsed);
   } catch {
     return { paused: false, step: "intro" };
   }

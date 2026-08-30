@@ -344,6 +344,20 @@ export class PlayerRepository {
     }
   }
 
+  async completeTutorial(playerId: string): Promise<PlayerSummary> {
+    try {
+      const result = await this.pool.query<{ id: string }>(
+        "UPDATE players SET tutorial_eligible = FALSE, updated_at = NOW() WHERE id = $1 RETURNING id",
+        [playerId],
+      );
+      if (!result.rows[0]) throw new Error("Player does not exist");
+      return await this.findSummaryById(playerId);
+    } catch (error) {
+      if (error instanceof PlayerPersistenceError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
   async updateNickname(playerId: string, value: string) {
     const nickname = normalizeNickname(value);
     try {
