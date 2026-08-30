@@ -57,7 +57,7 @@ export function App() {
   const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
   const campaignTraining = tutorial.step === "campaign";
   const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);
-  const playerEquipmentState = usePlayerEquipment(playerSummaryState.status !== "loading");
+  const playerEquipmentState = usePlayerEquipment(true);
   const [tutorialDuel, setTutorialDuel] = useState<DuelView | null>(null);
   const [webAuthError, setWebAuthError] = useState<string | null>(null);
   const initialPath = typeof window === "undefined" ? "/" : window.location.pathname;

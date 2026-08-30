@@ -13,6 +13,7 @@ export type PlayerEquipmentState =
 export function usePlayerEquipment(enabled: boolean) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<PlayerEquipmentState>({ status: "loading" });
+  const credential = getTelegramInitData();
 
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
 
@@ -22,7 +23,6 @@ export function usePlayerEquipment(enabled: boolean) {
       return;
     }
 
-    const credential = getTelegramInitData();
     if (!credential) {
       setState({ status: "unavailable" });
       return;
@@ -44,7 +44,7 @@ export function usePlayerEquipment(enabled: boolean) {
       active = false;
       controller.abort();
     };
-  }, [attempt, enabled]);
+  }, [attempt, credential, enabled]);
 
   const status: EquipmentInventoryStatus = state.status;
   return { retry, state, status };
