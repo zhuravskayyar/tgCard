@@ -159,6 +159,14 @@ function handleCardArtRequest(request: IncomingMessage, response: ServerResponse
 
 async function handleRequestInternal(request: IncomingMessage, response: ServerResponse) {
   const url = new URL(request.url ?? "/", "http://localhost");
+  const rewrittenApiPath = url.searchParams.get("__cardastika_api_path");
+
+  if (rewrittenApiPath !== null) {
+    const normalizedPath = rewrittenApiPath.replace(/^\/+/, "");
+    url.pathname = normalizedPath ? `/api/${normalizedPath}` : "/api";
+    url.searchParams.delete("__cardastika_api_path");
+  }
+
   const cors = getCorsPolicy(request.headers.origin, environment.clientOrigin);
 
   if (handleCardArtRequest(request, response, url.pathname)) return;

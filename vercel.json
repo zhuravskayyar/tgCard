@@ -4,6 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api?__cardastika_api_path=:path*"
+    },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
