@@ -6,7 +6,7 @@ import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
 export const LEADERBOARD_PAGE_SIZE = 10;
 
 interface DuelLeaderboardRow {
-  rating: string | number;
+  duel_rating: string | number;
   first_name: string;
   id: string;
   level: number;
@@ -193,10 +193,10 @@ export class LeaderboardRepository {
   private async findDuelLeaderboard(page: number): Promise<LeaderboardPage> {
     const result = await this.pool.query<DuelLeaderboardRow>(
       `
-        SELECT id, nickname, username, first_name, photo_url, level, rating
+        SELECT id, nickname, username, first_name, photo_url, level, duel_rating
         FROM players
         WHERE duel_wins >= $1
-        ORDER BY rating DESC, duel_wins DESC, id ASC
+        ORDER BY duel_rating DESC, duel_wins DESC, id ASC
       `,
       [LEADERBOARD_REQUIRED_DUEL_WINS],
     );
@@ -205,7 +205,7 @@ export class LeaderboardRepository {
       id: row.id,
       level: row.level,
       photoUrl: row.photo_url,
-      score: toSafeInteger(row.rating, "rating"),
+      score: toSafeInteger(row.duel_rating, "duel rating"),
     })), page);
   }
 
