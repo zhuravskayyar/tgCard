@@ -1,5 +1,5 @@
 import { getLeagueByRating } from "@cardastika/shared";
-import { AppIcon, type AppIconName } from "../components/AppIcon";
+import { AppIcon } from "../components/AppIcon";
 import { CardArtwork } from "../components/CardArtwork";
 import { CardQualityBadge } from "../components/CardQualityBadge";
 import { EquipmentLoadout } from "../components/EquipmentLoadout";
@@ -15,15 +15,15 @@ interface PlayerProfileScreenProps {
 }
 
 interface EmptyRecord {
-  icon: AppIconName;
+  image: string;
   label: string;
 }
 
 const emptyRecords: EmptyRecord[] = [
-  { label: "Найкращий титул", icon: "ranking" },
-  { label: "Медаль дракона", icon: "dungeon" },
-  { label: "Нагорода турніру", icon: "tournament" },
-  { label: "Найкраще досягнення", icon: "battle-pass" },
+  { image: "/assets/ui/profile/title-orb.png", label: "Найкращий титул" },
+  { image: "/assets/ui/profile/dragon-medal.png", label: "Медаль дракона" },
+  { image: "/assets/ui/profile/tournament-trophy.png", label: "Нагорода турніру" },
+  { image: "/assets/ui/profile/achievement-orb.png", label: "Найкраще досягнення" },
 ];
 
 function formatScore(value: number) {
@@ -105,7 +105,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
               {emptyRecords.map((record) => (
                 <article key={record.label}>
                   <span>{record.label}</span>
-                  <AppIcon name={record.icon} size={31} />
+                  <img alt="" className="profile-record-grid__asset" src={record.image} />
                   <small>Немає даних</small>
                 </article>
               ))}
@@ -139,10 +139,10 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
           <section className="player-profile-section" aria-label="Рейтинги гравця">
             <ProfileSectionHeading>Рейтинги</ProfileSectionHeading>
             <div className="player-profile-ratings">
-              <article><span>Колода</span><AppIcon name="deck-power" size={27} /><strong>{formatScore(state.data.deckPower)}</strong><small>Сила колоди</small></article>
-              <article><span>Дуелі</span><AppIcon name="duel" size={27} /><strong>{formatScore(state.data.duelRating)}</strong><small>{formatScore(state.data.duelWins)} перемог</small></article>
-              <article><span>Арена</span><AppIcon name="arena" size={27} /><small>Не грав</small></article>
-              <article><span>Турнір</span><AppIcon name="tournament" size={27} /><small>Не грав</small></article>
+              <article><span>Колода</span><img alt="" className="profile-rating-grid__asset" src="/assets/ui/profile/deck-power.png" /><strong>{formatScore(state.data.deckPower)}</strong><small>Сила колоди</small></article>
+              <article><span>Дуелі</span><LeagueBadge league={getLeagueByRating(state.data.duelRating)} size="sm" /><strong>{formatScore(state.data.duelRating)}</strong><small>{formatScore(state.data.duelWins)} перемог</small></article>
+              <article><span>Арена</span><img alt="" className="profile-rating-grid__asset" src="/assets/ui/profile/arena-shield.png" /><small>Не грав</small></article>
+              <article><span>Турнір</span><img alt="" className="profile-rating-grid__asset profile-rating-grid__asset--leather" src="/assets/ui/profile/profile-parchment.png" /><small>Не грав</small></article>
             </div>
           </section>
 
