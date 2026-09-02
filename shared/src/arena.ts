@@ -164,6 +164,7 @@ export interface ArenaBattleParticipantSnapshot {
   cards: DuelCardSnapshot[];
   cooldownUntil: [string | null, string | null, string | null];
   effectiveDeckPower: number;
+  guildCard?: DuelCardSnapshot | null;
   hp: number;
   id: string;
   isBot: boolean;

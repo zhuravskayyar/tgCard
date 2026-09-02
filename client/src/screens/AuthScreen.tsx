@@ -1,7 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { AppIcon } from "../components/AppIcon";
+import { setSessionToken } from "../auth/session";
 
 interface AuthScreenProps {
   error: string | null;
@@ -12,6 +13,7 @@ interface AuthScreenProps {
 
 export function AuthScreen({ error, loading, onGoogle, onTelegram }: AuthScreenProps) {
   const [pending, setPending] = useState(false);
+  const [devAccounts, setDevAccounts] = useState<Array<{ key: string; label: string }>>([]);
   const handleGoogle = useCallback(async (credential: string) => {
     setPending(true);
     try { await onGoogle(credential); } finally { setPending(false); }
@@ -20,6 +22,30 @@ export function AuthScreen({ error, loading, onGoogle, onTelegram }: AuthScreenP
     setPending(true);
     try { await onTelegram(authData); } finally { setPending(false); }
   }, [onTelegram]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    void fetch("/api/dev/accounts")
+      .then((response) => response.ok ? response.json() as Promise<{ accounts: Array<{ key: string; label: string }> }> : null)
+      .then((result) => { if (result) setDevAccounts(result.accounts); })
+      .catch(() => undefined);
+  }, []);
+
+  const handleDevLogin = useCallback(async (accountKey: string) => {
+    if (!accountKey) return;
+    setPending(true);
+    try {
+      const response = await fetch("/api/dev/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accountKey }) });
+      if (!response.ok) return;
+      const result = await response.json() as { sessionToken?: string };
+      if (result.sessionToken) {
+        setSessionToken(result.sessionToken);
+        window.location.reload();
+      }
+    } finally {
+      setPending(false);
+    }
+  }, []);
 
   return (
     <main className="auth-screen">
@@ -67,6 +93,7 @@ export function AuthScreen({ error, loading, onGoogle, onTelegram }: AuthScreenP
           </div>
           {loading || pending ? <p className="auth-screen__status">Перевіряємо авторизацію…</p> : null}
           {error ? <p className="auth-screen__error" role="alert">{error}</p> : null}
+          {devAccounts.length > 0 ? <label className="auth-screen__dev-login">LOCAL DEV · тестовий акаунт<select aria-label="Тестовий локальний акаунт" disabled={loading || pending} defaultValue="" onChange={(event) => { void handleDevLogin(event.target.value); }}><option value="">Обрати demo-акаунт…</option>{devAccounts.map((account) => <option key={account.key} value={account.key}>{account.label}</option>)}</select></label> : null}
           <p className="auth-screen__note">Telegram і Google можна прив’язати пізніше в налаштуваннях.</p>
         </section>
       </div>

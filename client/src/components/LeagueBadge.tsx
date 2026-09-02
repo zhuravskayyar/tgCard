@@ -14,7 +14,7 @@ export function LeagueBadge({ league, size = "md" }: LeagueBadgeProps) {
       style={{ "--league-color": league.accentColor } as CSSProperties}
       role="img"
     >
-      <img alt="" src={`/assets/ui/leagues/${league.iconKey}.svg`} />
+      <img alt="" src={`/assets/ui/leagues/${league.iconKey}.png`} />
       <span aria-hidden="true">{league.division}</span>
     </span>
   );

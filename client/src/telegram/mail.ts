@@ -1,4 +1,4 @@
-import type { PlayerMailAction, PlayerMailActionResponse, PlayerMailClaimResponse, PlayerMailMessage, PlayerMailResponse } from "@cardastika/shared";
+import type { PlayerMailAction, PlayerMailActionResponse, PlayerMailCardReward, PlayerMailClaimResponse, PlayerMailMessage, PlayerMailResponse } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
 
@@ -16,6 +16,18 @@ function isNonNegativeInteger(value: unknown) {
   return Number.isSafeInteger(value) && Number(value) >= 0;
 }
 
+function isMailCardReward(value: unknown): value is PlayerMailCardReward {
+  if (!value || typeof value !== "object") return false;
+  const card = value as Record<string, unknown>;
+  return typeof card.cardId === "string"
+    && typeof card.code === "string"
+    && (card.artKey === null || typeof card.artKey === "string")
+    && (card.displayName === null || typeof card.displayName === "string")
+    && (card.element === "fire" || card.element === "water" || card.element === "air" || card.element === "earth")
+    && isNonNegativeInteger(card.level)
+    && Number(card.level) > 0;
+}
+
 function isMailMessage(value: unknown): value is PlayerMailMessage {
   if (!value || typeof value !== "object") return false;
   const message = value as Record<string, unknown>;
@@ -28,7 +40,8 @@ function isMailMessage(value: unknown): value is PlayerMailMessage {
     typeof message.createdAt === "string" &&
     (message.claimedAt === null || typeof message.claimedAt === "string") &&
     isNonNegativeInteger(message.silver) &&
-    isNonNegativeInteger(message.gold)
+    isNonNegativeInteger(message.gold) &&
+    (message.cardReward === null || isMailCardReward(message.cardReward))
   );
 }
 

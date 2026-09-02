@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test src/cardProgression.test.ts src/battleStats.test.ts src/deckBalance.test.ts src/automaticDeck.test.ts src/collectionModifiers.test.ts src/duel.test.ts src/arena.test.ts src/shopLevelSelection.test.ts src/equipment.test.ts src/equipmentManual.test.ts src/battlePass.test.ts"
+    "test": "tsx --test src/cardProgression.test.ts src/battleStats.test.ts src/deckBalance.test.ts src/automaticDeck.test.ts src/collectionModifiers.test.ts src/duel.test.ts src/arena.test.ts src/shopLevelSelection.test.ts src/equipment.test.ts src/equipmentManual.test.ts src/guildForumReference.test.ts src/guild.test.ts src/guildRaid.test.ts src/battlePass.test.ts"
   },
   "dependencies": {
     "@cardastika/shared": "*"

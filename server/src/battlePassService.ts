@@ -209,7 +209,7 @@ async function loadRewardCardDefinition(database: Database) {
     `
       SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity
       FROM cards
-      WHERE shop_eligible = TRUE AND limited = FALSE
+      WHERE shop_eligible = TRUE AND limited = FALSE AND source = 'standard'
       ORDER BY random()
       LIMIT 1
     `,

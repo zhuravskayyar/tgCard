@@ -1,7 +1,17 @@
+import type { CardElement } from "./card.js";
 import type { PlayerBalance } from "./shop.js";
 
 export type PlayerMailActionType = "none" | "nickname_change";
 export type PlayerMailAction = "change" | "leave";
+
+export interface PlayerMailCardReward {
+  artKey: string | null;
+  cardId: string;
+  code: string;
+  displayName: string | null;
+  element: CardElement;
+  level: number;
+}
 
 export interface PlayerMailMessage {
   actionCompletedAt: string | null;
@@ -11,6 +21,7 @@ export interface PlayerMailMessage {
   createdAt: string;
   gold: number;
   id: string;
+  cardReward: PlayerMailCardReward | null;
   silver: number;
   subject: string;
 }

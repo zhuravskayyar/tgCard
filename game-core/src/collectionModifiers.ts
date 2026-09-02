@@ -5,6 +5,7 @@ import type {
 } from "@cardastika/shared";
 
 export interface PlayerCollectionModifiers {
+  altarGoldLevels: number;
   absorptionEfficiencyPct: number;
   battleDamagePct: number;
   battleHpPct: number;
@@ -18,6 +19,7 @@ export function getPlayerCollectionModifiers(
   completedCollections: readonly CollectionModifier[],
 ): PlayerCollectionModifiers {
   const result = {
+    altarGoldLevels: 0,
     absorptionEfficiencyPct: 0,
     battleDamagePct: 0,
     battleHpPct: 0,
@@ -33,6 +35,7 @@ export function getPlayerCollectionModifiers(
     deck_power_pct: "deckPowerPct",
     experience_reward_pct: "experienceRewardPct",
     silver_reward_pct: "silverRewardPct",
+    altar_gold_levels: "altarGoldLevels",
   };
 
   for (const modifier of completedCollections) {

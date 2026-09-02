@@ -14,6 +14,8 @@
     "dev:server": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev-server.ps1",
     "dev:telegram": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-telegram-fast.ps1",
     "dev:telegram:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-telegram-dev.ps1",
+    "dev:guild-seed": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev-guild-seed.ps1",
+    "reference:parse": "node scripts/parse-elem-forum.mjs",
     "build": "npm run build --workspace shared && npm run build --workspace game-core && npm run build --workspace server && npm run build --workspace client",
     "test": "npm run test --workspace game-core && npm run test --workspace server"
   }

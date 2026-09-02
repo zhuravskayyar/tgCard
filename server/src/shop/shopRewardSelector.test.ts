@@ -29,6 +29,7 @@ test("reward selection filters canonical Shop cards by minimum rarity", async ()
   const reward = await selectCanonicalShopReward(client, "rare", { nextInt: () => 0 });
   assert.match(queryText, /cards\.shop_eligible = TRUE/);
   assert.match(queryText, /cards\.min_rarity/);
+  assert.match(queryText, /cards\.source = 'standard'/);
   assert.deepEqual(queryValues, ["rare"]);
   assert.equal(reward.id, "eligible_rare");
   assert.equal(reward.targetRarity, "rare");

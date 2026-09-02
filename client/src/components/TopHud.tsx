@@ -73,9 +73,9 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
             ) : null}
             {!isLoading && state.status !== "error" ? (
               player ? (
-                <span className="player-deck-power" aria-label={`Сила колоди: ${deckPower ?? "недоступна"}`}>
+                <span className="player-deck-power" aria-label={`Сила колоди: ${deckPower ?? "недоступна"}. Рівень: ${player.level}`}>
                   <AppIcon name="deck-power" size={14} />
-                  <span>{deckPower ?? "—"}</span>
+                  <span>{deckPower ?? "—"} · Рів. {player.level}</span>
                 </span>
               ) : <span>{fallbackSubtitle}</span>
             ) : null}

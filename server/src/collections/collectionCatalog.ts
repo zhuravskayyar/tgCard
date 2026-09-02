@@ -3,6 +3,7 @@ import type {
   CardElement,
   CardRarity,
   CollectionModifier,
+  CollectionSource,
 } from "@cardastika/shared";
 import { getCardDescription } from "../cards/cardDescriptions.js";
 
@@ -14,6 +15,7 @@ export interface CollectionDefinition {
   coverArtKey: string | null;
   displayName: string;
   id: string;
+  source: CollectionSource;
 }
 
 type CardSeed = readonly [displayName: string, element: CardElement, minRarity: CardRarity, description: string];
@@ -25,12 +27,14 @@ function collection(
   bonusLabel: string,
   cards: readonly CardSeed[],
   coverArtKey: string | null = null,
+  source: CollectionSource = "standard",
 ): CollectionDefinition {
   const id = `collection_${code}`;
   return Object.freeze({
     id,
     code,
     displayName,
+    source,
     coverArtKey,
     bonus: Object.freeze(bonus),
     bonusLabel,
@@ -45,7 +49,8 @@ function collection(
       element,
       collectionId: id,
       minRarity,
-      shopEligible: true,
+      shopEligible: source === "standard",
+      source,
       });
     })),
   });
@@ -91,7 +96,7 @@ export const COLLECTIONS: readonly CollectionDefinition[] = Object.freeze([
     ["Підковоніс", "fire", "legendary", "Ніс у нього схожий на підкову, але щастя це приносить переважно самому підковоносцю. Комахи, яких він знаходить у темряві, мають іншу думку."],
   ]),
   collection("thunderborn", "Грозові", { type: "element_damage_pct", value: 4, element: "air" }, "+4% шкоди Повітря", [
-    ["Громоптах", "air", "common", "Коли Громоптах розправляє крила, небо починає говорити голосніше. Місцеві називають це грозою, а він лише дивується, чому всі тікають з прогулянки."], ["Рух", "air", "uncommon", "Рух такий великий, що в легендах сперечаються не про його існування, а про те, скільки картографів випадково прийняли його спину за новий острів."],
+    ["Громоптах", "air", "common", "Коли Громоптах розправляє крила, небо починає говорити голосніше. Місцеві називають це грозою, а він лише дивується, чому всі тікають з прогулянки."], ["Птах Рух", "air", "uncommon", "Рух такий великий, що в легендах сперечаються не про його існування, а про те, скільки картографів випадково прийняли його спину за новий острів."],
     ["Симург", "air", "uncommon", "Симург бачив стільки епох, що перестав сперечатися з молодими героями. Він просто слухає, киває й терпляче чекає, коли досвід нарешті наздожене хоробрість."], ["Грифон", "air", "rare", "Грифон наполовину лев, наполовину орел і на сто відсотків упевнений, що природа влучила з першої спроби. Заперечень він чомусь майже не отримує."],
     ["Пегас", "air", "rare", "Пегас довів, що кінь може літати. Відтоді звичайні коні роблять вигляд, що їм байдуже, але підозріло часто дивляться в небо, коли ніхто не бачить."], ["Кецаль", "air", "epic", "Кецаль має таке яскраве пір’я, що ховатися йому вже пізно. Тому він обрав іншу тактику: виглядати настільки розкішно, щоб ніхто не питав навіщо."],
     ["Анзу", "air", "legendary", "Анзу вкрав те, що красти було категорично не можна. Після цього його історія стала легендою, а всі таблички «не чіпати» — трохи переконливішими."],
@@ -148,23 +153,41 @@ export const COLLECTIONS: readonly CollectionDefinition[] = Object.freeze([
     ["Цербер", "water", "legendary", "Цербер має три голови, але одну роботу — нікого не випускати. Найскладніше не охорона, а домовитися, яка голова сьогодні відповідає за гавкіт."], ["Орф", "air", "mythic", "Орф — двоголовий пес, якому явно сказали, що однієї голови для легенди замало. Цербер дивиться на нього як старший брат на компактнішу версію."],
     ["Катоблепас", "earth", "mythic", "Катоблепас тримає голову так низько, ніби втомився від світу ще до знайомства з ним. Можливо, це й на краще: його погляд нікому не обіцяє добра."],
   ]),
+  collection("witches", "Відьми", { type: "altar_gold_levels", value: 2 }, "Посилення Алтаря за золото отримує +2 додаткові рівні (+2% сили).", [
+    ["Відьма Вогню", "fire", "legendary", "Відьма Вогню тримає полум’я в долоні, ніби це звичайна свічка. Полум’я з цим не погоджується, але слухається."],
+    ["Відьма Води", "water", "legendary", "Відьма Води крутить вир у повітрі й дивиться на нього так, ніби це лише перша сторінка значно глибшого закляття."],
+    ["Відьма Землі", "earth", "legendary", "Відьма Землі будить камінь одним дотиком. Після цього навіть гори поводяться обережніше."],
+    ["Відьма Повітря", "air", "legendary", "Відьма Повітря не залишає слідів — тільки рух пір’я, іскру в небі та відчуття, що буря вже поруч."],
+  ], "witches_01", "raid"),
 ]);
 
 export const COLLECTION_CARDS = Object.freeze(COLLECTIONS.flatMap(({ cards }) => cards));
 
 export function validateCollectionCatalog() {
-  const sizes = COLLECTIONS.map(({ cards }) => cards.length);
+  const standardCollections = COLLECTIONS.filter(({ source }) => source === "standard");
+  const raidCollections = COLLECTIONS.filter(({ source }) => source === "raid");
+  const sizes = standardCollections.map(({ cards }) => cards.length);
   const codes = new Set(COLLECTION_CARDS.map(({ code }) => code));
   const elementCounts = COLLECTION_CARDS.reduce<Record<CardElement, number>>((counts, card) => {
     counts[card.element] += 1;
     return counts;
   }, { fire: 0, water: 0, air: 0, earth: 0 });
 
-  if (COLLECTIONS.length !== 16) throw new Error("Collection catalog must contain exactly 16 collections");
-  if (COLLECTION_CARDS.length !== 120) throw new Error("Collection catalog must contain exactly 120 cards");
+  if (COLLECTIONS.length !== 17) throw new Error("Collection catalog must contain exactly 17 collections");
+  if (standardCollections.length !== 16) throw new Error("Standard collection catalog must contain exactly 16 collections");
+  if (COLLECTION_CARDS.length !== 124) throw new Error("Collection catalog must contain exactly 124 cards");
   if (codes.size !== COLLECTION_CARDS.length) throw new Error("Canonical collection card codes must be unique");
   if (sizes.join(",") !== "6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9") {
-    throw new Error("Canonical collection sizes are invalid");
+    throw new Error("Standard collection sizes are invalid");
+  }
+  if (raidCollections.length !== 1 || raidCollections[0]?.code !== "witches" || raidCollections[0].cards.length !== 4) {
+    throw new Error("Raid collection catalog must contain exactly four Witch cards");
+  }
+  if (raidCollections[0].cards.map(({ element }) => element).join(",") !== "fire,water,earth,air") {
+    throw new Error("Witch raid cards must contain one card per element");
+  }
+  if (COLLECTION_CARDS.some(({ source }) => source !== "standard" && source !== "raid")) {
+    throw new Error("Every collection card must have a valid source");
   }
   if (COLLECTION_CARDS.some(({ collectionId }) => !collectionId)) {
     throw new Error("Every collection card must belong to exactly one collection");

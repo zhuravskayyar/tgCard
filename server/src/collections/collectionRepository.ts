@@ -8,6 +8,7 @@ import type {
   PlayerCollectionResponse,
   PlayerCollectionsResponse,
   PlayerCollectionSummary,
+  CollectionSource,
 } from "@cardastika/shared";
 import type { Pool } from "pg";
 
@@ -23,6 +24,7 @@ interface SummaryRow {
   display_name: string;
   id: string;
   total_cards: string | number;
+  source: CollectionSource;
 }
 
 interface CardRow {
@@ -75,6 +77,7 @@ function mapSummary(row: SummaryRow): PlayerCollectionSummary {
     bonusLabel: row.bonus_label,
     discoveredCards: Number(row.discovered_cards),
     totalCards: Number(row.total_cards),
+    source: row.source,
     completed: row.completed_at !== null,
     completedAt: row.completed_at instanceof Date
       ? row.completed_at.toISOString()
@@ -119,6 +122,7 @@ const SUMMARY_QUERY = `
     collections.buff_value,
     collections.buff_element,
     collections.bonus_label,
+    collections.source,
     COUNT(cards.id) AS total_cards,
     COUNT(discoveries.card_id) AS discovered_cards,
     completions.completed_at

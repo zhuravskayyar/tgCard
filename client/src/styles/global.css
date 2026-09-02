@@ -244,6 +244,14 @@
   font-weight: 600;
 }
 
+.collection-tile__source-badge {
+  color: #d99a73;
+  font-size: .58rem;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
 .collection-tile > small {
   position: absolute;
   top: 4px;
@@ -307,6 +315,7 @@
 .collection-cover[data-collection="wild_spirits"] { --collection-tone: #756d8b; }
 .collection-cover[data-collection="dragons"],
 .collection-cover[data-collection="monsters"] { --collection-tone: #93685c; }
+.collection-cover[data-collection="witches"] { --collection-tone: #a45b53; }
 
 .collection-tile--completed .collection-cover {
   border-color: color-mix(in srgb, var(--accent-gold) 72%, var(--border-default));
@@ -338,6 +347,18 @@
   max-width: min(100%, 270px);
   margin: 0 auto;
   font-size: 1rem;
+}
+
+.collection-source-badge {
+  justify-self: center;
+  padding: 3px 9px;
+  color: #f1c18f;
+  background: linear-gradient(180deg, rgb(122 50 36 / 70%), rgb(48 21 19 / 90%));
+  border: 1px solid #8d5541;
+  border-radius: 999px;
+  font-size: .6rem;
+  font-weight: 750;
+  letter-spacing: .1em;
 }
 
 .collection-bonus {
@@ -398,6 +419,8 @@
   min-width: 0;
 }
 
+.collection-card-grid--raid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .collection-card-tile {
   position: relative;
   display: grid;
@@ -454,6 +477,21 @@
 .collection-card-tile__element .element-symbol { width: 11px; height: 11px; }
 .collection-card-tile--unknown .card-artwork { filter: brightness(.28) saturate(.25); }
 .collection-card-tile--unknown > strong { color: var(--text-secondary); }
+.collection-card-tile:not(.collection-card-tile--limited) > small {
+  position: absolute;
+  right: 4px;
+  bottom: 19px;
+  left: 4px;
+  z-index: 3;
+  overflow: hidden;
+  color: var(--accent-gold);
+  font-size: .52rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .collection-source {
   display: grid;
@@ -626,6 +664,19 @@ body {
   overflow: hidden;
   background: var(--bg-page);
   color: var(--text-primary);
+}
+
+@media (min-width: 800px) {
+  body {
+    background:
+      linear-gradient(90deg, rgb(7 9 12 / 54%), rgb(7 9 12 / 10%) 50%, rgb(7 9 12 / 54%)),
+      url("/assets/ui/desktop-dragons-background.png") center center / cover fixed no-repeat,
+      var(--bg-page);
+  }
+
+  .app-shell {
+    border-inline: 1px solid rgb(126 98 51 / 38%);
+  }
 }
 
 button {
@@ -1426,6 +1477,8 @@ button:focus-visible {
   cursor: default;
   opacity: 0.68;
 }
+.mail-message__card-reward { align-items: center; }
+.mail-message__card-reward img { width: 28px; height: 38px; border: 1px solid #aa7a35; border-radius: 3px; object-fit: contain; }
 
 .mail-message__actions {
   display: grid;
@@ -3781,6 +3834,14 @@ button:focus-visible {
   border: 0;
   filter: drop-shadow(0 2px 3px #000) drop-shadow(0 0 5px rgb(173 145 93 / 32%));
   line-height: 0;
+}
+
+.menu-row__icon-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .menu-row__title {
@@ -6750,6 +6811,15 @@ button.menu-row::before {
   font-size: .62rem;
   font-weight: 700;
 }
+
+.collection-source--raid {
+  padding: 8px 10px;
+  color: #c7a590;
+  background: rgb(61 27 25 / 32%);
+  border-block: 1px solid #6f4038;
+}
+
+.collection-source--raid strong { color: #e7c0a6; font-size: .76rem; }
 .equipment-loadout-meta { display: grid; gap: 7px; padding: 0 4px; }
 .equipment-element-total-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 .equipment-element-total { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 5px 3px; background: var(--bg-inset); border: 1px solid var(--border-subtle); border-radius: 5px; }
@@ -10536,39 +10606,6 @@ body {
   min-width: 0;
   min-height: 26px;
   max-width: 114px;
-}
-
-.top-hud .nickname-skin--compact {
-  --nickname-font-size: 1.76rem;
-  max-width: none;
-  min-height: 26px;
-  overflow: visible;
-}
-
-.top-hud .player-identity__headline > .nickname-skin {
-  max-width: none;
-  overflow: visible;
-}
-
-.top-hud .player-identity__headline > .nickname-skin .nickname {
-  max-width: none;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-
-.top-hud .player-identity > .player-deck-power {
-  max-width: 126px;
-  color: #f2d993;
-  font-size: 1.24rem;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.top-hud .player-identity > .player-deck-power .app-icon {
-  width: 24px;
-  height: 24px;
 }
 
 .nickname-skin .nickname {
@@ -15539,4 +15576,751 @@ body {
 
 @media (max-width: 360px) {
   .forge-inventory .forge-inventory__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.auth-screen__dev-login { display: grid; gap: 5px; margin-top: 18px; color: #a8895b; font-size: .58rem; font-weight: 800; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
+.auth-screen__dev-login select { min-height: 36px; padding: 0 9px; color: #ddcdb2; background: #151516; border: 1px solid #4d3e30; border-radius: 5px; font: inherit; font-size: .68rem; letter-spacing: 0; text-transform: none; }
+
+.duel-card--guild { box-shadow: inset 0 0 0 2px #bc8a43, 0 0 13px rgb(190 143 69 / 22%); }
+.duel-card__guild-mark { position: absolute; right: 6px; bottom: 6px; z-index: 4; display: inline-flex; min-height: 13px; align-items: center; padding: 1px 4px; color: #24170a; background: #d1a45a; border: 1px solid #f0d18d; border-radius: 3px; font: 800 .47rem var(--font-display); letter-spacing: .03em; line-height: 1; text-transform: uppercase; }
+.duel-card--guild > .card-fx .duel-card__guild-mark { right: 6px; bottom: 6px; }
+
+/* The legacy guild reference uses a centered 380px game canvas. Keep the
+   shared authenticated HUD and three-item navigation, but fit them into that
+   canvas only while the Guild screen is active. */
+body:has(.guild-screen) {
+  background-color: #000;
+  background-image: url('/assets/guild/reference/bg-dragons-min.jpg');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+}
+
+.app-shell:has(.guild-screen) {
+  width: min(100%, 380px);
+  background: #000;
+  box-shadow: 0 0 24px rgb(0 0 0 / 80%);
+}
+
+.app-shell:has(.guild-screen) .top-hud,
+.app-shell:has(.guild-screen) .bottom-navigation { width: min(100%, 380px); }
+
+.app-content:has(.guild-screen) {
+  padding-top: calc(42px + env(safe-area-inset-top, 0px));
+  padding-right: 12px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-left: 12px;
+}
+
+.app-shell:has(.guild-screen) .bottom-navigation {
+  min-height: 74px;
+  padding: 3px 4px env(safe-area-inset-bottom, 0px);
+  background: url('/assets/guild/reference/bg-bottom-menu.png') center / auto 100% repeat-x, #001018;
+  border-top-color: #0a4451;
+  box-shadow: 0 -4px 10px rgb(0 0 0 / 72%), inset 0 1px rgb(138 223 236 / 24%);
+}
+
+.app-shell:has(.guild-screen) .bottom-navigation__items { min-height: 67px; }
+
+.app-shell:has(.guild-screen) .bottom-navigation__item {
+  min-height: 62px;
+  gap: 3px;
+  padding: 4px 2px 5px;
+  color: #5d9ca9;
+  border-right-color: rgb(108 206 224 / 18%);
+}
+
+.app-shell:has(.guild-screen) .bottom-navigation__item .app-icon { width: 29px; height: 29px; }
+.app-shell:has(.guild-screen) .bottom-navigation__item span { color: inherit; font-size: .58rem; }
+
+.app-shell:has(.guild-screen) .bottom-navigation__item[aria-current="page"] {
+  color: #80deff;
+  background: url('/assets/guild/reference/bg-bottom-menu-selected.png') center / auto 100% repeat-x, rgb(0 48 57 / 55%);
+  box-shadow: inset 0 1px rgb(175 244 255 / 28%);
+}
+
+.app-shell:has(.guild-screen) .bottom-navigation__item[aria-current="page"]::after {
+  right: 20%;
+  left: 20%;
+  height: 2px;
+  background: #8eeaff;
+  box-shadow: 0 0 7px rgb(142 234 255 / 72%);
+}
+
+/* Unified Cardastika HUD: the authenticated shell uses one warm material
+   system on every screen, including Guild. */
+:root {
+  --hud-height: 62px;
+  --navigation-height: 68px;
+}
+
+body:has(.guild-screen) {
+  background:
+    radial-gradient(circle at 50% -12%, rgb(145 91 40 / 16%), transparent 42%),
+    linear-gradient(180deg, #0d0805 0%, #160b07 52%, #0b0604 100%);
+  background-image:
+    radial-gradient(circle at 50% -12%, rgb(145 91 40 / 16%), transparent 42%),
+    linear-gradient(180deg, #0d0805 0%, #160b07 52%, #0b0604 100%);
+}
+
+.app-shell:has(.guild-screen) {
+  width: min(100%, var(--shell-width));
+  background-color: #100805;
+  background-image:
+    linear-gradient(180deg, rgb(11 6 3 / 42%), rgb(11 6 3 / 16%) 45%, rgb(7 4 2 / 54%)),
+    url("/assets/ui/world-tree/amber-sanctum-background-v1.webp");
+  background-position: center, center;
+  background-size: cover, cover;
+  box-shadow: none;
+}
+
+.app-shell:has(.guild-screen) .top-hud,
+.app-shell:has(.guild-screen) .bottom-navigation {
+  width: min(100%, var(--shell-width));
+}
+
+.top-hud,
+.app-shell:has(.guild-screen) .top-hud {
+  box-sizing: border-box;
+  min-height: calc(var(--hud-height) + env(safe-area-inset-top, 0px));
+  height: calc(var(--hud-height) + env(safe-area-inset-top, 0px));
+  padding: calc(5px + env(safe-area-inset-top, 0px)) 10px 5px;
+  grid-template-rows: minmax(0, 1fr) 5px;
+  row-gap: 4px;
+  background-color: #1d0e09;
+  background-image:
+    linear-gradient(180deg, rgb(20 8 4 / 18%), rgb(12 5 3 / 48%)),
+    url("/assets/ui/world-tree/hud-leather-background-v1.webp");
+  background-position: center, center;
+  background-size: cover, auto 100%;
+  border-bottom-color: var(--hud-line);
+  box-shadow: 0 5px 14px rgb(0 0 0 / 32%), inset 0 -1px rgb(225 188 110 / 22%);
+}
+
+.top-hud__main,
+.app-shell:has(.guild-screen) .top-hud__main {
+  min-height: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-hud__player,
+.app-shell:has(.guild-screen) .top-hud__player {
+  min-width: 0;
+  gap: 7px;
+}
+
+.player-avatar,
+.app-shell:has(.guild-screen) .player-avatar {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-color: #aa7a3e;
+  box-shadow: inset 0 0 0 2px #1b0f09, 0 0 0 1px rgb(225 188 110 / 24%);
+  font-size: .62rem;
+}
+
+.player-identity,
+.app-shell:has(.guild-screen) .player-identity {
+  min-width: 0;
+  gap: 1px;
+}
+
+.top-hud .nickname-skin--compact,
+.app-shell:has(.guild-screen) .top-hud .nickname-skin--compact,
+.app-shell:has(.guild-screen) .top-hud .player-identity__headline > .nickname-skin {
+  --nickname-font-size: .86rem;
+  min-height: 19px;
+  max-width: 148px;
+}
+
+.top-hud .nickname-skin--compact .nickname,
+.app-shell:has(.guild-screen) .top-hud .nickname-skin--compact .nickname,
+.app-shell:has(.guild-screen) .top-hud .player-identity__headline > .nickname-skin .nickname {
+  font-size: .86rem;
+}
+
+.player-deck-power,
+.app-shell:has(.guild-screen) .top-hud .player-deck-power {
+  max-width: 148px;
+  color: #c9a663;
+  font-size: .59rem;
+  gap: 3px;
+}
+
+.top-hud .player-deck-power .app-icon,
+.app-shell:has(.guild-screen) .top-hud .player-deck-power .app-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.currency-list,
+.app-shell:has(.guild-screen) .currency-list {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.currency-display,
+.app-shell:has(.guild-screen) .currency-display {
+  width: 82px;
+  height: 25px;
+  padding: 0 6px;
+  grid-template-columns: 15px minmax(0, 1fr);
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--accent-bronze) 72%, var(--border-default));
+  border-radius: 7px;
+  background-image:
+    linear-gradient(135deg, rgb(255 244 208 / 7%), transparent 42%),
+    linear-gradient(180deg, #362116, #180b07);
+  box-shadow: inset 0 1px rgb(255 239 194 / 11%), 0 2px 5px rgb(0 0 0 / 26%);
+  font-size: .58rem;
+}
+
+.currency-display--silver,
+.app-shell:has(.guild-screen) .currency-display--silver {
+  border-color: color-mix(in srgb, var(--accent-silver) 62%, var(--border-default));
+}
+
+.currency-display--gold,
+.app-shell:has(.guild-screen) .currency-display--gold {
+  border-color: color-mix(in srgb, var(--accent-gold) 76%, var(--border-default));
+}
+
+.currency-display .app-icon,
+.app-shell:has(.guild-screen) .currency-display .app-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.top-hud__xp,
+.app-shell:has(.guild-screen) .top-hud__xp {
+  height: 5px;
+  min-height: 5px;
+}
+
+.top-hud__xp-track,
+.app-shell:has(.guild-screen) .top-hud__xp-track {
+  border: 1px solid rgb(225 188 110 / 35%);
+  border-radius: 3px;
+  background: rgb(18 8 4 / 76%);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 60%);
+}
+
+.top-hud__xp-fill,
+.app-shell:has(.guild-screen) .top-hud__xp-fill {
+  background: linear-gradient(90deg, #8b5c2e, #dfb867 58%, #ffe7a0);
+  box-shadow: 0 0 8px rgb(225 188 110 / 54%);
+}
+
+.top-hud::after,
+.app-shell:has(.guild-screen) .top-hud::after {
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  background: linear-gradient(90deg, transparent, rgb(225 188 110 / 70%) 28% 72%, transparent);
+}
+
+.app-content,
+.app-content:has(.guild-screen) {
+  padding-top: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 10px);
+}
+
+.bottom-navigation,
+.app-shell:has(.guild-screen) .bottom-navigation {
+  min-height: calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px));
+  padding: 5px 6px env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(180deg, #24150e, #0e0704 78%);
+  border-top-color: var(--hud-line);
+  box-shadow: 0 -9px 24px rgb(0 0 0 / 48%), inset 0 1px 0 rgb(225 188 110 / 12%);
+}
+
+.bottom-navigation__item,
+.app-shell:has(.guild-screen) .bottom-navigation__item {
+  min-height: 56px;
+  gap: 3px;
+  padding: 4px 3px 5px;
+  color: #a9906a;
+  border-right-color: rgb(225 188 110 / 14%);
+}
+
+.bottom-navigation__item .app-icon,
+.app-shell:has(.guild-screen) .bottom-navigation__item .app-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.bottom-navigation__item span,
+.app-shell:has(.guild-screen) .bottom-navigation__item span {
+  color: inherit;
+  font-size: .62rem;
+}
+
+.bottom-navigation__item[aria-current="page"],
+.app-shell:has(.guild-screen) .bottom-navigation__item[aria-current="page"] {
+  color: #f4d58d;
+  background: linear-gradient(180deg, rgb(154 105 48 / 34%), rgb(54 29 13 / 58%));
+  box-shadow: inset 0 1px rgb(255 232 164 / 22%), inset 0 -1px rgb(16 8 4 / 70%);
+}
+
+.bottom-navigation__item[aria-current="page"]::after,
+.app-shell:has(.guild-screen) .bottom-navigation__item[aria-current="page"]::after {
+  right: 20%;
+  left: 20%;
+  height: 2px;
+  background: #f1c96e;
+  box-shadow: 0 0 7px rgb(241 201 110 / 62%);
+}
+
+@media (max-width: 390px) {
+  .top-hud,
+  .app-shell:has(.guild-screen) .top-hud {
+    padding-inline: 7px;
+  }
+
+  .currency-display,
+  .app-shell:has(.guild-screen) .currency-display {
+    width: 72px;
+    padding-inline: 5px;
+  }
+
+  .top-hud .nickname-skin--compact,
+  .app-shell:has(.guild-screen) .top-hud .nickname-skin--compact,
+  .app-shell:has(.guild-screen) .top-hud .player-identity__headline > .nickname-skin {
+    max-width: 118px;
+  }
+}
+
+/* Every desktop screen shares the supplied dragon artwork around the centered
+   game canvas. */
+@media (min-width: 800px) {
+  body,
+  body:has(.guild-screen) {
+    background:
+      linear-gradient(90deg, rgb(7 9 12 / 38%), rgb(7 9 12 / 8%) 50%, rgb(7 9 12 / 38%)),
+      url("/assets/ui/desktop-dragons-background.png") center center / 100% 100% fixed no-repeat,
+      var(--bg-page);
+  }
+}
+
+/* Shop offer rows follow the compact card-list treatment from the reference. */
+.shop-base-offers { gap: 0; }
+.shop-offer {
+  margin-bottom: 36px;
+  overflow: visible;
+  border-radius: 7px;
+  background-position: center, 76% center;
+  border-color: color-mix(in srgb, var(--offer-accent) 72%, #79552b);
+  box-shadow: inset 0 0 0 2px rgb(6 8 9 / 92%), 0 3px 10px rgb(0 0 0 / 42%);
+}
+.shop-offer--uncommon { --offer-accent: #7bdd52; }
+.shop-offer--epic { --offer-accent: #d35cdb; }
+.shop-offer--legendary { --offer-accent: #f09a2f; }
+.shop-offer__summary {
+  min-height: 88px;
+  padding: 7px 10px 3px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+.shop-offer__symbol {
+  width: 58px;
+  height: 76px;
+  align-self: start;
+  overflow: hidden;
+  background: rgb(5 7 8 / 88%);
+  border: 2px solid color-mix(in srgb, var(--offer-accent) 55%, #c8b48a);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 2px rgb(7 9 10 / 78%), 0 2px 5px rgb(0 0 0 / 62%);
+}
+.shop-offer__artwork { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shop-offer__symbol .card-quality-badge { top: 3px; left: 3px; transform: none; }
+.shop-offer__copy { align-content: start; gap: 4px; padding-top: 1px; }
+.shop-offer__eyebrow,
+.shop-offer__guarantee { display: none; }
+.shop-offer__copy h3 {
+  color: var(--offer-accent);
+  font-size: .99rem;
+  line-height: 1.12;
+  text-shadow: 0 1px 2px #090605;
+}
+.shop-offer__chance {
+  display: flex;
+  min-height: 24px;
+  margin: 0;
+  align-items: center;
+  gap: 6px;
+}
+.shop-offer__chance-badge {
+  min-width: 44px;
+  min-height: 22px;
+  padding: 3px 5px;
+  color: #fff;
+  background: color-mix(in srgb, var(--offer-accent) 88%, #4c1010);
+  border: 1px solid color-mix(in srgb, var(--offer-accent) 90%, #ffe7a7);
+  border-radius: 2px;
+  font-size: .68rem;
+  line-height: 1;
+}
+.shop-offer__chance > span:last-child {
+  overflow: hidden;
+  color: #f5f0e8;
+  font-size: .67rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #090605;
+}
+.shop-offer__details { margin: 0; border-top: 0; }
+.shop-offer__details summary {
+  display: block;
+  min-height: 17px;
+  padding: 0;
+  list-style: none;
+}
+.shop-offer__details summary::-webkit-details-marker { display: none; }
+.shop-offer__details-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #32d9f6;
+  font-size: .66rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.shop-offer__details-link .app-icon { color: currentColor; }
+.shop-offer__footer {
+  height: 18px;
+  min-height: 18px;
+  padding: 0 10px;
+  align-items: center;
+  justify-content: center;
+}
+.shop-offer__footer-note { display: none; }
+.shop-offer__purchase {
+  position: absolute;
+  right: 50%;
+  bottom: -22px;
+  z-index: 3;
+  width: min(100%, 220px);
+  min-height: 34px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transform: translateX(50%);
+}
+.shop-offer--epic::after,
+.shop-offer--legendary::after {
+  border-radius: inherit;
+}
+.shop-offer__purchase--gold:disabled {
+  color: #f5ffe8;
+  background: linear-gradient(180deg, #58b82e 0%, #147108 100%);
+  border-color: #9bdb5d;
+  box-shadow: inset 0 1px rgb(232 255 184 / 45%), 0 3px 8px rgb(0 0 0 / 50%);
+  opacity: 1;
+}
+.shop-offer__purchase--silver:disabled {
+  color: #e9fcff;
+  background: linear-gradient(180deg, #43bfdc 0%, #096a87 100%);
+  border-color: #96e6f4;
+  box-shadow: inset 0 1px rgb(223 255 255 / 42%), 0 3px 8px rgb(0 0 0 / 50%);
+  opacity: 1;
+}
+.shop-offer__purchase--gold:not(:disabled) {
+  color: #f5ffe8;
+  background: linear-gradient(180deg, #58b82e 0%, #147108 100%);
+  border-color: #9bdb5d;
+  box-shadow: inset 0 1px rgb(232 255 184 / 45%), 0 3px 8px rgb(0 0 0 / 50%);
+}
+.shop-offer__purchase--silver:not(:disabled) {
+  color: #e9fcff;
+  background: linear-gradient(180deg, #43bfdc 0%, #096a87 100%);
+  border-color: #96e6f4;
+  box-shadow: inset 0 1px rgb(223 255 255 / 42%), 0 3px 8px rgb(0 0 0 / 50%);
+}
+.shop-offer__purchase--gold:not(:disabled),
+.shop-offer__purchase--gold:disabled {
+  min-height: 52px;
+  height: 52px;
+  padding: 8px 18px;
+  color: #f5ffe8;
+  background: transparent url("/assets/ui/shop/shop_purchase_gold.png") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+.shop-offer__purchase--silver:not(:disabled),
+.shop-offer__purchase--silver:disabled {
+  min-height: 52px;
+  height: 52px;
+  padding: 8px 18px;
+  color: #e9fcff;
+  background: transparent url("/assets/ui/shop/shop_purchase_silver.png") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+
+.shop-insufficient-modal {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: grid;
+  padding: 16px;
+  place-items: center;
+  background: rgb(2 4 5 / 74%);
+}
+.shop-insufficient-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.shop-insufficient-modal__dialog {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(100%, 320px);
+  gap: 9px;
+  padding: 18px 16px 15px;
+  background: linear-gradient(145deg, rgb(25 38 39 / 98%), rgb(7 15 19 / 99%));
+  border: 1px solid var(--border-active);
+  border-radius: 7px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 68%), inset 0 0 24px rgb(207 164 52 / 10%);
+  text-align: center;
+}
+.shop-insufficient-modal__eyebrow { color: var(--accent-bronze); font-size: .56rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+.shop-insufficient-modal__dialog h2 { margin: 0; color: var(--accent-gold); font-family: "Lugatype", Georgia, "Times New Roman", serif; font-size: 1.08rem; line-height: 1.15; }
+.shop-insufficient-modal__dialog p { display: flex; margin: 0; align-items: center; justify-content: center; gap: 4px; color: var(--text-secondary); font-size: .72rem; line-height: 1.35; }
+.shop-insufficient-modal__dialog p strong { color: #f2d273; font-size: .86rem; }
+.shop-insufficient-modal__dialog p .currency-icon { flex: 0 0 auto; }
+.shop-insufficient-modal__ok { min-height: 38px; padding: 7px 16px; color: #1a190b; background: linear-gradient(180deg, #e8c766, #a87b25); border: 1px solid #ffe99a; border-radius: 5px; box-shadow: inset 0 1px rgb(255 255 255 / 42%), 0 4px 12px rgb(0 0 0 / 38%); font-size: .72rem; font-weight: 850; cursor: pointer; }
+.shop-insufficient-modal__ok:active { transform: translateY(1px); }
+
+@media (max-width: 360px) {
+  .shop-offer__summary { grid-template-columns: 53px minmax(0, 1fr); gap: 7px; }
+  .shop-offer__symbol { width: 53px; height: 70px; }
+  .shop-offer__purchase { width: min(100%, 205px); font-size: .65rem; }
+}
+
+/* Profile reference: keep the title as a compact row and show four slots per side. */
+.profile-heading.profile-heading {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 5px;
+}
+
+.profile-heading.profile-heading h1 {
+  font-size: .72rem;
+  letter-spacing: .1em;
+}
+
+.profile-identity-block .profile-identity-block__league-empty,
+.profile-identity-block > .league-badge {
+  display: none;
+}
+
+.profile-equipment .equipment-loadout-panel {
+  grid-template-columns: clamp(48px, 15vw, 62px) minmax(0, 1fr) clamp(48px, 15vw, 62px);
+}
+
+.profile-guild-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 52px auto;
+  align-content: start;
+  align-items: start;
+  justify-items: center;
+  gap: 2px;
+  width: min(100%, 116px);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  color: var(--equipment-text-primary);
+  background: transparent;
+  border: 0;
+  text-align: center;
+  cursor: pointer;
+}
+
+.profile-guild-card:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+
+.profile-guild-card--state { cursor: default; }
+
+.profile-guild-card__copy {
+  display: grid;
+  min-width: 0;
+  width: 100%;
+  justify-items: center;
+  gap: 1px;
+}
+
+.profile-guild-card__copy strong,
+.profile-guild-card__copy span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-guild-card__copy strong {
+  color: #ee9947;
+  font-size: .62rem;
+  line-height: 1.1;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.profile-guild-card__copy span {
+  color: #fff;
+  font-size: .56rem;
+  line-height: 1.1;
+}
+
+.profile-guild-card__shield {
+  position: relative;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  place-items: center;
+  color: var(--accent-gold);
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 72%));
+}
+
+.profile-guild-card__shield-sprite {
+  position: absolute;
+  top: -65%;
+  right: 0;
+  left: 0;
+  height: 185%;
+  background: url("/assets/guild/guild-shields-simple.png") no-repeat;
+  background-size: 400% 200%;
+}
+
+.profile-guild-card__shield > .app-icon {
+  width: 36px;
+  height: 36px;
+}
+
+@media (max-width: 390px) {
+  .profile-guild-card { width: min(100%, 102px); }
+  .profile-guild-card__shield { width: 48px; height: 48px; }
+  .profile-guild-card__copy strong { font-size: .57rem; }
+  .profile-guild-card__copy span { font-size: .53rem; }
+}
+
+.profile-identity-block {
+  grid-template-columns: minmax(64px, 1fr) minmax(106px, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.profile-player-card {
+  display: grid;
+  grid-template-rows: 52px auto auto;
+  align-content: start;
+  justify-items: center;
+  min-width: 0;
+  gap: 2px;
+  text-align: center;
+}
+
+.profile-player-card .profile-showcase__portrait {
+  width: 52px;
+  height: 52px;
+  margin: 0;
+}
+
+.profile-player-card .nickname-skin {
+  min-width: 0;
+  min-height: 16px;
+  max-width: 100%;
+  justify-content: center;
+}
+
+.profile-player-card .nickname-skin .nickname {
+  max-width: 100%;
+  color: #f6eee1 !important;
+  font-size: .62rem;
+  text-align: center;
+}
+
+.profile-player-card__level {
+  color: var(--equipment-text-secondary);
+  font-size: .56rem;
+  line-height: 1.1;
+}
+
+@media (max-width: 390px) {
+  .profile-identity-block { grid-template-columns: minmax(58px, 1fr) minmax(96px, 1fr); }
+  .profile-player-card .profile-showcase__portrait { width: 48px; height: 48px; }
+  .profile-player-card { grid-template-rows: 48px auto auto; }
+}
+
+/* Supplied profile artwork replaces the generic record/rating glyphs. */
+.profile-screen {
+  position: relative;
+  isolation: isolate;
+}
+
+.profile-screen::before {
+  position: absolute;
+  z-index: -1;
+  top: 32px;
+  right: -16px;
+  left: -16px;
+  height: 520px;
+  content: "";
+  pointer-events: none;
+  background: url("/assets/ui/profile/profile-parchment.png") center / 100% 100% no-repeat;
+  opacity: .08;
+}
+
+.profile-record-grid__asset,
+.profile-rating-grid__asset {
+  display: block;
+  width: 100%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 44%));
+}
+
+.profile-record-grid__asset {
+  height: 56px;
+  max-width: 76px;
+}
+
+.profile-rating-grid__asset {
+  height: 52px;
+  max-width: 70px;
+}
+
+.profile-xp-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 44%));
+}
+
+.profile-facts .profile-xp-icon {
+  width: 16px;
+  height: 16px;
 }

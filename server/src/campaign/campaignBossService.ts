@@ -35,6 +35,7 @@ import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/car
 import { getCompletedCollectionModifiers, recordCardDiscovery } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { loadDuelParticipant } from "../duel/duelService.js";
+import type { GuildActivityRecorder } from "../guild/guildService.js";
 import type { CampaignService } from "./campaignService.js";
 import {
   CAMPAIGN_BOSS_BASE_REWARD,
@@ -282,6 +283,7 @@ export class CampaignBossService {
     private readonly campaign: Pick<CampaignService, "recordEvent">,
     private readonly random: RandomSource = Math.random,
     cardRandom?: IntegerRandomSource,
+    private readonly guildActivity?: GuildActivityRecorder,
   ) {
     this.cardRandom = cardRandom ?? new CryptoCardRandomSource();
   }
@@ -504,6 +506,7 @@ export class CampaignBossService {
             [playerId, now],
           );
           if (campaignFinalized.rowCount !== 1) throw new CampaignBossBattleConflictError();
+          await this.guildActivity?.recordActivity(client, playerId, "campaign_win", `campaign:${battleId}`, now);
           result = {
             outcome: "win",
             xp: reward.xp,

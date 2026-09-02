@@ -84,12 +84,14 @@ export function EquipmentLoadout({
   className = "",
   compact = false,
   equipped,
+  hideVoodoo = false,
   onSelectSlot,
   readonly = false,
 }: {
   className?: string;
   compact?: boolean;
   equipped: EquippedEquipment;
+  hideVoodoo?: boolean;
   onSelectSlot?: (slot: EquipmentSlot, definition?: EquipmentDefinition) => void;
   readonly?: boolean;
 }) {
@@ -101,6 +103,7 @@ export function EquipmentLoadout({
       return definition ? [[slot, definition] as const] : [];
     }),
   );
+  const artifactSlots = hideVoodoo ? EQUIPMENT_ARTIFACT_SLOTS.filter((slot) => slot !== "voodoo") : EQUIPMENT_ARTIFACT_SLOTS;
 
   return (
     <div aria-label={readonly ? "Перегляд спорядження" : "Екіпіроване спорядження"} className={`equipment-loadout-panel${compact ? " equipment-loadout-panel--compact" : ""}${className ? ` ${className}` : ""}`}>
@@ -112,7 +115,7 @@ export function EquipmentLoadout({
       </div>
       <EquipmentCharacter compact={compact} />
       <div className="equipment-loadout__layer equipment-loadout__layer--equipmentSlots equipment-loadout__column equipment-loadout__column--right">
-        {EQUIPMENT_ARTIFACT_SLOTS.map((slot) => {
+        {artifactSlots.map((slot) => {
           const definition = definitionsBySlot.get(slot);
           return <EquipmentSlotCard definition={definition} key={slot} onSelect={onSelectSlot && !readonly ? () => onSelectSlot(slot, definition) : undefined} slot={slot} />;
         })}

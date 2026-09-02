@@ -7,6 +7,7 @@ import {
   applyDuelOutcomeToStats,
   calculateDuelDamage,
   calculateDuelReward,
+  cycleCardPoolSlotWithGuildCard,
   getDuelGoldReward,
   cycleCardPoolSlot,
   getDuelBaseSilver,
@@ -17,6 +18,7 @@ import {
   getMatchmakingRange,
   getRequiredAccountXp,
   getStartingHp,
+  GUILD_CARD_APPEARANCE_CHANCE,
   initializeCyclicCardPool,
   isDeckPowerInMatchmakingRange,
   resolveDuelExchange,
@@ -86,6 +88,28 @@ test("deterministic initial pool has three active cards and a cyclic six-card re
   for (let index = 0; index < 6; index += 1) pool = cycleCardPoolSlot(pool, 1);
   assert.equal(pool.activeCards[1].code, "B");
   assert.equal(new Set([...pool.activeCards, ...pool.reserveQueue].map(({ code }) => code)).size, 9);
+});
+
+test("Guild Card draw is injectable, additive, and never becomes a tenth deck card", () => {
+  const deckCards = "ABCDEFGHI".split("").map((code) => card(code));
+  const guildCard = { ...card("G", "water", 240), source: "guild" as const };
+  const pool = initializeCyclicCardPool(deckCards, () => 0.999999);
+
+  const missed = cycleCardPoolSlotWithGuildCard(pool, 1, guildCard, () => GUILD_CARD_APPEARANCE_CHANCE);
+  assert.equal(missed.guildCardAppeared, false);
+  assert.equal(missed.pool.activeCards[1]?.code, "D");
+  assert.equal(new Set([...missed.pool.activeCards, ...missed.pool.reserveQueue].filter(({ source }) => source !== "guild").map(({ code }) => code)).size, 9);
+
+  const appeared = cycleCardPoolSlotWithGuildCard(pool, 1, guildCard, () => GUILD_CARD_APPEARANCE_CHANCE - 0.001);
+  assert.equal(appeared.guildCardAppeared, true);
+  assert.equal(appeared.pool.activeCards[1]?.source, "guild");
+  assert.equal(appeared.pool.reserveQueue.length, 7);
+  assert.equal(new Set([...appeared.pool.activeCards, ...appeared.pool.reserveQueue].filter(({ source }) => source !== "guild").map(({ code }) => code)).size, 9);
+
+  const returnedToDeck = cycleCardPoolSlotWithGuildCard(appeared.pool, 1, guildCard, () => 0.999);
+  assert.equal(returnedToDeck.pool.activeCards[1]?.code, "D");
+  assert.equal(returnedToDeck.pool.reserveQueue.length, 6);
+  assert.equal(returnedToDeck.pool.activeCards.some(({ source }) => source === "guild"), false);
 });
 
 test("mirrored exchange uses the same selected slot and preserves historical card snapshots", () => {

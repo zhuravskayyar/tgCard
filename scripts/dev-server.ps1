@@ -53,5 +53,11 @@ foreach ($name in @("DATABASE_URL", "TELEGRAM_BOT_TOKEN")) {
   }
 }
 
+if ($env:NODE_ENV -eq "production") {
+  Remove-Item Env:CARDASTIKA_DEV_AUTH -ErrorAction SilentlyContinue
+} else {
+  $env:CARDASTIKA_DEV_AUTH = "true"
+}
+
 & npm.cmd run dev --workspace server
 exit $LASTEXITCODE

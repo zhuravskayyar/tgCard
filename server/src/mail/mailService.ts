@@ -1,17 +1,34 @@
 import type {
+  CardDefinition,
+  CardRarity,
   PlayerMailAction,
   PlayerMailActionResponse,
+  PlayerMailCardReward,
   PlayerBalance,
   PlayerMailClaimResponse,
   PlayerMailMessage,
   PlayerMailResponse,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
+import { recordCardDiscovery } from "../collections/discoveryService.js";
+import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 
 interface MailRow {
   action_completed_at: Date | string | null;
   action_type: "none" | "nickname_change";
   body: string;
+  card_art_key: string | null;
+  card_code: string | null;
+  card_description: string | null;
+  card_display_name: string | null;
+  card_element: "fire" | "water" | "air" | "earth" | null;
+  card_id: string | null;
+  card_level: number | string | null;
+  card_collection_id: string | null;
+  card_limited: boolean | null;
+  card_min_rarity: CardRarity | null;
+  card_shop_eligible: boolean | null;
   claimed_at: Date | string | null;
   created_at: Date | string;
   gold: string | number;
@@ -19,6 +36,17 @@ interface MailRow {
   silver: string | number;
   subject: string;
 }
+
+const MAIL_SELECT = `
+  player_mail.id, player_mail.subject, player_mail.body, player_mail.silver, player_mail.gold,
+  player_mail.created_at, player_mail.claimed_at, player_mail.action_type, player_mail.action_completed_at,
+  player_mail.card_id, player_mail.card_level,
+  reward_cards.art_key AS card_art_key, reward_cards.code AS card_code,
+  reward_cards.description AS card_description, reward_cards.display_name AS card_display_name,
+  reward_cards.element AS card_element, reward_cards.collection_id AS card_collection_id,
+  reward_cards.limited AS card_limited, reward_cards.min_rarity AS card_min_rarity,
+  reward_cards.shop_eligible AS card_shop_eligible
+`;
 
 interface BalanceRow {
   gold: string | number;
@@ -40,6 +68,14 @@ function toIso(value: Date | string) {
 }
 
 function toMessage(row: MailRow): PlayerMailMessage {
+  const cardReward: PlayerMailCardReward | null = row.card_id === null ? null : {
+    artKey: row.card_art_key,
+    cardId: row.card_id,
+    code: row.card_code ?? row.card_id,
+    displayName: row.card_display_name,
+    element: row.card_element ?? "fire",
+    level: toNonNegativeInteger(row.card_level ?? 0, "mail card level"),
+  };
   return {
     actionCompletedAt: row.action_completed_at === null ? null : toIso(row.action_completed_at),
     actionType: row.action_type,
@@ -48,6 +84,7 @@ function toMessage(row: MailRow): PlayerMailMessage {
     createdAt: toIso(row.created_at),
     gold: toNonNegativeInteger(row.gold, "mail gold"),
     id: row.id,
+    cardReward,
     silver: toNonNegativeInteger(row.silver, "mail silver"),
     subject: row.subject,
   };
@@ -102,9 +139,10 @@ export class MailService {
       await this.ensureNicknameChangeMail(playerId);
       const result = await this.pool.query<MailRow>(
         `
-          SELECT id, subject, body, silver, gold, created_at, claimed_at, action_type, action_completed_at
+          SELECT ${MAIL_SELECT}
           FROM player_mail
-          WHERE player_id = $1
+          LEFT JOIN cards reward_cards ON reward_cards.id = player_mail.card_id
+          WHERE player_mail.player_id = $1
           ORDER BY created_at DESC, id DESC
         `,
         [playerId],
@@ -130,10 +168,11 @@ export class MailService {
 
       const mailResult = await client.query<MailRow>(
         `
-          SELECT id, subject, body, silver, gold, created_at, claimed_at, action_type, action_completed_at
+          SELECT ${MAIL_SELECT}
           FROM player_mail
-          WHERE id = $1 AND player_id = $2
-          FOR UPDATE
+          LEFT JOIN cards reward_cards ON reward_cards.id = player_mail.card_id
+          WHERE player_mail.id = $1 AND player_mail.player_id = $2
+          FOR UPDATE OF player_mail
         `,
         [messageId, playerId],
       );
@@ -150,6 +189,32 @@ export class MailService {
       let claimed = false;
       let claimedAt = message.claimed_at;
       if (claimedAt === null) {
+        if (message.card_id !== null) {
+          if (
+            !message.card_code || !message.card_element || !message.card_description
+            || message.card_level === null || message.card_min_rarity === null
+            || message.card_limited === null || message.card_shop_eligible === null
+          ) {
+            throw new Error("Mail card reward definition is incomplete");
+          }
+          const definition: CardDefinition = {
+            artKey: message.card_art_key,
+            code: message.card_code,
+            collectionId: message.card_collection_id,
+            description: message.card_description,
+            displayName: message.card_display_name,
+            element: message.card_element,
+            id: message.card_id,
+            limited: message.card_limited,
+            minRarity: message.card_min_rarity,
+            shopEligible: message.card_shop_eligible,
+            source: "raid",
+          };
+          const cardLevel = toNonNegativeInteger(message.card_level, "mail card level");
+          await createStandardCardInstance(client, playerId, definition, cardLevel, new CryptoCardRandomSource());
+          await recordCardDiscovery(client, playerId, message.card_id);
+          await recalculateAutomaticDeck(client, playerId);
+        }
         const updatedPlayer = await client.query<BalanceRow>(
           `
             UPDATE players

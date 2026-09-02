@@ -78,6 +78,7 @@ export function CollectionsScreen({ onBack, onOpenCollection, onOpenLimitedCard,
             <span className="collection-tile__meta">
               <strong>{collection.displayName}</strong>
               <span>{collection.discoveredCards}/{collection.totalCards}</span>
+              {collection.source === "raid" ? <small className="collection-tile__source-badge">Рейдова колекція</small> : null}
             </span>
             {collection.completed ? <small aria-label="Колекцію зібрано">✓</small> : null}
           </button>)}
@@ -123,22 +124,25 @@ export function CollectionDetailScreen({ collectionId, onBack, onOpenCard, onOpe
   if (state.status !== "ready") return <section className="collections-screen"><header className="collections-heading"><CollectionBack label="Назад до колекцій" onClick={onBack} /></header><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
   const { collection, cards } = state.data;
   const highlightedCardId = tutorialCardId && cards.some((card) => card.id === tutorialCardId) ? tutorialCardId : null;
-  return <section className="collection-detail-screen">
+  const isRaidCollection = collection.source === "raid";
+  return <section className={`collection-detail-screen${isRaidCollection ? " collection-detail-screen--raid" : ""}`}>
     <header className="collection-detail-heading"><CollectionBack label="Назад до колекцій" onClick={onBack} /><CardNameBadge name={collection.displayName} /></header>
+    {isRaidCollection ? <div className="collection-source-badge" aria-label="Рейдова колекція">РЕЙДОВА КОЛЕКЦІЯ</div> : null}
     <div className="collection-hero" aria-hidden="true"><span /><CollectionCover code={collection.code} coverArtKey={collection.coverArtKey} completed={collection.completed} /><span /></div>
-    <section className={`collection-bonus${collection.completed ? " collection-bonus--active" : ""}`}><span>БОНУС КОЛЕКЦІЇ</span><strong>{collection.bonusLabel}</strong><p>{collection.completed ? "Бонус активний" : "Бонус відкриється після збору всієї колекції"}</p></section>
-    <p className="collection-progress">Знайдено <strong>{collection.discoveredCards}/{collection.totalCards}</strong> карт</p>
+    <section className={`collection-bonus${collection.completed ? " collection-bonus--active" : ""}`}><span>{isRaidCollection ? "БОНУС ЗІБРАНОЇ КОЛЕКЦІЇ" : "БОНУС КОЛЕКЦІЇ"}</span><strong>{collection.bonusLabel}</strong><p>{collection.completed ? "Бонус активний" : "Бонус відкриється після збору всієї колекції"}</p></section>
+    <p className="collection-progress">{isRaidCollection ? (collection.completed ? "Колекція зібрана" : <>Колекція: <strong>{collection.discoveredCards}/{collection.totalCards}</strong></>) : <>Знайдено <strong>{collection.discoveredCards}/{collection.totalCards}</strong> карт</>}</p>
     <div className="collection-card-mosaic">
-      <div className="collection-card-grid" aria-label={`Карти колекції ${collection.displayName}`}>
-        {cards.map((card, index) => <button aria-label={`${card.displayName}: ${card.discovered ? "знайдено" : "не знайдено"}`} className={`collection-card-tile deck-card--${card.element} deck-card--${card.minRarity}${card.discovered ? "" : " collection-card-tile--unknown"}`} data-tutorial-target={highlightedCardId ? card.id === highlightedCardId ? "collection-first-card" : undefined : index === 0 ? "collection-first-card" : undefined} key={card.id} onClick={() => onOpenCard(card.id)} type="button">
+      <div className={`collection-card-grid${isRaidCollection ? " collection-card-grid--raid" : ""}`} aria-label={`Карти колекції ${collection.displayName}`}>
+        {cards.map((card, index) => <button aria-label={`${card.displayName}, стихія: ${elementLabels[card.element]}, ${card.discovered ? "отримано" : "не отримано"}`} className={`collection-card-tile deck-card--${card.element} deck-card--${card.minRarity}${card.discovered ? "" : " collection-card-tile--unknown"}`} data-tutorial-target={highlightedCardId ? card.id === highlightedCardId ? "collection-first-card" : undefined : index === 0 ? "collection-first-card" : undefined} key={card.id} onClick={() => onOpenCard(card.id)} type="button">
           <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} />
           <CardQualityBadge rarity={card.minRarity} size="tiny" />
           <span className="collection-card-tile__element"><ElementSymbol element={card.element} /></span>
           <strong>{card.displayName}</strong>
+          <small>{card.discovered ? "Отримано" : "Не отримано"}</small>
         </button>)}
       </div>
     </div>
-    <div className="collection-source"><span>Де знайти карти цієї колекції?</span><button onClick={onOpenShop} type="button">Магазин <AppIcon name="chevron" size={17} /></button></div>
+    {isRaidCollection ? <div className="collection-source collection-source--raid"><span>Джерело карт</span><strong>Карти цієї колекції можна отримати лише в рейдах.</strong></div> : <div className="collection-source"><span>Де знайти карти цієї колекції?</span><button onClick={onOpenShop} type="button">Магазин <AppIcon name="chevron" size={17} /></button></div>}
   </section>;
 }
 
@@ -165,7 +169,7 @@ export function CollectionCardScreen({ collectionId, cardId, onBack, onOpenInsta
     <p className="collection-card-meta">{elementLabels[card.element]} <span>•</span> Мінімум: {rarityLabels[card.minRarity]}</p>
     <div className={`collection-card-visual deck-card--${card.element} deck-card--${card.minRarity}${card.discovered ? "" : " collection-card-visual--unknown"}`}><CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} /><CardQualityBadge rarity={card.minRarity} size="medium" /><span><ElementSymbol element={card.element} /></span></div>
     <p className="collection-card-description" data-tutorial-target="collection-card-info">{card.description}</p>
-    <dl className="collection-card-facts"><div><dt>Колекція</dt><dd>{collection.displayName}</dd></div><div><dt>Статус</dt><dd className={card.discovered ? "is-found" : ""}>{card.discovered ? "Знайдено" : "Не знайдено"}</dd></div>{card.discovered ? <div><dt>Копій у власності</dt><dd>{card.ownedCopies}</dd></div> : null}</dl>
+    <dl className="collection-card-facts"><div><dt>Колекція</dt><dd>{collection.displayName}</dd></div><div><dt>Статус</dt><dd className={card.discovered ? "is-found" : ""}>{card.discovered ? "Знайдено" : "Не знайдено"}</dd></div>{collection.source === "raid" ? <div><dt>Джерело</dt><dd>Лише рейди</dd></div> : null}{card.discovered ? <div><dt>Копій у власності</dt><dd>{card.ownedCopies}</dd></div> : null}</dl>
     {card.strongestInstanceId ? (
       <button className="collection-instance-link menu-row--metal-texture" onClick={() => onOpenInstance(card.strongestInstanceId!)} type="button">
         <MenuTextureSlices />

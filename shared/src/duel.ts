@@ -6,6 +6,7 @@ import type { LeagueProgressionResult } from "./leagues.js";
 export type DuelStatus = "active" | "won" | "lost";
 export type DuelOutcome = "win" | "loss";
 export type ElementMultiplier = 0.5 | 1 | 1.5;
+export type DuelCardSource = "deck" | "guild";
 
 export interface DuelBattleModifiers {
   battleDamagePct: number;
@@ -31,6 +32,7 @@ export interface DuelCardSnapshot {
   level: number;
   limited?: boolean;
   rarity: CardRarity;
+  source?: DuelCardSource;
 }
 
 export interface DuelSideSnapshot {

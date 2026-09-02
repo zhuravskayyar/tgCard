@@ -59,18 +59,28 @@ import { NicknameSkinService } from "./cosmetics/nicknameSkinService.js";
 import { handlePlayerEquipment } from "./equipment/equipmentRoute.js";
 import { handleEquipmentManual } from "./equipment/equipmentManualRoute.js";
 import { EquipmentManualService } from "./equipment/equipmentManualService.js";
+import { handleGuildForumReference } from "./reference/guildForumReferenceRoute.js";
+import { GuildForumReferenceService } from "./reference/guildForumReferenceService.js";
 import { handleBattlePassRequest } from "./battlePassRoute.js";
 import { BattlePassService } from "./battlePassService.js";
+import { handleDevAuthRequest } from "./dev/devAuthRoute.js";
+import { handleGuildRequest } from "./guild/guildRoute.js";
+import { GuildService } from "./guild/guildService.js";
+import { GuildForumService } from "./guild/guildForumService.js";
+import { GuildRaidService } from "./guild/guildRaidService.js";
 
 export const environment = getServerEnvironment();
 export const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const sessions = new SessionRepository(pool);
 const auth = new PlayerAuthService(players, sessions, environment.telegramBotToken);
+const guilds = new GuildService(pool);
+const guildForum = new GuildForumService(pool);
+const guildRaids = new GuildRaidService(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const campaign = new CampaignService(pool);
-const campaignBoss = new CampaignBossService(pool, campaign);
+const campaignBoss = new CampaignBossService(pool, campaign, Math.random, undefined, guilds);
 const referrals = new ReferralService(pool, campaign);
 const limitedCards = new LimitedCardService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
@@ -79,12 +89,14 @@ const mail = new MailService(pool);
 const leaderboards = new LeaderboardRepository(pool);
 const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
-const duels = new DuelService(pool, Math.random, campaign);
-const dungeon = new DungeonService(pool);
+const duels = new DuelService(pool, Math.random, campaign, guilds);
+const dungeon = new DungeonService(pool, guilds);
 const cardWorkshop = new CardWorkshopService(pool);
-const arena = new ArenaService(pool);
+const arena = new ArenaService(pool, guilds);
 const equipmentManual = new EquipmentManualService();
+const guildForumReference = new GuildForumReferenceService();
 const battlePass = new BattlePassService(pool);
+const devAuthEnabled = process.env.NODE_ENV !== "production" && process.env.CARDASTIKA_DEV_AUTH === "true";
 const projectDirectory = basename(process.cwd()).toLowerCase() === "server"
   ? resolve(process.cwd(), "..")
   : process.cwd();
@@ -198,6 +210,9 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isPlayerInventoryRoute = url.pathname === "/api/player/inventory";
   const isPlayerEquipmentRoute = url.pathname === "/api/player/equipment";
   const isEquipmentManualRoute = url.pathname === "/api/equipment/manual";
+  const isGuildForumReferenceRoute = url.pathname === "/api/reference/guild-forum";
+  const isGuildRoute = url.pathname === "/api/guilds" || url.pathname.startsWith("/api/guilds/");
+  const isDevAuthRoute = url.pathname === "/api/dev/accounts" || url.pathname === "/api/dev/login";
   const isNicknameSkinCatalogRoute = url.pathname === "/api/shop/nickname-skins";
   const isNicknameSkinPurchaseRoute = url.pathname === "/api/shop/nickname-skins/purchase";
   const isNicknameSkinEquipRoute = url.pathname === "/api/player/inventory/nickname-skin/equip";
@@ -231,7 +246,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -245,6 +260,16 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       googleClientId: environment.googleClientId,
       players,
       telegramBotUsername: environment.telegramBotUsername,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isDevAuthRoute) {
+    await handleDevAuthRequest(request, response, {
+      auth,
+      enabled: devAuthEnabled,
+      players,
       responseHeaders: cors.headers,
     });
     return;
@@ -374,6 +399,27 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   if (isEquipmentManualRoute) {
     await handleEquipmentManual(request, response, {
       manual: equipmentManual,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isGuildForumReferenceRoute) {
+    await handleGuildForumReference(request, response, {
+      reference: guildForumReference,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isGuildRoute) {
+    await handleGuildRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      forum: guildForum,
+      guilds,
+      raids: guildRaids,
+      players,
       responseHeaders: cors.headers,
     });
     return;

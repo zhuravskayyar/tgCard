@@ -176,5 +176,11 @@ monsters_07 | Цербер | monsters_07
 monsters_08 | Орф | monsters_08
 monsters_09 | Катоблепас | monsters_09
 
+# Відьми
+witches_01 | Відьма Вогню | witches_01
+witches_02 | Відьма Води | witches_02
+witches_03 | Відьма Землі | witches_03
+witches_04 | Відьма Повітря | witches_04
+
 # Лімітовані карти
 limited_rabbit_carter | Кролик Картер | rabbit_carter.png

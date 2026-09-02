@@ -2,6 +2,10 @@ export const CARD_ELEMENTS = ["fire", "water", "air", "earth"] as const;
 
 export type CardElement = (typeof CARD_ELEMENTS)[number];
 
+export const CARD_SOURCES = ["standard", "raid"] as const;
+
+export type CardSource = (typeof CARD_SOURCES)[number];
+
 export const CARD_RARITIES = [
   "common",
   "uncommon",
@@ -24,6 +28,7 @@ export interface CardDefinition {
   limited?: boolean;
   minRarity: CardRarity;
   shopEligible: boolean;
+  source?: CardSource;
 }
 
 export interface PlayerCardInstance {

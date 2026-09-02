@@ -6,7 +6,7 @@ This workflow has priority for every project change:
 
 1. Start the project locally on `localhost` with a real local database connected.
 2. Make all UI, logic, API, database, and gameplay changes locally first.
-3. After changes, start the local frontend and backend/API, verify the PostgreSQL connection, check console and server logs for errors, and run all available tests, builds, and typechecks.
+3. After changes, start the local frontend and backend/API as needed, verify the PostgreSQL connection when relevant, check console and server logs for errors, and run verification proportional to the scope and risk of the change.
 4. Show the local result for user review.
 5. Never run `git push`, deploy to production, or change the production environment without the user's explicit command.
 6. Wait for explicit user confirmation such as `добре`, `пуш`, or `можна в прод` before proceeding.
@@ -47,6 +47,48 @@ The required sequence is: `LOCALHOST + LOCAL DB → changes → local verificati
 - Run only checks and tests relevant to the files changed.
 - Put detailed rules and design decisions in `/docs`, not this file.
 
+## Rule for running tests after changes
+
+Verification must be proportional to the change. Do not run the full test suite,
+full build, or other expensive checks automatically after every small change.
+Start with the fastest sufficient verification and expand it only when the
+initial check finds a problem or the change has wider impact.
+
+### Small UI or content changes
+
+Examples include replacing an image or other asset, changing text, a small
+layout adjustment, margin/padding/gap changes, size/color/font changes, a small
+CSS fix, icon or decorative-element replacement, and coordinate or alignment
+changes that do not affect program logic.
+
+For these changes:
+
+- Do not run the entire test suite.
+- Inspect the changed file and check for obvious syntax or asset-reference errors.
+- Run a local or targeted component check only when it is useful.
+- Do not run all unit, integration, backend, regression, or full-package build
+  checks without a concrete reason.
+
+### Local functional changes
+
+When changing a specific function, component, API, or gameplay mechanic, run
+only the tests and checks directly related to that area. For example, deck
+logic changes do not require automatically testing the shop, profile, guild,
+or unrelated project areas.
+
+### Full verification
+
+Run the full test suite and build when the change affects shared or core logic,
+database schema or migrations, API contracts, authentication, global gameplay
+logic, a large refactor, multiple modules, or has a meaningful regression risk.
+Also run full verification when the user explicitly requests it or when the
+work is being prepared as a final large commit or release and the broader check
+is justified.
+
+If the full test suite was not run for an isolated, low-risk change, report:
+
+`Full test suite not run — change is isolated and low-risk; targeted verification was sufficient.`
+
 ## Asset generation
 
 - If the user requests one asset or one variant, generate and save exactly one
@@ -57,7 +99,8 @@ The required sequence is: `LOCALHOST + LOCAL DB → changes → local verificati
 
 - Before completing every task, verify that the active Telegram Mini App URL
   serves Cardastika and that its public `/api` path reaches the local server.
-- After every source or asset change, run the production client build and repeat
+- For source or asset changes that warrant a production build under the
+  proportional verification rule, run the production client build and repeat
   the Mini App/API availability check before handing off the task.
 - For changes that can affect authentication, player state, or UI data, open the
   Mini App through Telegram and verify that `TopHud` renders the authenticated

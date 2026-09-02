@@ -18,6 +18,7 @@ export const DUEL_POOL_SIZE = 9;
 export const MAX_ACCOUNT_LEVEL = 120;
 export const DUEL_GOLD_REWARD_MIN = 1;
 export const DUEL_GOLD_REWARD_MAX = 2;
+export const GUILD_CARD_APPEARANCE_CHANCE = 0.15;
 
 // XP required to reach each target account level. Index zero is unused;
 // index one is the level-1 baseline.
@@ -292,15 +293,49 @@ export function initializeCyclicCardPool<T>(
 export function cycleCardPoolSlot<T>(
   pool: CyclicCardPool<T>,
   slotIndex: 0 | 1 | 2,
+  options: { replacement?: T; recycleUsedCard?: boolean } = {},
 ): CyclicCardPool<T> {
-  const replacement = pool.reserveQueue[0];
+  const replacement = options.replacement ?? pool.reserveQueue[0];
   if (replacement === undefined) throw new RangeError("Duel reserve queue cannot be empty");
   const usedCard = pool.activeCards[slotIndex];
   const activeCards: ActiveCards<T> = [...pool.activeCards] as ActiveCards<T>;
   activeCards[slotIndex] = replacement;
+  const reserveQueue = options.replacement === undefined
+    ? pool.reserveQueue.slice(1)
+    : [...pool.reserveQueue];
+  if (options.recycleUsedCard !== false) reserveQueue.push(usedCard);
   return {
     activeCards,
-    reserveQueue: [...pool.reserveQueue.slice(1), usedCard],
+    reserveQueue,
+  };
+}
+
+export function cycleCardPoolSlotWithGuildCard(
+  pool: CyclicCardPool<DuelCardSnapshot>,
+  slotIndex: 0 | 1 | 2,
+  guildCard: DuelCardSnapshot | null | undefined,
+  random: RandomSource = Math.random,
+) {
+  const usedCard = pool.activeCards[slotIndex];
+  const guildCardAvailable = Boolean(guildCard && !pool.activeCards.some((card) => card.source === "guild"));
+  if (guildCardAvailable) {
+    const roll = random();
+    if (!Number.isFinite(roll) || roll < 0 || roll >= 1) {
+      throw new RangeError("Random source must return a value from 0 inclusive to 1 exclusive");
+    }
+    if (roll < GUILD_CARD_APPEARANCE_CHANCE) {
+      return {
+        guildCardAppeared: true,
+        pool: cycleCardPoolSlot(pool, slotIndex, {
+          replacement: guildCard!,
+          recycleUsedCard: usedCard.source !== "guild",
+        }),
+      };
+    }
+  }
+  return {
+    guildCardAppeared: false,
+    pool: cycleCardPoolSlot(pool, slotIndex, { recycleUsedCard: usedCard.source !== "guild" }),
   };
 }
 
@@ -334,6 +369,9 @@ export function resolveDuelExchange(input: {
   playerPool: CyclicCardPool<DuelCardSnapshot>;
   enemyMaxHp?: number;
   playerMaxHp?: number;
+  enemyGuildCard?: DuelCardSnapshot | null;
+  playerGuildCard?: DuelCardSnapshot | null;
+  random?: RandomSource;
   equipmentEnabled?: boolean;
   slotIndex: 0 | 1 | 2;
   turnNumber: number;
@@ -388,12 +426,13 @@ export function resolveDuelExchange(input: {
     enemyEquipmentState.voodooUsed = true;
   }
   const status: DuelStatus = enemyHp === 0 ? "won" : playerHp === 0 ? "lost" : "active";
+  const random = input.random ?? Math.random;
   return {
     enemyEquipmentState,
     playerHp,
     enemyHp,
-    playerPool: cycleCardPoolSlot(input.playerPool, input.slotIndex),
-    enemyPool: cycleCardPoolSlot(input.enemyPool, input.slotIndex),
+    playerPool: cycleCardPoolSlotWithGuildCard(input.playerPool, input.slotIndex, input.playerGuildCard, random).pool,
+    enemyPool: cycleCardPoolSlotWithGuildCard(input.enemyPool, input.slotIndex, input.enemyGuildCard, random).pool,
     status,
     playerEquipmentState,
     exchange: {

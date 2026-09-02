@@ -54,6 +54,7 @@ export async function selectCanonicalShopReward(
       FROM cards
       WHERE cards.shop_eligible = TRUE
         AND cards.limited = FALSE
+        AND cards.source = 'standard'
         AND array_position(
           ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
           cards.min_rarity

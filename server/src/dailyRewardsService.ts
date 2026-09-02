@@ -196,6 +196,7 @@ async function selectCardRows(database: Database, rarity: CardRarity, limit: num
       SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity
       FROM cards
       WHERE limited = FALSE
+        AND source = 'standard'
         AND array_position(
           ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
           min_rarity
@@ -214,7 +215,7 @@ async function selectCardRows(database: Database, rarity: CardRarity, limit: num
 
 async function loadCard(database: Database, cardId: string) {
   const result = await database.query<CardDefinitionRow>(
-    `SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity FROM cards WHERE id = $1`,
+    `SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity FROM cards WHERE id = $1 AND source = 'standard'`,
     [cardId],
   );
   const row = result.rows[0];

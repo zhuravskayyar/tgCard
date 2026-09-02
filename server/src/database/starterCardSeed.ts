@@ -18,9 +18,10 @@ export async function seedStarterCardDefinitions(client: PoolClient) {
           collection_id,
           min_rarity,
           shop_eligible,
-          limited
+          limited,
+          source
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (id) DO UPDATE SET
           code = EXCLUDED.code,
           display_name = EXCLUDED.display_name,
@@ -30,7 +31,8 @@ export async function seedStarterCardDefinitions(client: PoolClient) {
           collection_id = EXCLUDED.collection_id,
           min_rarity = EXCLUDED.min_rarity,
           shop_eligible = EXCLUDED.shop_eligible,
-          limited = EXCLUDED.limited
+          limited = EXCLUDED.limited,
+          source = EXCLUDED.source
       `,
       [
         card.id,
@@ -43,6 +45,7 @@ export async function seedStarterCardDefinitions(client: PoolClient) {
         card.minRarity,
         card.shopEligible,
         card.limited ?? false,
+        card.source ?? "standard",
       ],
     );
   }

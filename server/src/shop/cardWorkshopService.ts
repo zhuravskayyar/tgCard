@@ -83,7 +83,7 @@ async function loadWorkshopCards(client: Pick<PoolClient, "query">, now = new Da
     `
       SELECT id, code, display_name, art_key, element, min_rarity, description
       FROM cards
-      WHERE shop_eligible = TRUE AND limited = FALSE
+      WHERE shop_eligible = TRUE AND limited = FALSE AND source = 'standard'
       ORDER BY id
     `,
   );
@@ -118,7 +118,7 @@ export class CardWorkshopService {
         `
           SELECT id, code, display_name, art_key, element, min_rarity, description
           FROM cards
-          WHERE shop_eligible = TRUE AND limited = FALSE
+          WHERE shop_eligible = TRUE AND limited = FALSE AND source = 'standard'
           ORDER BY id
         `,
       );

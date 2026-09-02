@@ -13,7 +13,7 @@ const RETIRED_FALLBACK_CARD_CODES = [
 export async function seedCollectionDefinitions(client: PoolClient) {
   const validation = validateCollectionCatalog();
 
-  // These temporary pre-collection rewards are not part of the 129-card
+  // These temporary pre-collection rewards are not part of the canonical
   // canonical catalog. Preserve any already-owned instances; otherwise retire
   // their unused definitions and pool rows through the FK cascade.
   await client.query(
@@ -33,9 +33,9 @@ export async function seedCollectionDefinitions(client: PoolClient) {
       `
         INSERT INTO collections (
           id, code, display_name, cover_art_key, buff_type, buff_value,
-          buff_element, bonus_label, position
+          buff_element, bonus_label, position, source
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (id) DO UPDATE SET
           code = EXCLUDED.code,
           display_name = EXCLUDED.display_name,
@@ -44,7 +44,8 @@ export async function seedCollectionDefinitions(client: PoolClient) {
           buff_value = EXCLUDED.buff_value,
           buff_element = EXCLUDED.buff_element,
           bonus_label = EXCLUDED.bonus_label,
-          position = EXCLUDED.position
+          position = EXCLUDED.position,
+          source = EXCLUDED.source
       `,
       [
         collection.id,
@@ -56,6 +57,7 @@ export async function seedCollectionDefinitions(client: PoolClient) {
         collection.bonus.element ?? null,
         collection.bonusLabel,
         index + 1,
+        collection.source,
       ],
     );
 
@@ -64,9 +66,9 @@ export async function seedCollectionDefinitions(client: PoolClient) {
         `
           INSERT INTO cards (
           id, code, display_name, art_key, element, collection_id,
-          min_rarity, shop_eligible, description, limited
+          min_rarity, shop_eligible, description, limited, source
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           ON CONFLICT (id) DO UPDATE SET
             code = EXCLUDED.code,
             display_name = EXCLUDED.display_name,
@@ -74,9 +76,10 @@ export async function seedCollectionDefinitions(client: PoolClient) {
             element = EXCLUDED.element,
           collection_id = EXCLUDED.collection_id,
           min_rarity = EXCLUDED.min_rarity,
-          shop_eligible = EXCLUDED.shop_eligible,
-          description = EXCLUDED.description,
-          limited = EXCLUDED.limited
+            shop_eligible = EXCLUDED.shop_eligible,
+            description = EXCLUDED.description,
+            limited = EXCLUDED.limited,
+            source = EXCLUDED.source
         `,
         [
           card.id,
@@ -89,6 +92,7 @@ export async function seedCollectionDefinitions(client: PoolClient) {
           card.shopEligible,
           card.description,
           card.limited ?? false,
+          card.source ?? "standard",
         ],
       );
     }
@@ -109,14 +113,14 @@ export async function seedCollectionDefinitions(client: PoolClient) {
     `,
     [canonicalIds, STARTER_CARDS.map(({ id }) => id)],
   );
-  if (Number(databaseValidation.rows[0]?.canonical_cards) !== 129) {
-    throw new Error("Database seed must contain exactly 129 canonical cards");
+  if (Number(databaseValidation.rows[0]?.canonical_cards) !== 133) {
+    throw new Error("Database seed must contain exactly 133 canonical cards");
   }
   if (Number(databaseValidation.rows[0]?.external_starters) !== 9) {
     throw new Error("All 9 starter cards must remain outside collections");
   }
-  if (Number(databaseValidation.rows[0]?.described_cards) !== 129) {
-    throw new Error("All 129 canonical cards must have non-empty descriptions");
+  if (Number(databaseValidation.rows[0]?.described_cards) !== 133) {
+    throw new Error("All 133 canonical cards must have non-empty descriptions");
   }
 
   return validation;

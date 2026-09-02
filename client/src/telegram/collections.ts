@@ -18,7 +18,8 @@ function isSummary(value: unknown): value is PlayerCollectionSummary {
     && typeof item.completed === "boolean"
     && Number.isSafeInteger(item.discoveredCards)
     && Number.isSafeInteger(item.totalCards)
-    && typeof item.bonusLabel === "string";
+    && typeof item.bonusLabel === "string"
+    && (item.source === "standard" || item.source === "raid");
 }
 
 function isCard(value: unknown): value is PlayerCollectionCard {

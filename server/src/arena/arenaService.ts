@@ -7,7 +7,7 @@ import {
   ARENA_SLOT_COOLDOWN_MS,
   calculateArenaDamage,
   compareArenaResults,
-  cycleCardPoolSlot,
+  cycleCardPoolSlotWithGuildCard,
   getArenaCardChangeCost,
   getArenaReward,
   getElementMultiplier,
@@ -16,6 +16,7 @@ import {
   initializeCyclicCardPool,
   shuffleCards,
   STARTER_EQUIPMENT_DEFINITIONS,
+  type RandomSource,
 } from "@cardastika/game-core";
 import {
   DUEL_LEAGUE_CONFIG,
@@ -45,11 +46,12 @@ import {
   type PlayerSummary,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { getCompletedCollectionModifiers, recordCardDiscovery } from "../collections/discoveryService.js";
 import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
-import { loadDuelParticipant, DuelDeckInvalidError } from "../duel/duelService.js";
+import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
 import { getBotCardArtAvatarUrl } from "../duel/botOpponent.js";
 import { getArenaCosmetic, getArenaShopItem, ARENA_COSMETICS, ARENA_SHOP_ITEMS } from "./arenaCatalog.js";
 
@@ -183,7 +185,7 @@ function cloneModifiers(snapshot: DuelSideSnapshot) {
   };
 }
 
-function createParticipant(snapshot: DuelSideSnapshot, id: string, isBot: boolean, random = Math.random): ArenaBattleParticipantSnapshot {
+function createParticipant(snapshot: DuelSideSnapshot, id: string, isBot: boolean, random = Math.random, guildCard: DuelCardSnapshot | null = null): ArenaBattleParticipantSnapshot {
   const pool = initializeCyclicCardPool(snapshot.cards, random);
   const maxHp = getStartingHp(snapshot.effectiveDeckPower * 3, snapshot.modifiers.battleHpPct);
   return {
@@ -191,6 +193,7 @@ function createParticipant(snapshot: DuelSideSnapshot, id: string, isBot: boolea
     cards: snapshot.cards,
     cooldownUntil: [null, null, null],
     effectiveDeckPower: snapshot.effectiveDeckPower,
+    guildCard,
     hp: maxHp,
     id,
     isBot,
@@ -213,14 +216,15 @@ interface QueuedArenaPlayer {
   id: string;
   playerId: string;
   snapshot: DuelSideSnapshot;
+  guildCard: DuelCardSnapshot | null;
 }
 
-function createArenaState(players: QueuedArenaPlayer[]): ArenaState {
+function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = Math.random): ArenaState {
   const firstPlayer = players[0];
   if (!firstPlayer) throw new Error("Arena queue did not contain a player");
   const participants = [
-    ...players.map(({ playerId, snapshot }) => createParticipant(snapshot, playerId, false)),
-    ...Array.from({ length: ARENA_PARTICIPANT_COUNT - players.length }, (_, index) => createBot(players[index % players.length]!.snapshot, index)),
+    ...players.map(({ playerId, snapshot, guildCard }) => createParticipant(snapshot, playerId, false, random, guildCard)),
+    ...Array.from({ length: ARENA_PARTICIPANT_COUNT - players.length }, (_, index) => createBot(players[index % players.length]!.snapshot, index, random)),
   ];
   const state: ArenaState = {
     battleLog: [],
@@ -236,13 +240,13 @@ function createArenaState(players: QueuedArenaPlayer[]): ArenaState {
   setInitialTargets(state);
   for (const attacker of state.participants) {
     for (const target of state.participants) {
-      if (attacker.id !== target.id) state.pairStates[pairKey(attacker.id, target.id)] = createPairState(attacker, target);
+      if (attacker.id !== target.id) state.pairStates[pairKey(attacker.id, target.id)] = createPairState(attacker, target, random);
     }
   }
   return state;
 }
 
-function createBot(snapshot: DuelSideSnapshot, index: number): ArenaBattleParticipantSnapshot {
+function createBot(snapshot: DuelSideSnapshot, index: number, random: RandomSource = Math.random): ArenaBattleParticipantSnapshot {
   const id = `arena-bot:${randomUUID()}`;
   const nonLimitedCards = snapshot.cards.filter(({ limited }) => !limited);
   if (nonLimitedCards.length < 3) throw new ArenaDeckInvalidError();
@@ -255,10 +259,10 @@ function createBot(snapshot: DuelSideSnapshot, index: number): ArenaBattlePartic
     ...snapshot,
     cards,
     name: BOT_NAMES[index] ?? `Арена бот ${index + 1}`,
-    photoUrl: getBotCardArtAvatarUrl(cards, Math.random),
+    photoUrl: getBotCardArtAvatarUrl(cards, random),
     level: Math.max(1, snapshot.level + (index % 3) - 1),
     modifiers: cloneModifiers(snapshot),
-  }, id, true);
+  }, id, true, random);
 }
 
 function aliveParticipants(state: ArenaState) {
@@ -319,12 +323,12 @@ function pairKey(attackerId: string, targetId: string) {
   return `${attackerId}${PAIR_KEY_SEPARATOR}${targetId}`;
 }
 
-function createPairState(attacker: ArenaBattleParticipantSnapshot, target: ArenaBattleParticipantSnapshot): ArenaPairInteractionSnapshot {
+function createPairState(attacker: ArenaBattleParticipantSnapshot, target: ArenaBattleParticipantSnapshot, random: RandomSource = Math.random): ArenaPairInteractionSnapshot {
   const attackerPool = {
     activeCards: copyActiveCards(attacker.activeSlots),
     reserveQueue: [...attacker.reserveQueue],
   };
-  const targetPool = initializeCyclicCardPool(target.cards, Math.random);
+  const targetPool = initializeCyclicCardPool(target.cards, random);
   return {
     attackerActiveSlots: attackerPool.activeCards,
     attackerReserveQueue: attackerPool.reserveQueue,
@@ -409,21 +413,25 @@ function rotateCardSide(
   reserveQueue: DuelCardSnapshot[],
   rotationSeenCardIds: string[],
   slotIndex: 0 | 1 | 2,
+  guildCard: DuelCardSnapshot | null | undefined,
+  random: RandomSource,
 ) {
   let nextReserveQueue = reserveQueue;
-  let seenCardIds = new Set(rotationSeenCardIds);
+  const deckCardIds = new Set(cards.map(({ instanceId }) => instanceId));
+  let seenCardIds = new Set(rotationSeenCardIds.filter((instanceId) => deckCardIds.has(instanceId)));
 
   if (seenCardIds.size >= cards.length) {
     const activeCardIds = new Set(activeSlots.map(({ instanceId }) => instanceId));
-    nextReserveQueue = shuffleCards(cards, Math.random).filter(({ instanceId }) => !activeCardIds.has(instanceId));
-    seenCardIds = new Set(activeCardIds);
+    nextReserveQueue = shuffleCards(cards, random).filter(({ instanceId }) => !activeCardIds.has(instanceId));
+    seenCardIds = new Set([...activeCardIds].filter((instanceId) => deckCardIds.has(instanceId)));
   }
 
-  const pool = cycleCardPoolSlot({
+  const result = cycleCardPoolSlotWithGuildCard({
     activeCards: activeSlots,
     reserveQueue: nextReserveQueue,
-  }, slotIndex);
-  seenCardIds.add(pool.activeCards[slotIndex].instanceId);
+  }, slotIndex, guildCard, random);
+  const pool = result.pool;
+  if (pool.activeCards[slotIndex].source !== "guild") seenCardIds.add(pool.activeCards[slotIndex].instanceId);
   return {
     activeSlots: pool.activeCards,
     reserveQueue: pool.reserveQueue,
@@ -431,7 +439,7 @@ function rotateCardSide(
   };
 }
 
-function advanceCooldowns(state: ArenaState, now: number) {
+function advanceCooldowns(state: ArenaState, now: number, random: RandomSource) {
   let changed = false;
   for (const attacker of state.participants) {
     for (const slotIndex of [0, 1, 2] as const) {
@@ -441,8 +449,8 @@ function advanceCooldowns(state: ArenaState, now: number) {
       const target = normalizeTarget(state, attacker);
       if (target) {
         const pair = getPairState(state, attacker, target);
-        const nextAttacker = rotateCardSide(attacker.cards, pair.attackerActiveSlots, pair.attackerReserveQueue, pair.attackerRotationSeenCardIds, slotIndex);
-        const nextTarget = rotateCardSide(target.cards, pair.targetActiveSlots, pair.targetReserveQueue, pair.targetRotationSeenCardIds, slotIndex);
+        const nextAttacker = rotateCardSide(attacker.cards, pair.attackerActiveSlots, pair.attackerReserveQueue, pair.attackerRotationSeenCardIds, slotIndex, attacker.guildCard, random);
+        const nextTarget = rotateCardSide(target.cards, pair.targetActiveSlots, pair.targetReserveQueue, pair.targetRotationSeenCardIds, slotIndex, target.guildCard, random);
         pair.attackerActiveSlots = nextAttacker.activeSlots;
         pair.attackerReserveQueue = nextAttacker.reserveQueue;
         pair.attackerRotationSeenCardIds = nextAttacker.rotationSeenCardIds;
@@ -451,7 +459,7 @@ function advanceCooldowns(state: ArenaState, now: number) {
         pair.targetReserveQueue = nextTarget.reserveQueue;
         pair.targetRotationSeenCardIds = nextTarget.rotationSeenCardIds;
       } else {
-        const nextAttacker = rotateCardSide(attacker.cards, attacker.activeSlots, attacker.reserveQueue, attacker.rotationSeenCardIds, slotIndex);
+        const nextAttacker = rotateCardSide(attacker.cards, attacker.activeSlots, attacker.reserveQueue, attacker.rotationSeenCardIds, slotIndex, attacker.guildCard, random);
         attacker.activeSlots = nextAttacker.activeSlots;
         attacker.reserveQueue = nextAttacker.reserveQueue;
         attacker.rotationSeenCardIds = nextAttacker.rotationSeenCardIds;
@@ -536,12 +544,12 @@ function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, n
   return candidates[0]?.slotIndex ?? null;
 }
 
-function advanceBots(state: ArenaState, now: number) {
+function advanceBots(state: ArenaState, now: number, random: RandomSource) {
   if (arenaIsOver(state)) return false;
   const pairStateCountBefore = state.pairStates ? Object.keys(state.pairStates).length : 0;
   ensurePairStates(state);
   const pairStateCountAfter = Object.keys(state.pairStates).length;
-  let changed = pairStateCountAfter !== pairStateCountBefore || migrateLegacyPairCooldowns(state) || advanceCooldowns(state, now);
+  let changed = pairStateCountAfter !== pairStateCountBefore || migrateLegacyPairCooldowns(state) || advanceCooldowns(state, now, random);
   for (const bot of state.participants.filter((participant) => participant.isBot && participant.hp > 0)) {
     const lastAction = bot.lastBotActionAt ? new Date(bot.lastBotActionAt).getTime() : 0;
     if (lastAction && now - lastAction < ARENA_BOT_ACTION_INTERVAL_MS) continue;
@@ -586,7 +594,7 @@ async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, l
   return player;
 }
 
-async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState) {
+async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState, guildActivity?: GuildActivityRecorder) {
   const ordered = resultPlacement(state);
   state.resultsByPlayer = {};
   for (const participant of ordered.filter(({ isBot }) => !isBot)) {
@@ -646,6 +654,14 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState)
         status: placement <= 3 ? "win" : "loss",
       },
     };
+    const activityType = placement === 1
+      ? "arena_place_1"
+      : placement === 2
+        ? "arena_place_2"
+        : placement === 3
+          ? "arena_place_3"
+          : "arena_place_4_6";
+    await guildActivity?.recordActivity(client, participant.id, activityType, `arena:${row.id}:${participant.id}`);
   }
   state.result = state.resultsByPlayer[row.player_id] ?? null;
   state.targetId = null;
@@ -774,7 +790,11 @@ export class ArenaCosmeticUnavailableError extends Error {
 }
 
 export class ArenaService {
-  constructor(private readonly pool: Pool) {}
+  constructor(
+    private readonly pool: Pool,
+    private readonly guildActivity?: GuildActivityRecorder,
+    private readonly random: RandomSource = Math.random,
+  ) {}
 
   async getProfile(playerId: string): Promise<ArenaProfileResponse> {
     const player = await loadPlayer(this.pool, playerId);
@@ -816,7 +836,13 @@ export class ArenaService {
     for (const entry of queued.rows) {
       try {
         const loaded = await loadDuelParticipant(client, entry.player_id);
-        players.push({ createdAt: entry.created_at, id: entry.id, playerId: entry.player_id, snapshot: loaded.snapshot });
+        players.push({
+          createdAt: entry.created_at,
+          guildCard: toGuildDuelCard(loaded.guildCard),
+          id: entry.id,
+          playerId: entry.player_id,
+          snapshot: loaded.snapshot,
+        });
       } catch {
         // A deck can become invalid while a player is waiting. It must not hold
         // the rest of the registration window hostage.
@@ -825,7 +851,7 @@ export class ArenaService {
     }
     if (!players.length) return null;
 
-    const state = createArenaState(players);
+    const state = createArenaState(players, this.random);
     await client.query(
       `INSERT INTO arena_matches (id, player_id, status, state) VALUES ($1, $2, 'active', $3)`,
       [state.matchId, state.playerId, JSON.stringify(state)],
@@ -945,9 +971,9 @@ export class ArenaService {
       );
       const row = locked.rows[0];
       if (!row) throw new ArenaMissingError();
-      const changed = row.status === "active" ? advanceBots(row.state, Date.now()) : false;
+      const changed = row.status === "active" ? advanceBots(row.state, Date.now(), this.random) : false;
       if (row.status === "active" && arenaIsOver(row.state)) {
-        await finishMatch(client, row, row.state);
+        await finishMatch(client, row, row.state, this.guildActivity);
         row.status = "finished";
         row.version += 1;
       } else if (changed) {
@@ -1024,7 +1050,7 @@ export class ArenaService {
       }
       ([0, 1, 2] as const).forEach((slotIndex) => {
         if (readyAt(player.cooldownUntil[slotIndex], now)) {
-          const nextAttacker = rotateCardSide(player.cards, pair.attackerActiveSlots, pair.attackerReserveQueue, pair.attackerRotationSeenCardIds, slotIndex);
+          const nextAttacker = rotateCardSide(player.cards, pair.attackerActiveSlots, pair.attackerReserveQueue, pair.attackerRotationSeenCardIds, slotIndex, player.guildCard, this.random);
           pair.attackerActiveSlots = nextAttacker.activeSlots;
           pair.attackerReserveQueue = nextAttacker.reserveQueue;
           pair.attackerRotationSeenCardIds = nextAttacker.rotationSeenCardIds;
@@ -1067,11 +1093,11 @@ export class ArenaService {
         attackerReserveQueue: [...player.reserveQueue],
         attackerRotationSeenCardIds: [...player.rotationSeenCardIds],
       } : null;
-      advanceBots(row.state, Date.now());
+      advanceBots(row.state, Date.now(), this.random);
       if (player && playerCardsBeforeAdvance) syncParticipantAttackerState(player, playerCardsBeforeAdvance);
       const changed = await callback(row.state, Date.now(), client);
       if (arenaIsOver(row.state)) {
-        await finishMatch(client, row, row.state);
+        await finishMatch(client, row, row.state, this.guildActivity);
         row.status = "finished";
         row.version += 1;
       } else {
@@ -1111,7 +1137,7 @@ export class ArenaService {
         await client.query("INSERT INTO player_arena_cosmetics (player_id, cosmetic_id, cosmetic_type) VALUES ($1, $2, $3)", [playerId, cosmeticId, available.type]);
       } else if (offer.rewardType === "card") {
         const card = await client.query<{ id: string; code: string; display_name: string | null; art_key: string | null; element: "fire" | "water" | "air" | "earth"; collection_id: string | null; description: string }>(
-          "SELECT id, code, display_name, art_key, element, collection_id, description FROM cards WHERE limited = FALSE AND id IN (SELECT card_id FROM shop_card_pools) ORDER BY random() LIMIT 1",
+          "SELECT id, code, display_name, art_key, element, collection_id, description FROM cards WHERE limited = FALSE AND source = 'standard' AND id IN (SELECT card_id FROM shop_card_pools) ORDER BY random() LIMIT 1",
         );
         const definition = card.rows[0];
         if (!definition) throw new ArenaShopOfferMissingError();

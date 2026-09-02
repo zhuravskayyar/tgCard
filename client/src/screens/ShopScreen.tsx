@@ -93,6 +93,14 @@ const workshopRarityTones: Record<CardRarity, string> = {
 };
 
 const workshopRarityOrder = new Map(CARD_RARITIES.map((rarity, index) => [rarity, index]));
+const shopOfferRarityOrder = new Map<CardRarity, number>([
+  ["mythic", 0],
+  ["legendary", 1],
+  ["epic", 2],
+  ["rare", 3],
+  ["uncommon", 4],
+  ["common", 5],
+]);
 
 function CardShardMark({ size = 20 }: { size?: number }) {
   return <span className="card-shard-mark"><img alt="" height={size} src="/assets/ui/shop/icon_card_shard_v2.webp" width={size} /></span>;
@@ -317,7 +325,9 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
               <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
                 <ShopSectionHeading>По одній карті</ShopSectionHeading>
                 {catalogState.catalog.offers.length ? (
-                  catalogState.catalog.offers.map((offer, index) => {
+                  [...catalogState.catalog.offers]
+                    .sort((left, right) => (shopOfferRarityOrder.get(left.guaranteedRarity) ?? 99) - (shopOfferRarityOrder.get(right.guaranteedRarity) ?? 99))
+                    .map((offer, index) => {
                     return (
                       <ShopOfferPanel
                         disabled={purchasingOfferId !== null}
@@ -329,7 +339,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
                         purchasing={purchasingOfferId === offer.id}
                       />
                     );
-                  })
+                    })
                 ) : (
                   <div className="shop-inline-empty">Пропозиції карт тимчасово відсутні.</div>
                 )}

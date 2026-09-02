@@ -36,6 +36,7 @@ import type {
   DuelSideSnapshot,
   DuelStatus,
   DuelView,
+  PlayerCardInstance,
   PlayerSummary,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
@@ -44,6 +45,7 @@ import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
 import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
 import { parseStoredEquipment } from "../equipment/equipmentState.js";
 import type { CampaignService } from "../campaign/campaignService.js";
+import { loadGuildCardForMember, type GuildActivityRecorder } from "../guild/guildService.js";
 import {
   mapCardInstanceRow,
   type CardInstanceProjectionRow,
@@ -111,6 +113,7 @@ interface DuelRow {
   enemy_active_slots: DuelCardSnapshot[];
   enemy_hp: number;
   enemy_reserve_queue: DuelCardSnapshot[];
+  enemy_guild_card: DuelCardSnapshot | null;
   id: string;
   opponent_id: string | null;
   opponent_snapshot: DuelSideSnapshot;
@@ -119,6 +122,7 @@ interface DuelRow {
   player_active_slots: DuelCardSnapshot[];
   player_hp: number;
   player_reserve_queue: DuelCardSnapshot[];
+  player_guild_card: DuelCardSnapshot | null;
   result: DuelResult | null;
   rewards_granted: boolean;
   status: DuelStatus;
@@ -129,12 +133,14 @@ interface DuelRow {
 export interface LoadedParticipant {
   player: ParticipantRow;
   snapshot: DuelSideSnapshot;
+  guildCard: PlayerCardInstance | null;
 }
 
 const DUEL_COLUMNS = `
   id, challenger_id, opponent_id, status,
   tutorial_mode,
   challenger_snapshot, opponent_snapshot,
+  player_guild_card, enemy_guild_card,
   player_hp, enemy_hp,
   player_active_slots, enemy_active_slots,
   player_reserve_queue, enemy_reserve_queue,
@@ -227,6 +233,25 @@ function toDuelCard(row: DeckCardRow): DuelCardSnapshot {
     finalPower: instance.finalPower,
     rarity: instance.rarity,
     limited: instance.limited ?? false,
+  };
+}
+
+export function toGuildDuelCard(card: PlayerCardInstance | null | undefined): DuelCardSnapshot | null {
+  if (!card) return null;
+  return {
+    instanceId: card.instanceId,
+    cardId: card.cardId,
+    code: card.code,
+    displayName: card.displayName,
+    artKey: card.artKey,
+    element: card.element,
+    level: card.level,
+    basePower: card.basePower,
+    bonusPower: card.bonusPower,
+    finalPower: card.finalPower,
+    rarity: card.rarity,
+    limited: card.limited ?? false,
+    source: "guild",
   };
 }
 
@@ -398,6 +423,7 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
     finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element],
   }));
   const effectiveDeckPower = getEffectiveDeckPower(getDeckPower(cards), modifiers.deckPowerPct);
+  const guildCard = await loadGuildCardForMember(client, playerId);
   return {
     player,
     snapshot: {
@@ -409,12 +435,13 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
       effectiveDeckPower,
       startingHp: getStartingHp(effectiveDeckPower, modifiers.battleHpPct),
     },
+    guildCard,
   };
 }
 
 async function loadBotCardTemplates(client: PoolClient): Promise<BotCardTemplate[]> {
   const result = await client.query<BotCardRow>(
-    "SELECT id, code, display_name, art_key, element FROM cards WHERE limited = FALSE ORDER BY element, id",
+    "SELECT id, code, display_name, art_key, element FROM cards WHERE limited = FALSE AND source = 'standard' ORDER BY element, id",
   );
   return result.rows.map((row) => ({
     cardId: row.id,
@@ -430,6 +457,7 @@ export class DuelService {
     private readonly pool: Pool,
     private readonly random: RandomSource = Math.random,
     private readonly campaign?: Pick<CampaignService, "recordEvent">,
+    private readonly guildActivity?: GuildActivityRecorder,
   ) {}
 
   async search(challengerId: string): Promise<DuelSearchResponse> {
@@ -513,12 +541,14 @@ export class DuelService {
       const challenger = await loadDuelParticipant(client, challengerId);
       const tutorialMode = tutorial && challenger.player.tutorial_eligible;
       let opponentSnapshot: DuelSideSnapshot;
+      let opponentParticipant: LoadedParticipant | null = null;
       if (search.opponent_kind === "bot") {
         if (!search.opponent_snapshot || search.opponent_id) throw new DuelSearchInvalidError();
         opponentSnapshot = search.opponent_snapshot;
       } else {
         if (!search.opponent_id || search.opponent_snapshot) throw new DuelSearchInvalidError();
-        opponentSnapshot = (await loadDuelParticipant(client, search.opponent_id)).snapshot;
+        opponentParticipant = await loadDuelParticipant(client, search.opponent_id);
+        opponentSnapshot = opponentParticipant.snapshot;
       }
       const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, challenger.player.duel_win_streak);
       if (!tutorialMode && !isDeckPowerInMatchmakingRange(opponentSnapshot.effectiveDeckPower, range)) {
@@ -538,6 +568,8 @@ export class DuelService {
       const enemyPool = tutorialMode
         ? createTutorialPool(resolvedOpponentSnapshot.cards)
         : initializeCyclicCardPool(resolvedOpponentSnapshot.cards, this.random);
+      const playerGuildCard = tutorialMode ? null : toGuildDuelCard(challenger.guildCard);
+      const enemyGuildCard = tutorialMode ? null : toGuildDuelCard(opponentParticipant?.guildCard);
       const duelId = randomUUID();
       const inserted = await client.query<DuelRow>(
         `
@@ -545,11 +577,12 @@ export class DuelService {
             id, challenger_id, opponent_id, opponent_kind, status,
             tutorial_mode,
             challenger_snapshot, opponent_snapshot,
+            player_guild_card, enemy_guild_card,
             player_hp, enemy_hp,
             player_active_slots, enemy_active_slots,
             player_reserve_queue, enemy_reserve_queue
           )
-          VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           RETURNING ${DUEL_COLUMNS}
         `,
         [
@@ -560,6 +593,8 @@ export class DuelService {
           tutorialMode,
           JSON.stringify(challengerSnapshot),
           JSON.stringify(resolvedOpponentSnapshot),
+          playerGuildCard ? JSON.stringify(playerGuildCard) : null,
+          enemyGuildCard ? JSON.stringify(enemyGuildCard) : null,
           challengerSnapshot.startingHp,
           resolvedOpponentSnapshot.startingHp,
           JSON.stringify(playerPool.activeCards),
@@ -636,6 +671,9 @@ export class DuelService {
         enemyModifiers: duel.opponent_snapshot.modifiers,
         playerMaxHp: duel.challenger_snapshot.startingHp,
         enemyMaxHp: duel.opponent_snapshot.startingHp,
+        playerGuildCard: duel.player_guild_card,
+        enemyGuildCard: duel.enemy_guild_card,
+        random: this.random,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });
@@ -714,6 +752,13 @@ export class DuelService {
           persistedStatus = "won";
         }
         const outcome: DuelOutcome = persistedStatus === "won" ? "win" : "loss";
+        await this.guildActivity?.recordActivity(
+          client,
+          challengerId,
+          outcome === "win" ? "duel_win" : "duel_loss",
+          `duel:${duelId}`,
+          actionNow,
+        );
         const boost = await getAccountBoostStatus(client, challengerId, actionNow);
         const currencyBoost = await getCurrencyBoostStatus(client, challengerId, actionNow);
         const currentModifiers = toBattleModifiers(await getCompletedCollectionModifiers(client, challengerId));

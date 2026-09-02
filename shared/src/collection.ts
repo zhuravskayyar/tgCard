@@ -8,9 +8,14 @@ export const COLLECTION_MODIFIER_TYPES = [
   "experience_reward_pct",
   "absorption_efficiency_pct",
   "deck_power_pct",
+  "altar_gold_levels",
 ] as const;
 
 export type CollectionModifierType = (typeof COLLECTION_MODIFIER_TYPES)[number];
+
+export const COLLECTION_SOURCES = ["standard", "raid"] as const;
+
+export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 
 export interface CollectionModifier {
   element?: CardElement;
@@ -43,6 +48,7 @@ export interface PlayerCollectionSummary {
   displayName: string;
   id: string;
   totalCards: number;
+  source: CollectionSource;
 }
 
 export interface PlayerCollectionCard {

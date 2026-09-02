@@ -9,6 +9,30 @@ import type { Pool, PoolClient } from "pg";
 
 type Queryable = Pick<PoolClient, "query">;
 
+/** Completion is derived from discoveries, so consumed duplicate instances do not revoke a collection bonus. */
+export async function hasCompletedCollection(
+  database: Queryable,
+  playerId: string,
+  collectionId: string,
+): Promise<boolean> {
+  const result = await database.query<{ completed: boolean }>(
+    `
+      SELECT COUNT(*) > 0
+        AND COUNT(*) = (
+          SELECT COUNT(*) FROM cards required
+          WHERE required.collection_id = $2
+        ) AS completed
+      FROM player_card_discoveries discoveries
+      INNER JOIN cards
+        ON cards.id = discoveries.card_id
+      WHERE discoveries.player_id = $1
+        AND cards.collection_id = $2
+    `,
+    [playerId, collectionId],
+  );
+  return result.rows[0]?.completed === true;
+}
+
 interface CardCollectionRow {
   collection_id: string | null;
 }

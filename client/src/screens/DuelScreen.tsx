@@ -227,16 +227,18 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
     clashing ? `duel-card--clash-${enemy ? "enemy" : "player"}` : "",
     clashing && clashLevel ? `duel-card--clash-${enemy ? "enemy" : "player"}-${clashLevel}` : "",
     selected ? "duel-card--selected" : "",
+    card.source === "guild" ? "duel-card--guild" : "",
   ].filter(Boolean).join(" ");
   const contents = (
     <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact depthAssets={depthAssets} element={card.element} rarity={card.rarity}>
       <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
+      {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
     </CardFxWrapper>
   );
   if (enemy) return <div className={className}>{contents}</div>;
   return (
     <button
-      aria-label={`Атакувати картою ${card.displayName ?? card.code}`}
+      aria-label={`${card.source === "guild" ? "Карта гільдії. " : ""}Атакувати картою ${card.displayName ?? card.code}`}
       className={className}
       data-tutorial-target={tutorialTarget}
       disabled={disabled || introActive}
@@ -257,10 +259,11 @@ export function DuelFlyingCard({ card, side, impactLevel, slotIndex }: {
   return (
     <div
       aria-hidden="true"
-      className={`duel-card duel-flying-card duel-flying-card--${side} duel-flying-card--${impactLevel} duel-flying-card--slot-${slotIndex} duel-card--${card.element} deck-card--${card.rarity}`}
+      className={`duel-card duel-flying-card duel-flying-card--${side} duel-flying-card--${impactLevel} duel-flying-card--slot-${slotIndex} duel-card--${card.element} deck-card--${card.rarity}${card.source === "guild" ? " duel-card--guild" : ""}`}
     >
       <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact element={card.element} rarity={card.rarity}>
         <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
+        {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
       </CardFxWrapper>
     </div>
   );
