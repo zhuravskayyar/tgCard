@@ -96,7 +96,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
           </section>
 
           <section className="player-profile-equipment" aria-label="Спорядження гравця">
-            <EquipmentLoadout className="player-profile-equipment-loadout" compact equipped={state.data.equipment?.equipped ?? EMPTY_EQUIPMENT} readonly />
+            <EquipmentLoadout className="player-profile-equipment-loadout" compact equipped={state.data.equipment?.equipped ?? EMPTY_EQUIPMENT} hideVoodoo readonly />
           </section>
 
           <section className="player-profile-section" aria-label="Рекорди гравця">
