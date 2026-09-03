@@ -7,7 +7,7 @@ import { PlayerRepository } from "../users/playerRepository.js";
 import { hasCompletedCollection, recordCardDiscovery } from "../collections/discoveryService.js";
 import { COLLECTION_CARDS } from "../collections/collectionCatalog.js";
 import { GuildAltarService } from "./altarService.js";
-import { GuildRaidService } from "./guildRaidService.js";
+import { GuildRaidDomainError, GuildRaidService } from "./guildRaidService.js";
 import { RaidCardService } from "./raidCardService.js";
 import { recalculateAutomaticDeckForPlayer } from "../decks/automaticDeckService.js";
 import { MailService } from "../mail/mailService.js";
@@ -184,12 +184,81 @@ test("a guild raid runs one realtime turn against the selected witch", { skip: !
       slotIndex: 0,
     });
     assert.equal(reset.status, "open");
-    assert.equal(reset.level, 1);
+    assert.equal(reset.level, 2);
     assert.equal(reset.battle?.status, "won");
     assert.ok(reset.bosses.every((boss) => boss.currentHealth === boss.health));
   } finally {
     await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
+    await pool.end();
+  }
+});
+
+test("a fatal hit cannot revive a witch while another participant finishes the raid", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const raids = new GuildRaidService(pool, () => 0.999999);
+  const testPlayers = await Promise.all([telegramUser(), telegramUser()].map((user) => players.findOrCreateFromTelegram(user)));
+  const guildId = randomUUID();
+
+  try {
+    await pool.query(
+      `INSERT INTO guilds (id, name, name_key, created_by) VALUES ($1, $2, $3, $4)`,
+      [guildId, "Два мага", `witches_two_players_${guildId}`, testPlayers[0]!.id],
+    );
+    await pool.query("INSERT INTO guild_members (guild_id, player_id, role) VALUES ($1, $2, 'leader'), ($1, $3, 'member')", [guildId, testPlayers[0]!.id, testPlayers[1]!.id]);
+    for (const player of testPlayers) {
+      await pool.query("UPDATE player_card_instances SET level = 60 WHERE player_id = $1", [player.id]);
+      await recalculateAutomaticDeckForPlayer(pool, player.id);
+    }
+
+    await raids.enroll(testPlayers[0]!.id, guildId);
+    await raids.enroll(testPlayers[1]!.id, guildId);
+    await raids.startRaid(testPlayers[0]!.id, guildId);
+    let firstView = await raids.startBattle(testPlayers[0]!.id, guildId);
+    const secondView = await raids.startBattle(testPlayers[1]!.id, guildId);
+    assert.equal(firstView.battle?.status, "active");
+    assert.equal(secondView.battle?.status, "active");
+
+    await pool.query(
+      "UPDATE guild_witch_raid_bosses SET current_health = CASE slot WHEN 1 THEN 400000 ELSE 5 END WHERE raid_id = $1",
+      [firstView.id],
+    );
+    const boostedCard = { ...firstView.battle!.playerActiveCards[0]!, basePower: 1_000_000, finalPower: 1_000_000 };
+    await pool.query(
+      "UPDATE guild_witch_raid_battles SET player_active_slots = jsonb_set(player_active_slots, '{0}', $2::jsonb) WHERE id = $1",
+      [firstView.battle!.battleId, JSON.stringify(boostedCard)],
+    );
+
+    firstView = await raids.action(testPlayers[0]!.id, guildId, firstView.battle!.battleId, {
+      bossSlot: 1,
+      expectedVersion: firstView.battle!.version,
+      slotIndex: 0,
+    });
+    assert.equal(firstView.bosses[0]!.currentHealth, 0);
+    assert.equal(firstView.battle?.status, "active");
+
+    await assert.rejects(
+      () => raids.action(testPlayers[1]!.id, guildId, secondView.battle!.battleId, {
+        bossSlot: 1,
+        expectedVersion: secondView.battle!.version,
+        slotIndex: 0,
+      }),
+      (error: unknown) => error instanceof GuildRaidDomainError && error.code === "raid_target_defeated",
+    );
+
+    const finished = await raids.action(testPlayers[1]!.id, guildId, secondView.battle!.battleId, {
+      bossSlot: 2,
+      expectedVersion: secondView.battle!.version,
+      slotIndex: 0,
+    });
+    assert.equal(finished.status, "open");
+    assert.equal(finished.lastResult?.level, 1);
+    assert.ok(finished.lastResult);
+  } finally {
+    await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
+    await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [testPlayers.map((player) => player.id)]);
     await pool.end();
   }
 });

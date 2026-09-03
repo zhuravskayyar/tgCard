@@ -168,6 +168,7 @@ export class GuildRaidDomainError extends Error {
       | "raid_not_active"
       | "raid_battle_not_found"
       | "raid_state_conflict"
+      | "raid_target_defeated"
       | "raid_deck_invalid",
     message: string,
     public readonly status = 409,
@@ -996,6 +997,9 @@ export class GuildRaidService {
       let status: GuildRaidBattleStatus = "active";
       let nextTurn = toSafeInteger(battle.turn_number, "raid turn");
       let playerDamageDealt = 0;
+      if (playerHp > 0 && health[input.bossSlot - 1] === 0) {
+        throw new GuildRaidDomainError("raid_target_defeated", "The selected Witch is already defeated");
+      }
       if (playerHp > 0) {
         const targetIndex = input.bossSlot - 1;
         const playerCard = playerCards[input.slotIndex]!;
@@ -1050,7 +1054,7 @@ export class GuildRaidService {
           const maxHealth = toSafeInteger(bosses[bossIndex]!.max_health, "witch max HP");
           for (const threshold of HEAL_THRESHOLDS) {
             const key = `${bossIndex + 1}:${threshold}`;
-            if (healThresholds.has(key) || healthBefore[bossIndex]! <= maxHealth * threshold || health[bossIndex]! > maxHealth * threshold) continue;
+            if (health[bossIndex] === 0 || healThresholds.has(key) || healthBefore[bossIndex]! <= maxHealth * threshold || health[bossIndex]! > maxHealth * threshold) continue;
             healThresholds.add(key);
             const otherIndex = bossIndex === 0 ? 1 : 0;
             if (health[otherIndex]! > health[bossIndex]!) {

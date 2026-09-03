@@ -79,6 +79,7 @@ export function guildErrorMessage(error: unknown) {
     raid_not_active: "Спочатку глава гільдії має відкрити івент.",
     raid_battle_not_found: "Бій івенту вже завершено. Оновлюю стан.",
     raid_state_conflict: "Стан бою змінився. Спробуйте ще раз.",
+    raid_target_defeated: "Цю відьму вже переможено. Оберіть іншу ціль.",
     raid_deck_invalid: "Потрібна повна бойова колода 3/2/2/2.",
     raid_unavailable: "Дві відьми для івенту тимчасово недоступні.",
     raid_invalid: "Стан івенту пошкоджений. Спробуйте ще раз.",

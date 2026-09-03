@@ -65,15 +65,16 @@ function RaidBossIdentity({ boss, slot, selected, onSelect, disabled }: {
   disabled: boolean;
 }) {
   const healthPercent = boss.health > 0 ? Math.max(0, Math.min(100, boss.currentHealth / boss.health * 100)) : 0;
+  const defeated = boss.currentHealth <= 0;
   return (
-    <button aria-pressed={selected} className={`guild-raid-battle__boss-select${selected ? " is-selected" : ""}`} disabled={disabled} onClick={onSelect} type="button">
+    <button aria-pressed={selected} className={`guild-raid-battle__boss-select${selected ? " is-selected" : ""}${defeated ? " is-defeated" : ""}`} disabled={disabled || defeated} onClick={onSelect} type="button">
       <span className="guild-raid__portrait">
         <img alt={`${boss.displayName}, стихія ${ELEMENT_LABELS[boss.element]}`} src={`/card-art/${boss.artKey}.png`} />
       </span>
       <strong className={`guild-raid__boss-name guild-raid__boss-name--${boss.element}`}>{boss.displayName}</strong>
       <span className="guild-raid-battle__boss-hp">{formatRaidNumber(boss.currentHealth)} / {formatRaidNumber(boss.health)}</span>
       <span aria-label={`Здоров’я ${boss.displayName}: ${Math.round(healthPercent)}%`} className="guild-raid-battle__hpbar"><span style={{ width: `${healthPercent}%` }} /></span>
-      <small>{selected ? "Обрана ціль" : `Відьма ${slot}`}</small>
+      <small>{defeated ? "Переможена" : selected ? "Обрана ціль" : `Відьма ${slot}`}</small>
     </button>
   );
 }
@@ -286,9 +287,15 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
   function applyRaid(data: GuildRaidView) {
     setRaidState({ status: "ready", data });
     const battleId = data.battle?.battleId ?? null;
-    if (battleId !== activeBattleIdRef.current) {
+    const selectedBoss = data.bosses[targetBossSlot - 1];
+    const preferredBossSlot = data.battle?.targetBossSlot ?? targetBossSlot;
+    const preferredBoss = data.bosses[preferredBossSlot - 1];
+    const nextLivingBossSlot = data.bosses.findIndex((boss) => boss.currentHealth > 0);
+    if (battleId !== activeBattleIdRef.current || selectedBoss?.currentHealth <= 0) {
       activeBattleIdRef.current = battleId;
-      setTargetBossSlot(data.battle?.targetBossSlot ?? 1);
+      setTargetBossSlot(preferredBoss?.currentHealth > 0
+        ? preferredBossSlot
+        : nextLivingBossSlot >= 0 ? (nextLivingBossSlot + 1) as 1 | 2 : preferredBossSlot);
     }
     const currentBattle = data.battle?.raidLevel === data.level ? data.battle : null;
     if (currentBattle?.status === "won") setNotice("Відьми цього рівня переможені. Можна відкривати новий бій.");

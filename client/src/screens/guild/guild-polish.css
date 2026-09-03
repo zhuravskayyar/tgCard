@@ -1863,6 +1863,7 @@
   font: inherit;
 }
 .guild-screen .guild-raid-battle__boss-select:disabled { cursor: default; }
+.guild-screen .guild-raid-battle__boss-select.is-defeated { opacity: .62; }
 .guild-screen .guild-raid-battle__boss-select .guild-raid__portrait {
   grid-row: 1 / -1;
   width: 42px;
