@@ -213,11 +213,7 @@ function levelHealth(level: number) {
 }
 
 function nextRaidLevel(level: number) {
-  // The first release intentionally keeps the weekly Witch raid at level 1.
-  // Keep this helper explicit so the persisted level-one constraint and the
-  // reward/health rules cannot drift apart before multi-level raids ship.
-  void level;
-  return WITCH_RAID_LEVEL;
+  return Math.min(MAX_WITCH_RAID_LEVEL, Math.max(WITCH_RAID_LEVEL, level + 1));
 }
 
 function raidLevelCardRarity(level: number) {
@@ -344,6 +340,7 @@ function toBattleView(row: RaidBattleRow): GuildRaidBattleView {
     battleId: row.id,
     battleLog: [...row.battle_log].reverse(),
     cardChanges: toSafeInteger(row.card_changes, "card changes"),
+    raidLevel: row.raid_level,
     playerActiveCards: playerActiveSlots,
     playerHp: toSafeInteger(row.player_hp, "player HP"),
     playerMaxHp: toSafeInteger(row.player_max_hp, "player max HP"),
@@ -489,6 +486,7 @@ export class GuildRaidService {
        INNER JOIN guild_members members
          ON members.guild_id = $2 AND members.player_id = participants.player_id
        WHERE participants.raid_id = $1 AND participants.status IN ('enrolled', 'active')
+         AND members.role = 'leader'
        ORDER BY CASE members.role
           WHEN 'leader' THEN 0 WHEN 'officer' THEN 1 WHEN 'veteran' THEN 2
           WHEN 'member' THEN 3 ELSE 4 END,
@@ -806,16 +804,23 @@ export class GuildRaidService {
       );
       if (!member.rows[0]) throw new GuildRaidDomainError("raid_not_member", "Only guild members can join this raid", 403);
       const raid = await this.ensureRaid(client, guildId);
-      if (raid.status !== "open") throw new GuildRaidDomainError("raid_not_open", "The raid is already in progress");
       if (enroll) {
+        if (raid.status !== "open" && raid.status !== "active") throw new GuildRaidDomainError("raid_not_open", "The guild event is already complete");
+        const participantStatus = raid.status === "active" ? "active" : "enrolled";
         await client.query(
           `INSERT INTO guild_witch_raid_participants (raid_id, player_id, status, last_activity_at)
-           VALUES ($1, $2, 'enrolled', NOW())
+           VALUES ($1, $2, $3, NOW())
            ON CONFLICT (raid_id, player_id)
-           DO UPDATE SET status = 'enrolled', last_activity_at = NOW()`,
-          [raid.id, playerId],
+           DO UPDATE SET
+             status = CASE
+               WHEN guild_witch_raid_participants.status IN ('defeated', 'finished') THEN EXCLUDED.status
+               ELSE guild_witch_raid_participants.status
+             END,
+             last_activity_at = NOW()`,
+          [raid.id, playerId, participantStatus],
         );
       } else {
+        if (raid.status !== "open") throw new GuildRaidDomainError("raid_not_open", "The guild event is already active");
         const battle = await this.loadBattle(client, raid.id, playerId, true);
         if (battle?.status === "active") throw new GuildRaidDomainError("raid_not_open", "You cannot leave during an active battle");
         await client.query("DELETE FROM guild_witch_raid_participants WHERE raid_id = $1 AND player_id = $2", [raid.id, playerId]);

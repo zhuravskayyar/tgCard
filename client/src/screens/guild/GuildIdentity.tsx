@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type { GuildProfileResponse } from "@cardastika/shared";
 import { GuildScrollTitle } from "./GuildScrollTitle";
-import { ELEMENT_LABELS, GuildRoleBadge, LANGUAGE_LABELS, MODE_LABELS, formatNumber } from "./GuildUi";
+import { ELEMENT_LABELS, GuildEmblem, GuildRoleBadge, LANGUAGE_LABELS, MODE_LABELS, formatNumber } from "./GuildUi";
 import "./guild-polish.css";
 
 export function GuildIdentity({ profile, includeStickyTitle = true }: { profile: GuildProfileResponse; includeStickyTitle?: boolean }) {
@@ -17,7 +17,7 @@ export function GuildIdentity({ profile, includeStickyTitle = true }: { profile:
   return <>
     {includeStickyTitle ? <GuildScrollTitle name={guild.name} emblemId={guild.emblemId} heroRef={heroRef} /> : null}
     <section className="guild-hero" ref={heroRef} aria-labelledby="guild-hero-title">
-      <div className="guild-hero__emblem"><img alt="" aria-hidden="true" className="guild-hero__shield" src="/assets/guild/guild-main.svg" /></div>
+      <div className="guild-hero__emblem"><GuildEmblem emblemId={guild.emblemId} /></div>
       <div className="guild-hero__identity">
         <span className="guild-eyebrow">Гільдія · рівень {guild.level}</span>
         <h2 id="guild-hero-title">{guild.name}</h2>

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, type CardElement, type GuildLanguage, type GuildRecruitmentMode, type GuildRole } from "@cardastika/shared";
-import { AppIcon } from "../../components/AppIcon";
 import { GuildApiError } from "../../telegram/guild";
 
 export type AsyncState<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "error"; message: string };
@@ -8,8 +7,23 @@ export const LANGUAGE_LABELS: Record<GuildLanguage, string> = { uk: "Украї�
 export const ELEMENT_LABELS: Record<CardElement, string> = { fire: "Вогонь", water: "Вода", air: "Повітря", earth: "Земля" };
 export const MODE_LABELS: Record<GuildRecruitmentMode, string> = { open: "Відкритий набір", application: "За заявкою", closed: "Набір закритий" };
 export const ROLE_ORDER: readonly GuildRole[] = ["leader", "officer", "veteran", "member", "newbie"];
+export const GUILD_EMBLEM_OPTIONS = [
+  { id: "shield-1", label: "Сонце" },
+  { id: "shield-2", label: "Місяць" },
+  { id: "shield-3", label: "Вогонь" },
+  { id: "shield-4", label: "Вода" },
+  { id: "shield-5", label: "Листок" },
+  { id: "shield-6", label: "Гора" },
+  { id: "shield-7", label: "Кристал" },
+  { id: "shield-8", label: "Зірка" },
+] as const;
 export const formatNumber = (value: number) => new Intl.NumberFormat("uk-UA").format(value);
 export const formatDate = (value: string) => new Date(value).toLocaleString("uk-UA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+export function guildEmblemIndex(emblemId?: string) {
+  const match = emblemId ? /^shield-([1-8])$/u.exec(emblemId) : null;
+  return match ? Number(match[1]) - 1 : 0;
+}
 
 export function guildErrorMessage(error: unknown) {
   if (!(error instanceof GuildApiError)) return "Не вдалося зв’язатися із сервером. Перевірте з’єднання та повторіть спробу.";
@@ -26,6 +40,7 @@ export function guildErrorMessage(error: unknown) {
     guild_name_invalid: "Використайте українські або латинські літери, цифри, пробіли, дефіс чи апостроф.",
     guild_name_double_space: "Приберіть подвійні пробіли з назви.",
     guild_description_too_long: "Опис задовгий. Скоротіть його до 500 символів.",
+    invalid_guild_emblem: "Виберіть один із доступних щитів гільдії.",
     application_message_too_long: "Повідомлення задовге. Скоротіть його до 500 символів.",
     insufficient_silver: "Недостатньо срібла для створення гільдії.",
     insufficient_gold: "Недостатньо золота для посилення Алтаря.",
@@ -57,16 +72,16 @@ export function guildErrorMessage(error: unknown) {
     forum_topic_not_found: "Тему не знайдено. Оновіть форум.",
     forum_section_not_found: "Залу не знайдено. Оновіть форум.",
     announcement_too_long: "Оголошення має бути не довшим за 280 символів.",
-    raid_not_member: "До рейду можуть записатися лише учасники цієї гільдії.",
-    raid_not_open: "Запис на рейд уже закрито або бій триває.",
-    raid_not_enrolled: "Спочатку запишіться в рейд.",
-    raid_not_leader: "Почати рейд може тільки визначений рейд-лідер.",
-    raid_not_active: "Спочатку рейд має відкрити рейд-лідер.",
-    raid_battle_not_found: "Бій рейду вже завершено. Оновлюю стан.",
+    raid_not_member: "До івенту можуть приєднатися лише учасники цієї гільдії.",
+    raid_not_open: "Івент гільдії вже активний або завершений.",
+    raid_not_enrolled: "Спочатку приєднайтеся до івенту.",
+    raid_not_leader: "Відкрити івент може тільки глава гільдії.",
+    raid_not_active: "Спочатку глава гільдії має відкрити івент.",
+    raid_battle_not_found: "Бій івенту вже завершено. Оновлюю стан.",
     raid_state_conflict: "Стан бою змінився. Спробуйте ще раз.",
     raid_deck_invalid: "Потрібна повна бойова колода 3/2/2/2.",
-    raid_unavailable: "Дві відьми для рейду тимчасово недоступні.",
-    raid_invalid: "Стан рейду пошкоджений. Спробуйте ще раз.",
+    raid_unavailable: "Дві відьми для івенту тимчасово недоступні.",
+    raid_invalid: "Стан івенту пошкоджений. Спробуйте ще раз.",
   };
   return messages[error.code] ?? "Не вдалося виконати дію. Оновіть дані та повторіть спробу.";
 }
@@ -79,11 +94,9 @@ export function GuildState({ children, error = false, onRetry }: { children: Rea
 }
 
 export function GuildEmblem({ emblemId }: { emblemId: string }) {
-  const match = /^shield-([1-8])$/u.exec(emblemId);
-  const index = match ? Number(match[1]) - 1 : null;
-  return <span className="guild-emblem" aria-hidden="true">{index === null
-    ? <AppIcon name="guild" size={34} />
-    : <span className="guild-emblem__sprite" style={{ backgroundPosition: `${(index % 4) * 33.333333}% ${Math.floor(index / 4) * 100}%` }} />}</span>;
+  const index = guildEmblemIndex(emblemId);
+  const row = Math.floor(index / 4);
+  return <span className="guild-emblem" aria-hidden="true"><span className="guild-emblem__sprite" style={{ backgroundPosition: `${(index % 4) * 33.333333}% ${row === 0 ? "25%" : "68%"}` }} /></span>;
 }
 
 export function GuildRoleBadge({ role }: { role: GuildRole }) {

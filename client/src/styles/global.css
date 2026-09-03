@@ -16203,6 +16203,11 @@ body:has(.guild-screen) {
   filter: drop-shadow(0 2px 3px rgb(0 0 0 / 72%));
 }
 
+.profile-guild-card__shield .guild-emblem {
+  width: 52px;
+  height: 52px;
+}
+
 .profile-guild-card__shield-sprite {
   position: absolute;
   top: -65%;
@@ -16210,7 +16215,7 @@ body:has(.guild-screen) {
   left: 0;
   height: 185%;
   background: url("/assets/guild/guild-shields-simple.png") no-repeat;
-  background-size: 400% 200%;
+  background-size: 400% 400%;
 }
 
 .profile-guild-card__shield > .app-icon {
@@ -16221,6 +16226,7 @@ body:has(.guild-screen) {
 @media (max-width: 390px) {
   .profile-guild-card { width: min(100%, 102px); }
   .profile-guild-card__shield { width: 48px; height: 48px; }
+  .profile-guild-card__shield .guild-emblem { width: 48px; height: 48px; }
   .profile-guild-card__copy strong { font-size: .57rem; }
   .profile-guild-card__copy span { font-size: .53rem; }
 }

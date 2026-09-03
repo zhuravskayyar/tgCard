@@ -5,7 +5,7 @@ import { CardHud } from "../../components/CardHud";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
 import { DeckCard } from "../../components/DeckCard";
 import { MenuRow } from "../../components/MenuRow";
-import { formatNumber, guildErrorMessage, type AsyncState } from "./GuildUi";
+import { formatNumber, GuildEmblem, guildErrorMessage, type AsyncState } from "./GuildUi";
 
 interface GuildHubProps {
   profile: GuildProfileResponse;
@@ -29,6 +29,7 @@ interface GuildHubProps {
 interface GuildModeTileProps {
   detail: string;
   disabled?: boolean;
+  emblemId?: string;
   asset: GuildAssetName;
   label: string;
   name?: string;
@@ -49,7 +50,7 @@ const GUILD_ASSET_SOURCES: Record<GuildAssetName, string> = {
 const GUILD_FEATURE_MESSAGES: Record<GuildFeatureKey, { title: string; body: string }> = {
   war: { title: "Війни гільдій", body: "Війни гільдій — незабаром. Підготовлений розділ з’явиться після запуску бойового режиму." },
   arena: { title: "Арена гільдій", body: "Арена гільдій — незабаром. Поки що цей режим не підключений до бойового сервера." },
-  raid: { title: "Рейди гільдії", body: "Рейди гільдії — незабаром. Підземелля для спільних походів ще готується." },
+  raid: { title: "Івенти гільдії", body: "Івенти гільдії — спільні події для всіх учасників." },
 };
 
 export interface GuildPromoBannerProps {
@@ -91,9 +92,9 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
     {panel ? <section className="guild-card-sheet" aria-label="Карта гільдії">
       <div className="guild-card-sheet__header"><div><span className="guild-kicker">Карта гільдії</span><h3>{active ? active.displayName ?? active.code : "Карта не обрана"}</h3></div><button className="guild-inline-button" onClick={() => { setPanel(null); setPending(null); }} type="button">Закрити</button></div>
       {panel === "selection" && canManage ? <>
-        <p className="guild-card-sheet__copy">Лідер обирає одну карту зі своєї колекції. Вона не додається до колоди й не займає окремий слот.</p>
-        {candidates.status === "loading" ? <p className="guild-empty-copy">Завантаження колекції…</p> : candidates.status === "error" ? <div className="guild-card-sheet__state"><p className="guild-empty-copy">{candidates.message}</p><button className="guild-secondary-button" onClick={onLoadCandidates} type="button">Повторити</button></div> : candidates.data.length === 0 ? <p className="guild-empty-copy">У лідера ще немає карт.</p> : <>
-          <div className="guild-card-selection" aria-label="Карти лідера">{candidates.data.map((card) => <DeckCard key={card.instanceId} card={card} selected={card.instanceId === active?.instanceId} showLevel onClick={() => setPending(card)} />)}</div>
+        <p className="guild-card-sheet__copy">Лідер обирає одну карту зі своєї бойової колоди. Вона не займає окремий слот у колоді.</p>
+        {candidates.status === "loading" ? <p className="guild-empty-copy">Завантаження колоди…</p> : candidates.status === "error" ? <div className="guild-card-sheet__state"><p className="guild-empty-copy">{candidates.message}</p><button className="guild-secondary-button" onClick={onLoadCandidates} type="button">Повторити</button></div> : candidates.data.length === 0 ? <p className="guild-empty-copy">У лідера ще немає карт у бойовій колоді.</p> : <>
+          <div className="guild-card-selection" aria-label="Карти бойової колоди лідера">{candidates.data.map((card) => <DeckCard key={card.instanceId} card={card} selected={card.instanceId === active?.instanceId} showLevel onClick={() => setPending(card)} />)}</div>
           {pending ? <div className="guild-card-confirmation"><p>Встановити «{pending.displayName ?? pending.code}» як карту гільдії?</p><div><button className="guild-primary-button" disabled={busy} onClick={() => { onSetGuildCard(pending.instanceId); setPending(null); setPanel("details"); }} type="button">Підтвердити</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Натисніть на карту, щоб підготувати вибір.</p>}
         </>}
       </> : <>
@@ -105,9 +106,9 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
   </>;
 }
 
-function GuildModeTile({ asset, detail, disabled = false, label, name, onClick }: GuildModeTileProps) {
+function GuildModeTile({ asset, detail, disabled = false, emblemId, label, name, onClick }: GuildModeTileProps) {
   const content = <>
-    <span className="guild-mode-tile__art"><img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} /></span>
+    <span className={`guild-mode-tile__art${asset === "main" ? " guild-mode-tile__art--emblem" : ""}`}>{asset === "main" ? <GuildEmblem emblemId={emblemId ?? "shield-1"} /> : <img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} />}</span>
     <strong>{label}</strong>
     <small>{name ?? detail}</small>
     {name ? <small>{detail}</small> : null}
@@ -189,12 +190,12 @@ export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onD
     </GuildPromoBanner> : null}
 
     <section className="guild-mode-menu" aria-label="Основні розділи гільдії">
-      <GuildModeTile asset="main" detail={`Рівень ${guild.level}`} label="Про гільдію" onClick={onInfo} />
+      <GuildModeTile asset="main" detail={`Рівень ${guild.level}`} emblemId={guild.emblemId} label="Про гільдію" onClick={onInfo} />
       <GuildCardPlatform active={profile.guildCard.active} canManage={profile.guildCard.canManage} candidates={guildCardCandidates} busy={busy} onLoadCandidates={onLoadGuildCardCandidates} onSetGuildCard={onSetGuildCard} />
       <GuildModeTile asset="altar" detail={`Рівень ${guild.level}`} label="Алтар гільдії" onClick={onDevelopment} />
       <GuildModeTile asset="war" detail="Незабаром" disabled label="Війна" onClick={() => setFeature("war")} />
       <GuildModeTile asset="arena" detail="Незабаром" disabled label="Арена" onClick={() => setFeature("arena")} />
-      <GuildModeTile asset="raid" detail="1 активний" label="Рейд" onClick={onRaid} />
+      <GuildModeTile asset="raid" detail="Відьми · спільний прогрес" label="Івент гільдії" onClick={onRaid} />
     </section>
     {feature ? <GuildFeatureNotice feature={feature} onClose={() => setFeature(null)} /> : null}
 
@@ -271,7 +272,7 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
         </article>;
       })}
     </div>
-    <button className="guild-altar__battle" onClick={onRaid} type="button"><p>Карти колекції «Відьми» можна отримати лише в рейдах.</p><img src="/assets/guild/guild-altar-battle.png" alt="" /><strong>Битви з підсиленнями</strong><small>Відкрити рейд відьом</small></button>
+    <button className="guild-altar__battle" onClick={onRaid} type="button"><p>Карти колекції «Відьми» можна отримати лише в івентах гільдії.</p><img src="/assets/guild/guild-altar-battle.png" alt="" /><strong>Битви з підсиленнями</strong><small>Відкрити івент гільдії</small></button>
     <div className="guild-altar__menu guild-menu-list" aria-label="Розділи алтаря"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact detail="Розмови гільдії" icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact detail="Каталог" icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div>
   </section>;
 }

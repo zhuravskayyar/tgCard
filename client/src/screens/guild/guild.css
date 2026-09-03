@@ -44,7 +44,7 @@
 .guild-scroll-title .guild-emblem { width: 24px; height: 24px; }
 .guild-scroll-title > div > span:last-child { min-width: 0; overflow: hidden; color: #e6d6b8; font: 600 .9rem/1.25 var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
 .guild-emblem { position: relative; display: grid; width: 44px; height: 44px; place-items: center; color: var(--accent-gold); flex-shrink: 0; }
-.guild-emblem__sprite { position: absolute; inset: 0; background: url('/assets/guild/guild-shields-simple.png') no-repeat; background-size: 400% 200%; }
+.guild-emblem__sprite { position: absolute; inset: 0; background: url('/assets/guild/guild-shields-simple.png') no-repeat; background-size: 400% 400%; }
 .guild-emblem > .app-icon { width: min(100%, 34px) !important; height: auto !important; aspect-ratio: 1; object-fit: contain; object-position: center; }
 .guild-role { display: inline-flex; align-items: center; gap: 3px; color: #c5b9a3; font-size: .7rem; white-space: nowrap; }
 .guild-role__badge { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; background: url('/assets/guild/guild-badges.png') no-repeat; background-size: 500% 400%; }
@@ -146,6 +146,14 @@
 .guild-form { display: grid; gap: 10px; }
 .guild-form label { display: grid; gap: 4px; color: var(--text-secondary); }
 .guild-form__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.guild-emblem-picker { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+.guild-emblem-picker legend { padding: 0; color: var(--text-secondary); }
+.guild-emblem-picker__options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.guild-emblem-picker__option { display: grid; min-height: 68px; align-content: center; justify-items: center; gap: 2px; padding: 4px 2px; border: 1px solid #4b402f; border-radius: var(--radius-sm); color: var(--text-secondary); background: #121310; font: inherit; cursor: pointer; }
+.guild-emblem-picker__option:hover, .guild-emblem-picker__option:focus-visible { border-color: #9c793f; outline: none; }
+.guild-emblem-picker__option--selected { border-color: var(--accent-gold); background: #2a2116; box-shadow: inset 0 0 0 1px rgb(217 173 94 / 30%); color: #eed18c; }
+.guild-emblem-picker__option .guild-emblem { width: 42px; height: 42px; }
+.guild-emblem-picker__option span:last-child { font-size: .58rem; line-height: 1; }
 .guild-screen :is(input:not([type="checkbox"]), select, textarea) { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid #65543c; border-radius: var(--radius-sm); background: #131514; color: var(--text-primary); }
 .guild-screen textarea { resize: vertical; }
 .guild-create { padding: 12px; border: 1px solid var(--guild-divider); border-radius: var(--radius-md); background: #191917; }
@@ -216,10 +224,10 @@
 
 
 
-/* The source sprite is a 4×2 sheet of 1:2 cells. Keeping this ratio prevents
-   shields from being stretched horizontally inside square placeholders. */
+/* The source sprite is a 4×2 sheet of 1:2 cells. Keep the image square so
+   shields retain their natural proportions inside square placeholders. */
 .guild-emblem { width: 36px; height: 36px; aspect-ratio: 1; }
-.guild-emblem__sprite { background-size: 400% 200%; }
+.guild-emblem__sprite { background-size: 400% 400%; }
 .guild-scroll-title .guild-emblem { width: 18px; height: 18px; }
 
 .guild-profile:has(.guild-hub) > .guild-level,
@@ -486,7 +494,7 @@
 .guild-card-confirmation > div { display: flex; flex-wrap: wrap; gap: 7px; }
 
 .guild-screen .guild-emblem { flex: 0 0 auto; width: 36px; height: 36px; aspect-ratio: 1; }
-.guild-screen .guild-emblem__sprite { display: block; width: 100%; height: 100%; aspect-ratio: 1; background-repeat: no-repeat; background-size: 400% 200%; }
+.guild-screen .guild-emblem__sprite { display: block; width: 100%; height: 100%; aspect-ratio: 1; background-repeat: no-repeat; background-size: 400% 400%; }
 
 @media (max-width: 380px) {
   .guild-card-selection { grid-template-columns: repeat(4, minmax(0, 1fr)); }

@@ -149,21 +149,21 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
           </div>
           <span aria-label={`Здоров’я ${selectedBoss.displayName}: ${Math.round(selectedBossHealthPercent)}%`} className="guild-raid-battle__target-hpbar"><span style={{ width: `${selectedBossHealthPercent}%` }} /></span>
         </section> : null}
-        <section aria-label="Бойове поле рейду" className={`guild-raid-battle__field duel-board${clash ? " duel-board--clash" : ""}`}>
+        <section aria-label="Бойове поле івенту" className={`guild-raid-battle__field duel-board${clash ? " duel-board--clash" : ""}`}>
           {clash ? <div aria-hidden="true" className="duel-flight-layer">
             <DuelFlyingCard card={clash.playerCard} impactLevel={clashImpactLevel} side="player" slotIndex={clash.slotIndex} />
             <DuelFlyingCard card={clash.enemyCard} impactLevel={clashImpactLevel} side="enemy" slotIndex={clash.slotIndex} />
           </div> : null}
           {clash ? <DuelClashOverlay exchange={clash} /> : null}
           <div className="arena-battlefield__label"><span>ЦІЛЬ</span><span>ВИ</span></div>
-          <div aria-label="Карти рейду: 3 колонки × 2 ряди" className="guild-raid-battle__card-matrix">
+          <div aria-label="Карти івенту: 3 колонки × 2 ряди" className="guild-raid-battle__card-matrix">
             <div aria-label={`Карти ${selectedBoss?.displayName ?? "відьми"}`} className="duel-card-row duel-card-row--enemy">
               {selectedCards.map((card, index) => <BattleCard card={card} clashLevel={clashSlot === index && clash ? getEffectLevel(clash.enemyMultiplier) : undefined} clashing={clashSlot === index} disabled enemy key={card.instanceId} />)}
             </div>
             <div aria-label="Множники удару" className="duel-multiplier-row guild-raid-battle__multiplier-row">
               {multipliers.map((multiplier, index) => <span className={`duel-multiplier duel-multiplier--${String(multiplier ?? "none").replace(".", "-")}`} key={index}>{multiplier === null ? "—" : `×${multiplier}`}</span>)}
             </div>
-            <div aria-label="Ваші карти рейду" className="duel-card-row duel-card-row--player">
+            <div aria-label="Ваші карти івенту" className="duel-card-row duel-card-row--player">
               {battle.playerActiveCards.map((card, index) => <BattleCard card={card} clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined} clashing={clashSlot === index} disabled={disabled} key={card.instanceId} onClick={() => onAction(index as 0 | 1 | 2)} />)}
             </div>
           </div>
@@ -191,17 +191,17 @@ function RaidReward({ participant }: { participant: GuildRaidResultParticipantVi
 }
 
 function RaidResult({ result, canStart, onStart, pending }: { result: GuildRaidResultView; canStart: boolean; onStart: () => void; pending: boolean }) {
-  return <section aria-label="Підсумок рейду" className="guild-raid-result">
-    <div className="guild-raid-result__banner"><span>Рейд завершено</span><h3>ВІДЬМИ ПЕРЕМОЖЕНІ</h3><small>Рівень {result.level} · учасників {result.participantCount}</small></div>
+  return <section aria-label="Підсумок івенту гільдії" className="guild-raid-result">
+    <div className="guild-raid-result__banner"><span>Івент гільдії завершено</span><h3>ВІДЬМИ ПЕРЕМОЖЕНІ</h3><small>Рівень {result.level} · учасників {result.participantCount}</small></div>
     <div className="guild-raid-result__summary"><span>Загальна шкода</span><strong>{formatRaidNumber(result.totalDamage)}</strong></div>
-    <ol className="guild-raid-result__standings" aria-label="Результати учасників рейду">
+    <ol className="guild-raid-result__standings" aria-label="Результати учасників івенту">
       {result.participants.map((participant) => <li className={participant.reward.card ? "is-card-winner" : ""} key={participant.playerId}>
         <LeagueBadge league={getLeagueByRating(participant.duelRating)} size="sm" />
         <span className="guild-raid-result__player"><strong>{participant.displayName}</strong><small>⚔ {formatRaidNumber(participant.damage)} шкоди</small></span>
         <RaidReward participant={participant} />
       </li>)}
     </ol>
-    {canStart ? <button className="guild-raid__button guild-raid__button--start" disabled={pending} onClick={onStart} type="button">Відкрити наступний рейд</button> : null}
+    {canStart ? <button className="guild-raid__button guild-raid__button--start" disabled={pending} onClick={onStart} type="button">Відкрити наступний івент</button> : null}
   </section>;
 }
 
@@ -214,16 +214,16 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
   onRetry: () => void;
   pending: boolean;
 }) {
-  return <section aria-label="Підсумок поразки рейду" className="guild-raid-result guild-raid-result--defeat">
+  return <section aria-label="Підсумок поразки івенту гільдії" className="guild-raid-result guild-raid-result--defeat">
     <div className="guild-raid-result__banner"><h3>ВАША КОМАНДА<br />ПЕРЕМОЖЕНА</h3></div>
-    <div aria-label="Відьми рейду" className="guild-raid-result__bosses">
+    <div aria-label="Відьми івенту" className="guild-raid-result__bosses">
       {bosses[0] ? <span className="guild-raid-result__boss"><img alt={`${bosses[0].displayName}, стихія ${ELEMENT_LABELS[bosses[0].element]}`} src={`/card-art/${bosses[0].artKey}.png`} /></span> : <span />}
       <p>Відьми насміхаються<br />над цими магами…</p>
       {bosses[1] ? <span className="guild-raid-result__boss"><img alt={`${bosses[1].displayName}, стихія ${ELEMENT_LABELS[bosses[1].element]}`} src={`/card-art/${bosses[1].artKey}.png`} /></span> : <span />}
     </div>
     <div className="guild-raid-result__defeat-copy"><p>Ніхто нічого не отримав.</p><p>Поточний рівень алтаря гільдії — <strong>{altarLevel}</strong></p></div>
     <p className="guild-raid-result__leaders-title">Лідери за шкодою</p>
-    <ol className="guild-raid-result__standings" aria-label="Поточний рейтинг учасників рейду">
+    <ol className="guild-raid-result__standings" aria-label="Поточний рейтинг учасників івенту">
       {leaderboard.map((participant, index) => <li key={participant.playerId}>
         <span aria-hidden="true" className="guild-raid-result__placement">{index + 1}</span>
         <LeagueBadge league={getLeagueByRating(participant.duelRating)} size="sm" />
@@ -233,7 +233,7 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
     </ol>
     <p className="guild-raid-result__participants">Всього учасників: {participantCount}</p>
     <div className="guild-raid-result__retry"><p>Ще спроба?</p><button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onRetry} type="button">Повторити бій</button></div>
-    <figure className="guild-raid-result__battle-art"><img alt="" src="/assets/guild/guild-altar-battle.png" /><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного рейду: {nextLevel}</small></figcaption></figure>
+    <figure className="guild-raid-result__battle-art"><img alt="" src="/assets/guild/guild-altar-battle.png" /><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного івенту: {nextLevel}</small></figcaption></figure>
   </section>;
 }
 
@@ -245,25 +245,26 @@ function RaidLobby({ altarLevel, raid, pending, onEnrollment, onStart, onBattle 
   onStart: () => void;
   onBattle: () => void;
 }) {
-  const latestBattle = raid.battle;
-  if (raid.lastResult) return <RaidResult canStart={raid.enrollment.canStart} onStart={onStart} pending={pending} result={raid.lastResult} />;
+  const latestBattle = raid.battle?.raidLevel === raid.level ? raid.battle : null;
+  const currentResult = raid.lastResult?.level === raid.level ? raid.lastResult : null;
+  if (currentResult) return <RaidResult canStart={raid.enrollment.canStart} onStart={onStart} pending={pending} result={currentResult} />;
   if (latestBattle?.status === "lost" && raid.status === "active") return <RaidDefeatResult altarLevel={altarLevel} bosses={raid.bosses} leaderboard={raid.damageLeaderboard} nextLevel={raid.nextLevel} participantCount={raid.damageLeaderboard.length} onRetry={onBattle} pending={pending} />;
   return (
     <section className="guild-raid-lobby">
-      <div className="guild-raid__bosses" aria-label="Дві випадкові відьми рейду">
+      <div className="guild-raid__bosses" aria-label="Дві випадкові відьми івенту">
         {raid.bosses[0] ? <RaidBossPreview boss={raid.bosses[0]} side="left" /> : null}
         <strong>{raid.name}</strong>
         {raid.bosses[1] ? <RaidBossPreview boss={raid.bosses[1]} side="right" /> : null}
       </div>
       <p className="guild-raid-lobby__participants">Записано учасників: <strong>{raid.enrollment.participantCount}</strong></p>
-      {latestBattle?.status === "won" ? <p className="guild-raid-battle__result guild-raid-battle__result--win">Відьми 1 рівня переможені. Рейд готовий до нового бою.</p> : null}
+      {latestBattle?.status === "won" ? <p className="guild-raid-battle__result guild-raid-battle__result--win">Відьми цього рівня переможені. Івент готовий до нового бою.</p> : null}
       {latestBattle?.status === "lost" && raid.status === "active" ? <button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onBattle} type="button">Повторити бій</button> : null}
       {raid.status === "open" && raid.enrollment.enrolled ? <button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onEnrollment} type="button">Вийти із запису</button> : null}
-      {raid.status === "open" && !raid.enrollment.enrolled ? <button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onEnrollment} type="button">Записатися на рейд</button> : null}
+      {raid.status === "open" && !raid.enrollment.enrolled ? <button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onEnrollment} type="button">Приєднатися до івенту</button> : null}
       {raid.status === "open" && raid.enrollment.canStart ? <button className="guild-raid__button guild-raid__button--start" disabled={pending} onClick={onStart} type="button">Відкрити бій</button> : null}
-      {raid.status === "open" && raid.enrollment.enrolled && !raid.enrollment.canStart ? <p className="guild-raid-lobby__hint">Чекаємо, поки рейд-лідер відкриє бій.</p> : null}
+      {raid.status === "open" && raid.enrollment.enrolled && !raid.enrollment.canStart ? <p className="guild-raid-lobby__hint">Чекаємо, поки глава гільдії відкриє івент.</p> : null}
       {raid.status === "active" && latestBattle?.status !== "active" && latestBattle?.status !== "lost" && raid.enrollment.enrolled ? <button className="guild-raid__button guild-raid__button--start" disabled={pending} onClick={onBattle} type="button">Почати свій бій</button> : null}
-      {raid.status === "active" && !raid.enrollment.enrolled ? <p className="guild-raid-lobby__hint">Рейд уже відкритий. Наступний бій доступний записаним учасникам.</p> : null}
+      {raid.status === "active" && !raid.enrollment.enrolled ? <button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onEnrollment} type="button">Приєднатися до івенту</button> : null}
     </section>
   );
 }
@@ -278,7 +279,7 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
   const [pending, setPending] = useState(false);
   const [targetBossSlot, setTargetBossSlot] = useState<1 | 2>(1);
   const activeBattleIdRef = useRef<string | null>(null);
-  const [notice, setNotice] = useState("Рейд готується до запису.");
+  const [notice, setNotice] = useState("Івент гільдії готується до запису.");
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<RaidChatMessage[]>([]);
 
@@ -289,12 +290,13 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
       activeBattleIdRef.current = battleId;
       setTargetBossSlot(data.battle?.targetBossSlot ?? 1);
     }
-    if (data.battle?.status === "won") setNotice("Відьми 1 рівня переможені. Можна відкривати новий бій.");
-    else if (data.battle?.status === "lost") setNotice("Бій завершено. Можна спробувати ще раз.");
-    else if (data.status === "active" && data.battle?.status === "active") setNotice("Бій триває. Оберіть карту й ціль.");
-    else if (data.status === "active") setNotice("Рейд відкрито. Записані учасники можуть почати свої бої.");
-    else if (data.enrollment.enrolled) setNotice(data.enrollment.canStart ? "Ви рейд-лідер. Можна відкривати бій." : "Ви записані. Дочекайтеся старту рейд-лідера.");
-    else setNotice("Рейд готовий до запису.");
+    const currentBattle = data.battle?.raidLevel === data.level ? data.battle : null;
+    if (currentBattle?.status === "won") setNotice("Відьми цього рівня переможені. Можна відкривати новий бій.");
+    else if (currentBattle?.status === "lost") setNotice("Бій завершено. Можна спробувати ще раз.");
+    else if (data.status === "active" && currentBattle?.status === "active") setNotice("Бій триває. Оберіть карту й ціль.");
+    else if (data.status === "active") setNotice("Івент гільдії відкрито. Учасники можуть приєднатися та почати свої бої.");
+    else if (data.enrollment.enrolled) setNotice(data.enrollment.canStart ? "Ви глава гільдії. Можна відкрити івент." : "Ви записані. Дочекайтеся старту глави гільдії.");
+    else setNotice("Івент гільдії готовий до запису.");
   }
 
   async function reload(initial = false) {
@@ -312,7 +314,7 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
 
   const raid = raidState.data;
   useEffect(() => {
-    if (!raid || raid.status !== "active" || raid.lastResult) return;
+    if (!raid || raid.status !== "active" || raid.lastResult?.level === raid.level) return;
     const timer = window.setInterval(() => { void reload(); }, 1_200);
     return () => window.clearInterval(timer);
   }, [raid?.id, raid?.status, raid?.battle?.status, guild.id]);
@@ -360,20 +362,22 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
     setDraft("");
   }
 
-  const battleVisible = raid?.status === "active" && raid.battle?.status === "active";
-  const resultVisible = Boolean(raid?.lastResult || raid?.battle?.status === "lost");
+  const currentBattle = raid && raid.battle?.raidLevel === raid.level ? raid.battle : null;
+  const currentResult = raid && raid.lastResult?.level === raid.level ? raid.lastResult : null;
+  const battleVisible = raid?.status === "active" && currentBattle?.status === "active";
+  const resultVisible = Boolean(currentResult || currentBattle?.status === "lost");
   return <section className="guild-raid" aria-labelledby="guild-raid-title" data-raid-id={raid?.id}>
-    <div className="guild-section-bar guild-raid__title"><h2 id="guild-raid-title">{raid ? `${raid.name} ${raid.level} рівня` : "Рейд відьом"}</h2></div>
+    <div className="guild-section-bar guild-raid__title"><h2 id="guild-raid-title">{raid ? `Івент гільдії · ${raid.name} ${raid.level} рівня` : "Івент гільдії · Відьми"}</h2></div>
 
-    {raidState.status === "loading" ? <GuildState>Завантаження рейду…</GuildState> : raidState.status === "error" || !raid ? <GuildState error onRetry={() => void reload(true)}>{raidState.message ?? "Рейд тимчасово недоступний."}</GuildState> : battleVisible ? <RaidBattle raid={raid} pending={pending} playerLevel={profile.viewer.member?.level ?? 1} playerName={profile.viewer.member?.displayName ?? "Ви"} playerPhotoUrl={profile.viewer.member?.photoUrl ?? null} targetBossSlot={targetBossSlot} onAction={attack} onTargetChange={setTargetBossSlot} /> : <RaidLobby altarLevel={profile.altar.currentLevel} onBattle={startBattle} onEnrollment={toggleEnrollment} onStart={openRaid} pending={pending} raid={raid} />}
+    {raidState.status === "loading" ? <GuildState>Завантаження івенту…</GuildState> : raidState.status === "error" || !raid ? <GuildState error onRetry={() => void reload(true)}>{raidState.message ?? "Івент тимчасово недоступний."}</GuildState> : battleVisible ? <RaidBattle raid={raid} pending={pending} playerLevel={profile.viewer.member?.level ?? 1} playerName={profile.viewer.member?.displayName ?? "Ви"} playerPhotoUrl={profile.viewer.member?.photoUrl ?? null} targetBossSlot={targetBossSlot} onAction={attack} onTargetChange={setTargetBossSlot} /> : <RaidLobby altarLevel={profile.altar.currentLevel} onBattle={startBattle} onEnrollment={toggleEnrollment} onStart={openRaid} pending={pending} raid={raid} />}
 
     {!battleVisible && !resultVisible ? <section className="guild-raid__chat" aria-labelledby="guild-raid-chat-title">
-      <h3 id="guild-raid-chat-title">Рейд-чат</h3>
+      <h3 id="guild-raid-chat-title">Чат івенту</h3>
       <div className="guild-raid__messages" aria-live="polite">
-        {messages.length ? messages.map((message) => <p key={message.id}><strong>Ви</strong><span>{message.body}</span></p>) : <p className="guild-raid__empty">Чат рейду поки порожній.</p>}
+        {messages.length ? messages.map((message) => <p key={message.id}><strong>Ви</strong><span>{message.body}</span></p>) : <p className="guild-raid__empty">Чат івенту поки порожній.</p>}
       </div>
       <form className="guild-raid__composer" onSubmit={submitMessage}>
-        <input aria-label="Повідомлення в рейд-чат" maxLength={240} placeholder="Повідомлення для рейду…" value={draft} onChange={(event) => setDraft(event.target.value)} />
+        <input aria-label="Повідомлення в чат івенту" maxLength={240} placeholder="Повідомлення для івенту…" value={draft} onChange={(event) => setDraft(event.target.value)} />
         <button aria-label="Надіслати повідомлення" type="submit"><AppIcon name="chevron" size={18} /></button>
       </form>
     </section> : null}

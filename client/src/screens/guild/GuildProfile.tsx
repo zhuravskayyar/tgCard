@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, canKickGuildMember, canManageGuildRole, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildMineResponse, type GuildProfileResponse, type GuildRecruitmentMode, type GuildRole, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { MenuRow } from "../../components/MenuRow";
-import { ELEMENT_LABELS, GuildRoleBadge, GuildState, LANGUAGE_LABELS, MODE_LABELS, ROLE_ORDER, formatDate, formatNumber, type AsyncState } from "./GuildUi";
+import { ELEMENT_LABELS, GuildEmblem, GuildRoleBadge, GuildState, LANGUAGE_LABELS, MODE_LABELS, ROLE_ORDER, formatDate, formatNumber, type AsyncState } from "./GuildUi";
 import { GuildAnnouncements, GuildDevelopment, GuildHub, GuildJournal } from "./GuildHub";
 import { GuildIdentity } from "./GuildIdentity";
 import { GuildRaidScreen } from "./GuildRaidScreen";
@@ -135,7 +135,7 @@ function GuildInformation({ profile, onBack, onMembers, onForum, onDirectory }: 
   const leader = members.find((member) => member.role === "leader");
   return <section className="guild-information guild-information--reference" aria-labelledby="guild-information-title">
     <div className="guild-section-bar"><AppIcon name="guild" size={17} /><h3 id="guild-information-title">Інформація про гільдію</h3></div>
-    <div className="guild-information__identity"><img alt="" aria-hidden="true" src="/assets/guild/guild-main.svg" /><h2>{guild.name}</h2><span>{guild.themeElement ? ELEMENT_LABELS[guild.themeElement] : "Без стихії"} · {MODE_LABELS[guild.recruitmentMode]}</span></div>
+    <div className="guild-information__identity"><GuildEmblem emblemId={guild.emblemId} /><h2>{guild.name}</h2><span>{guild.themeElement ? ELEMENT_LABELS[guild.themeElement] : "Без стихії"} · {MODE_LABELS[guild.recruitmentMode]}</span></div>
     <dl className="guild-information__facts"><div><dt>Заснована</dt><dd>{new Date(guild.createdAt).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" })}</dd></div><div><dt>Рівень</dt><dd>{guild.level}<small>{guild.nextLevelExperience === null ? "Максимальний рівень" : `${formatNumber(guild.experience)} / ${formatNumber(guild.nextLevelExperience)} XP`}</small></dd></div><div><dt>Склад</dt><dd>{guild.memberCount} / {guild.memberCapacity}</dd></div><div><dt>Активність</dt><dd>{formatNumber(guild.activityScore)} XP<small>за 7 днів</small></dd></div><div><dt>Лідер</dt><dd>{leader?.displayName ?? "—"}</dd></div><div><dt>Мова</dt><dd>{LANGUAGE_LABELS[guild.language]}</dd></div></dl>
     <button className="guild-information__back" onClick={onBack} type="button">До огляду гільдії</button>
     <div className="guild-information__actions guild-menu-list" aria-label="Дії з інформацією про гільдію">

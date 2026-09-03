@@ -99,6 +99,7 @@ export function App() {
   const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
   const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
   const [deckPowerOverride, setDeckPowerOverride] = useState<number | undefined>(undefined);
+  const [guildOpenKey, setGuildOpenKey] = useState(0);
   const [dailyLoginDismissedDate, setDailyLoginDismissedDate] = useState<string | null>(null);
   const [dailyLoginClaimedDate, setDailyLoginClaimedDate] = useState<string | null>(null);
 
@@ -309,6 +310,7 @@ export function App() {
 
   function openGuild() {
     if (campaignTraining) { openCampaign(); return; }
+    setGuildOpenKey((value) => value + 1);
     setScreen("guild");
     updatePath("/guild");
   }
@@ -467,7 +469,7 @@ export function App() {
           tutorialStatus={tutorial.status}
         />
       ) : null}
-      {screen === "guild" ? <GuildScreen playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
+      {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" ? (
         <DuelScreen
           key={tutorialDuelTraining ? "tutorial-duel" : "normal-duel"}

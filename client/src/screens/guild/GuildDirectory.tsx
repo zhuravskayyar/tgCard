@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { GUILD_CONFIG, type CreateGuildRequest, type GuildLanguage, type GuildListResponse, type GuildRecruitmentMode } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { loadGuildList } from "../../telegram/guild";
-import { GuildEmblem, GuildState, LANGUAGE_LABELS, MODE_LABELS, formatNumber, guildErrorMessage, type AsyncState } from "./GuildUi";
+import { GUILD_EMBLEM_OPTIONS, GuildEmblem, GuildState, LANGUAGE_LABELS, MODE_LABELS, formatNumber, guildErrorMessage, type AsyncState } from "./GuildUi";
 
 export function GuildDirectory({ onOpen }: { onOpen: (id: string) => void }) {
   const [search, setSearch] = useState("");
@@ -43,12 +43,18 @@ export function GuildDirectory({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 export function GuildCreateForm({ busy, silver, onCreate }: { busy: boolean; silver: number; onCreate: (input: CreateGuildRequest) => void }) {
-  const [form, setForm] = useState<CreateGuildRequest>({ name: "", description: "", language: "uk", recruitmentMode: "open" });
+  const [form, setForm] = useState<CreateGuildRequest>({ name: "", description: "", emblemId: "shield-1", language: "uk", recruitmentMode: "open" });
   const affordable = silver >= GUILD_CONFIG.creationCostSilver;
   return <form className="guild-form guild-create" onSubmit={(event) => { event.preventDefault(); onCreate(form); }}>
     <p className="guild-helper">Вартість створення: <strong>{formatNumber(GUILD_CONFIG.creationCostSilver)} срібла</strong>. Ви станете лідером нової гільдії.</p>
     <label>Назва<input required minLength={GUILD_CONFIG.nameMinLength} maxLength={GUILD_CONFIG.nameMaxLength} value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} autoComplete="off" /></label>
     <label>Опис<textarea rows={3} maxLength={GUILD_CONFIG.descriptionMaxLength} value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} /></label>
+    <fieldset className="guild-emblem-picker">
+      <legend>Щит гільдії</legend>
+      <div className="guild-emblem-picker__options">
+        {GUILD_EMBLEM_OPTIONS.map((option) => <button aria-label={option.label} aria-pressed={form.emblemId === option.id} className={`guild-emblem-picker__option${form.emblemId === option.id ? " guild-emblem-picker__option--selected" : ""}`} key={option.id} onClick={() => setForm((value) => ({ ...value, emblemId: option.id }))} type="button"><GuildEmblem emblemId={option.id} /><span>{option.label}</span></button>)}
+      </div>
+    </fieldset>
     <div className="guild-form__columns">
       <label>Мова<select value={form.language} onChange={(event) => setForm((value) => ({ ...value, language: event.target.value as GuildLanguage }))}>{Object.entries(LANGUAGE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <label>Набір<select value={form.recruitmentMode} onChange={(event) => setForm((value) => ({ ...value, recruitmentMode: event.target.value as GuildRecruitmentMode }))}>{Object.entries(MODE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>

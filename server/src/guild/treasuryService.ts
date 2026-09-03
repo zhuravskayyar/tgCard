@@ -100,7 +100,8 @@ function toDateString(value: string | Date) {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
-function contributionAvailableAt(joinedAt: string | Date) {
+function contributionAvailableAt(joinedAt: string | Date, role?: GuildRole) {
+  if (role === "leader") return new Date(0);
   return new Date(new Date(joinedAt).getTime() + GUILD_CONFIG.treasuryContributionUnlockHours * 60 * 60 * 1000);
 }
 
@@ -192,7 +193,7 @@ export class GuildTreasuryService {
     ]);
 
     const viewer = viewerResult.rows[0];
-    const availableAt = viewer ? contributionAvailableAt(viewer.joined_at) : new Date();
+    const availableAt = viewer ? contributionAvailableAt(viewer.joined_at, viewer.role) : new Date();
     const viewerIsMember = Boolean(viewer);
     const viewerGold = viewer ? toNonNegativeInteger(viewer.gold, "player gold") : 0;
     const viewerSilver = viewer ? toNonNegativeInteger(viewer.silver, "player silver") : 0;
@@ -215,13 +216,13 @@ export class GuildTreasuryService {
 
   async getCardCandidates(playerId: string, guildId: string): Promise<GuildTreasuryCardCandidatesResponse> {
     try {
-      const memberResult = await this.pool.query<{ joined_at: string | Date }>(
-        "SELECT joined_at FROM guild_members WHERE player_id = $1 AND guild_id = $2",
+      const memberResult = await this.pool.query<{ joined_at: string | Date; role: GuildRole }>(
+        "SELECT joined_at, role FROM guild_members WHERE player_id = $1 AND guild_id = $2",
         [playerId, guildId],
       );
       const member = memberResult.rows[0];
       if (!member) throw new GuildTreasuryDomainError("treasury_not_member", "Player is not a member of this guild", 403);
-      const availableAt = contributionAvailableAt(member.joined_at);
+      const availableAt = contributionAvailableAt(member.joined_at, member.role);
       if (Date.now() < availableAt.getTime()) {
         throw new GuildTreasuryDomainError("treasury_cooldown", "Treasury contributions unlock after three days in the guild", 409, availableAt.toISOString());
       }
@@ -402,13 +403,13 @@ export class GuildTreasuryService {
   }
 
   private async lockEligibleMember(client: TransactionClient, playerId: string, guildId: string) {
-    const result = await client.query<{ joined_at: string | Date }>(
-      "SELECT joined_at FROM guild_members WHERE player_id = $1 AND guild_id = $2 FOR UPDATE",
+    const result = await client.query<{ joined_at: string | Date; role: GuildRole }>(
+      "SELECT joined_at, role FROM guild_members WHERE player_id = $1 AND guild_id = $2 FOR UPDATE",
       [playerId, guildId],
     );
     const member = result.rows[0];
     if (!member) throw new GuildTreasuryDomainError("treasury_not_member", "Player is not a member of this guild", 403);
-    const availableAt = contributionAvailableAt(member.joined_at);
+    const availableAt = contributionAvailableAt(member.joined_at, member.role);
     if (Date.now() < availableAt.getTime()) {
       throw new GuildTreasuryDomainError("treasury_cooldown", "Treasury contributions unlock after three days in the guild", 409, availableAt.toISOString());
     }

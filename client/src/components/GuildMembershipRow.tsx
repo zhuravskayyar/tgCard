@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, type GuildMineResponse } from "@cardastika/shared";
 import { loadMyGuild } from "../telegram/guild";
-import { AppIcon } from "./AppIcon";
+import { GuildEmblem } from "../screens/guild/GuildUi";
 
 function GuildShield({ emblemId }: { emblemId?: string }) {
-  const match = emblemId ? /^shield-([1-8])$/u.exec(emblemId) : null;
-  const index = match ? Number(match[1]) - 1 : null;
-
-  return <span className="profile-guild-card__shield" aria-hidden="true">
-    {index === null ? <AppIcon name="guild" size={34} /> : <span className="profile-guild-card__shield-sprite" style={{ top: index < 4 ? "-65%" : "-7%", backgroundPosition: `${(index % 4) * 33.333333}% ${Math.floor(index / 4) * 100}%` }} />}
-  </span>;
+  return <span className="profile-guild-card__shield" aria-hidden="true"><GuildEmblem emblemId={emblemId ?? "shield-1"} /></span>;
 }
 
 export function GuildMembershipRow({ level, onOpen }: { level: number; onOpen: () => void }) {

@@ -550,8 +550,11 @@ export class GuildService implements GuildActivityRecorder {
           SELECT ${PLAYER_CARD_PROJECTION}, player_card_instances.created_at
           FROM player_card_instances
           INNER JOIN cards ON cards.id = player_card_instances.card_id
+          INNER JOIN player_decks ON player_decks.player_id = player_card_instances.player_id
+          INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
+            AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.player_id = $1
-          ORDER BY cards.code ASC, player_card_instances.created_at ASC, player_card_instances.id ASC
+          ORDER BY deck_slots.slot ASC
         `,
         [playerId],
       );
@@ -580,6 +583,9 @@ export class GuildService implements GuildActivityRecorder {
           SELECT ${PLAYER_CARD_PROJECTION}
           FROM player_card_instances
           INNER JOIN cards ON cards.id = player_card_instances.card_id
+          INNER JOIN player_decks ON player_decks.player_id = player_card_instances.player_id
+          INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
+            AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.id = $1 AND player_card_instances.player_id = $2
         `,
         [instanceId, playerId],
@@ -1332,7 +1338,7 @@ export class GuildService implements GuildActivityRecorder {
 
   private normalizeEmblem(value: string | undefined) {
     const emblemId = (value ?? "shield-1").trim();
-    if (!/^[a-z0-9_-]{1,64}$/iu.test(emblemId)) throw new GuildDomainError("invalid_guild_emblem", "Guild emblem is invalid", 400);
+    if (!/^shield-[1-8]$/u.test(emblemId)) throw new GuildDomainError("invalid_guild_emblem", "Guild emblem is invalid", 400);
     return emblemId;
   }
 

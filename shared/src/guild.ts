@@ -334,6 +334,7 @@ export interface GuildRaidBattleView {
   playerActiveCards: readonly [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
   playerHp: number;
   playerMaxHp: number;
+  raidLevel: number;
   status: GuildRaidBattleStatus;
   targetBossSlot: 1 | 2;
   turnNumber: number;
