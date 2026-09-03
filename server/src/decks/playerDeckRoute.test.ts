@@ -54,9 +54,15 @@ test("GET player deck uses only the authenticated player's id", async () => {
     headers: { authorization: `tma ${createInitData(123456)}` },
   } as IncomingMessage;
   const capture = createResponseCapture();
+  let recalculatedPlayerId: string | null = null;
 
   await handlePlayerDeck(request, capture.response, {
     botToken,
+    automaticDeck: {
+      recalculateForPlayer: async (playerId) => {
+        recalculatedPlayerId = playerId;
+      },
+    },
     players: { findOrCreateFromTelegram: async () => player },
     decks: {
       findByPlayerId: async (playerId) => {
@@ -67,6 +73,7 @@ test("GET player deck uses only the authenticated player's id", async () => {
   });
 
   assert.equal(requestedPlayerId, player.id);
+  assert.equal(recalculatedPlayerId, player.id);
   assert.deepEqual(capture.read(), { status: 200, body: deck });
 });
 
@@ -77,6 +84,7 @@ test("PUT player deck is retired", async () => {
 
   await handlePlayerDeck(request, capture.response, {
     botToken,
+    automaticDeck: { recalculateForPlayer: async () => undefined },
     players: {
       findOrCreateFromTelegram: async () => {
         playerLookupCalled = true;

@@ -33,6 +33,7 @@ const STEP_COPY: Record<Exclude<TutorialStep, "complete">, TutorialCopy> = {
   "duel-advantage": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-second", text: "Критичні удари в 1,5 раза сильніші! Атакуй!", title: "" },
   "duel-free-play": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card", text: "Добий ворога будь-якою картою!", title: "" },
   "duel-result": { action: "ЗА НАГОРОДОЮ", target: "duel-result", text: "Перемога! Забери нагороду й вирушай у кампанію.", title: "" },
+  deck: { action: "ДАЛІ", target: "deck-rule", text: "У бою працюють 9 найсильніших допустимих карт. Копії однієї базової карти не дублюються — береться найсильніша.", title: "Твоя бойова колода" },
   campaign: { action: "ВІДКРИТИ КАМПАНІЮ", text: "Кампанія — твій основний шлях у грі. Виконуй завдання, відкривай нові етапи й розкривай історію.", title: "Твій шлях починається" },
 };
 
@@ -42,6 +43,7 @@ const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = 
   "duel-advantage": "sly",
   "duel-free-play": "sly",
   "duel-result": "happy",
+  deck: "happy",
   campaign: "happy",
 };
 

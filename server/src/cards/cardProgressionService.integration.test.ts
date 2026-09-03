@@ -162,7 +162,8 @@ test("absorption validates ownership, weak membership and element while preservi
     assert.equal(upgraded.deckPower, deck.totalPower);
     assert.ok(deck.cards.some(({ instanceId }) => instanceId === targetId));
     const weakAfterUpgrade = await inventory.findWeakByPlayerId(owner.id);
-    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === displacedFireId));
+    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === byCode.get("starter_01")));
+    assert.ok(!weakAfterUpgrade.some(({ instanceId }) => instanceId === displacedFireId));
     assert.deepEqual(countDeckElements(deck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
     assert.equal(deck.totalPower, deck.cards.reduce((total, card) => total + card.finalPower, 0));
   } finally {

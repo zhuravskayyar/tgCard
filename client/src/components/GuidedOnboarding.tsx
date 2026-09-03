@@ -8,6 +8,7 @@ interface GuidedOnboardingProps {
 
 function getRouteLabel(status: TutorialStatus) {
   if (status === "campaign") return "Кампанія";
+  if (status === "deck") return "Колода";
   if (status && ["duel-first-card", "duel-advantage", "duel-free-play", "duel-result"].includes(status)) return "Дуель";
   return "Стартова дуель";
 }

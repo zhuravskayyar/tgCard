@@ -8,12 +8,17 @@ interface DeckLookup {
   findByPlayerId(playerId: string): ReturnType<import("./deckRepository.js").DeckRepository["findByPlayerId"]>;
 }
 
+interface AutomaticDeckLookup {
+  recalculateForPlayer(playerId: string): Promise<unknown>;
+}
+
 interface PlayerDeckDependencies extends RouteAuthDependencies {
   decks: DeckLookup;
   responseHeaders?: OutgoingHttpHeaders;
   campaign?: {
     recordExternalEvent(playerId: string, type: "DECK_OPENED"): Promise<void>;
   };
+  automaticDeck: AutomaticDeckLookup;
 }
 
 export async function handlePlayerDeck(
@@ -31,6 +36,11 @@ export async function handlePlayerDeck(
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
 
+    try {
+      await dependencies.automaticDeck.recalculateForPlayer(player.id);
+    } catch {
+      throw new DeckPersistenceError();
+    }
     const deck = await dependencies.decks.findByPlayerId(player.id);
     await dependencies.campaign?.recordExternalEvent(player.id, "DECK_OPENED");
     sendJson(response, 200, deck, responseHeaders);

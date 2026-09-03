@@ -22,6 +22,7 @@ import { getServerEnvironment } from "./config/environment.js";
 import { CollectionRepository } from "./collections/collectionRepository.js";
 import { handlePlayerCollections } from "./collections/collectionRoute.js";
 import { createDatabasePool } from "./database/pool.js";
+import { recalculateAutomaticDeckForPlayer } from "./decks/automaticDeckService.js";
 import { DeckRepository } from "./decks/deckRepository.js";
 import { handlePlayerDeck } from "./decks/playerDeckRoute.js";
 import { handleDuelRequest } from "./duel/duelRoute.js";
@@ -477,6 +478,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   if (isPlayerDeckRoute) {
     await handlePlayerDeck(request, response, {
       auth,
+      automaticDeck: { recalculateForPlayer: (playerId) => recalculateAutomaticDeckForPlayer(pool, playerId) },
       botToken: environment.telegramBotToken,
       decks,
       campaign,

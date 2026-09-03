@@ -55,6 +55,7 @@ function groupOwnedInstances(ownedCards: readonly OwnedDeckCard[]) {
     fire: [], water: [], air: [], earth: [],
   };
   const seenInstanceIds = new Set<string>();
+  const strongestInstanceByCardId = new Map<string, BestValidDeckCard>();
 
   for (const card of ownedCards) {
     if (!Number.isSafeInteger(card.finalPower) || card.finalPower <= 0) {
@@ -64,9 +65,14 @@ function groupOwnedInstances(ownedCards: readonly OwnedDeckCard[]) {
       throw new RangeError(`Duplicate or missing card instance ID: ${card.instanceId}`);
     }
     seenInstanceIds.add(card.instanceId);
-    cardsByElement[card.element].push({ ...card });
+
+    const currentStrongest = strongestInstanceByCardId.get(card.cardId);
+    if (!currentStrongest || compareInstanceStrength(card, currentStrongest) < 0) {
+      strongestInstanceByCardId.set(card.cardId, { ...card });
+    }
   }
 
+  for (const card of strongestInstanceByCardId.values()) cardsByElement[card.element].push(card);
   for (const element of CARD_ELEMENTS) cardsByElement[element].sort(compareInstanceStrength);
   return cardsByElement;
 }

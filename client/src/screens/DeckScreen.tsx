@@ -9,6 +9,7 @@ interface DeckScreenProps {
   onBack: () => void;
   onOpenCard: (instanceId: string) => void;
   onOpenShop: () => void;
+  showTutorialRule?: boolean;
 }
 
 function getUpgradeIndicator(card: PlayerDeckCard): "element" | "gold" | undefined {
@@ -18,7 +19,7 @@ function getUpgradeIndicator(card: PlayerDeckCard): "element" | "gold" | undefin
   return isGoldLevel(card.level + 1) ? "gold" : "element";
 }
 
-export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
+export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: DeckScreenProps) {
   const { retry, state } = usePlayerDeck();
   const elementCounts = state.status === "ready"
     ? state.deck.cards.reduce<Record<string, number>>((counts, card) => ({ ...counts, [card.element]: (counts[card.element] ?? 0) + 1 }), {})
@@ -48,12 +49,12 @@ export function DeckScreen({ onBack, onOpenCard }: DeckScreenProps) {
 
       {state.status === "ready" ? (
         <>
-          <section className="deck-rule-note" data-tutorial-target="deck-rule" aria-label="Правило бойової колоди">
+          {showTutorialRule ? <section className="deck-rule-note" data-tutorial-target="deck-rule" aria-label="Правило бойової колоди">
             <div><strong>9 карт у бойовій колоді</strong><span>Автоматично обрані найсильніші допустимі карти</span></div>
             <div className="deck-rule-note__elements">
               {(["fire", "water", "earth", "air"] as const).map((element) => <span key={element}><ElementSymbol element={element} /><strong>{elementCounts?.[element] ?? 0}</strong></span>)}
             </div>
-          </section>
+          </section> : null}
           <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
             {state.deck.cards.map((card, index) => (
               <DeckCard card={card} dataTutorialTarget={index === 0 ? "deck-card" : undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} upgradeIndicator={getUpgradeIndicator(card)} />

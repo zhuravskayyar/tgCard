@@ -6,6 +6,7 @@ export const TUTORIAL_STEPS = [
   "duel-advantage",
   "duel-free-play",
   "duel-result",
+  "deck",
   "campaign",
   "complete",
 ] as const;

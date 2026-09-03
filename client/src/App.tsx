@@ -61,6 +61,7 @@ export function App() {
   const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
   const campaignTraining = tutorial.step === "campaign";
   const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);
+  const tutorialDeckTraining = tutorial.isActive && tutorial.step === "deck";
   const dailyLogin = useDailyLoginReward(playerSummaryState.status === "ready");
   const playerEquipmentState = usePlayerEquipment(true);
   const [tutorialDuel, setTutorialDuel] = useState<DuelView | null>(null);
@@ -296,6 +297,11 @@ export function App() {
     openCampaign();
   }
 
+  function continueToTutorialDeck() {
+    tutorial.goTo("deck");
+    openDeck("home");
+  }
+
   function openBattlePass() {
     if (campaignTraining) { openCampaign(); return; }
     setScreen("battle-pass");
@@ -379,7 +385,11 @@ export function App() {
         openDuel("home");
         return;
       case "duel-result":
-        void finishTutorial();
+        continueToTutorialDeck();
+        return;
+      case "deck":
+        tutorial.goTo("campaign");
+        openCampaign();
         return;
       case "campaign":
         void finishTutorial();
@@ -392,6 +402,7 @@ export function App() {
   function resumeTutorial() {
     const step = tutorial.resumeStep;
     if (step === "campaign") { tutorial.resume(); openCampaign(); return; }
+    if (step === "deck") { tutorial.resume(); openDeck("home"); return; }
     if (step === "intro") { tutorial.goTo("duel-first-card"); openDuel("home"); return; }
     if (isTutorialDuelStep(step)) { tutorial.resume(); openDuel("home"); }
   }
@@ -417,9 +428,9 @@ export function App() {
 
   useEffect(() => {
     if (!tutorial.isActive || campaignTraining) return;
-    const allowed = screen === "duel" && tutorialDuelTraining;
+    const allowed = (screen === "duel" && tutorialDuelTraining) || (screen === "deck" && tutorialDeckTraining);
     if (!allowed) resumeTutorial();
-  }, [campaignTraining, screen, tutorial.isActive, tutorial.step, tutorialDuelTraining]);
+  }, [campaignTraining, screen, tutorial.isActive, tutorial.step, tutorialDeckTraining, tutorialDuelTraining]);
 
   function navigateFromBottom(item: BottomNavItem) {
     if (campaignTraining) { openCampaign(); return; }
@@ -475,7 +486,7 @@ export function App() {
           key={tutorialDuelTraining ? "tutorial-duel" : "normal-duel"}
           onBack={() => duelReturnScreen === "tasks" ? openTasks() : duelReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
           onPlayerSummaryChange={updateBalance}
-          onTutorialResult={finishTutorial}
+          onTutorialResult={continueToTutorialDeck}
           onTutorialDuelState={handleTutorialDuelState}
           tutorialAllowedSlot={tutorial.step === "duel-first-card" ? 0 : tutorial.step === "duel-advantage" ? 1 : null}
           tutorialMode={tutorialDuelTraining}
@@ -508,6 +519,7 @@ export function App() {
           onBack={() => deckReturnScreen === "tasks" ? openTasks() : deckReturnScreen === "profile" ? navigateFromBottom("profile") : deckReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
           onOpenCard={(id) => openCard(id, "deck")}
           onOpenShop={() => openShop("deck")}
+          showTutorialRule={tutorialDeckTraining}
         />
       ) : null}
       {screen === "weak" ? (

@@ -56,23 +56,28 @@ test("a fourth high-power instance is excluded when it would exceed the element 
   assert.equal(result.totalPower, 714);
 });
 
-test("duplicate canonical cards remain distinct instances with independent power", () => {
+test("only the strongest instance of each canonical card can enter the deck", () => {
   const inventory = [
-    card("fire_copy", "fire", 30, "fire-copy-a", "same-fire-card"),
-    card("fire_copy", "fire", 45, "fire-copy-b", "same-fire-card"),
-    card("water_copy", "water", 25, "water-copy-a", "same-water-card"),
-    card("water_copy", "water", 26, "water-copy-b", "same-water-card"),
-    card("water_copy", "water", 27, "water-copy-c", "same-water-card"),
-    card("air_copy", "air", 20, "air-copy-a", "same-air-card"),
-    card("air_copy", "air", 21, "air-copy-b", "same-air-card"),
-    card("earth_copy", "earth", 15, "earth-copy-a", "same-earth-card"),
-    card("earth_copy", "earth", 16, "earth-copy-b", "same-earth-card"),
+    card("fire_1", "fire", 30),
+    card("fire_2", "fire", 29),
+    card("fire_3", "fire", 28),
+    card("water_1", "water", 27),
+    card("water_2", "water", 26),
+    card("air_1", "air", 25),
+    card("air_2", "air", 24),
+    card("earth_1", "earth", 23),
+    card("earth_witch", "earth", 55, "earth-witch-weak", "earth_witch_01"),
+    card("earth_witch", "earth", 61, "earth-witch-strong", "earth_witch_01"),
+    card("earth_2", "earth", 22),
   ];
   const result = buildBestValidDeck(inventory);
   assert.equal(result.status, "ready");
   if (result.status !== "ready") return;
-  assert.equal(new Set(result.cards.map(({ instanceId }) => instanceId)).size, 9);
-  assert.ok(result.cards.some(({ instanceId, finalPower }) => instanceId === "fire-copy-b" && finalPower === 45));
+  assert.equal(result.cards.length, 9);
+  assert.ok(result.cards.some(({ instanceId, finalPower }) => instanceId === "earth-witch-strong" && finalPower === 61));
+  assert.ok(!result.cards.some(({ instanceId }) => instanceId === "earth-witch-weak"));
+  assert.equal(new Set(result.cards.map(({ cardId }) => cardId)).size, result.cards.length);
+  assert.equal(result.totalPower, 273);
 });
 
 test("tie-breaking is deterministic regardless of inventory order", () => {
