@@ -82,10 +82,12 @@ For Telegram Login Widget, register `app.cardastika.org` with BotFather using
 `/setdomain`. Register the same origin in the Google OAuth client’s authorized
 JavaScript origins if Google login is enabled.
 
-There is no Telegram polling implementation in the current server: Telegram
-is used for signed Mini App authentication and Bot API configuration calls.
-Therefore no production webhook is needed. If a future bot-update consumer is
-added, it should use an HTTPS webhook endpoint on Vercel rather than polling.
+The local onboarding consumer is started with `npm run dev:bot`. It uses a
+long-lived Telegram Bot API polling process and is intentionally not started by
+the Vercel serverless function. Before production, run exactly one always-on
+bot worker with the production database and Mini App origin, or replace the
+polling entry point with an HTTPS webhook endpoint; do not run both consumers
+for the same bot token.
 
 ## 5. Verify after deployment
 

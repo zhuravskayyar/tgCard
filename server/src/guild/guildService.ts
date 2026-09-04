@@ -308,7 +308,7 @@ export class GuildService implements GuildActivityRecorder {
 
   constructor(private readonly pool: Pick<Pool, "connect" | "query">) {
     this.altar = new GuildAltarService(pool);
-    this.treasury = new GuildTreasuryService(pool);
+    this.treasury = new GuildTreasuryService(pool, (client, guildId, eventType, actorId, targetId, activityType, amount, detail) => this.logEvent(client, guildId, eventType, actorId, targetId, activityType, amount, detail));
   }
 
   async recordActivity(

@@ -10,6 +10,7 @@ import { CardQualityBadge } from "../components/CardQualityBadge";
 import { CardNameBadge } from "../components/CardNameBadge";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { MenuTextureSlices } from "../components/MenuTextureSlices";
+import { RibbonTitle } from "../components/RibbonTitle";
 import { getTelegramInitData } from "../telegram";
 import { loadCollection, loadCollectionCard, loadCollections } from "../telegram/collections";
 
@@ -131,6 +132,7 @@ export function CollectionDetailScreen({ collectionId, onBack, onOpenCard, onOpe
     <div className="collection-hero" aria-hidden="true"><span /><CollectionCover code={collection.code} coverArtKey={collection.coverArtKey} completed={collection.completed} /><span /></div>
     <section className={`collection-bonus${collection.completed ? " collection-bonus--active" : ""}`}><span>{isRaidCollection ? "БОНУС ЗІБРАНОЇ КОЛЕКЦІЇ" : "БОНУС КОЛЕКЦІЇ"}</span><strong>{collection.bonusLabel}</strong><p>{collection.completed ? "Бонус активний" : "Бонус відкриється після збору всієї колекції"}</p></section>
     <p className="collection-progress">{isRaidCollection ? (collection.completed ? "Колекція зібрана" : <>Колекція: <strong>{collection.discoveredCards}/{collection.totalCards}</strong></>) : <>Знайдено <strong>{collection.discoveredCards}/{collection.totalCards}</strong> карт</>}</p>
+    <RibbonTitle size="medium">КАРТИ КОЛЕКЦІЇ</RibbonTitle>
     <div className="collection-card-mosaic">
       <div className={`collection-card-grid${isRaidCollection ? " collection-card-grid--raid" : ""}`} aria-label={`Карти колекції ${collection.displayName}`}>
         {cards.map((card, index) => <button aria-label={`${card.displayName}, стихія: ${elementLabels[card.element]}, ${card.discovered ? "отримано" : "не отримано"}`} className={`collection-card-tile deck-card--${card.element} deck-card--${card.minRarity}${card.discovered ? "" : " collection-card-tile--unknown"}`} data-tutorial-target={highlightedCardId ? card.id === highlightedCardId ? "collection-first-card" : undefined : index === 0 ? "collection-first-card" : undefined} key={card.id} onClick={() => onOpenCard(card.id)} type="button">

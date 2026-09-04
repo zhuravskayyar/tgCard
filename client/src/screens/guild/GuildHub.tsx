@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { GUILD_CONFIG, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
+import { GUILD_CONFIG, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
 import { DeckCard } from "../../components/DeckCard";
 import { MenuRow } from "../../components/MenuRow";
+import { RibbonTitle } from "../../components/RibbonTitle";
 import { formatNumber, GuildEmblem, guildErrorMessage, type AsyncState } from "./GuildUi";
 
 interface GuildHubProps {
@@ -141,16 +142,68 @@ export function GuildPromoBanner({ action, children, icon, meta, title }: GuildP
   </section>;
 }
 
-function formatJournal(detail: string, actorName: string | null, targetName: string | null) {
-  if (actorName && targetName && actorName !== targetName) return `${actorName} · ${detail} · ${targetName}`;
-  return actorName ? `${actorName} · ${detail}` : detail;
+const GUILD_ACTIVITY_LABELS: Readonly<Record<GuildActivityType, string>> = {
+  duel_win: "перемога в дуелі",
+  duel_loss: "поразка в дуелі",
+  campaign_win: "перемога в кампанії",
+  dungeon_complete: "завершення підземелля",
+  arena_place_1: "1 місце на арені",
+  arena_place_2: "2 місце на арені",
+  arena_place_3: "3 місце на арені",
+  arena_place_4_6: "місце на арені",
+};
+
+function formatJournalDetail(entry: GuildJournalEntryView) {
+  switch (entry.type) {
+    case "guild_created": return "Створив гільдію";
+    case "member_joined": return "Приєднався до гільдії";
+    case "member_left": return "Вийшов із гільдії";
+    case "member_kicked": return "Виключив учасника";
+    case "role_changed": return entry.detail === "Лідерство передано" ? "Передав лідерство" : entry.detail;
+    case "application_accepted": return "Прийняв заявку";
+    case "application_rejected": return "Відхилив заявку";
+    case "announcement_updated": return entry.detail;
+    case "treasury_contributed": return entry.detail;
+    case "xp_contributed": {
+      const activity = entry.activityType ? GUILD_ACTIVITY_LABELS[entry.activityType] : null;
+      const amount = entry.amount === null ? "" : ` на ${formatNumber(entry.amount)} XP`;
+      return `Поповнив спільний прогрес${amount}${activity ? ` · ${activity}` : ""}`;
+    }
+    default: return entry.detail;
+  }
+}
+
+function formatJournalDate(value: string) {
+  return new Date(value).toLocaleString("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export function GuildJournal({ profile }: { profile: GuildProfileResponse }) {
   const { journal } = profile.dashboard;
   return <section className="guild-journal" aria-labelledby="guild-journal-title">
-    <div className="guild-section-bar"><AppIcon name="record" size={17} /><h3 id="guild-journal-title">Літопис гільдії</h3><span>{journal.length} подій</span></div>
-    {journal.length ? <div className="guild-journal__list">{journal.map((entry) => <article className="guild-journal-entry" key={entry.id}><span className={`guild-journal-entry__dot guild-journal-entry__dot--${entry.type}`} /><div><strong>{formatJournal(entry.detail, entry.actorName, entry.targetName)}</strong><small>{new Date(entry.createdAt).toLocaleString("uk-UA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}{entry.amount ? ` · +${formatNumber(entry.amount)} XP` : ""}</small></div></article>)}</div> : <p className="guild-empty-copy">Перші події з’являться, щойно гільдія почне діяти.</p>}
+    <RibbonTitle as="h3" id="guild-journal-title" leading={<AppIcon name="record" size={17} />} size="wide" trailing={`${journal.length} подій`}>ЛІТОПИС ГІЛЬДІЇ</RibbonTitle>
+    {journal.length ? <div className="guild-journal__list">{journal.map((entry) => {
+      const actor = entry.actorName ?? "Система";
+      const target = entry.targetName && entry.targetName !== entry.actorName ? entry.targetName : null;
+      const detail = formatJournalDetail(entry);
+      const date = formatJournalDate(entry.createdAt);
+      return <article aria-label={`${actor}${target ? ` → ${target}` : ""}: ${detail}. ${date}`} className={`guild-journal-entry guild-journal-entry--${entry.type}`} key={entry.id}>
+        <span className={`guild-journal-entry__dot guild-journal-entry__dot--${entry.type}`} aria-hidden="true" />
+        <div>
+          <div className="guild-journal-entry__meta">
+            <span className="guild-journal-entry__people"><strong>{actor}</strong>{target ? <span className="guild-journal-entry__target">→ {target}</span> : null}</span>
+            <time dateTime={entry.createdAt}>{date}</time>
+          </div>
+          <p>{detail}</p>
+        </div>
+      </article>;
+    })}</div> : <p className="guild-empty-copy">Перші події з’являться, щойно гільдія почне діяти.</p>}
   </section>;
 }
 
@@ -200,7 +253,7 @@ export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onD
     {feature ? <GuildFeatureNotice feature={feature} onClose={() => setFeature(null)} /> : null}
 
     <section className="guild-reward-section" aria-labelledby="guild-reward-title">
-      <div className="guild-section-bar"><AppIcon name="card-reward" size={17} /><h3 id="guild-reward-title">Нагороди гільдії</h3></div>
+      <RibbonTitle as="h3" id="guild-reward-title" leading={<AppIcon name="card-reward" size={17} />} size="wide">НАГОРОДИ ГІЛЬДІЇ</RibbonTitle>
     </section>
 
     <section className="guild-menu-section" aria-label="Основні функції гільдії">
@@ -259,7 +312,7 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
   }
 
   return <section className="guild-development guild-altar" aria-labelledby="guild-altar-title">
-    <div className="guild-section-bar"><AppIcon name="guild" size={17} /><h3 id="guild-altar-title">Алтар гільдії</h3><span>Рівень {formatNumber(altar.currentLevel)}</span></div>
+    <RibbonTitle as="h3" id="guild-altar-title" leading={<AppIcon name="guild" size={17} />} size="wide" trailing={`Рівень ${formatNumber(altar.currentLevel)}`}>АЛТАР ГІЛЬДІЇ</RibbonTitle>
     <p className="guild-altar__intro">Підсилення Алтаря купуються за ресурси гравця та діють одразу.</p>
     <div className="guild-altar__activation"><strong>Підсилення активується одразу</strong><p>Завершена колекція «Відьми» додає +2 рівні лише до золотого підсилення.</p></div>
     {altarNotice ? <p className="guild-altar__status" role="status">{altarNotice}</p> : null}

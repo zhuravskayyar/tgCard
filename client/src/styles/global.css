@@ -16330,3 +16330,84 @@ body:has(.guild-screen) {
   width: 16px;
   height: 16px;
 }
+
+/* Shared fabric ribbon for short secondary section titles. The supplied
+   artwork has transparent padding around the cloth, so the background is
+   intentionally cropped vertically without changing the component height. */
+.ribbon-title {
+  --ribbon-width: min(90%, 330px);
+  --ribbon-height: 36px;
+  position: relative;
+  display: flex;
+  width: var(--ribbon-width);
+  height: var(--ribbon-height);
+  min-height: 30px;
+  max-height: 42px;
+  margin: 8px auto 10px;
+  color: #3b2110;
+  background: url("/assets/ui/ribbon-title.png") center / 100% 250% no-repeat;
+  text-align: center;
+}
+
+.ribbon-title__text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 28px;
+  overflow: hidden;
+  color: inherit;
+  font: 700 clamp(.68rem, 3.2vw, .84rem)/1 var(--font-display);
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 0 rgb(255 228 169 / 55%);
+  white-space: nowrap;
+}
+
+.ribbon-title__leading,
+.ribbon-title__trailing {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  color: inherit;
+  font: 600 clamp(.54rem, 2.3vw, .68rem)/1 var(--font-display);
+  text-shadow: 0 1px 0 rgb(255 228 169 / 55%);
+  white-space: nowrap;
+}
+
+.ribbon-title__leading { top: 50%; left: 9%; transform: translateY(-50%); }
+.ribbon-title__trailing { top: 50%; right: 7%; transform: translateY(-50%); }
+
+.ribbon-title--small {
+  --ribbon-width: min(76%, 240px);
+  --ribbon-height: 32px;
+}
+
+.ribbon-title--small .ribbon-title__text {
+  padding-inline: 22px;
+  font-size: clamp(.64rem, 3vw, .76rem);
+}
+
+.ribbon-title--wide {
+  --ribbon-width: min(96%, 390px);
+  --ribbon-height: 38px;
+}
+
+.ribbon-title--wide .ribbon-title__text {
+  padding-inline: 34px;
+}
+
+@media (max-width: 390px) {
+  .ribbon-title {
+    --ribbon-width: min(96%, 330px);
+    margin-block: 6px 8px;
+  }
+
+  .ribbon-title--small { --ribbon-width: min(84%, 230px); }
+  .ribbon-title--wide { --ribbon-width: min(100%, 360px); }
+  .ribbon-title__text { padding-inline: 24px; letter-spacing: .06em; }
+}

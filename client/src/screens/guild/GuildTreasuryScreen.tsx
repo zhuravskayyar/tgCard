@@ -3,6 +3,7 @@ import type { GuildProfileResponse, GuildTreasuryCurrency, PlayerCardInstance } 
 import { AppIcon } from "../../components/AppIcon";
 import { DeckCard } from "../../components/DeckCard";
 import { MenuRow } from "../../components/MenuRow";
+import { RibbonTitle } from "../../components/RibbonTitle";
 import { GuildRoleBadge, ROLE_ORDER, formatDate, formatNumber, type AsyncState } from "./GuildUi";
 
 type TreasuryMetricId = "rank" | "guildXp" | "cardElements" | "gold" | "silver";
@@ -87,7 +88,7 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
   return <section className="guild-treasury" aria-labelledby="guild-treasury-title">
     <header className="guild-treasury__header">
       <button aria-label={view === "stats" ? "До казни" : "До гільдії"} className="guild-icon-button guild-back-button" onClick={handleBack} type="button"><AppIcon name="chevron" size={18} /></button>
-      <h2 id="guild-treasury-title">{view === "stats" ? "Склад і статистика" : "Казна гільдії"}</h2>
+      <RibbonTitle id="guild-treasury-title" size="wide">{view === "stats" ? "СКЛАД І СТАТИСТИКА" : "КАЗНА ГІЛЬДІЇ"}</RibbonTitle>
     </header>
 
     {view === "overview" ? <>
@@ -115,7 +116,7 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
         <section className="guild-treasury__cards" aria-labelledby="guild-treasury-card-title">
           <div className="guild-treasury__subheading"><strong id="guild-treasury-card-title">Прокачати карту гільдії</strong>{activeGuildCard ? <small>{activeGuildCard.displayName ?? activeGuildCard.code} · рів. {activeGuildCard.level}</small> : <small>Лідер ще не виставив карту</small>}</div>
           {activeGuildCard && canContribute ? <>
-            <p className="guild-helper">Пожертвуйте слабкі карти тієї ж стихії. Вони зникнуть з вашої колекції, а прогрес отримає окрема карта гільдії.</p>
+            <p className="guild-helper">Пожертвуйте слабкі карти будь-якої стихії. Вони зникнуть з вашої колекції, а прогрес отримає окрема карта гільдії.</p>
             <button className="guild-secondary-button" disabled={busy || treasuryCardCandidates.status === "loading"} onClick={onLoadCardCandidates} type="button">{treasuryCardCandidates.status === "loading" ? "Завантаження…" : "Показати слабкі карти"}</button>
             {treasuryCardCandidates.status === "error" ? <p className="guild-treasury__empty" role="alert">{treasuryCardCandidates.message}</p> : treasuryCardCandidates.status === "ready" && treasuryCardCandidates.data.length === 0 ? <p className="guild-treasury__empty">Немає доступних карт для пожертви.</p> : treasuryCardCandidates.status === "ready" ? <>
               <div className="guild-treasury__card-grid">{treasuryCardCandidates.data.map((card) => <DeckCard card={card} key={card.instanceId} onClick={() => toggleCard(card.instanceId)} selected={selectedCardIds.includes(card.instanceId)} showLevel />)}</div>

@@ -50,7 +50,6 @@ export function guildErrorMessage(error: unknown) {
     treasury_card_not_selected: "Лідер ще не виставив карту гільдії.",
     treasury_card_not_owned: "Одна з карт уже недоступна. Оновіть список карт.",
     treasury_card_in_deck: "Карту з активної колоди не можна пожертвувати.",
-    treasury_card_different_element: "Пожертвувати можна тільки карту тієї ж стихії.",
     treasury_card_protected: "Захищену карту не можна пожертвувати.",
     leader_transfer_required: "Спочатку передайте лідерство іншому учаснику.",
     leader_must_dissolve: "Ви єдиний учасник. Скористайтеся дією «Розпустити гільдію».",

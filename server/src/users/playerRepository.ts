@@ -255,6 +255,29 @@ export class PlayerRepository {
     return this.findOrCreateFromIdentity(toVerifiedTelegramIdentity(user), user);
   }
 
+  async hasTelegramPlayer(telegramUserId: string) {
+    try {
+      const result = await this.pool.query(
+        `
+          SELECT 1
+          FROM players
+          WHERE players.telegram_user_id = $1::bigint
+             OR players.id IN (
+               SELECT auth_identities.player_id
+               FROM auth_identities
+               WHERE auth_identities.provider = 'telegram'
+                 AND auth_identities.provider_user_id = $1::text
+             )
+          LIMIT 1
+        `,
+        [telegramUserId],
+      );
+      return result.rows.length > 0;
+    } catch (error) {
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
   async findOrCreateFromIdentity(identity: VerifiedIdentity, telegramUser?: ValidatedTelegramUser): Promise<PlayerSummary> {
     let client: PoolClient | undefined;
     try {

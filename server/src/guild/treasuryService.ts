@@ -13,6 +13,7 @@ import {
   type GuildTreasuryCurrency,
   type GuildTreasuryMemberView,
   type GuildTreasuryView,
+  type GuildJournalEventType,
   type PlayerCardInstance,
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
@@ -21,6 +22,17 @@ import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/car
 
 type Queryable = Pick<Pool, "query">;
 type TransactionClient = Pick<PoolClient, "query">;
+
+export type TreasuryActivityLogger = (
+  client: TransactionClient,
+  guildId: string,
+  eventType: GuildJournalEventType,
+  actorId: string | null,
+  targetId: string | null,
+  activityType: null,
+  amount: number | null,
+  detail: string,
+) => Promise<void>;
 
 interface TreasuryMemberRow extends QueryResultRow {
   card_elements: string | number;
@@ -118,7 +130,6 @@ function assertFodderIds(ids: readonly string[]) {
 }
 
 export type GuildTreasuryErrorCode =
-  | "treasury_card_different_element"
   | "treasury_card_in_deck"
   | "treasury_card_not_owned"
   | "treasury_card_not_selected"
@@ -150,7 +161,10 @@ export class GuildTreasuryPersistenceError extends Error {
 }
 
 export class GuildTreasuryService {
-  constructor(private readonly pool: Pick<Pool, "connect" | "query">) {}
+  constructor(
+    private readonly pool: Pick<Pool, "connect" | "query">,
+    private readonly logActivity?: TreasuryActivityLogger,
+  ) {}
 
   async getView(database: Queryable, viewerId: string, guildId: string): Promise<GuildTreasuryView> {
     const [balanceResult, membersResult, viewerResult] = await Promise.all([
@@ -231,9 +245,11 @@ export class GuildTreasuryService {
           SELECT ${CARD_PROJECTION}
           FROM player_card_instances
           INNER JOIN cards ON cards.id = player_card_instances.card_id
-          INNER JOIN guild_cards ON guild_cards.guild_id = $2 AND guild_cards.card_id IS NOT NULL
-            AND cards.element = (SELECT element FROM cards WHERE id = guild_cards.card_id)
           WHERE player_card_instances.player_id = $1
+            AND EXISTS (
+              SELECT 1 FROM guild_cards
+              WHERE guild_cards.guild_id = $2 AND guild_cards.card_id IS NOT NULL
+            )
             AND player_card_instances.protected_from_absorption = FALSE
             AND NOT EXISTS (
               SELECT 1 FROM player_decks
@@ -298,6 +314,16 @@ export class GuildTreasuryService {
          VALUES ($1, $2, $3, $4, $5)`,
         [randomUUID(), guildId, playerId, currency, amount],
       );
+      await this.logActivity?.(
+        client,
+        guildId,
+        "treasury_contributed",
+        playerId,
+        null,
+        null,
+        amount,
+        `Поповнив казну на ${amount} ${currency === "gold" ? "золота" : "срібла"}`,
+      );
       await client.query("COMMIT");
       return { amount, currency };
     } catch (error) {
@@ -341,7 +367,6 @@ export class GuildTreasuryService {
         const row = fodderById.get(id);
         if (!row) throw new GuildTreasuryDomainError("treasury_card_not_owned", "A donated card is no longer owned by this player", 403);
         if (row.protected_from_absorption) throw new GuildTreasuryDomainError("treasury_card_protected", "A protected card cannot be donated");
-        if (row.element !== target.element) throw new GuildTreasuryDomainError("treasury_card_different_element", "Only cards of the Guild Card element can be donated");
         return row;
       });
       const activeDeckResult = await client.query<{ card_instance_id: string }>(
@@ -377,6 +402,16 @@ export class GuildTreasuryService {
         `INSERT INTO guild_treasury_contributions (id, guild_id, player_id, contribution_type, amount)
          VALUES ($1, $2, $3, 'card_elements', $4)`,
         [randomUUID(), guildId, playerId, addedElements],
+      );
+      await this.logActivity?.(
+        client,
+        guildId,
+        "treasury_contributed",
+        playerId,
+        null,
+        null,
+        null,
+        `Додав до карти гільдії ${addedElements} елементів`,
       );
       await client.query("COMMIT");
       return { addedElements, consumedInstanceIds: [...fodderInstanceIds] };

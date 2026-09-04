@@ -88,3 +88,27 @@ Telegram Login Widget also requires the exact public web origin to be
 registered for the bot in BotFather (`/setdomain`). Without that provider-side
 setting Telegram displays `Bot domain invalid` even though Cardastika's
 backend and widget configuration are healthy.
+
+## Telegram bot onboarding
+
+The bot runtime lives in `server/src/bot` and uses the Telegram Bot API's long
+polling mode. It keeps the bot intentionally small: `/start` is the entry point,
+the game itself opens as a Mini App, and the Mini App keeps the fixed
+`Головна / Профіль / Гільдія` navigation.
+
+Run it locally after PostgreSQL is available:
+
+```powershell
+npm run dev:bot
+```
+
+New Telegram users receive a short Cardastika introduction. Existing players
+receive the launch button immediately, with `Про гру` available to replay the
+introduction. The bot checks the existing Telegram identity in PostgreSQL and
+does not create a player during `/start`; player creation remains owned by the
+signed Mini App authentication flow.
+
+Real onboarding screenshots belong in `bot/assets/onboarding/` with the names
+listed in that folder's README. Missing files are skipped and never replaced by
+generated images. Set `CARDASTIKA_MINI_APP_URL` only when the bot must use a
+different HTTPS Mini App origin than `CLIENT_ORIGIN`.

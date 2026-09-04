@@ -34,6 +34,7 @@ export type GuildJournalEventType =
   | "application_accepted"
   | "application_rejected"
   | "xp_contributed"
+  | "treasury_contributed"
   | "announcement_updated";
 
 export type GuildForumVisibility = "public" | "private";

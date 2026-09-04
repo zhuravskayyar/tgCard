@@ -302,7 +302,7 @@ function Stop-WorkspaceServer {
     $_.Name -eq "node.exe" -and
     $_.CommandLine -and
     $_.CommandLine.IndexOf($repositoryRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
-    $_.CommandLine -match 'src[\\/]index\.ts'
+    $_.CommandLine -match 'src[\\/](?:index|local)\.ts'
   })
   $workspaceServerIds = @($workspaceServers | Select-Object -ExpandProperty ProcessId)
   $treeRoots = @($workspaceServers | Where-Object { $_.ParentProcessId -notin $workspaceServerIds })
