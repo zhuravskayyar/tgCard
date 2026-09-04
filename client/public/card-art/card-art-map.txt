@@ -184,3 +184,4 @@ witches_04 | Відьма Повітря | witches_04
 
 # Лімітовані карти
 limited_rabbit_carter | Кролик Картер | rabbit_carter.png
+limited_necrat | Некрат | necrat.png
