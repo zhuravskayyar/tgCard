@@ -433,11 +433,15 @@ export function App() {
   }, [campaignTraining, screen, tutorial.isActive, tutorial.step, tutorialDeckTraining, tutorialDuelTraining]);
 
   function navigateFromBottom(item: BottomNavItem) {
-    if (campaignTraining) { openCampaign(); return; }
-    if (tutorial.isActive) { resumeTutorial(); return; }
-    if (item === "home") goHome();
+    if (tutorial.isActive && tutorial.step === "intro") { resumeTutorial(); return; }
+    if (tutorial.isActive) tutorial.pause();
+    if (item === "home") { setScreen("home"); updatePath("/"); }
     if (item === "profile") { setScreen("profile"); updatePath("/profile"); }
-    if (item === "guild") openGuild();
+    if (item === "guild") {
+      setGuildOpenKey((value) => value + 1);
+      setScreen("guild");
+      updatePath("/guild");
+    }
   }
 
   if (playerSummaryState.status === "unauthenticated") {
