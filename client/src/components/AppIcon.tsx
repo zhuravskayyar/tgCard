@@ -37,7 +37,10 @@ export type AppIconName =
   | "arena-token"
   | "arena-shop"
   | "target"
-  | "refresh";
+  | "refresh"
+  | "arrow-up"
+  | "star"
+  | "skull";
 
 interface AppIconProps {
   name: AppIconName;
@@ -45,6 +48,9 @@ interface AppIconProps {
 }
 
 const paths: Record<AppIconName, ReactNode> = {
+  "arrow-up": <path d="M12 21V3m-7 7 7-7 7 7" />,
+  star: <path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9L12 3Z" />,
+  skull: <><path d="M7 16a8 8 0 1 1 10 0v5H7v-5Zm3 1v4m4-4v4" /><circle cx="8.5" cy="11" r="1.5" /><circle cx="15.5" cy="11" r="1.5" /><path d="m11 15 1-2 1 2" /></>,
   home: (
     <>
       <path d="M3 20.5h18M5 18.5h14M6.5 8.5h11M8 8.5v8M12 8.5v8M16 8.5v8M4.5 6.5 12 2.5l7.5 4H4.5Z" />
@@ -227,6 +233,10 @@ const gameIconSources: Partial<Record<AppIconName, string>> = {
   "battle-pass": "/assets/ui/world-tree/game-icons/crenel-crown.svg",
 };
 
+const svgIconSources: Partial<Record<AppIconName, string>> = {
+  settings: "/assets/ui/world-tree/game-icons/settings-gear.svg",
+};
+
 export function AppIcon({ name, size = 24 }: AppIconProps) {
   if (name === "silver" || name === "gold") {
     return <img alt="" aria-hidden="true" className={`app-icon currency-icon currency-icon--${name}`} height={size} src={CURRENCY_ICON_SOURCES[name]} width={size} />;
@@ -234,6 +244,12 @@ export function AppIcon({ name, size = 24 }: AppIconProps) {
 
   if (name === "arena-token") {
     return <ResourceIcon kind="arena-token" size={size} />;
+  }
+
+  const svgIconSource = svgIconSources[name];
+
+  if (svgIconSource) {
+    return <img alt="" aria-hidden="true" className="app-icon app-icon--svg" height={size} src={svgIconSource} width={size} />;
   }
 
   const gameIconSource = gameIconSources[name];
@@ -258,6 +274,7 @@ export function AppIcon({ name, size = 24 }: AppIconProps) {
       className="app-icon"
       fill="none"
       height={size}
+      preserveAspectRatio="xMidYMid meet"
       viewBox="0 0 24 24"
       width={size}
     >

@@ -673,20 +673,21 @@ export class DuelService {
         enemyMaxHp: duel.opponent_snapshot.startingHp,
         playerGuildCard: duel.player_guild_card,
         enemyGuildCard: duel.enemy_guild_card,
+        equipmentEnabled: true,
         random: this.random,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });
       const referenceTutorialState = duel.tutorial_mode
         && ((duel.turn_number === 0 && duel.player_hp === 180 && duel.enemy_hp === 35)
-          || (duel.turn_number === 1 && duel.player_hp === 168 && duel.enemy_hp === 23)
+          || (duel.turn_number === 1 && duel.player_hp === 168 && duel.enemy_hp === 17)
           || (duel.turn_number === 2 && duel.player_hp === 162 && duel.enemy_hp === 5));
       if (referenceTutorialState) {
-        const tutorialPlayerDamage = duel.turn_number === 0 ? 12 : duel.turn_number === 1 ? 18 : 5;
+        const tutorialPlayerDamage = duel.turn_number === 0 ? 18 : duel.turn_number === 1 ? 12 : 5;
         const tutorialEnemyDamage = duel.turn_number === 0 ? 12 : 6;
         resolved = {
           ...resolved,
-          enemyHp: duel.turn_number === 0 ? 23 : duel.turn_number === 1 ? 5 : 0,
+          enemyHp: duel.turn_number === 0 ? 17 : duel.turn_number === 1 ? 5 : 0,
           playerHp: duel.turn_number === 0 ? 168 : duel.turn_number === 1 ? 162 : 156,
           status: duel.turn_number === 2 ? "won" : "active",
           exchange: {

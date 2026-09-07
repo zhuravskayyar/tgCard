@@ -1,0 +1,188 @@
+/* Rewards use the shared warm stone and bronze materials. */
+.tasks-screen, .battle-pass-screen { background: var(--bg-app); padding: 12px 12px 24px; gap: 10px; }
+.battle-pass-screen::before { display: none; }
+.tasks-screen__panel, .tasks-screen__list { gap: 8px; }
+.tasks-screen__mascot, .tasks-screen__marathon, .quest-paper { background: var(--surface-panel); border: 1px solid color-mix(in srgb, var(--border-default) 68%, transparent); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
+.tasks-screen__mascot { grid-template-columns: 58px minmax(0, 1fr) auto; min-height: 68px; padding: 4px 8px 4px 2px; border-width: 0 0 1px; border-radius: var(--radius-sm); box-shadow: none; }
+.tasks-screen__mascot-art { width: 58px; height: 62px; }
+.tasks-screen__mascot-copy { gap: 2px; }
+.tasks-screen__mascot-copy strong { font-size: var(--font-md); }
+.tasks-screen__mascot-copy p { color: var(--text-secondary); font-size: var(--font-xs); line-height: 1.3; }
+.tasks-screen__mascot-reset { align-self: start; padding-top: 4px; color: var(--text-muted); font-size: var(--font-micro); white-space: nowrap; }
+.tasks-screen__marathon { padding: 10px 12px; gap: 8px; border-color: color-mix(in srgb, var(--border-default) 62%, transparent); box-shadow: none; }
+.tasks-screen__ornate-heading, .tasks-screen__rule, .tasks-screen__completed { display: block; }
+.tasks-screen__ornate-heading > span, .tasks-screen__rule > span, .tasks-screen__completed > span { display: none; }
+.tasks-screen__ornate-heading strong { color: var(--accent-gold); font-family: var(--font-display); font-size: var(--font-md); white-space: normal; }
+.tasks-screen__daily-reward-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.tasks-screen__daily-progress { display: grid; gap: 4px; min-width: 0; text-align: left; }
+.tasks-screen__daily-progress > strong { color: var(--text-primary); font-size: var(--font-sm); }
+.tasks-screen__daily-progress > small { color: var(--text-muted); font-size: var(--font-micro); }
+.tasks-screen__daily-progress-track { display: block; height: 7px; overflow: hidden; background: var(--bg-inset); border: 1px solid var(--border-subtle); border-radius: var(--radius-round); }
+.tasks-screen__daily-progress-track > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); border-radius: inherit; transition: width .25s ease; }
+.tasks-screen__daily-reward { display: grid; grid-template-columns: 22px auto; align-items: center; column-gap: 3px; color: var(--accent-gold); }
+.tasks-screen__daily-reward img { width: 22px; height: 22px; }
+.tasks-screen__daily-reward strong { font-family: var(--font-number); font-size: var(--font-lg); line-height: 1; }
+.tasks-screen__daily-reward small { grid-column: 1 / -1; color: var(--text-muted); font-size: var(--font-micro); text-align: center; }
+.tasks-screen__daily-note { margin: 0; color: var(--text-muted); font-size: var(--font-micro); text-align: left; }
+.quest-paper { min-height: 0; filter: none; }
+.quest-paper::after { display: none; }
+.quest-paper__content { min-height: 0; padding: 12px; gap: 8px; grid-template-rows: auto auto auto; }
+.quest-paper__header { grid-template-columns: 28px minmax(0, 1fr) auto; align-items: start; }
+.quest-paper__title { gap: 3px; }
+.quest-paper__title strong { color: var(--text-primary); font-size: var(--font-md); text-shadow: none; line-height: 1.2; }
+.quest-paper__title > span, .quest-paper__status { color: var(--text-muted); letter-spacing: normal; font-size: var(--font-micro); }
+.quest-paper__icon { color: var(--accent-gold); filter: none; }
+.quest-paper__reward { display: inline-flex; align-items: center; gap: 3px; align-self: start; color: var(--accent-gold); font-family: var(--font-number); font-size: var(--font-md); line-height: 1; white-space: nowrap; }
+.quest-paper__reward img { width: 18px; height: 18px; filter: none; }
+.quest-paper__progress { display: grid; gap: 4px; }
+.quest-paper__progress-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-muted); font-size: var(--font-micro); }
+.quest-paper__progress-head strong { color: var(--text-secondary); font-family: var(--font-number); font-size: var(--font-xs); }
+.quest-paper__meta, .quest-paper__footer { flex-wrap: wrap; }
+.quest-paper__track { width: 100%; height: 6px; border: 0; background: var(--bg-inset); }
+.quest-paper__track > span { background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); box-shadow: none; }
+.quest-paper--completed { border-color: color-mix(in srgb, var(--accent-gold) 50%, var(--border-default)); }
+.quest-paper--claimed { opacity: .8; }
+.quest-paper__done { color: var(--state-success); border-color: var(--state-success); }
+.tasks-screen .quest-paper__button { min-height: 36px; padding: 4px 10px; font-size: var(--font-xs); text-shadow: none; }
+.battle-pass-hero { padding: 16px; }
+.battle-pass-hero__summary { gap: 12px; flex-wrap: wrap; }
+.battle-pass-hero__season-meta time, .battle-pass-hero p, .battle-pass-hero__next { color: var(--text-secondary); font-size: var(--font-xs); }
+.battle-pass-hero__track span, .battle-pass-circle__progress span { background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); animation: none; }
+.battle-pass-screen .battle-pass-milestone__reward { min-height: 76px; padding: 10px; gap: 8px; animation: none; }
+.battle-pass-milestone__reward-copy strong { white-space: normal; overflow: visible; font-size: var(--font-sm); line-height: 1.35; }
+.battle-pass-milestone__reward-copy small { color: var(--text-muted); font-size: .6rem; letter-spacing: .02em; }
+.battle-pass-screen .battle-pass-milestone__reward button { min-height: 44px; font-size: var(--font-xs); letter-spacing: normal; animation: none; }
+.battle-pass-screen .battle-pass-milestone__status { font-size: var(--font-xs); text-transform: none; }
+.battle-pass-milestone--claimable .battle-pass-milestone__reward { border-color: var(--border-active); }
+.battle-pass-milestone--claimable .battle-pass-milestone__reward::after { display: none; }
+.battle-pass-milestone__reward-icon { background: var(--bg-inset); border-color: var(--border-subtle); }
+.daily-login-modal__dialog { padding: 16px; gap: 14px; }
+.daily-login-modal__header { padding: 0 0 12px; background: none; border: 0; border-bottom: 1px solid var(--border-subtle); box-shadow: none; align-items: center; }
+.daily-login-modal__header h2 { color: var(--text-primary); font-size: var(--font-title); line-height: 1.3; }
+.daily-login-modal__header span { color: var(--accent-gold); letter-spacing: .05em; }
+.daily-login-modal__close { min-width: 44px; min-height: 44px; }
+.daily-login-modal__showcase { grid-template-columns: minmax(0, 1fr); background: none; border: 0; overflow: visible; min-height: 0; }
+.daily-login-modal__rewards { padding: 0; gap: 10px; }
+.daily-login-modal__mascot { display: none; }
+.daily-login-modal__reward-tile, .daily-login-modal__choice { background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); box-shadow: none; }
+.daily-login-modal__reward-tile { min-height: 150px; padding: 16px; gap: 10px; }
+.daily-login-modal__reward-tile strong { color: var(--accent-gold); font-size: var(--font-lg); }
+.daily-login-modal__reward-tile small { color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.4; }
+.daily-login-modal__choices { grid-template-columns: 1fr; gap: 8px; }
+.daily-login-modal__choice { grid-template-columns: 42px minmax(0, 1fr); justify-items: start; align-content: center; align-items: center; min-height: 72px; padding: 10px; column-gap: 10px; text-align: left; }
+.daily-login-modal__choice-icon { grid-row: span 2; }
+.daily-login-modal__choice strong, .daily-login-modal__choice small { white-space: normal; line-height: 1.35; overflow-wrap: anywhere; }
+.daily-login-modal__choice strong { color: var(--text-primary); font-size: var(--font-sm); }
+.daily-login-modal__choice small { color: var(--text-secondary); font-size: var(--font-xs); }
+.daily-login-modal__choice--selected { background: var(--bg-active); border-color: var(--border-active); box-shadow: inset 3px 0 var(--accent-gold); transform: none; }
+.daily-login-modal__dialogue { background: var(--bg-inset); border-left-color: var(--accent-bronze); padding: 10px 12px; }
+.daily-login-modal__dialogue p, .daily-login-modal__encouragement span { color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.4; }
+.daily-login-modal__encouragement { display: none; }
+.daily-login-modal__status:empty { display: none; }
+.daily-login-modal__claim { min-height: 48px; }
+@media (max-width: 380px) {
+  .battle-pass-screen .battle-pass-milestone__reward { grid-template-columns: 30px minmax(0, 1fr); }
+  .battle-pass-milestone__reward button, .battle-pass-milestone__status { grid-column: 2; justify-self: start; }
+}
+.battle-pass-screen .battle-pass-milestone__axis span.battle-pass-milestone__node { color: var(--text-secondary); background: var(--bg-inset); border-color: var(--border-default); box-shadow: inset 0 0 0 3px var(--bg-panel); }
+.battle-pass-screen .battle-pass-milestone--next .battle-pass-milestone__axis span.battle-pass-milestone__node { border-color: var(--border-active); color: var(--accent-gold); }
+.battle-pass-screen .battle-pass-milestone--reached .battle-pass-milestone__axis span.battle-pass-milestone__node { background: var(--bg-active); color: var(--accent-gold); }
+.battle-pass-screen .battle-pass-milestone--claimed .battle-pass-milestone__axis span.battle-pass-milestone__node { color: var(--state-success); border-color: var(--state-success); }
+.battle-pass-screen .battle-pass-checkpoint > span:last-child { background: var(--bg-panel); }
+.battle-pass-screen .battle-pass-checkpoint__seal { background: var(--bg-inset); border-color: var(--border-default); box-shadow: none; }
+.battle-pass-screen .battle-pass-checkpoint strong, .battle-pass-screen .battle-pass-circle__chapter small, .battle-pass-screen .battle-pass-hero__progress-meta { color: var(--text-secondary); }
+.battle-pass-screen .battle-pass-checkpoint small { color: var(--text-muted); }
+
+/* Diamond rewards: make the current goal obvious and keep each reward scannable. */
+.battle-pass-screen { gap: 9px; }
+.battle-pass-hero { gap: 8px; padding: 14px; border-color: color-mix(in srgb, var(--accent-bronze) 38%, var(--border-default)); }
+.battle-pass-hero__summary { align-items: center; justify-content: space-between; gap: 12px; }
+.battle-pass-hero__diamond-count { gap: 8px; }
+.battle-pass-hero__diamond-count img { width: 32px; height: 32px; }
+.battle-pass-hero__diamond-count strong { font-size: var(--font-xl); }
+.battle-pass-hero__diamond-count span { color: var(--text-secondary); font-size: var(--font-xs); }
+.battle-pass-hero__season-meta { gap: 4px; }
+.battle-pass-hero__season-meta strong { font-size: var(--font-sm); }
+.battle-pass-hero__progress-meta { margin-top: 2px; color: var(--text-secondary); }
+.battle-pass-hero__progress-meta strong { color: var(--text-primary); font-size: var(--font-xs); }
+.battle-pass-hero__track { height: 8px; border-color: var(--border-subtle); }
+.battle-pass-hero__track span { box-shadow: 0 0 10px rgb(77 203 255 / 38%); }
+.battle-pass-hero__next { align-items: center; padding: 7px 9px; color: var(--text-secondary); background: color-mix(in srgb, var(--accent-gold) 8%, var(--bg-inset)); border: 1px solid color-mix(in srgb, var(--accent-gold) 28%, var(--border-default)); border-radius: var(--radius-md); }
+.battle-pass-hero__next strong { font-size: var(--font-xs); }
+.battle-pass-circle { gap: 8px; padding: 9px 0 2px; }
+.battle-pass-circle > header { align-items: center; padding: 0 4px 2px; }
+.battle-pass-circle > header .battle-pass-circle__chapter strong { font-size: var(--font-md); }
+.battle-pass-circle__total { padding: 4px 7px; color: var(--text-secondary); background: var(--bg-inset); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+.battle-pass-circle > header .battle-pass-circle__total strong { color: var(--text-primary); }
+.battle-pass-circle__progress { height: 6px; margin-inline: 4px; background: var(--bg-inset); border: 1px solid var(--border-subtle); }
+.battle-pass-circle__progress span { box-shadow: 0 0 8px rgb(86 213 255 / 40%); }
+.battle-pass-milestones { gap: 4px; }
+.battle-pass-screen .battle-pass-milestone { grid-template-columns: 48px minmax(0, 1fr); min-height: 61px; }
+.battle-pass-screen .battle-pass-milestone__reward { grid-template-columns: 38px minmax(0, 1fr) auto; min-height: 64px; margin: 2px 0; padding: 8px 9px; gap: 9px; background: color-mix(in srgb, var(--bg-panel) 92%, var(--bg-inset)); border-color: color-mix(in srgb, var(--border-default) 86%, transparent); border-radius: var(--radius-md); }
+.battle-pass-screen .battle-pass-milestone__reward-icon { flex-basis: 38px; width: 38px; height: 38px; border-radius: var(--radius-sm); }
+.battle-pass-milestone__reward-copy { gap: 3px; }
+.battle-pass-milestone__reward-copy small { color: var(--text-muted); font-size: var(--font-micro); letter-spacing: .06em; }
+.battle-pass-milestone__reward-copy strong { color: var(--text-primary); font-size: var(--font-sm); line-height: 1.25; }
+.battle-pass-screen .battle-pass-milestone__reward button { min-height: 36px; padding: 6px 10px; font-size: var(--font-xs); letter-spacing: normal; text-transform: none; }
+.battle-pass-screen .battle-pass-milestone__status { font-size: var(--font-xs); }
+.battle-pass-milestone--locked .battle-pass-milestone__reward { opacity: .74; }
+.battle-pass-milestone--claimed .battle-pass-milestone__reward { background: color-mix(in srgb, var(--state-success) 7%, var(--bg-panel)); border-color: color-mix(in srgb, var(--state-success) 43%, var(--border-default)); }
+.battle-pass-milestone--claimable .battle-pass-milestone__reward { background: color-mix(in srgb, var(--accent-gold) 10%, var(--bg-panel)); border-color: var(--accent-gold); box-shadow: 0 0 0 1px rgb(235 188 80 / 15%), 0 4px 14px rgb(224 174 70 / 13%); }
+.battle-pass-milestone--claimable .battle-pass-milestone__reward button { box-shadow: 0 2px 9px rgb(224 174 70 / 32%); }
+.battle-pass-milestone--final .battle-pass-milestone__reward { min-height: 70px; }
+.battle-pass-milestone--final .battle-pass-milestone__reward-icon { width: 44px; height: 44px; }
+.battle-pass-screen .battle-pass-checkpoint { min-height: 40px; }
+
+@media (max-width: 380px) {
+  .battle-pass-hero { padding: 12px; }
+  .battle-pass-hero__diamond-count img { width: 28px; height: 28px; }
+  .battle-pass-hero__season-meta strong { font-size: var(--font-xs); }
+  .battle-pass-screen .battle-pass-milestone { grid-template-columns: 42px minmax(0, 1fr); }
+  .battle-pass-screen .battle-pass-milestone__reward { grid-template-columns: 34px minmax(0, 1fr); }
+  .battle-pass-screen .battle-pass-milestone__reward button,
+  .battle-pass-screen .battle-pass-milestone__status { grid-column: 2; justify-self: start; }
+}
+
+/* Home settings: a clean standalone control without the decorative divider. */
+.home-screen__toolbar { justify-content: flex-end; min-height: 44px; padding: 0 2px; }
+.home-screen__toolbar-line { display: none; }
+.home-settings-button { width: 44px; height: 44px; min-height: 44px; color: var(--accent-gold); background: linear-gradient(180deg, #3d3020, #1d1710); border-color: var(--border-accent); border-radius: var(--radius-md); box-shadow: inset 0 1px rgb(255 242 204 / 12%), 0 3px 8px rgb(0 0 0 / 28%); }
+.home-settings-button .app-icon { width: 21px; height: 21px; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%)); }
+.home-settings-button:hover { color: #ffe9a8; border-color: var(--accent-gold); filter: brightness(1.08); }
+.home-settings-button:active { transform: translateY(1px); filter: brightness(.94); }
+
+/* Lariska's currency gift: reward slots beside the existing mascot. */
+.daily-login-modal__dialog--currencies { width: min(100%, 430px); gap: 12px; }
+.daily-login-modal__dialog--currencies .daily-login-modal__header { margin: -16px -16px 0; padding: 12px 14px; background: linear-gradient(110deg, #49341d, var(--bg-panel)); border-bottom: 1px solid var(--border-accent); }
+.daily-login-modal__dialog--currencies .daily-login-modal__showcase { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 8px; align-items: stretch; min-height: 190px; }
+.daily-login-modal__dialog--currencies .daily-login-modal__rewards { align-content: center; gap: 16px; }
+.daily-login-modal__currency-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.daily-login-modal__currency-slot { display: grid; justify-items: center; align-content: center; gap: 6px; min-width: 0; min-height: 104px; padding: 8px 2px; background: var(--bg-inset); border: 1px solid var(--border-accent); border-radius: var(--radius-md); box-shadow: inset 0 0 16px rgb(223 186 116 / 6%); }
+.daily-login-modal__currency-slot strong { color: var(--accent-gold); font-family: var(--font-number); font-size: var(--font-md); white-space: nowrap; }
+.daily-login-modal__currency-slot small { color: var(--text-secondary); font-size: var(--font-xs); }
+.daily-login-modal__dialog--currencies .daily-login-modal__mascot { display: grid; min-height: 190px; overflow: visible; background: radial-gradient(ellipse at 50% 65%, rgb(223 186 116 / 13%), transparent 70%); }
+.daily-login-modal__dialog--currencies .daily-login-modal__mascot .lariska-image { width: 100%; height: 100%; }
+.daily-login-modal__dialog--currencies .daily-login-modal__encouragement { display: grid; padding: 0; gap: 2px; }
+.daily-login-modal__encouragement strong { color: var(--accent-gold); }
+.daily-login-modal__tasks-link { min-height: 44px; padding: 4px 0; background: none; border: 0; color: var(--text-primary); text-align: left; font: inherit; font-size: var(--font-sm); line-height: 1.4; text-decoration: underline; text-decoration-color: var(--border-accent); text-underline-offset: 3px; cursor: pointer; }
+.daily-login-modal__tasks-link:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
+.daily-login-modal__series-rule { margin: 0; color: var(--text-muted); font-size: var(--font-xs); line-height: 1.45; }
+.card-hud__upgrade { width: 24px; height: 26px; bottom: 5px; left: 5px; color: #a5f179; background: linear-gradient(180deg, #294021, #10200c); border: 1px solid #8ec36a; border-radius: 4px; box-shadow: 0 1px 4px #000, inset 0 1px rgb(255 255 255 / 18%); }
+.card-hud__upgrade--gold { color: #ffe294; background: linear-gradient(180deg, #70511d, #382508); border-color: #dfba74; }
+.card-hud__upgrade .app-icon { width: 20px; height: 20px; stroke-width: 3; filter: drop-shadow(0 1px 1px #000); }
+@media (max-width: 360px) {
+  .tasks-screen__mascot { grid-template-columns: 50px minmax(0, 1fr) auto; padding-right: 5px; }
+  .tasks-screen__mascot-art { width: 50px; height: 56px; }
+  .tasks-screen__mascot-reset { font-size: .6rem; }
+  .tasks-screen__daily-reward-row { gap: 8px; }
+  .tasks-screen__daily-reward strong { font-size: var(--font-md); }
+  .quest-paper__content { padding: 11px 10px; }
+  .quest-paper__title strong { font-size: var(--font-sm); }
+  .quest-paper__reward { font-size: var(--font-sm); }
+  .quest-paper__reward img { width: 16px; height: 16px; }
+  .daily-login-modal__dialog--currencies { padding: 12px; }
+  .daily-login-modal__dialog--currencies .daily-login-modal__header { margin: -12px -12px 0; }
+  .daily-login-modal__dialog--currencies .daily-login-modal__showcase { grid-template-columns: minmax(0, 1fr) 108px; gap: 6px; }
+  .daily-login-modal__currency-slot strong { font-size: var(--font-sm); }
+  .daily-login-modal__currency-slot small { font-size: .6875rem; }
+}

@@ -7,6 +7,7 @@ import { MenuRow } from "../components/MenuRow";
 import { NicknameSkinPreview } from "../components/NicknameSkinPreview";
 import { GuildMembershipRow } from "../components/GuildMembershipRow";
 import { usePlayerDeck, type PlayerDeckState } from "../hooks/usePlayerDeck";
+import { ResourceIcon } from "../components/ResourceIcon";
 import type { PlayerSummaryState } from "../types/player";
 
 interface ProfileScreenProps {
@@ -190,14 +191,14 @@ export function ProfileScreen({
                 </div>
                 {additionalExperienceRewardPct > 0 ? (
                   <div className="profile-empty-row">
-                    <img alt="" className="profile-xp-icon" src="/assets/ui/profile/xp.png" />
+                    <ResourceIcon className="profile-xp-icon" kind="xp" size={22} />
                     <span>Додатковий буст досвіду: +{additionalExperienceRewardPct}%</span>
                   </div>
                 ) : null}
               </>
             ) : experienceRewardPct > 0 ? (
               <div className="profile-empty-row">
-                <img alt="" className="profile-xp-icon" src="/assets/ui/profile/xp.png" />
+                <ResourceIcon className="profile-xp-icon" kind="xp" size={22} />
                 <span>Досвід у боях: +{experienceRewardPct}%</span>
               </div>
             ) : <div className="profile-empty-row"><AppIcon name="guild" size={22} /><span>Бонусів немає.</span></div>}
@@ -206,7 +207,7 @@ export function ProfileScreen({
           <section className="profile-section">
             <ProfileSectionHeading>Активність</ProfileSectionHeading>
             <dl className="profile-facts">
-              <div><dt><img alt="" className="profile-xp-icon" src="/assets/ui/profile/xp.png" />Досвід до наступного рівня</dt><dd>{player.accountXpRequired === 0 ? "MAX" : `${player.accountXp ?? 0}/${player.accountXpRequired ?? 0}`}</dd></div>
+              <div><dt><ResourceIcon className="profile-xp-icon" kind="xp" size={16} />Досвід до наступного рівня</dt><dd>{player.accountXpRequired === 0 ? "MAX" : `${player.accountXp ?? 0}/${player.accountXpRequired ?? 0}`}</dd></div>
             </dl>
           </section>
 

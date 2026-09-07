@@ -268,14 +268,74 @@ export function App() {
   }
 
   function openCard(instanceId: string, returnScreen: "deck" | "weak" | "collection-card") {
-    const fromCampaign = (returnScreen === "deck" && deckReturnScreen === "campaign-stage")
+    const fromCampaign = campaignTraining || (returnScreen === "deck" && deckReturnScreen === "campaign-stage")
       || (returnScreen === "weak" && weakReturnScreen === "campaign-stage")
       || (returnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage");
     if (campaignTraining && !fromCampaign) { openCampaign(); return; }
     setCardInstanceId(instanceId);
     setCardReturnScreen(returnScreen);
     setScreen("card");
-    updatePath(withReturnPath(`/cards/${encodeURIComponent(instanceId)}`, returnScreen));
+    updatePath(withReturnPath(`/cards/${encodeURIComponent(instanceId)}`, fromCampaign ? "campaign-stage" : returnScreen));
+  }
+
+  function cardOpenedFromCampaign() {
+    return campaignTraining || (cardReturnScreen === "deck" && deckReturnScreen === "campaign-stage")
+      || (cardReturnScreen === "weak" && weakReturnScreen === "campaign-stage")
+      || (cardReturnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage");
+  }
+
+  function openCardDeck() {
+    openDeck(cardOpenedFromCampaign() ? "campaign-stage" : cardReturnScreen === "deck" ? deckReturnScreen : "home");
+  }
+
+  function openCardWeakCards() {
+    const returnScreen = cardOpenedFromCampaign() ? "campaign-stage" : "card";
+    setWeakReturnScreen(returnScreen);
+    setScreen("weak");
+    updatePath(withReturnPath("/cards/weak", returnScreen));
+  }
+
+  function openCardShop() {
+    if (cardOpenedFromCampaign()) {
+      openShop("campaign-stage");
+      return;
+    }
+    openShop(cardReturnScreen === "collection-card" ? "collection" : "deck");
+  }
+
+  function returnFromCardDetail() {
+    if (cardReturnScreen === "deck") {
+      openDeck(deckReturnScreen);
+      return;
+    }
+    if (cardReturnScreen === "weak") {
+      setScreen("weak");
+      updatePath(withReturnPath("/cards/weak", weakReturnScreen));
+      return;
+    }
+    if (collectionId) {
+      openCollection(collectionId);
+      return;
+    }
+    openCollections(collectionsReturnScreen);
+  }
+
+  function continueAfterShopPurchase() {
+    if (shopReturnScreen === "tasks") {
+      openTasks();
+      return;
+    }
+    if (shopReturnScreen === "campaign-stage") {
+      openCampaignStage(campaignStageId);
+      return;
+    }
+    if (shopReturnScreen === "deck") {
+      openDeck(deckReturnScreen);
+      return;
+    }
+    if (shopReturnScreen === "collection" && collectionId) {
+      openCollection(collectionId);
+    }
   }
 
   function openCampaign() {
@@ -412,6 +472,8 @@ export function App() {
     const allowed = screen === "campaign" || screen === "campaign-stage" || screen === "campaign-boss"
       || (screen === "deck" && deckReturnScreen === "campaign-stage")
       || (screen === "card" && cardReturnScreen === "deck" && deckReturnScreen === "campaign-stage")
+      || (screen === "card" && cardReturnScreen === "weak" && weakReturnScreen === "campaign-stage")
+      || (screen === "card" && cardReturnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage")
       || (screen === "weak" && weakReturnScreen === "campaign-stage")
       || (screen === "duel" && duelReturnScreen === "campaign-stage")
       || (screen === "shop" && shopReturnScreen === "campaign-stage")
@@ -463,8 +525,8 @@ export function App() {
       playerSummaryState={playerSummaryState}
       screenKey={screen}
       deckPowerOverride={deckPowerOverride}
-      overlay={tutorial.isActive && !campaignTraining && tutorial.step !== "duel-result" ? <TutorialOverlay duel={tutorialDuel} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
-      modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onPlayerSummaryChange={updateBalance} /> : null}
+      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay duel={tutorialDuel} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
+      modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
     >
       {screen === "home" ? (
         <HomeScreen
@@ -481,12 +543,16 @@ export function App() {
           onOpenShop={() => openShop("home")}
           onOpenSettings={openSettings}
            onResumeTutorial={resumeTutorial}
+          playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
           tutorialStatus={tutorial.status}
         />
       ) : null}
       {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" ? (
         <DuelScreen
+          onOpenLeagues={openLeagues}
+          onOpenTasks={openTasks}
+          onOpenShop={() => openShop("home")}
           key={tutorialDuelTraining ? "tutorial-duel" : "normal-duel"}
           onBack={() => duelReturnScreen === "tasks" ? openTasks() : duelReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
           onPlayerSummaryChange={updateBalance}
@@ -535,12 +601,12 @@ export function App() {
       {screen === "card" && cardInstanceId ? (
         <CardDetailScreen
           cardInstanceId={cardInstanceId}
-          onBack={() => cardReturnScreen === "deck" ? openDeck(deckReturnScreen) : cardReturnScreen === "weak" && cardInstanceId ? openCard(cardInstanceId, "weak") : collectionCardId ? openCollectionCard(collectionCardId) : openCollections(collectionsReturnScreen)}
+          onBack={returnFromCardDetail}
           onDeckPowerChange={setDeckPowerOverride}
           onGoldChange={(gold) => updateBalance({ gold })}
-          onOpenDeck={() => openDeck("home")}
-          onOpenShop={() => openShop("deck")}
-          onOpenWeakCards={() => { setWeakReturnScreen("card"); setScreen("weak"); updatePath(withReturnPath("/cards/weak", "card")); }}
+          onOpenDeck={openCardDeck}
+          onOpenShop={openCardShop}
+          onOpenWeakCards={openCardWeakCards}
         />
       ) : null}
       {screen === "shop" ? (
@@ -552,6 +618,8 @@ export function App() {
           onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })}
           playerSummaryState={playerSummaryState}
           nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"}
+          returnScreen={shopReturnScreen}
+          onPurchaseContinue={continueAfterShopPurchase}
         />
       ) : null}
       {screen === "collections" ? <CollectionsScreen onBack={() => collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} /> : null}
@@ -560,7 +628,7 @@ export function App() {
       {screen === "campaign" ? <CampaignScreen onBack={goHome} onCampaignCompleted={tutorial.complete} onOpenBoss={() => { setScreen("campaign-boss"); updatePath("/campaign/boss"); }} onOpenStage={openCampaignStage} /> : null}
       {screen === "campaign-stage" ? <CampaignStageScreen onBack={openCampaign} onNavigate={navigateFromCampaign} onPlayerSummaryChange={updateBalance} stageId={campaignStageId} /> : null}
       {screen === "campaign-boss" ? <CampaignBossScreen onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} /> : null}
-      {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onPlayerSummaryChange={(balance) => updateBalance(balance)} /> : null}
+      {screen === "battle-pass" ? <BattlePassScreen key={dailyLoginClaimedDate ?? "unclaimed"} onBack={goHome} onPlayerSummaryChange={(balance) => updateBalance(balance)} /> : null}
       {screen === "tasks" ? <TasksScreen onBack={goHome} onOpenTask={openTaskTarget} /> : null}
     </AppShell>
   );

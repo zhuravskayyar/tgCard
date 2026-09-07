@@ -1,0 +1,231 @@
+/* One shared recipe. Legacy classes are aliases, never separate button themes. */
+:is(.ui-button, :where(
+  .duel-secondary-button,
+  .dungeon-secondary-action,
+  .campaign-secondary-button,
+  .guild-secondary-button,
+  .guild-inline-button,
+  .guild-text-button,
+  .guild-directory-link,
+  .equipment-action,
+  .equipment-forge-button,
+  .forge-back-button,
+  .collection-return,
+  .nickname-choice-dialog__cancel,
+  .nickname-mail-dialog__cancel,
+  .mail-message__action,
+  .tutorial-dialog__secondary,
+  .guided-dialog__secondary,
+  .confirmation-actions button,
+  .profile-state button,
+  .deck-state button,
+  .shop-state button,
+  .collection-state button,
+  .workshop-state button,
+  .inventory-state button,
+  .inventory-cosmetic button,
+  .nickname-choice-item button,
+  .battle-pass-state button,
+  .mail-state button,
+  .selector-state button,
+  .dungeon-state button,
+  .arena-empty-state button,
+  .leaderboard-state button,
+  .player-profile-state button,
+  .first-visit-hint button,
+  .guided-onboarding button,
+  .ui-button--primary,
+  .duel-primary-button,
+  .dungeon-primary-action,
+  .campaign-boss-enter,
+  .campaign-dialogue__action,
+  .tutorial-result__button,
+  .guild-primary-button,
+  .guild-altar__buy,
+  .guild-altar__battle,
+  .guild-raid__button,
+  .equipment-action--primary,
+  .forge-action,
+  .workshop-card__craft,
+  .shop-offer__purchase,
+  .arena-shop-item__purchase,
+  .shop-reveal__continue,
+  .shop-reveal__buy-again,
+  .shop-reveal__buy-batch,
+  .limited-card-reveal__continue,
+  .nickname-pack-card__buy,
+  .nickname-choice-dialog__confirm,
+  .nickname-mail-dialog__confirm,
+  .mail-message__claim,
+  .mail-message__action--primary,
+  .shop-insufficient-modal__ok,
+  .tutorial-dialog__primary,
+  .guided-dialog__primary,
+  .confirmation-actions button:last-child,
+  .ui-button--success,
+  .daily-login-modal__claim,
+  .quest-paper__button--claim,
+  .battle-pass-milestone button,
+  .guild-raid__button--green,
+  .ui-button--danger,
+  .guild-danger-button,
+  .settings-logout,
+  .ui-button--icon,
+  .collection-back,
+  .deck-back,
+  .shop-back,
+  .dungeon-back,
+  .screen-back,
+  .home-settings-button,
+  .guild-icon-button,
+  .guild-information__back,
+  .leaderboard-screen__back,
+  .league-screen__back,
+  .player-profile-screen__back,
+  .equipment-sheet-close,
+  .daily-login-modal__close,
+  .nickname-choice-dialog__close,
+  .nickname-mail-dialog__close,
+  .duel-heading > button,
+  .arena-heading > button,
+  .campaign-heading > button,
+  .ui-tab,
+  .collection-filter,
+  .shop-tab,
+  .inventory-tab,
+  .leaderboard-tab,
+  .equipment-category-tab,
+  .equipment-filter-button,
+  .workshop-filter,
+  .arena-tabs button,
+  .guild-tabs button,
+  .pagination button,
+  .guild-roster__rank-tab,
+  .level-up-button,
+  .limited-card-banner__form button,
+  .quest-paper__button--action,
+  .confirmation-modal > div > button:last-child,
+  .card-protection-toggle,
+  .confirmation-modal > div > button,
+  .card-detail-state button,
+  .card-detail-topbar button
+)) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--control-height);
+  height: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-button);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-button);
+  font: 600 var(--font-sm)/1.25 var(--font-label);
+  letter-spacing: .01em;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 50%);
+  text-transform: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color var(--transition-fast), filter var(--transition-fast);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+
+  &:not(:disabled):not([aria-disabled="true"]):hover { border-color: var(--border-active); filter: brightness(1.1); }
+  &:not(:disabled):active { filter: brightness(.92); }
+  &:is(:disabled,[aria-disabled="true"]) { color: var(--text-disabled); background: var(--bg-inset); border-color: var(--border-subtle); box-shadow: none; opacity: .7; filter: none; cursor: not-allowed; }
+  & .app-icon { color: currentColor; filter: none; }
+}
+
+:is(.ui-button--primary, :where(
+  .duel-primary-button,
+  .dungeon-primary-action,
+  .campaign-boss-enter,
+  .campaign-dialogue__action,
+  .tutorial-result__button,
+  .guild-primary-button,
+  .guild-altar__buy,
+  .guild-altar__battle,
+  .guild-raid__button,
+  .equipment-action--primary,
+  .forge-action,
+  .workshop-card__craft,
+  .shop-offer__purchase,
+  .arena-shop-item__purchase,
+  .shop-reveal__continue,
+  .shop-reveal__buy-again,
+  .shop-reveal__buy-batch,
+  .limited-card-reveal__continue,
+  .nickname-pack-card__buy,
+  .nickname-choice-dialog__confirm,
+  .nickname-mail-dialog__confirm,
+  .mail-message__claim,
+  .mail-message__action--primary,
+  .shop-insufficient-modal__ok,
+  .tutorial-dialog__primary,
+  .guided-dialog__primary,
+  .confirmation-actions button:last-child,
+  .level-up-button,
+  .limited-card-banner__form button,
+  .quest-paper__button--action,
+  .confirmation-modal > div > button:last-child
+)) { color: var(--state-active); border-color: var(--border-active); background: var(--surface-button-primary); }
+:is(.ui-button--success, :where(
+  .daily-login-modal__claim,
+  .quest-paper__button--claim,
+  .battle-pass-milestone button,
+  .guild-raid__button--green,
+  .level-up-button--free
+)) { color: #e1efd4; border-color: #708957; background: var(--surface-button-success); }
+:is(.ui-button--danger, :where(
+  .guild-danger-button,
+  .settings-logout
+)) { color: var(--state-danger); border-color: #85524a; background: var(--surface-button-danger); }
+:is(.ui-button--icon, :where(
+  .collection-back,
+  .deck-back,
+  .shop-back,
+  .dungeon-back,
+  .screen-back,
+  .home-settings-button,
+  .guild-icon-button,
+  .guild-information__back,
+  .leaderboard-screen__back,
+  .league-screen__back,
+  .player-profile-screen__back,
+  .equipment-sheet-close,
+  .daily-login-modal__close,
+  .nickname-choice-dialog__close,
+  .nickname-mail-dialog__close,
+  .duel-heading > button,
+  .arena-heading > button,
+  .campaign-heading > button,
+  .card-detail-topbar button
+)) { flex: 0 0 var(--control-height); min-width: var(--control-height); width: var(--control-height); padding: var(--space-2); }
+.ui-button--small { min-height: var(--control-height-small); padding-inline: var(--space-2); font-size: var(--font-xs); }
+
+:is(.ui-tab, :where(
+  .collection-filter,
+  .shop-tab,
+  .inventory-tab,
+  .leaderboard-tab,
+  .equipment-category-tab,
+  .equipment-filter-button,
+  .workshop-filter,
+  .arena-tabs button,
+  .guild-tabs button,
+  .pagination button,
+  .guild-roster__rank-tab
+)) { gap: var(--space-1); background: var(--bg-inset); box-shadow: none; color: var(--text-secondary); font-size: var(--font-xs);
+  &:is([aria-selected="true"],[aria-current="page"],.is-active,[class*="--active"]) { border-color: var(--border-active); background: var(--surface-button-primary); color: var(--state-active); box-shadow: var(--highlight-inner); }
+}
+
+:where(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
+:where(button) :is(svg, img, .app-icon, .equipment-icon, .resource-icon, .currency-icon) { flex-shrink: 0; object-fit: contain; }
+.screen-back .app-icon { transform: rotate(180deg); }
+.equipment-filter-button { width: var(--control-height); padding: var(--space-2); }
+.collection-filter { flex: 1; }
+.shop-offer__purchase { bottom: -22px; }
+.arena-shop-item__purchase { flex-direction: column; gap: var(--space-1); }
+.guild-screen :is(.guild-primary-button,.guild-secondary-button,.guild-danger-button,.guild-icon-button,.guild-inline-button) { font: 600 var(--font-sm)/1.25 var(--font-label); }

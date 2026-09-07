@@ -49,10 +49,12 @@ interface HomeScreenProps {
   onOpenBattlePass: () => void;
   onOpenShop: () => void;
   onOpenSettings: () => void;
+  playerLevel?: number;
 }
 
-export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, onOpenSettings }: HomeScreenProps) {
+export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, onOpenSettings, playerLevel }: HomeScreenProps) {
   const { state: battlePassState } = useBattlePass();
+  const novice = (playerLevel ?? 2) <= 1;
   const hasDailyTaskReward = battlePassState.status === "ready"
     && battlePassState.data.daily.tasks.some((task) => task.completed && !task.claimed);
   const hasBattlePassReward = battlePassState.status === "ready"
@@ -61,7 +63,6 @@ export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial,
   return (
     <div className="home-screen">
       <div className="home-screen__toolbar">
-        <span className="home-screen__toolbar-line" aria-hidden="true" />
         <button className="home-settings-button" aria-label="Налаштування" onClick={onOpenSettings} type="button">
           <AppIcon name="settings" size={21} />
         </button>
@@ -69,7 +70,7 @@ export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial,
       <GuidedOnboarding onResume={onResumeTutorial} status={tutorialStatus} />
       <section className="mode-grid" aria-label="Ігрові режими">
         {modes.map((mode) => (
-          <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} key={mode.title} {...mode} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
+          <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} key={mode.title} {...mode} status={novice && (mode.icon === "dungeon" || mode.icon === "arena") ? "Після кампанії" : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
         ))}
       </section>
       <section className="home-menu" aria-label="Розділи гри">
@@ -78,6 +79,7 @@ export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial,
             attention={action.icon === "tasks" ? hasDailyTaskReward : action.icon === "battle-pass" ? hasBattlePassReward : false}
             badge={action.available === false ? "Скоро" : undefined}
             disabled={action.available === false}
+            detail={novice && !hasBattlePassReward && ["battle-pass", "equipment", "collection", "ranking"].includes(action.icon) ? "Пізніше" : undefined}
             key={action.title}
             icon={action.icon}
             metalTexture

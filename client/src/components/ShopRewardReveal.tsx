@@ -22,6 +22,7 @@ const rarityLabels: Record<CardRarity, string> = {
 
 interface ShopRewardRevealProps {
   canBuyTen?: boolean;
+  continueLabel?: string;
   errorMessage?: string | null;
   onBuyAgain?: () => void;
   onBuyTen?: () => void;
@@ -32,6 +33,7 @@ interface ShopRewardRevealProps {
 
 export function ShopRewardReveal({
   canBuyTen = false,
+  continueLabel = "Продовжити",
   errorMessage,
   onBuyAgain,
   onBuyTen,
@@ -103,7 +105,7 @@ export function ShopRewardReveal({
       {collectionCompleted ? <aside className="shop-collection-complete"><span>КОЛЕКЦІЮ ЗІБРАНО</span><strong>{collectionCompleted.name}</strong><p>{collectionCompleted.bonusLabel}</p></aside> : null}
       {errorMessage ? <p className="shop-error" role="alert">{errorMessage}</p> : null}
       <div className="shop-reveal__actions">
-        <button className="shop-reveal__continue" data-tutorial-target="shop-continue" disabled={purchasing} onClick={onContinue} type="button">Продовжити</button>
+        <button className="shop-reveal__continue" data-tutorial-target="shop-continue" disabled={purchasing} onClick={onContinue} type="button">{continueLabel}</button>
         {onBuyAgain ? <button className="shop-reveal__buy-again" disabled={purchasing} onClick={onBuyAgain} type="button">{purchasing ? "Купуємо…" : "Купити ще"}</button> : null}
         {canBuyTen && onBuyTen ? <button className="shop-reveal__buy-batch" disabled={purchasing || hasNextCard} onClick={onBuyTen} type="button">{purchasing ? "Купуємо 10…" : "Купити 10"}</button> : null}
       </div>

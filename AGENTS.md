@@ -135,3 +135,12 @@ If the full test suite was not run for an isolated, low-risk change, report:
 - Never invent humans, humanoids, anthropomorphic animals, human faces, clothing, or roles for card subjects.
 - Keep entity scale, rarity, and power logically consistent; detailed rules live in `docs/game-rules.md`.
 - Complete active decks use 9 cards with a `3/2/2/2` element distribution; inventory is unrestricted.
+
+## Unified battle animation
+
+- Every card battle uses the shared `BattleAttackAnimation` component.
+- The player's card flies from its real slot directly onto the opposing card; the opposing card stays in its slot and reacts to the impact.
+- Use the same trajectory and timing in duels, arena, campaign, guild raids, and future battle modes. Never add mode-specific flight or flip animations.
+- Measure the actual slot positions; do not hardcode flight distances for a screen size.
+- Respect reduced-motion preferences and finish the strike before showing the battle result.
+- Use the existing button artwork for asset-backed actions; do not replace it with a plain CSS gradient.

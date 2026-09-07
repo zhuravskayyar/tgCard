@@ -32,9 +32,9 @@ const STEP_COPY: Record<Exclude<TutorialStep, "complete">, TutorialCopy> = {
   "duel-first-card": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-first", text: "Твої карти внизу. Карти суперника — вгорі. Атакуй своєю картою!", title: "" },
   "duel-advantage": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-second", text: "Критичні удари в 1,5 раза сильніші! Атакуй!", title: "" },
   "duel-free-play": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card", text: "Добий ворога будь-якою картою!", title: "" },
-  "duel-result": { action: "ЗА НАГОРОДОЮ", target: "duel-result", text: "Перемога! Забери нагороду й вирушай у кампанію.", title: "" },
-  deck: { action: "ДАЛІ", target: "deck-rule", text: "У бою працюють 9 найсильніших допустимих карт. Копії однієї базової карти не дублюються — береться найсильніша.", title: "Твоя бойова колода" },
-  campaign: { action: "ВІДКРИТИ КАМПАНІЮ", text: "Кампанія — твій основний шлях у грі. Виконуй завдання, відкривай нові етапи й розкривай історію.", title: "Твій шлях починається" },
+  "duel-result": { action: "ПЕРЕГЛЯНУТИ КОЛОДУ", target: "duel-result", text: "Перемога! Переглянь свою бойову колоду, а потім вирушай у кампанію.", title: "" },
+  deck: { action: "ПЕРЕЙТИ ДО КАМПАНІЇ", target: "deck-rule", text: "У бою працюють 9 найсильніших допустимих карт. Копії однієї базової карти не дублюються — береться найсильніша.", title: "Твоя бойова колода" },
+  campaign: { action: "ЗАВЕРШИТИ НАВЧАННЯ", text: "Ти готовий. Заверши навчання, а далі виконуй завдання кампанії у своєму темпі.", title: "Твій шлях починається" },
 };
 
 const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = {
@@ -112,7 +112,6 @@ export function TutorialOverlay({ duel, onAction, onPause, screenKey, step }: Tu
       ? Math.max(8, rect.top - 50)
       : Math.min(maxTop, rect.bottom + 8);
     return {
-      emoji: placeAbove ? "👇" : "👆",
       left,
       placement: placeAbove ? "above" : "below",
       top,
@@ -163,7 +162,7 @@ export function TutorialOverlay({ duel, onAction, onPause, screenKey, step }: Tu
             key={"finger-" + rect.left + "-" + rect.top + "-" + index}
             style={{ left: finger.left, top: finger.top }}
           >
-            {finger.emoji}
+            <AppIcon name="arrow-up" size={32} />
           </span>
         );
       }) : null}
@@ -173,14 +172,14 @@ export function TutorialOverlay({ duel, onAction, onPause, screenKey, step }: Tu
           className="tutorial-overlay__arrow"
           key={`arrow-${rect.left}-${rect.top}-${index}`}
           style={{ left: rect.left + rect.width / 2, top: Math.max(8, rect.bottom - 15) }}
-        >↑</span>
+        ><AppIcon name="arrow-up" size={28} /></span>
       )) : null}
       <section className={`tutorial-dialog tutorial-dialog--${dialogPlacement}${referenceDuel ? " tutorial-dialog--reference-duel" : ""}`} style={referenceDuel && referenceDialogTop !== null ? { bottom: "auto", top: referenceDialogTop } : undefined}>
         <div className="tutorial-dialog__art" aria-hidden="true"><Lariska emotion={STEP_EMOTION[step]} /></div>
         <div className="tutorial-dialog__body">
           {!referenceDuel ? <div className="tutorial-dialog__meta"><span>Лариска · Навчання</span></div> : null}
           {!referenceDuel ? <h2 id="tutorial-dialog-title">{copy.title}</h2> : null}
-          <p>{step === "duel-advantage" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true">⚔</span>{copyText}</> : copyText}</p>
+          <p>{step === "duel-advantage" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
           {!referenceDuel ? <button className="tutorial-dialog__primary" onClick={onAction} type="button">{copy.action} <AppIcon name="chevron" size={16} /></button> : null}
           {!referenceDuel ? <button className="tutorial-dialog__secondary" onClick={onPause} type="button">Пізніше</button> : null}
         </div>

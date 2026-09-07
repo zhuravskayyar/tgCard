@@ -1,3 +1,5 @@
+import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
+import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   CardElement,
@@ -14,7 +16,7 @@ import { CardArtwork, preloadCardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
-import { LeagueProgressCard } from "../components/LeagueProgressCard";
+import { MenuRow } from "../components/MenuRow";
 import { Lariska } from "../components/Lariska";
 import { ResourceIcon } from "../components/ResourceIcon";
 import { getUiNumberLocale } from "../i18n";
@@ -32,22 +34,12 @@ const LAST_DUEL_STORAGE_KEY = "cardastika:last-duel-id";
 const DUEL_SEARCH_MIN_DISPLAY_MS = 620;
 const DUEL_LOG_SWORDS_NEUTRAL = "/assets/ui/world-tree/game-icons/swords-neutral.svg";
 const DUEL_LOG_SWORDS_ADVANTAGE = "/assets/ui/world-tree/game-icons/swords-gold-gray.svg";
-const DUEL_RESULT_ARTWORK = {
-  win: "/assets/ui/duel/duel-result-victory.png",
-  loss: "/assets/ui/duel/duel-result-defeat.png",
-} as const;
 export type DuelEffectLevel = "weak" | "normal" | "strong";
 
 export function getEffectLevel(multiplier: DuelExchange["playerMultiplier"]): DuelEffectLevel {
   if (multiplier === 0.5) return "weak";
   if (multiplier === 1.5) return "strong";
   return "normal";
-}
-
-export function getImpactLevel(playerLevel: DuelEffectLevel, enemyLevel: DuelEffectLevel): DuelEffectLevel {
-  if (playerLevel === "strong" || enemyLevel === "strong") return "strong";
-  if (playerLevel === "normal" || enemyLevel === "normal") return "normal";
-  return "weak";
 }
 
 function preloadDuelArtwork(duel: DuelView) {
@@ -70,7 +62,13 @@ type DuelScreenState =
   | { status: "no-opponent" }
   | { status: "error"; message: string };
 
-interface DuelScreenProps {
+interface DuelResultNavigation {
+  onOpenLeagues: () => void;
+  onOpenTasks: () => void;
+  onOpenShop: () => void;
+}
+
+interface DuelScreenProps extends DuelResultNavigation {
   onBack: () => void;
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "duelHighestLeagueIndex" | "duelRating" | "level" | "silver" | "gold">>) => void;
   onTutorialResult?: () => void | Promise<void>;
@@ -250,25 +248,6 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
   );
 }
 
-export function DuelFlyingCard({ card, side, impactLevel, slotIndex }: {
-  card: DuelCardSnapshot;
-  side: "player" | "enemy";
-  impactLevel: DuelEffectLevel;
-  slotIndex: 0 | 1 | 2;
-}) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`duel-card duel-flying-card duel-flying-card--${side} duel-flying-card--${impactLevel} duel-flying-card--slot-${slotIndex} duel-card--${card.element} deck-card--${card.rarity}${card.source === "guild" ? " duel-card--guild" : ""}`}
-    >
-      <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact element={card.element} rarity={card.rarity}>
-        <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
-        {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
-      </CardFxWrapper>
-    </div>
-  );
-}
-
 function DuelIntroOverlay() {
   return (
     <div aria-hidden="true" className="duel-intro">
@@ -276,37 +255,6 @@ function DuelIntroOverlay() {
       <strong>VS</strong>
       <span>КОЛОДА СУПЕРНИКА</span>
       <b>ДУЕЛЬ</b>
-    </div>
-  );
-}
-
-export function DuelClashOverlay({ exchange }: { exchange: DuelExchange }) {
-  const playerLevel = getEffectLevel(exchange.playerMultiplier);
-  const enemyLevel = getEffectLevel(exchange.enemyMultiplier);
-  const impactLevel = getImpactLevel(playerLevel, enemyLevel);
-  const playerStrong = playerLevel === "strong";
-  const enemyStrong = enemyLevel === "strong";
-  const advantage = exchange.visualState !== "neutral";
-  const particleCount = impactLevel === "strong" ? 8 : impactLevel === "normal" ? 4 : 2;
-
-  return (
-    <div aria-hidden="true" className={`duel-clash duel-clash--${exchange.playerCard.element} duel-clash--impact-${impactLevel} duel-clash--${exchange.visualState} duel-clash--slot-${exchange.slotIndex}`}>
-      <span className={`duel-clash__trail duel-clash__trail--player duel-clash__trail--${exchange.playerCard.element}`} />
-      <span className={`duel-clash__trail duel-clash__trail--enemy duel-clash__trail--${exchange.enemyCard.element}`} />
-      <span className="duel-clash__flash" />
-      <span className={`duel-clash__damage duel-clash__damage--player duel-clash__damage--${playerLevel}${playerStrong ? " is-strong" : ""}`}>
-        <strong>−{exchange.playerDamage}</strong>
-        <small>×{exchange.playerMultiplier}</small>
-      </span>
-      <BattleSwordIcon tone={playerStrong || enemyStrong ? "gold" : "gray"} />
-      <span className={`duel-clash__damage duel-clash__damage--enemy duel-clash__damage--${enemyLevel}${enemyStrong ? " is-strong" : ""}`}>
-        <strong>−{exchange.enemyDamage}</strong>
-        <small>×{exchange.enemyMultiplier}</small>
-      </span>
-      {advantage ? <strong className="duel-clash__advantage">ПЕРЕВАГА</strong> : null}
-      <span className="duel-clash__particles">
-        {Array.from({ length: particleCount }, (_, index) => <i key={index} />)}
-      </span>
     </div>
   );
 }
@@ -368,25 +316,14 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
 }) {
-  const initialExchange = duel.battleLog[0] ?? null;
   const [introActive, setIntroActive] = useState(() => duel.battleLog.length === 0);
-  const [clash, setClash] = useState<DuelExchange | null>(null);
-  const lastTurnRef = useRef(initialExchange?.turnNumber ?? 0);
+  const clash = useBattleExchange(duel.battleLog[0] ?? null);
 
   useEffect(() => {
     if (!introActive) return;
     const timer = window.setTimeout(() => setIntroActive(false), 720);
     return () => window.clearTimeout(timer);
   }, [introActive]);
-
-  useEffect(() => {
-    const latest = duel.battleLog[0];
-    if (!latest || latest.turnNumber <= lastTurnRef.current) return;
-    lastTurnRef.current = latest.turnNumber;
-    setClash(latest);
-    const timer = window.setTimeout(() => setClash(null), 900);
-    return () => window.clearTimeout(timer);
-  }, [duel.battleLog]);
 
   const clashSlot = clash?.slotIndex ?? null;
   const battleClassName = [
@@ -401,7 +338,6 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   ].filter(Boolean).join(" ");
   const enemyHitLevel = clash ? getEffectLevel(clash.playerMultiplier) : "normal";
   const playerHitLevel = clash ? getEffectLevel(clash.enemyMultiplier) : "normal";
-  const clashImpactLevel = getImpactLevel(enemyHitLevel, playerHitLevel);
 
   return (
     <div className={battleClassName}>
@@ -416,23 +352,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
       />
       <div className={boardClassName} aria-label="Бойове поле">
         {introActive ? <DuelIntroOverlay /> : null}
-        {clash ? (
-          <div aria-hidden="true" className="duel-flight-layer">
-            <DuelFlyingCard
-              card={clash.playerCard}
-              impactLevel={clashImpactLevel}
-              side="player"
-              slotIndex={clash.slotIndex}
-            />
-            <DuelFlyingCard
-              card={clash.enemyCard}
-              impactLevel={clashImpactLevel}
-              side="enemy"
-              slotIndex={clash.slotIndex}
-            />
-          </div>
-        ) : null}
-        {clash ? <DuelClashOverlay exchange={clash} /> : null}
+        {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
         <div className="duel-card-row duel-card-row--enemy">
           {duel.enemyActiveCards.map((card, index) => (
             <BattleCard
@@ -457,7 +377,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
               card={card}
               clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined}
               clashing={clashSlot === index}
-              disabled={pendingSlot !== null || (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index)}
+              disabled={clash !== null || pendingSlot !== null || (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index)}
               introActive={introActive}
               key={card.instanceId}
               onClick={() => onAction(index as 0 | 1 | 2)}
@@ -491,7 +411,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   );
 }
 
-function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode }: { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean }) {
+function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
@@ -522,92 +442,50 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode }: { du
           }}
           type="button"
         >
-          {tutorialResultPending ? "Завантаження…" : "За нагородою"}
+          {tutorialResultPending ? "Завантаження…" : "Переглянути колоду"}
         </button>
       </section>
     );
   }
   const latestLevel = result.reachedLevels.at(-1);
-  const duelGoldReward = result.duelGoldReward ?? 0;
-  const levelUpGoldReward = result.levelUpGoldReward ?? result.gold;
-  const totalSilverEarned = result.totalSilverEarned ?? result.silver;
-  const totalPlayerDamage = duel.battleLog.reduce((total, exchange) => total + exchange.playerDamage, 0);
-  const streakTone = result.winStreak >= 10 ? "legendary" : result.winStreak >= 5 ? "hot" : result.winStreak >= 3 ? "warm" : "normal";
-  const lariskaEmotion = result.outcome === "loss" ? "sad" : result.winStreak >= 3 ? "happy" : "sly";
-  const lariskaMessage = result.outcome === "loss"
-    ? "Гаразд, цього разу карти перемогли. Наступного разу не дай їм такої радості."
-    : result.winStreak >= 3
-      ? "Оце серія. Не звикай — тепер суперники будуть уважніші."
-      : "Непогано. Я очікувала гіршого.";
   const formatNumber = (value: number) => new Intl.NumberFormat(getUiNumberLocale()).format(value);
-  const formatReward = (value: number) => value > 0 ? `+${formatNumber(value)}` : "—";
+  const goldReward = (result.duelGoldReward ?? 0) + (result.levelUpGoldReward ?? result.gold);
   return (
-    <section className={`duel-result duel-result--${result.outcome}`} data-tutorial-target={tutorialMode ? "duel-result" : undefined}>
-      <div className="duel-result__content">
-        <div className="duel-result__artwork-wrap">
-          <img alt="" aria-hidden="true" className="duel-result__artwork" src={DUEL_RESULT_ARTWORK[result.outcome]} />
+    <section className={`duel-result duel-result--compact duel-result--${result.outcome}`}>
+      <header className="duel-result-banner">
+        <h1>{result.outcome === "win" ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
+        <p>Ти отримав:</p>
+        <div aria-label="Нагороди за дуель" className="duel-result-loot">
+          <span aria-label={`Срібло: ${result.totalSilverEarned ?? result.silver}`}><CurrencyIcon kind="silver" size={17} />{formatNumber(result.totalSilverEarned ?? result.silver)}</span>
+          <span aria-label={`Досвід: ${result.xp}`}><ResourceIcon kind="xp" size={17} />{formatNumber(result.xp)}</span>
+          {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`}><CurrencyIcon kind="gold" size={17} />{formatNumber(goldReward)}</span> : null}
         </div>
-        <div className="duel-result__title">
-          <span className="duel-result__eyebrow">{result.outcome === "win" ? "Випробування завершено" : "Бій завершено"}</span>
-          <h1>{result.outcome === "win" ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
-        </div>
-        <div aria-label="Нагороди за дуель" className="duel-result__rewards">
-          <div className="duel-result__reward duel-result__reward--xp">
-            <span><ResourceIcon kind="xp" size={17} />XP</span>
-            <strong>{formatReward(result.xp)}</strong>
-          </div>
-          <div className="duel-result__reward duel-result__reward--silver">
-            <span><CurrencyIcon kind="silver" size={17} />Срібло</span>
-            <strong>{formatReward(totalSilverEarned)}</strong>
-          </div>
-          <div className={`duel-result__reward duel-result__reward--gold${duelGoldReward === 0 ? " duel-result__reward--empty" : ""}`}>
-            <span><CurrencyIcon kind="gold" size={17} />Gold</span>
-            <strong>{formatReward(duelGoldReward)}</strong>
-          </div>
-        </div>
-        {result.leagueProgression ? (
-          <LeagueProgressCard
-            compact
-            nextLabel="plain"
-            rating={result.leagueProgression.ratingAfter}
-            ratingChange={result.leagueProgression.ratingChange}
-            showRewards={false}
-          />
-        ) : null}
-        {result.outcome === "win" ? (
-          <div className={`duel-result__streak duel-result__streak--${streakTone}`}>
-            <AppIcon name="tournament" size={17} />
-            <span>Серія перемог</span>
-            <strong>×{result.winStreak}</strong>
-          </div>
-        ) : null}
-        <p className="duel-result__summary">
-          <AppIcon name="duel" size={16} />
-          <span>{duel.battleLog.length} {duel.battleLog.length === 1 ? "обмін" : "обмінів"}</span>
-          <i>·</i>
-          <span>Завдано {formatNumber(totalPlayerDamage)} шкоди</span>
-        </p>
-        <div className={`duel-result__mascot duel-result__mascot--${lariskaEmotion}`}>
-          <Lariska emotion={lariskaEmotion} />
-          <p>{lariskaMessage}</p>
-        </div>
-        {latestLevel ? (
-          <div className="duel-result__level-up">
-            <span><AppIcon name="card-strength" size={16} />Новий рівень</span>
-            <strong>{latestLevel}</strong>
-            <small><CurrencyIcon kind="gold" size={14} />+{formatNumber(levelUpGoldReward)} GOLD</small>
-          </div>
-        ) : null}
-        {result.accountBoostMultiplier === 2 ? <p className="duel-result__boost"><strong>Буст ×2 активний</strong></p> : null}
-        <button className="duel-primary-button" data-tutorial-target={tutorialMode ? "duel-result" : undefined} onClick={tutorialMode && onTutorialResult ? onTutorialResult : onReturn} type="button">{tutorialMode ? "ЗА НАГОРОДОЮ" : "До дуелей"}</button>
-      </div>
+        {result.player.duelWins !== undefined ? <p className="duel-result-wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatNumber(result.player.duelWins)}</p> : null}
+      </header>
+      {latestLevel ? <p className="duel-result-note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
+      {result.accountBoostMultiplier === 2 ? <p className="duel-result-note">Буст ×2 активний</p> : null}
+      <button className="duel-primary-button duel-result-next" onClick={onReturn} type="button">Ще дуель</button>
+      <section className="duel-result-battle" aria-label="Підсумки бою">
+        <header>
+          <span aria-label={`Залишок вашого здоров’я: ${duel.playerHp}`}>♥ {formatNumber(duel.playerHp)}</span>
+          <h2>Підсумки бою</h2>
+          <span aria-label={`Залишок здоров’я суперника: ${duel.enemyHp}`}>♥ {formatNumber(duel.enemyHp)}</span>
+        </header>
+        <ol>{[...duel.battleLog].sort((a, b) => a.turnNumber - b.turnNumber).map(exchange => <BattleLogRow exchange={exchange} key={exchange.turnNumber} />)}</ol>
+      </section>
+      <nav className="duel-result-menu" aria-label="Розділи після дуелі">
+        <MenuRow icon="tournament" title="Рейтинг дуелей" onClick={onOpenLeagues} />
+        <MenuRow icon="tasks" title="Завдання" onClick={onOpenTasks} />
+        <MenuRow icon="shop" title="Магазин" onClick={onOpenShop} />
+      </nav>
     </section>
   );
 }
 
-export function DuelScreen({ onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false }: DuelScreenProps) {
+export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false }: DuelScreenProps) {
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
+  const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
   const searchRuneIndexRef = useRef(0);
   const [searchRuneVariant, setSearchRuneVariant] = useState<DuelSearchRuneVariant>(DUEL_SEARCH_RUNE_VARIANTS[0]!);
 
@@ -754,9 +632,9 @@ export function DuelScreen({ onBack, onPlayerSummaryChange, onTutorialDuelState,
   }
 
   if (state.status === "duel") {
-    return state.duel.status === "active"
+    return !resultReady
       ? <DuelBattle duel={state.duel} onAction={handleAction} pendingSlot={pendingSlot} tutorialAllowedSlot={tutorialAllowedSlot} tutorialMode={tutorialMode} />
-      : <DuelResultView duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} />;
+      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} />;
   }
 
   return (

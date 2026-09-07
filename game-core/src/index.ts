@@ -33,6 +33,7 @@ export {
   getBasePowerForLevel,
   getCardLevelTableEntry,
   getCardPower,
+  getCardUpgradeIndicator,
   getElementValueForLevel,
   getRarityForLevel,
   getRarityLevelRange,

@@ -1,3 +1,5 @@
+import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
+import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ArenaBattleLogEntry,
@@ -14,7 +16,7 @@ import type {
 } from "@cardastika/shared";
 import { getElementMultiplier } from "@cardastika/game-core";
 import { AppIcon } from "../components/AppIcon";
-import { BattleCard, BattleLog, DuelClashOverlay, DuelFlyingCard, getEffectLevel, getImpactLevel, PlayerAvatar } from "./DuelScreen";
+import { BattleCard, BattleLog, getEffectLevel, PlayerAvatar } from "./DuelScreen";
 import type { DuelEffectLevel } from "./DuelScreen";
 import { FirstVisitHint } from "../components/FirstVisitHint";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
@@ -172,7 +174,7 @@ function ParticipantList({ participants, playerId, targetId, disabled, onSelectT
                 <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} />
               </button>
               <strong>{shortParticipantName(participant.name)}</strong>
-              {!participant.alive ? <span className="arena-participant__dead" aria-label="Вибув">☠</span> : null}
+              {!participant.alive ? <span className="arena-participant__dead" aria-label="Вибув"><AppIcon name="skull" size={16} /></span> : null}
             </div>
             <div className="arena-participant__hpbar" aria-label={`HP ${participant.hp} з ${participant.maxHp}`}>
               <span style={{ width: `${percentage(participant.hp, participant.maxHp)}%` }} />
@@ -237,19 +239,8 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
   onTarget: (targetId?: string) => void;
   onCards: () => void;
 }) {
-  const [clash, setClash] = useState<DuelExchange | null>(null);
-  const lastLogIdRef = useRef(match.battleLog[0]?.id ?? null);
-  useEffect(() => {
-    const latest = match.battleLog[0];
-    if (!latest || latest.id === lastLogIdRef.current) return;
-    lastLogIdRef.current = latest.id;
-    if (latest.attackerId !== match.playerId) return;
-    const exchange = arenaLogToDuelExchange(latest, match.playerId, match.battleLog.length);
-    if (!exchange) return;
-    setClash(exchange);
-    const timer = window.setTimeout(() => setClash(null), 900);
-    return () => window.clearTimeout(timer);
-  }, [match.battleLog, match.playerId]);
+  const latestAttack = match.battleLog.find(entry => entry.attackerId === match.playerId);
+  const clash = useBattleExchange(latestAttack?.attackerId === match.playerId ? arenaLogToDuelExchange(latestAttack, match.playerId, match.battleLog.length) : null, latestAttack?.id);
 
   const target = match.participants.find((participant) => participant.id === match.targetId);
   const player = match.participants.find((participant) => participant.id === match.playerId);
@@ -257,7 +248,6 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
   const clashSlot = clash?.slotIndex ?? null;
   const enemyHitLevel = clash ? getEffectLevel(clash.playerMultiplier) : "normal";
   const playerHitLevel = clash ? getEffectLevel(clash.enemyMultiplier) : "normal";
-  const clashImpactLevel = getImpactLevel(enemyHitLevel, playerHitLevel);
   const targetHpPercent = target ? percentage(target.hp, target.maxHp) : 0;
   const multipliers = match.playerSlots.map((slot, index) => {
     const enemyCard = match.targetSlots?.[index]?.card;
@@ -265,7 +255,7 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
   });
   return (
     <div className="arena-battle">
-      <ParticipantList disabled={pending !== null} onSelectTarget={onTarget} participants={match.participants} playerId={match.playerId} targetId={match.targetId} />
+      <ParticipantList disabled={clash !== null || match.status !== "active" || pending !== null} onSelectTarget={onTarget} participants={match.participants} playerId={match.playerId} targetId={match.targetId} />
       <section className="arena-target-panel">
         <div className="arena-target-header">
           <div className="arena-combatant-identity">
@@ -277,20 +267,14 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
         <div className="arena-target-hpbar"><span style={{ width: `${targetHpPercent}%` }} /></div>
       </section>
       <section aria-label="Бойове поле" className={`arena-battlefield${clash ? " duel-board--clash" : ""}`}>
-        {clash ? (
-          <div aria-hidden="true" className="duel-flight-layer">
-            <DuelFlyingCard card={clash.playerCard} impactLevel={clashImpactLevel} side="player" slotIndex={clash.slotIndex} />
-            <DuelFlyingCard card={clash.enemyCard} impactLevel={clashImpactLevel} side="enemy" slotIndex={clash.slotIndex} />
-          </div>
-        ) : null}
-        {clash ? <DuelClashOverlay exchange={clash} /> : null}
+        {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
         <div className="arena-battlefield__label"><span>ЦІЛЬ</span><span>ВИ</span></div>
         <div aria-label="Карти арени: 3 колонки × 2 ряди" className="arena-card-matrix">
-          <div className="arena-card-row arena-card-row--target">{match.targetSlots?.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.enemyMultiplier) : undefined} clashing={clashSlot === index} enemy key={index} lane={index} slot={slot} />)}</div>
+          <div className="arena-card-row arena-card-row--target">{match.targetSlots ? match.targetSlots.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.enemyMultiplier) : undefined} clashing={clashSlot === index} enemy key={index} lane={index} slot={slot} />) : clash ? [0, 1, 2].map(index => index === clash.slotIndex ? <BattleCard card={clash.enemyCard} enemy key={index} /> : <div aria-hidden="true" key={index} />) : null}</div>
           <div className="arena-multiplier-row" aria-label="Множники удару">
             {multipliers.map((multiplier, index) => <span className={multiplier === 1.5 ? "is-strong" : multiplier === 0.5 ? "is-weak" : ""} key={index}>{multiplier === null ? "—" : `×${multiplier}`}</span>)}
           </div>
-          <div className="arena-card-row">{match.playerSlots.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined} clashing={clashSlot === index} defeated={playerDefeated} key={index} lane={index} slot={slot} disabled={pending !== null} onClick={() => onAction(index as 0 | 1 | 2)} />)}</div>
+          <div className="arena-card-row">{match.playerSlots.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined} clashing={clashSlot === index} defeated={playerDefeated} key={index} lane={index} slot={slot} disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onAction(index as 0 | 1 | 2)} />)}</div>
         </div>
       </section>
       {player ? <section className={`arena-player-panel${playerDefeated ? " is-defeated" : ""}`}>
@@ -302,8 +286,8 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
       </section> : null}
       <div className="arena-controls">
         <div className="arena-actions">
-          <button aria-label="Змінити ціль" className="duel-secondary-button" disabled={pending !== null} onClick={() => onTarget()} title="Змінити ціль" type="button"><AppIcon name="target" size={20} /><span>Ціль</span></button>
-          <button aria-label="Оновити карти" className="duel-secondary-button" disabled={pending !== null} onClick={onCards} title="Оновити карти" type="button"><AppIcon name="refresh" size={20} /><span>Карти</span><small>{match.changeCardsCost === 0 ? "0" : <><CurrencyIcon kind="gold" size={15} />{match.changeCardsCost}</>}</small></button>
+          <button aria-label="Змінити ціль" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onTarget()} title="Змінити ціль" type="button"><AppIcon name="target" size={20} /><span>Ціль</span></button>
+          <button aria-label="Оновити карти" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={onCards} title="Оновити карти" type="button"><AppIcon name="refresh" size={20} /><span>Карти</span><small>{match.changeCardsCost === 0 ? "0" : <><CurrencyIcon kind="gold" size={15} />{match.changeCardsCost}</>}</small></button>
         </div>
         <p aria-live="polite" className="arena-action-status">{pending ? "…" : playerDefeated ? "Вибули" : "Обери карту"}</p>
       </div>
@@ -322,7 +306,7 @@ function ArenaResult({ match, onArena, onQueue }: { match: ArenaView; onArena: (
       <span className="arena-result__rank">{participant.placement}</span>
       <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} />
       <strong>{participant.name}</strong>
-      <span className="arena-result__damage">⚔ {participant.totalDamageDealt.toLocaleString(getUiNumberLocale())}</span>
+      <span className="arena-result__damage"><AppIcon name="duel" size={16} /> {participant.totalDamageDealt.toLocaleString(getUiNumberLocale())}</span>
     </li>
   );
   return (
@@ -383,6 +367,7 @@ function ShopTab({ profile, catalog, pending, onLoad, onPurchase }: { profile: A
 export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChange }: ArenaScreenProps) {
   const [profile, setProfile] = useState<ArenaProfileResponse | null>(null);
   const [match, setMatch] = useState<ArenaView | null>(null);
+  const resultReady = useBattleResultReady(match?.status === "active", match?.status === "finished");
   const [queueState, setQueueState] = useState<ArenaQueueView | null>(null);
   const [catalog, setCatalog] = useState<ArenaShopCatalogResponse | null>(null);
   const [tab, setTab] = useState<ArenaTab>("battle");
@@ -492,7 +477,7 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
   }
 
   if (!profile) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><div className="arena-empty-state">{error ?? "Завантажуємо арену…"}</div></div>;
-  if (match?.status === "active") return <div className="arena-screen arena-screen--battle"><ArenaHeading onBack={onBack} /><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
+  if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaHeading onBack={onBack} /><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
   if (match?.status === "finished") return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaTabs active={tab} onChange={setTab} />{tab === "battle" ? <ArenaResult match={match} onArena={() => { setMatch(null); setQueueState(null); setError(null); setTab("battle"); }} onQueue={() => void queue()} /> : null}{tab === "league" ? <LeagueTab profile={profile} /> : null}{tab === "shop" ? <ShopTab catalog={catalog} onLoad={() => { if (initData) void loadArenaShop(initData).then(setCatalog).catch(() => setError("Магазин тимчасово недоступний.")); }} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}</div>;
   if (queueState) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaQueuePanel onLeave={() => void leaveQueue()} pending={pending} queue={queueState} /></div>;
 

@@ -199,6 +199,41 @@ test("tutorial players receive a guaranteed first victory after a losing exchang
   }
 });
 
+test("tutorial exchange damage matches the displayed element multipliers", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const playerIds: string[] = [];
+  try {
+    const challenger = await players.findOrCreateFromTelegram(telegramUser("tutorial multipliers"));
+    playerIds.push(challenger.id);
+    const service = new DuelService(pool, () => 0.999999);
+    const found = await service.search(challenger.id);
+    let duel = await service.start(challenger.id, found.searchId, true);
+
+    duel = await service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: duel.version });
+    assert.equal(duel.battleLog[0]?.playerMultiplier, 1.5);
+    assert.equal(duel.battleLog[0]?.playerDamage, 18);
+    assert.equal(duel.enemyHp, 17);
+    assert.equal(duel.playerHp, 168);
+
+    duel = await service.action(challenger.id, duel.duelId, { slotIndex: 1, expectedVersion: duel.version });
+    assert.equal(duel.battleLog[0]?.playerMultiplier, 1);
+    assert.equal(duel.battleLog[0]?.playerDamage, 12);
+    assert.equal(duel.enemyHp, 5);
+    assert.equal(duel.playerHp, 162);
+
+    duel = await service.action(challenger.id, duel.duelId, { slotIndex: 2, expectedVersion: duel.version });
+    assert.equal(duel.battleLog[0]?.playerDamage, 5);
+    assert.equal(duel.status, "won");
+  } finally {
+    if (playerIds.length) await cleanup(pool, playerIds);
+    await pool.end();
+  }
+});
+
 test("a loss grants its reward once and resets the Duel win streak", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });

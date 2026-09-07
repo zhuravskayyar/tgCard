@@ -1,3 +1,5 @@
+import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
+import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CampaignBossView,
@@ -40,6 +42,14 @@ const BOSS_UNLOCK_STORY = {
   trigger: "boss_unlocked",
 } satisfies CampaignDialogue;
 
+const campaignActionLabels: Record<CampaignNavigationTarget, string> = {
+  deck: "Відкрити колоду",
+  duel: "Зіграти дуель",
+  shop: "Купити карту",
+  collections: "Відкрити колекції",
+  weak: "Вибрати карту для поглинання",
+};
+
 function CampaignHeading({ eyebrow, onBack, title, titleFirst = false }: {
   eyebrow: string;
   onBack: () => void;
@@ -73,7 +83,7 @@ export function CampaignDialogueView({ dialogue, onAction, onNext }: {
           {onNext ? <button onClick={onNext} type="button">Далі</button> : null}
           {dialogue.action && onAction ? (
             <button className="campaign-dialogue__action" onClick={() => onAction(dialogue.action!)} type="button">
-              Перейти
+              {campaignActionLabels[dialogue.action]}
             </button>
           ) : null}
         </div>
@@ -468,6 +478,8 @@ export function CampaignBossScreen({ onCampaignCompleted, onDeckPowerChange, onP
   onReturn: () => void;
 }) {
   const [state, setState] = useState<BossScreenState>({ status: "loading" });
+  const clash = useBattleExchange(state.status === "battle" ? state.battle.battleLog[0] ?? null : null);
+  const resultReady = useBattleResultReady(state.status === "battle" && state.battle.status === "active", state.status === "battle" && state.battle.status !== "active");
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const [introIndex, setIntroIndex] = useState(0);
 
@@ -619,7 +631,7 @@ export function CampaignBossScreen({ onCampaignCompleted, onDeckPowerChange, onP
       />
     );
   }
-  if (state.battle.status !== "active") {
+  if (resultReady) {
     return state.battle.result?.outcome === "win"
       ? <BossVictoryResult battle={state.battle} onReturn={onReturn} />
       : <BossLossResult onRetry={retry} onReturn={onReturn} />;
@@ -634,6 +646,7 @@ export function CampaignBossScreen({ onCampaignCompleted, onDeckPowerChange, onP
       <div className="campaign-boss-battle__warning">Карти боса приховані до удару</div>
       <HpPanel currentHp={battle.enemyHp} maximumHp={battle.enemyMaxHp} side={battle.opponent} tone="enemy" />
       <div className="duel-board" aria-label="Таємне бойове поле Мантикори">
+        {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
         <div className="duel-card-row duel-card-row--enemy">
           {battle.enemyActiveCards.map((slot) => (
             <div aria-label="Прихована карта боса" className="duel-card duel-card--enemy campaign-boss-hidden-card" key={slot.slotIndex}>?</div>
@@ -644,7 +657,7 @@ export function CampaignBossScreen({ onCampaignCompleted, onDeckPowerChange, onP
           {battle.playerActiveCards.map((card, index) => (
             <BattleCard
               card={card}
-              disabled={pendingSlot !== null}
+              disabled={pendingSlot !== null || clash !== null || battle.status !== "active"}
               key={card.instanceId}
               onClick={() => void action(index as 0 | 1 | 2)}
               selected={pendingSlot === index}

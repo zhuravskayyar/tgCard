@@ -1,0 +1,53 @@
+/* Screen titles, section titles and supporting copy share semantic roles. */
+:root { color: var(--text-primary); background: var(--bg-page); }
+body { font-family: var(--font-body); }
+button, input, select, textarea { font-family: var(--font-label); }
+
+.app-content h1 { margin-block: 0; color: var(--accent-gold); font: 700 var(--font-title)/1.2 var(--font-display); letter-spacing: .03em; overflow-wrap: anywhere; }
+.app-content h2 { font-family: var(--font-display); line-height: 1.25; overflow-wrap: anywhere; }
+.app-content h3 { line-height: 1.3; overflow-wrap: anywhere; }
+.app-content :is(p, label, dt, dd) { overflow-wrap: anywhere; }
+.app-content :is(p, small) { line-height: 1.4; }
+.app-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { min-height: var(--control-height); max-width: 100%; color: var(--text-primary); background-color: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
+.app-content :is(input, select, textarea):focus-visible { border-color: var(--border-active); }
+
+.badge { min-width: 22px; height: auto; min-height: 22px; padding: 2px 6px; border-radius: var(--radius-sm); color: var(--text-primary); background: var(--bg-active); border-color: var(--border-accent); font: 600 var(--font-micro)/1.2 var(--font-label); }
+.menu-row--attention .badge { color: var(--state-active); }
+.app-icon { flex-shrink: 0; vertical-align: middle; }
+svg.app-icon { overflow: visible; }
+.element-symbol { flex-shrink: 0; }
+
+/* The back button keeps its full hit area, including in the narrowest heading. */
+:is(.collections-heading,.collection-detail-heading,.deck-heading,.shop-heading,.equipment-heading,.equipment-heading--cardastika) { grid-template-columns: var(--control-height) minmax(0, 1fr) var(--control-height); align-items: center; gap: var(--space-2); }
+:is(.inventory-heading,.duel-heading,.dungeon-heading,.arena-heading,.campaign-heading,.settings-heading) { gap: var(--space-2); }
+.app-content :is(.equipment-heading,.shop-heading,.deck-heading,.collections-heading,.inventory-heading) h1 { font-size: var(--font-lg); }
+.app-content .profile-heading h1 { font-size: var(--font-lg); }
+
+/* Table and currency figures align without changing their source values. */
+.currency-icon, .resource-icon { object-fit: contain; }
+:is(.guild-stats dd,.profile-stat__value,.arena-lobby__stats b,.shop-wallet,.inventory-section__heading > strong) { font-variant-numeric: tabular-nums; }
+
+.tutorial-overlay__finger, .tutorial-overlay__arrow { color: var(--accent-gold); }
+.tutorial-overlay__finger[data-placement="above"] .app-icon { transform: rotate(180deg); }
+.dungeon-result__stars { display: flex; justify-content: center; gap: var(--space-1); }
+.dungeon-star { color: var(--text-muted); }
+.dungeon-star--earned { color: var(--accent-gold); }
+.dungeon-star--earned svg { fill: currentColor; }
+
+.card-detail-topbar { grid-template-columns: var(--control-height) minmax(0, 1fr); gap: var(--space-2); }
+.card-protection-toggle { justify-content: flex-start; }
+.shop-offer__details-link { color: var(--accent-gold); }
+.battle-pass-milestone__reward-copy strong { color: var(--text-primary); white-space: normal; }
+.battle-pass-milestone__reward-copy small { white-space: normal; }
+.battle-pass-milestone__reward button { min-height: var(--control-height); }
+.battle-pass-milestone__reward { overflow: visible; }
+.battle-pass-circle__total img { width: 18px; height: 18px; object-fit: contain; }
+
+.equipment-heading.equipment-heading--cardastika { grid-template-columns: var(--control-height) minmax(0, 1fr) auto; }
+.equipment-equipped-status { white-space: normal; max-width: 78px; overflow-wrap: anywhere; }
+.forge-rarity-step { min-height: var(--control-height); }
+.forge-stage { grid-template-columns: minmax(93px, .9fr) minmax(86px, 1.1fr) minmax(75px, .8fr); }
+.forge-material-slot { min-width: var(--control-height); min-height: var(--control-height); }
+.forge-active-recipe strong { white-space: normal; }
+.ribbon-title__text { color: var(--text-on-parchment); }
+h1.ribbon-title .ribbon-title__text { font-size: var(--font-md); }

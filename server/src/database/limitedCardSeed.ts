@@ -38,10 +38,18 @@ export async function seedLimitedCardDefinition(client: PoolClient) {
     await client.query(
       `
         INSERT INTO limited_card_events (id, card_id, promo_code, starts_at, ends_at)
-        VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '24 hours')
+        VALUES ($1, $2, $3, clock_timestamp(), clock_timestamp() + INTERVAL '24 hours')
         ON CONFLICT (id) DO UPDATE SET
           card_id = EXCLUDED.card_id,
-          promo_code = EXCLUDED.promo_code
+          promo_code = EXCLUDED.promo_code,
+          starts_at = CASE
+            WHEN limited_card_events.ends_at <= NOW() THEN EXCLUDED.starts_at
+            ELSE limited_card_events.starts_at
+          END,
+          ends_at = CASE
+            WHEN limited_card_events.ends_at <= NOW() THEN EXCLUDED.ends_at
+            ELSE limited_card_events.ends_at
+          END
       `,
       [eventId, card.id, promoCode],
     );

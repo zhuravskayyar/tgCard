@@ -1,130 +1,72 @@
 import { useState } from "react";
-import type {
-  DailyLoginClaimResponse,
-  LariskaDailyChoiceOption,
-  LariskaDailyRewardPlayerState,
-  LariskaDailyRewardSummary,
-  LariskaDailyRewardView,
-} from "@cardastika/shared";
+import type { DailyLoginClaimResponse, LariskaDailyRewardPlayerState, LariskaDailyRewardSummary, LariskaDailyRewardView } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CurrencyIcon } from "./CurrencyDisplay";
 import { Lariska } from "./Lariska";
-import { ResourceIcon } from "./ResourceIcon";
 
 interface DailyLoginModalProps {
   data: LariskaDailyRewardView;
   onClaim: (choiceIndex?: number) => Promise<DailyLoginClaimResponse>;
   onClose: () => void;
+  onOpenTasks: () => void;
   onPlayerSummaryChange: (player: LariskaDailyRewardPlayerState) => void;
 }
 
-function choiceLabel(option: LariskaDailyChoiceOption) {
-  if (option.kind === "card") return option.displayName ?? option.code;
-  if (option.kind === "equipment") return option.name;
-  return option.label;
-}
-
-function choiceMeta(option: LariskaDailyChoiceOption) {
-  if (option.kind === "card") return option.rarity + " · " + option.element + " · Lv" + option.level;
-  if (option.kind === "equipment") return option.rarity + " · " + option.slot;
-  return "преміальна валюта";
-}
-
-function RewardIcon({ kind, size = 42 }: { kind: LariskaDailyRewardSummary["kind"] | LariskaDailyChoiceOption["kind"]; size?: number }) {
-  if (kind === "gold") return <CurrencyIcon kind="gold" size={size} />;
-  if (kind === "arena_tokens_xp") {
-    return <span className="daily-login-modal__reward-icons"><ResourceIcon kind="arena-token" size={size} /><ResourceIcon kind="xp" size={Math.max(24, size - 10)} /></span>;
-  }
-  if (kind === "equipment") return <AppIcon name="equipment" size={size} />;
-  return <AppIcon name="card-reward" size={size} />;
-}
-
-function RewardTile({ reward }: { reward: LariskaDailyRewardSummary }) {
+function CurrencyRewards({ reward }: { reward: LariskaDailyRewardSummary }) {
+  if (reward.kind !== "currencies") return <p className="daily-login-modal__status">Онови гру, щоб завантажити актуальну нагороду.</p>;
   return (
-    <div className="daily-login-modal__reward-tile">
-      <span className="daily-login-modal__reward-icon"><RewardIcon kind={reward.kind} /></span>
-      <strong>{reward.label}</strong>
-      <small>{reward.description}</small>
+    <div className="daily-login-modal__currency-slots" aria-label="Нагороди за вхід">
+      <div className="daily-login-modal__currency-slot">
+        <CurrencyIcon kind="silver" size={32} /><strong>{reward.silver?.toLocaleString("uk-UA") ?? "—"}</strong><small>Срібло</small>
+      </div>
+      <div className="daily-login-modal__currency-slot">
+        <CurrencyIcon kind="gold" size={32} /><strong>{reward.gold?.toLocaleString("uk-UA") ?? "—"}</strong><small>Золото</small>
+      </div>
+      <div className="daily-login-modal__currency-slot">
+        <img alt="" src="/assets/ui/world-tree/game-icons/diamond.svg" width={32} height={32} /><strong>{reward.diamonds?.toLocaleString("uk-UA") ?? "—"}</strong><small>Алмази</small>
+      </div>
     </div>
   );
 }
 
-export function DailyLoginModal({ data, onClaim, onClose, onPlayerSummaryChange }: DailyLoginModalProps) {
+export function DailyLoginModal({ data, onClaim, onClose, onOpenTasks, onPlayerSummaryChange }: DailyLoginModalProps) {
   const [pending, setPending] = useState(false);
-  const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
-  const [claimed, setClaimed] = useState(false);
-  const [claimedReward, setClaimedReward] = useState<LariskaDailyRewardSummary | null>(null);
-  const [claimedDay, setClaimedDay] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   async function handleClaim() {
-    if (pending || claimed || !data.claimable) return;
-    const choiceIndex = selectedChoice ?? undefined;
-    if (data.reward.kind === "choice" && choiceIndex === undefined) {
-      setFeedback("Спочатку обери одну нагороду");
-      return;
-    }
-
+    if (pending || !data.claimable) return;
     setPending(true);
     setFeedback(null);
     try {
-      const response = await onClaim(choiceIndex);
+      const response = await onClaim();
       onPlayerSummaryChange(response.rewardPlayer);
-      setClaimedReward(data.reward);
-      setClaimedDay(data.day);
-      setClaimed(true);
-      setFeedback(response.streakBonus ? response.grant.label + ". Бонус серії: " + response.streakBonus.label : response.grant.label);
+      onClose();
     } catch {
-      setFeedback("Нагороду вже забрали або вона тимчасово недоступна");
-    } finally {
-      setPending(false);
-    }
+      setFeedback("Не вдалося забрати нагороду. Спробуй ще раз або онови гру.");
+    } finally { setPending(false); }
   }
 
-  const reward = claimedReward ?? data.reward;
-  const isChoice = reward.kind === "choice" && Boolean(reward.options?.length);
-
+  const reward = data.reward;
   return (
     <div className="daily-login-modal" role="dialog" aria-modal="true" aria-labelledby="daily-login-modal-title">
-      <button aria-label="Закрити" className="daily-login-modal__backdrop" onClick={onClose} type="button" />
-      <section className={"daily-login-modal__dialog" + (claimed ? " daily-login-modal__dialog--claimed" : "")}>
+      <button aria-label="Закрити" className="daily-login-modal__backdrop" disabled={pending} onClick={onClose} type="button" />
+      <section className="daily-login-modal__dialog daily-login-modal__dialog--currencies">
         <header className="daily-login-modal__header">
-          <div>
-            <span>{claimed ? "ОТРИМАНО · ДЕНЬ " + claimedDay : "ДЕНЬ " + data.day} · ТИЖДЕНЬ {data.cycle}</span>
-            <h2 id="daily-login-modal-title">Нагорода за вхід</h2>
-          </div>
-          <button aria-label="Закрити" className="daily-login-modal__close" onClick={onClose} type="button"><AppIcon name="close" size={17} /></button>
+          <div><span>ПОДАРУНОК ЛАРИСКИ</span><h2 id="daily-login-modal-title">Нагорода за вхід</h2></div>
+          <button aria-label="Закрити" className="daily-login-modal__close" disabled={pending} onClick={onClose} type="button"><AppIcon name="close" size={17} /></button>
         </header>
-
-        <div className="daily-login-modal__days" aria-label="Сім днів циклу">
-          {data.calendar.map((calendarDay) => (
-            <span className={"daily-login-modal__day" + (calendarDay.isCurrent ? " daily-login-modal__day--current" : "") + (calendarDay.claimed ? " daily-login-modal__day--claimed" : "")} key={calendarDay.day}>{calendarDay.claimed ? "✓" : calendarDay.day}</span>
-          ))}
-        </div>
-
         <div className="daily-login-modal__showcase">
           <div className="daily-login-modal__rewards">
-            <span className="daily-login-modal__eyebrow">{claimed ? "НАГОРОДУ ОТРИМАНО" : "СЬОГОДНІШНЯ ЗНАХІДКА"}</span>
-            {isChoice ? (
-              <div className="daily-login-modal__choices" aria-label="Вибір нагороди">
-                {reward.options!.map((option, index) => (
-                  <button className={selectedChoice === index ? "daily-login-modal__choice daily-login-modal__choice--selected" : "daily-login-modal__choice"} disabled={pending || claimed} key={option.kind + "-" + index} onClick={() => { setSelectedChoice(index); setFeedback(null); }} type="button">
-                    <span className="daily-login-modal__choice-icon"><RewardIcon kind={option.kind} size={34} /></span>
-                    <strong>{choiceLabel(option)}</strong>
-                    <small>{choiceMeta(option)}</small>
-                  </button>
-                ))}
-              </div>
-            ) : <RewardTile reward={reward} />}
+            <CurrencyRewards reward={reward} />
+            <div className="daily-login-modal__encouragement"><strong>Хочеш ще?</strong><button className="daily-login-modal__tasks-link" disabled={pending} onClick={onOpenTasks} type="button">Виконуй завдання й отримуй алмази <span aria-hidden="true">→</span></button></div>
           </div>
-          <div className="daily-login-modal__mascot" aria-hidden="true"><Lariska emotion={data.dialogue.emotion} /></div>
+          <div className="daily-login-modal__mascot"><Lariska alt="Лариска з подарунками" emotion={data.dialogue.emotion} /></div>
         </div>
-
         <div className="daily-login-modal__dialogue"><strong>Лариска</strong><p>{data.dialogue.text}</p></div>
-        <div className="daily-login-modal__encouragement"><strong>Хочеш ще?</strong><span>Виконуй завдання та отримуй додаткові нагороди.</span></div>
+        <p className="daily-login-modal__series-rule">{reward.description} Новий день — о 00:00 UTC.</p>
         <div className="daily-login-modal__status" aria-live="polite">{feedback}</div>
-        <button className="daily-login-modal__claim" disabled={pending || (!data.claimable && !claimed)} onClick={claimed ? onClose : handleClaim} type="button">
-          {pending ? "Забираємо…" : claimed ? "Закрити" : "Забрати"}
+        <button className="daily-login-modal__claim" disabled={pending || !data.claimable || reward.kind !== "currencies"} onClick={handleClaim} type="button">
+          {pending ? "Забираємо…" : !data.claimable ? "Сьогодні вже отримано" : "Забрати нагороду"}
         </button>
       </section>
     </div>

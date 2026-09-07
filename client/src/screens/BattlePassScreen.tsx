@@ -73,7 +73,7 @@ function Milestone({
               {rewardCard ? <CardRewardPreview card={rewardCard} compact /> : rewardIcon(milestone.reward)}
             </div>
             <div className="battle-pass-milestone__reward-copy">
-              <small>БЕЗКОШТОВНА НАГОРОДА</small>
+              <small>НАГОРОДА</small>
               <strong>{label ?? rewardLabel(milestone.reward)}</strong>
             </div>
             {milestone.claimed ? <span className="battle-pass-milestone__status battle-pass-milestone__status--claimed"><b aria-hidden="true">✓</b> Отримано</span> : milestone.claimable ? <button disabled={pending} onClick={() => onClaim(milestone.id)} type="button">Забрати</button> : <span className="battle-pass-milestone__status battle-pass-milestone__status--locked"><AppIcon name="lock" size={13} /> Закрито</span>}
@@ -120,7 +120,7 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
     <div className="battle-pass-screen">
       <header className="campaign-heading campaign-heading--title-first">
         <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-        <div><h1>Батл пас</h1><span>Сезонні безкоштовні нагороди</span></div>
+        <div><h1>Алмазні нагороди</h1><span>Збирай діаманти за завдання й забирай нагороди</span></div>
       </header>
       {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо прогрес…</div> : null}
       {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Батл пас недоступний</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
@@ -137,7 +137,7 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
                   <div className="battle-pass-hero__season-meta"><strong>КОЛО {romanCircle(circle.circle)}</strong><time>До завершення: {formatRemaining(state.data.battlePass.endsAt, now)}</time></div>
                 </div>
                 <div className="battle-pass-hero__progress-meta"><span>Прогрес сезону</span><strong>{state.data.battlePass.diamonds} / {seasonThreshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></strong></div>
-                <div className="battle-pass-hero__track" aria-hidden="true"><span style={{ width: `${seasonProgress}%` }} /></div>
+              <div className="battle-pass-hero__track" role="progressbar" aria-label="Прогрес сезону" aria-valuemin={0} aria-valuemax={seasonThreshold} aria-valuenow={Math.min(seasonThreshold, state.data.battlePass.diamonds)}><span style={{ width: `${seasonProgress}%` }} /></div>
                 {nextReward ? <div className="battle-pass-hero__next"><span>Наступна нагорода</span><strong>на {nextReward.threshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></strong></div> : null}
                 {state.data.battlePass.currencyBoost.active ? <div className="battle-pass-hero__boost"><CurrencyIcon kind="silver" size={17} /><CurrencyIcon kind="gold" size={17} /><strong>×2 срібла та золота</strong><time>ще {formatRemaining(state.data.battlePass.currencyBoost.expiresAt!, now)}</time></div> : null}
                 <p>Щоденні завдання відкривають сезонні нагороди.</p>
@@ -150,9 +150,9 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
               <section className={`battle-pass-circle${circle.completed ? " battle-pass-circle--completed" : ""}`} key={circle.circle}>
                 <header>
                   <div className="battle-pass-circle__chapter"><strong>КОЛО {romanCircle(circle.circle)}</strong><small>{circle.completed ? "Сезон завершено" : "Сезонна доріжка нагород"}</small></div>
-                  <div className="battle-pass-circle__total"><strong>{state.data.battlePass.diamonds} / {circle.threshold}</strong><span>💎</span></div>
+                  <div className="battle-pass-circle__total"><strong>{state.data.battlePass.diamonds} / {circle.threshold}</strong><img alt="" aria-hidden="true" height={18} src={DIAMOND_ASSET} width={18} /></div>
                 </header>
-                <div className="battle-pass-circle__progress" aria-hidden="true"><span style={{ width: `${Math.min(100, state.data.battlePass.diamonds / circle.threshold * 100)}%` }} /></div>
+                <div className="battle-pass-circle__progress" role="progressbar" aria-label={`Прогрес кола ${romanCircle(circle.circle)}`} aria-valuemin={0} aria-valuemax={circle.threshold} aria-valuenow={Math.min(circle.threshold, state.data.battlePass.diamonds)}><span style={{ width: `${Math.min(100, state.data.battlePass.diamonds / circle.threshold * 100)}%` }} /></div>
                 <div className="battle-pass-milestones">
                   {circle.milestones.map((milestone, index) => <Milestone key={milestone.id} milestone={milestone} onClaim={handleMilestoneClaim} pending={pendingId === milestone.id} rewardCard={milestone.reward?.kind === "card" && milestone.claimed ? claimedCard ?? undefined : undefined} isFinal={milestone.threshold === circle.threshold} isNext={milestone.id === (circle.milestones.find(({ threshold }) => threshold > state.data.battlePass.diamonds)?.id ?? null)} isReached={milestone.threshold <= state.data.battlePass.diamonds} nextReached={(circle.milestones[index + 1]?.threshold ?? Number.POSITIVE_INFINITY) <= state.data.battlePass.diamonds} />)}
                 </div>

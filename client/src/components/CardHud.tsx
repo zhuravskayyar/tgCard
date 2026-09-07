@@ -26,7 +26,7 @@ export function CardHud({ element, level, power, protectedFromAbsorption = false
       </span>
       {protectedFromAbsorption ? <span aria-label="Карта захищена" className="card-hud__protection"><AppIcon name="lock" size={15} /></span> : null}
       {showLevel && level !== undefined ? <span className="card-hud__level">Рів. {level}</span> : null}
-      {upgradeIndicator ? <span aria-label={upgradeIndicator === "gold" ? "Готова до золотого підвищення" : "Готова до підвищення"} className={`card-hud__upgrade card-hud__upgrade--${upgradeIndicator}`}>⬆</span> : null}
+      {upgradeIndicator ? <span title={upgradeIndicator === "gold" ? "Золотий рівень — підвищення за золото" : "Доступне безкоштовне підвищення"} aria-label={upgradeIndicator === "gold" ? "Золотий рівень — підвищення за золото" : "Доступне безкоштовне підвищення"} className={`card-hud__upgrade card-hud__upgrade--${upgradeIndicator}`}><AppIcon name="arrow-up" size={20} /></span> : null}
     </>
   );
 }

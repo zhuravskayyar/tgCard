@@ -1,3 +1,5 @@
+import { useBattleExchange, useBattleResultReady } from "../../components/useBattlePresentation";
+import { BattleAttackAnimation } from "../../components/BattleAttackAnimation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type {
   DuelExchange,
@@ -14,7 +16,7 @@ import { getLeagueByRating } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import { LeagueBadge } from "../../components/LeagueBadge";
-import { BattleCard, DuelClashOverlay, DuelFlyingCard, getEffectLevel, getImpactLevel, HpPanel } from "../DuelScreen";
+import { BattleCard, getEffectLevel, HpPanel } from "../DuelScreen";
 import { MenuRow } from "../../components/MenuRow";
 import {
   enrollGuildRaid,
@@ -90,20 +92,9 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
   onAction: (slot: 0 | 1 | 2) => void;
 }) {
   const battle = raid.battle;
-  const [clash, setClash] = useState<DuelExchange | null>(null);
-  const lastLogIdRef = useRef(battle?.battleLog[0]?.id ?? null);
-  const disabled = pending || battle?.status !== "active";
-
-  useEffect(() => {
-    const latest = battle?.battleLog[0];
-    if (!latest || latest.id === lastLogIdRef.current) return;
-    lastLogIdRef.current = latest.id;
-    const exchange = toDuelExchange(latest);
-    if (!exchange) return;
-    setClash(exchange);
-    const timer = window.setTimeout(() => setClash(null), 900);
-    return () => window.clearTimeout(timer);
-  }, [battle?.battleLog]);
+  const latestAttack = battle?.battleLog[0];
+  const clash = useBattleExchange(latestAttack ? toDuelExchange(latestAttack) : null, latestAttack?.id);
+  const disabled = clash !== null || pending || battle?.status !== "active";
 
   if (!battle) return null;
   const playerSide = { name: playerName, level: playerLevel, photoUrl: playerPhotoUrl };
@@ -116,7 +107,6 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
   });
   const enemyHitLevel = clash ? getEffectLevel(clash.playerMultiplier) : "normal";
   const playerHitLevel = clash ? getEffectLevel(clash.enemyMultiplier) : "normal";
-  const clashImpactLevel = getImpactLevel(enemyHitLevel, playerHitLevel);
   const visibleBattleLog = battle.battleLog.slice(0, 7);
   const selectedBossHealthPercent = selectedBoss && selectedBoss.health > 0
     ? Math.max(0, Math.min(100, selectedBoss.currentHealth / selectedBoss.health * 100))
@@ -151,11 +141,7 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
           <span aria-label={`Здоров’я ${selectedBoss.displayName}: ${Math.round(selectedBossHealthPercent)}%`} className="guild-raid-battle__target-hpbar"><span style={{ width: `${selectedBossHealthPercent}%` }} /></span>
         </section> : null}
         <section aria-label="Бойове поле івенту" className={`guild-raid-battle__field duel-board${clash ? " duel-board--clash" : ""}`}>
-          {clash ? <div aria-hidden="true" className="duel-flight-layer">
-            <DuelFlyingCard card={clash.playerCard} impactLevel={clashImpactLevel} side="player" slotIndex={clash.slotIndex} />
-            <DuelFlyingCard card={clash.enemyCard} impactLevel={clashImpactLevel} side="enemy" slotIndex={clash.slotIndex} />
-          </div> : null}
-          {clash ? <DuelClashOverlay exchange={clash} /> : null}
+          {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
           <div className="arena-battlefield__label"><span>ЦІЛЬ</span><span>ВИ</span></div>
           <div aria-label="Карти івенту: 3 колонки × 2 ряди" className="guild-raid-battle__card-matrix">
             <div aria-label={`Карти ${selectedBoss?.displayName ?? "відьми"}`} className="duel-card-row duel-card-row--enemy">
@@ -198,7 +184,7 @@ function RaidResult({ result, canStart, onStart, pending }: { result: GuildRaidR
     <ol className="guild-raid-result__standings" aria-label="Результати учасників івенту">
       {result.participants.map((participant) => <li className={participant.reward.card ? "is-card-winner" : ""} key={participant.playerId}>
         <LeagueBadge league={getLeagueByRating(participant.duelRating)} size="sm" />
-        <span className="guild-raid-result__player"><strong>{participant.displayName}</strong><small>⚔ {formatRaidNumber(participant.damage)} шкоди</small></span>
+        <span className="guild-raid-result__player"><strong>{participant.displayName}</strong><small><AppIcon name="duel" size={16} /> {formatRaidNumber(participant.damage)} шкоди</small></span>
         <RaidReward participant={participant} />
       </li>)}
     </ol>
@@ -229,7 +215,7 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
         <span aria-hidden="true" className="guild-raid-result__placement">{index + 1}</span>
         <LeagueBadge league={getLeagueByRating(participant.duelRating)} size="sm" />
         <span className="guild-raid-result__player"><strong>{participant.displayName}</strong></span>
-        <strong className="guild-raid-result__damage">⚔ {formatRaidNumber(participant.damage)}</strong>
+        <strong className="guild-raid-result__damage"><AppIcon name="duel" size={16} /> {formatRaidNumber(participant.damage)}</strong>
       </li>)}
     </ol>
     <p className="guild-raid-result__participants">Всього учасників: {participantCount}</p>
@@ -371,7 +357,9 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
 
   const currentBattle = raid && raid.battle?.raidLevel === raid.level ? raid.battle : null;
   const currentResult = raid && raid.lastResult?.level === raid.level ? raid.lastResult : null;
-  const battleVisible = raid?.status === "active" && currentBattle?.status === "active";
+  const battleFinished = Boolean(currentBattle && (currentBattle.status !== "active" || raid?.status !== "active"));
+  const resultReady = useBattleResultReady(currentBattle?.status === "active" && raid?.status === "active", battleFinished);
+  const battleVisible = Boolean(currentBattle) && !resultReady;
   const resultVisible = Boolean(currentResult || currentBattle?.status === "lost");
   return <section className="guild-raid" aria-labelledby="guild-raid-title" data-raid-id={raid?.id}>
     <div className="guild-section-bar guild-raid__title"><h2 id="guild-raid-title">{raid ? `Івент гільдії · ${raid.name} ${raid.level} рівня` : "Івент гільдії · Відьми"}</h2></div>

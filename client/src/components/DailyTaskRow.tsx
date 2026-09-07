@@ -25,13 +25,20 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
             <span>Щоденне завдання</span>
             <strong>{task.title}</strong>
           </div>
+          <span aria-label={`Нагорода: ${task.rewardDiamonds} діамантів`} className="quest-paper__reward">+{task.rewardDiamonds}<img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></span>
         </header>
 
-        <div className="quest-paper__meta">
-          <span>Прогрес: {task.progress} з {task.target}</span>
-          <span className="quest-paper__reward">+{task.rewardDiamonds}<img alt="" aria-hidden="true" src={DIAMOND_ASSET} /> діамантів</span>
+        <div className="quest-paper__progress">
+          <div className="quest-paper__progress-head"><span>Прогрес</span><strong>{task.progress} / {task.target}</strong></div>
+          <span
+            aria-label={`Прогрес: ${task.progress} з ${task.target}`}
+            aria-valuemax={task.target}
+            aria-valuemin={0}
+            aria-valuenow={task.progress}
+            className="quest-paper__track"
+            role="progressbar"
+          ><span style={{ width: `${percent}%` }} /></span>
         </div>
-        <span className="quest-paper__track" aria-hidden="true"><span style={{ width: `${percent}%` }} /></span>
 
         <footer className="quest-paper__footer">
           <span className="quest-paper__status">

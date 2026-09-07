@@ -2,21 +2,12 @@ import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
-import { getUpgradeProgress, isGoldLevel, MAX_CARD_LEVEL } from "@cardastika/game-core";
-import type { PlayerDeckCard } from "@cardastika/shared";
 
 interface DeckScreenProps {
   onBack: () => void;
   onOpenCard: (instanceId: string) => void;
   onOpenShop: () => void;
   showTutorialRule?: boolean;
-}
-
-function getUpgradeIndicator(card: PlayerDeckCard): "element" | "gold" | undefined {
-  if (card.level >= MAX_CARD_LEVEL) return undefined;
-  const progress = getUpgradeProgress(card.levelProgressElements, card.level);
-  if (progress.filledElements < progress.requiredElements) return undefined;
-  return isGoldLevel(card.level + 1) ? "gold" : "element";
 }
 
 export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: DeckScreenProps) {
@@ -34,7 +25,7 @@ export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: Dec
         <div>
           <h1>МОЯ КОЛОДА</h1>
         </div>
-        <strong>{state.status === "ready" ? `${state.deck.totalPower} power` : "— power"}</strong>
+        <strong>{state.status === "ready" ? `Сила ${state.deck.totalPower}` : "Сила —"}</strong>
       </header>
 
       {state.status === "loading" ? <div className="deck-state" aria-live="polite">Завантаження колоди…</div> : null}
@@ -57,7 +48,7 @@ export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: Dec
           </section> : null}
           <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
             {state.deck.cards.map((card, index) => (
-              <DeckCard card={card} dataTutorialTarget={index === 0 ? "deck-card" : undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} upgradeIndicator={getUpgradeIndicator(card)} />
+              <DeckCard card={card} dataTutorialTarget={index === 0 ? "deck-card" : undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} />
             ))}
           </div>
         </>

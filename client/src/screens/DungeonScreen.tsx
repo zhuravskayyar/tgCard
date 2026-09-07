@@ -12,7 +12,7 @@ interface DungeonScreenProps {
 const dungeonTileAsset = "/assets/dungeon/dungeon-floor-tile-v1.webp";
 
 function starsLabel(stars: number) {
-  return `${"★".repeat(stars)}${"☆".repeat(Math.max(0, 3 - stars))}`;
+  return Array.from({ length: 3 }, (_, index) => <span className={index < stars ? "dungeon-star dungeon-star--earned" : "dungeon-star"} key={index}><AppIcon name="star" size={28} /></span>);
 }
 
 function DungeonResult({ result, onBack, onRetry }: { result: DungeonCompleteResponse; onBack: () => void; onRetry: () => void }) {

@@ -2,22 +2,25 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { getLariskaDailyReward } from "./dailyRewardsConfig.js";
 
-test("Lariska daily rewards keep the useful seven-day mix", () => {
-  assert.deepEqual(
-    Array.from({ length: 7 }, (_, index) => getLariskaDailyReward(1, index + 1).kind),
-    ["card", "equipment", "card", "gold", "arena_tokens_xp", "choice", "card"],
-  );
-  const dayThree = getLariskaDailyReward(1, 3);
-  const daySeven = getLariskaDailyReward(1, 7);
-  assert.equal(dayThree.kind, "card");
-  assert.equal(daySeven.kind, "card");
-  if (dayThree.kind === "card") assert.equal(dayThree.rarity, "rare");
-  if (daySeven.kind === "card") assert.equal(daySeven.rarity, "epic");
+const rewardAt = (streak: number) => getLariskaDailyReward(Math.floor((streak - 1) / 7) + 1, (streak - 1) % 7 + 1);
+test("daily currency rewards grow across week boundaries and cap at day 30", () => {
+  const first = rewardAt(1);
+  assert.deepEqual([first.silver, first.gold, first.diamonds], [500, 2, 1]);
+  for (let day = 2; day <= 30; day++) {
+    const previous = rewardAt(day - 1);
+    const current = rewardAt(day);
+    assert.equal(current.kind, "currencies");
+    assert.ok(current.silver > previous.silver);
+    assert.ok(current.gold > previous.gold);
+    assert.ok(current.diamonds >= previous.diamonds);
+  }
+  const maximum = rewardAt(30);
+  assert.deepEqual([maximum.silver, maximum.gold, maximum.diamonds], [15000, 31, 10]);
+  assert.deepEqual(rewardAt(31), maximum);
+  assert.deepEqual(rewardAt(365), maximum);
 });
-
-test("the seventh day becomes stronger across accumulated weekly cycles", () => {
-  assert.equal(getLariskaDailyReward(1, 7).kind, "card");
-  assert.equal(getLariskaDailyReward(2, 7).label, "Скриня Лариски · Epic + 15 золота");
-  assert.equal(getLariskaDailyReward(3, 7).kind, "equipment");
-  assert.equal(getLariskaDailyReward(4, 7).kind, "choice");
+test("invalid daily reward positions are rejected", () => {
+  for (const [cycle, day] of [[0, 1], [1, 0], [1, 8], [1.5, 1], [1, NaN]]) {
+    assert.throws(() => getLariskaDailyReward(cycle!, day!), RangeError);
+  }
 });

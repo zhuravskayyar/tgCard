@@ -408,6 +408,7 @@ export class CampaignBossService {
         },
         playerModifiers: duel.challenger_snapshot.modifiers,
         enemyModifiers: duel.opponent_snapshot.modifiers,
+        equipmentEnabled: true,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });

@@ -5,12 +5,14 @@ import type { CardRarity } from "@cardastika/shared";
 import {
   BASE_POWER_BY_LEVEL,
   CARD_LEVEL_TABLE,
+  MAX_CARD_LEVEL,
   advanceCardLevel,
   applyElementalPotential,
   canLevelUp,
   generateStandardBonusPower,
   getBasePowerForLevel,
   getCardPower,
+  getCardUpgradeIndicator,
   getRequiredProgressElements,
   getUpgradeProgress,
   getRarityForLevel,
@@ -146,4 +148,13 @@ test("shop level selection has no hidden policy and validates an injected one", 
   const rng = { nextInt: () => 0 };
   assert.equal(selectGeneratedLevelForRarity("rare", rng, () => 10), 10);
   assert.throws(() => selectGeneratedLevelForRarity("rare", rng, () => 9), RangeError);
+});
+
+test("upgrade badges distinguish free progress, mandatory gold, and maximum level", () => {
+  assert.equal(getCardUpgradeIndicator(1, 0), undefined);
+  assert.equal(getCardUpgradeIndicator(1, getRequiredProgressElements(1)), "element");
+  assert.equal(getCardUpgradeIndicator(4, 0), undefined);
+  assert.equal(getCardUpgradeIndicator(4, getRequiredProgressElements(4)), "gold");
+  assert.equal(getCardUpgradeIndicator(89, getRequiredProgressElements(89)), "gold");
+  assert.equal(getCardUpgradeIndicator(MAX_CARD_LEVEL, 0), undefined);
 });

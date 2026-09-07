@@ -13,6 +13,14 @@ function getRouteLabel(status: TutorialStatus) {
   return "Стартова дуель";
 }
 
+function getResumeLabel(status: TutorialStatus) {
+  if (status === "paused") return "Повернутися до маршруту";
+  if (status === "campaign") return "Відкрити кампанію";
+  if (status === "deck") return "Відкрити колоду";
+  if (status && ["duel-first-card", "duel-advantage", "duel-free-play", "duel-result"].includes(status)) return "Повернутися до дуелі";
+  return "Почати стартову дуель";
+}
+
 export function GuidedOnboarding({ onResume, status }: GuidedOnboardingProps) {
   if (!status || status === "complete") return null;
   const paused = status === "paused";
@@ -34,7 +42,7 @@ export function GuidedOnboarding({ onResume, status }: GuidedOnboardingProps) {
       </div>
       <div className="guided-route__footer">
         <span>{paused ? "Маршрут збережено" : `Поточний напрям: ${routeLabel}`}</span>
-        <button onClick={onResume} type="button">{paused ? "Продовжити" : "Відкрити навчання"} <AppIcon name="chevron" size={15} /></button>
+        <button onClick={onResume} type="button">{getResumeLabel(status)} <AppIcon name="chevron" size={15} /></button>
       </div>
     </section>
   );

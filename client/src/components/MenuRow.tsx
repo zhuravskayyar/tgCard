@@ -19,7 +19,7 @@ interface MenuRowProps {
   title: string;
 }
 
-export function MenuRow({ active: _active = false, actionContent, attention = false, badge, compact = false, detail, disabled = false, icon, iconSrc, locked = false, metalTexture = false, onClick, title }: MenuRowProps) {
+export function MenuRow({ active: _active = false, actionContent, attention = false, badge, compact = false, detail, disabled = false, icon, iconSrc, locked = false, metalTexture = true, onClick, title }: MenuRowProps) {
   return (
     <button
       className={`menu-row${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${metalTexture ? " menu-row--metal-texture" : ""}`}

@@ -1,0 +1,25 @@
+.battle-attack { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+[data-attack-covered="true"] { visibility: hidden; }
+.battle-attack .battle-attack__card { position: absolute; margin: 0; pointer-events: none; overflow: visible; }
+.battle-attack__card--player { z-index: 2; animation: battle-player-strike var(--attack-duration) ease-in-out both; }
+.battle-attack__card--enemy { z-index: 1; animation: battle-enemy-impact var(--attack-duration) ease-out both; }
+.battle-attack__damage { position: absolute; z-index: 4; top: 10%; left: 50%; color: #ffdbb4; font-weight: 800; font-size: 22px; text-shadow: 0 2px 4px #000; animation: battle-damage var(--attack-duration) ease-out both; }
+@keyframes battle-player-strike {
+  0%, 12% { transform: translate(0, 0); }
+  44%, 53% { transform: translate(var(--attack-x), var(--attack-y)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-enemy-impact {
+  0%, 43%, 76%, 100% { transform: translate(0, 0); filter: none; }
+  48%, 60% { transform: translate(3px, -4px); filter: brightness(1.5); }
+  54%, 66% { transform: translate(-3px, 2px); }
+}
+@keyframes battle-damage {
+  0%, 43% { opacity: 0; transform: translate(-50%, 0); }
+  50%, 75% { opacity: 1; transform: translate(-50%, -12px); }
+  100% { opacity: 0; transform: translate(-50%, -24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-attack .battle-attack__card { animation: none; }
+  .battle-attack__damage { animation: none; transform: translateX(-50%); }
+}

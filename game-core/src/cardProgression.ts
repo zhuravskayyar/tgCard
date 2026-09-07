@@ -277,6 +277,15 @@ export function getUpgradeGoldPrice(targetLevel: number, levelProgressElements: 
   return minimum + Math.ceil((reducible * unfilled) / progress.requiredElements);
 }
 
+/** A free upgrade or an upcoming mandatory gold level; not an affordability promise. */
+export function getCardUpgradeIndicator(level: number, levelProgressElements: number): "element" | "gold" | undefined {
+  assertCardLevel(level);
+  if (level === MAX_CARD_LEVEL) return undefined;
+  const progress = getUpgradeProgress(levelProgressElements, level);
+  if (progress.filledElements < progress.requiredElements) return undefined;
+  return isGoldLevel(level + 1) ? "gold" : "element";
+}
+
 export function canLevelUp(
   state: CardProgressionState,
   availableGold: number,

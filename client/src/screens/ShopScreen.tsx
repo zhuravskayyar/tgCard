@@ -24,8 +24,10 @@ interface ShopScreenProps {
   onEquippedSkinChange: (skinId: NicknameSkinId | null) => void;
   onTutorialPurchase?: () => void;
   onTutorialRevealContinue?: (destination?: { cardId: string; collectionId: string | null }) => void;
+  onPurchaseContinue?: () => void;
   playerSummaryState: PlayerSummaryState;
   nickname: string;
+  returnScreen: "home" | "deck" | "collection" | "campaign-stage" | "tasks";
 }
 
 const purchaseErrorMessages: Record<string, string> = {
@@ -164,7 +166,7 @@ function CardWorkshopSection() {
   </section>;
 }
 
-export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname }: ShopScreenProps) {
+export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
   const { catalogState, limitedRedeemErrorCode, purchase, purchaseErrorCode, purchasingOfferId, redeemLimited, redeemingLimited, retryCatalog } = useShop();
   const [section, setSection] = useState<ShopSection>("cards");
   const [batchPurchasing, setBatchPurchasing] = useState(false);
@@ -173,6 +175,16 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
   const [limitedReveal, setLimitedReveal] = useState<LimitedCardRedeemResponse | null>(null);
   const [hiddenLimitedEventId, setHiddenLimitedEventId] = useState<string | null>(null);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
+  const beginnerContext = returnScreen === "campaign-stage" || returnScreen === "tasks";
+  const continueLabel = returnScreen === "campaign-stage"
+    ? "Повернутися до етапу"
+    : returnScreen === "tasks"
+      ? "Повернутися до завдання"
+      : returnScreen === "deck"
+        ? "Повернутися до колоди"
+        : returnScreen === "collection"
+          ? "Повернутися до колекції"
+          : "Залишитися в магазині";
 
   function applyPurchaseResult(result: ShopPurchaseResponse) {
     onBalanceChange(result.updatedBalance);
@@ -190,13 +202,14 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
   }
 
   if (limitedReveal) {
-    return <LimitedCardReveal onContinue={() => setLimitedReveal(null)} reward={limitedReveal.reward} />;
+    return <LimitedCardReveal continueLabel={continueLabel} onContinue={() => { setLimitedReveal(null); onPurchaseContinue?.(); }} reward={limitedReveal.reward} />;
   }
 
   if (reveal) {
     return (
       <ShopRewardReveal
         canBuyTen={purchaseCount >= 10}
+        continueLabel={continueLabel}
         errorMessage={purchaseErrorCode ? purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку." : null}
         onBuyAgain={() => void handlePurchase(reveal.offerId)}
         onBuyTen={() => void handleBatchPurchase(reveal.offerId)}
@@ -204,6 +217,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
           const reward = reveal.purchases[0]?.reward;
           setReveal(null);
           onTutorialRevealContinue?.(reward ? { cardId: reward.cardId, collectionId: reward.collectionId } : undefined);
+          onPurchaseContinue?.();
         }}
         purchasing={batchPurchasing || purchasingOfferId === reveal.offerId}
         purchases={reveal.purchases}
@@ -301,32 +315,46 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
 
           {catalogState.status === "ready" ? (
             <div className="shop-sections">
-              <section className="shop-featured" aria-labelledby="shop-featured-heading">
-                <div id="shop-featured-heading">
-                  <ShopSectionHeading>Акційні набори</ShopSectionHeading>
-                </div>
-                {catalogState.catalog.limitedEvent && hiddenLimitedEventId !== catalogState.catalog.limitedEvent.id ? (
-                  <LimitedCardBanner
-                    errorMessage={limitedRedeemErrorCode ? limitedRedeemErrorMessages[limitedRedeemErrorCode] ?? "Не вдалося активувати карту." : null}
-                    event={catalogState.catalog.limitedEvent}
-                    onExpired={() => setHiddenLimitedEventId(catalogState.catalog.limitedEvent?.id ?? null)}
-                    onRedeem={(promoCode) => void handleLimitedRedeem(catalogState.catalog.limitedEvent!.id, promoCode)}
-                    redeeming={redeemingLimited}
-                  />
-                ) : (
-                  <div className="shop-featured__empty">
-                    <AppIcon name="card-reward" size={18} />
-                    <strong>Акційних наборів зараз немає</strong>
-                    <span>Невдовзі</span>
+              {(!beginnerContext || catalogState.catalog.limitedEvent) ? (
+                <section className="shop-featured" aria-labelledby="shop-featured-heading">
+                  <div id="shop-featured-heading">
+                    <ShopSectionHeading>Акційні набори</ShopSectionHeading>
                   </div>
-                )}
-              </section>
+                  {catalogState.catalog.limitedEvent && hiddenLimitedEventId !== catalogState.catalog.limitedEvent.id ? (
+                    <LimitedCardBanner
+                      errorMessage={limitedRedeemErrorCode ? limitedRedeemErrorMessages[limitedRedeemErrorCode] ?? "Не вдалося активувати карту." : null}
+                      event={catalogState.catalog.limitedEvent}
+                      onExpired={() => setHiddenLimitedEventId(catalogState.catalog.limitedEvent?.id ?? null)}
+                      onRedeem={(promoCode) => void handleLimitedRedeem(catalogState.catalog.limitedEvent!.id, promoCode)}
+                      redeeming={redeemingLimited}
+                    />
+                  ) : (
+                    <div className="shop-featured__empty">
+                      <AppIcon name="card-reward" size={18} />
+                      <strong>Акційних наборів зараз немає</strong>
+                      <span>Невдовзі</span>
+                    </div>
+                  )}
+                </section>
+              ) : null}
 
               <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
                 <ShopSectionHeading>По одній карті</ShopSectionHeading>
                 {catalogState.catalog.offers.length ? (
                   [...catalogState.catalog.offers]
-                    .sort((left, right) => (shopOfferRarityOrder.get(left.guaranteedRarity) ?? 99) - (shopOfferRarityOrder.get(right.guaranteedRarity) ?? 99))
+                    .sort((left, right) => {
+                      if (!beginnerContext || !player) {
+                        return (shopOfferRarityOrder.get(left.guaranteedRarity) ?? 99) - (shopOfferRarityOrder.get(right.guaranteedRarity) ?? 99);
+                      }
+                      const leftBalance = left.currency === "silver" ? player.silver : player.gold;
+                      const rightBalance = right.currency === "silver" ? player.silver : player.gold;
+                      const leftAffordable = Number(leftBalance >= left.price);
+                      const rightAffordable = Number(rightBalance >= right.price);
+                      if (leftAffordable !== rightAffordable) return rightAffordable - leftAffordable;
+                      if (left.currency !== right.currency) return left.currency === "silver" ? -1 : 1;
+                      if (left.price !== right.price) return left.price - right.price;
+                      return (shopOfferRarityOrder.get(left.guaranteedRarity) ?? 99) - (shopOfferRarityOrder.get(right.guaranteedRarity) ?? 99);
+                    })
                     .map((offer, index) => {
                     return (
                       <ShopOfferPanel
