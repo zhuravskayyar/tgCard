@@ -8,6 +8,7 @@ import { preloadCardArtwork as preloadArtwork, useCardArtworkSource } from "./ca
 interface CardArtworkProps {
   artKey: string | null;
   cardId?: string | null;
+  disableHolo?: boolean;
   element: CardElement;
 }
 
@@ -37,8 +38,8 @@ function StandardCardArtwork({ artKey, cardId, element }: CardArtworkProps) {
   );
 }
 
-export const CardArtwork = memo(function CardArtwork({ artKey, cardId, element }: CardArtworkProps) {
-  const holo = getCardHoloConfig(cardId);
+export const CardArtwork = memo(function CardArtwork({ artKey, cardId, disableHolo = false, element }: CardArtworkProps) {
+  const holo = disableHolo ? undefined : getCardHoloConfig(cardId);
   if (holo?.enabled) return <HoloCardArt artKey={artKey} cardId={cardId} config={holo} element={element} />;
   return <StandardCardArtwork artKey={artKey} cardId={cardId} element={element} />;
 });
