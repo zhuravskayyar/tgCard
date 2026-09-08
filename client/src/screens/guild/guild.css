@@ -414,13 +414,13 @@
 .guild-card-sheet__copy { margin: 0; color: #b8a486; font-size: var(--font-xs); line-height: 1.4; }
 .guild-card-sheet__state { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .guild-card-sheet__active { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; align-items: center; }
-.guild-card-sheet__active-card { display: block; width: 104px; height: 144px; }
+.guild-card-sheet__active-card { position: relative; display: block; width: 104px; height: 144px; overflow: hidden; isolation: isolate; }
 .guild-card-sheet__active-card > .card-fx { display: block; width: 104px; height: 144px; }
 .guild-card-sheet__active dl { display: grid; gap: 7px; margin: 0; }
 .guild-card-sheet__active dl div { display: flex; justify-content: space-between; gap: var(--space-2); padding-bottom: 5px; border-bottom: 1px solid #443321; }
 .guild-card-sheet__active dt { color: #917d60; font-size: var(--font-micro); }
 .guild-card-sheet__active dd { margin: 0; color: #d4b772; font-size: var(--font-micro); text-transform: capitalize; }
-.guild-card-selection { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.guild-card-selection { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .guild-card-selection .deck-card { min-width: 0; }
 .guild-card-confirmation { display: grid; gap: var(--space-2); padding: 9px; border: 1px solid #765833; border-radius: var(--radius-sm); background: rgb(30 21 13 / 90%); }
 .guild-card-confirmation p { margin: 0; color: #d7bd89; font-size: var(--font-xs); }
@@ -731,9 +731,13 @@
 .guild-card-screen__empty strong { color: #e2d1a2; font-size: var(--font-sm); }
 .guild-card-screen__empty p { max-width: 280px; margin: 0; font-size: var(--font-xs); }
 .guild-card-screen__selection { display: grid; gap: 7px; padding: 8px; background: #080b0b; border: 1px solid #45635b; box-shadow: 0 2px 8px #000; }
-.guild-card-screen__selection-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: #e2c985; font-size: var(--font-xs); }
-.guild-card-screen__selection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.guild-card-screen__selection-heading { display: flex; align-items: start; justify-content: space-between; gap: var(--space-2); color: #e2c985; font-size: var(--font-xs); }
+.guild-card-screen__selection-heading > div { display: grid; gap: 2px; }
+.guild-card-screen__selection-heading small { color: #9e8967; font-size: var(--font-micro); font-weight: 400; }
+.guild-card-screen__selection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .guild-card-screen__selection-grid .deck-card { width: 100%; }
+.guild-card-screen__selection-confirmation { display: grid; gap: 7px; padding: 8px; border: 1px solid #765833; border-radius: var(--radius-sm); background: rgb(30 21 13 / 90%); color: #d7bd89; font-size: var(--font-xs); }
+.guild-card-screen__selection-confirmation > div { display: flex; flex-wrap: wrap; gap: 7px; }
 @media (max-width: 360px) {
   .guild-card-screen__elements { gap: 17px; }
 }
@@ -772,6 +776,9 @@
 .guild-screen:has(.guild-treasury) > .guild-screen__heading { display: none; }
 
 .guild-screen .guild-treasury__header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
   min-height: 38px;
   padding: 0;
   border: 0;
@@ -781,6 +788,7 @@
 }
 
 .guild-screen .guild-treasury__header > .ribbon-title {
+  grid-column: 2;
   width: min(96%, 390px);
   height: 38px;
   margin: 0 auto;
@@ -792,8 +800,14 @@
   color: #3b2110;
 }
 
-.guild-screen .guild-treasury__header:has(> .ribbon-title) .guild-icon-button {
-  left: max(4%, calc(50% - 183px));
+.guild-screen .guild-treasury__header > .guild-icon-button {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  left: auto;
+  justify-self: start;
+  width: 34px;
+  min-width: 34px;
   z-index: 2;
 }
 
@@ -846,10 +860,17 @@
 }
 .guild-card-screen__element:focus-visible { outline: 1px solid var(--guild-element-color); outline-offset: 3px; }
 .guild-card-screen__element .element-symbol { color: var(--guild-element-color); }
+.guild-card-screen__absorption-copy { display: grid; gap: 2px; padding: 0 4px 2px; }
+.guild-card-screen__absorption-copy strong { color: #e2c985; font-size: var(--font-xs); }
+.guild-card-screen__absorption-copy span { color: #a9b6ae; font-size: var(--font-micro); line-height: 1.35; }
+.guild-card-screen__absorption-action { display: grid; gap: 6px; padding-top: 2px; }
+.guild-card-screen__absorption-action > span { color: #c5a969; font-size: var(--font-micro); text-align: center; }
+.guild-card-screen__absorption-action .guild-primary-button { width: 100%; }
 .guild-card-screen .absorption-grid {
   grid-auto-flow: row;
   grid-auto-columns: auto;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: none;
   gap: var(--space-2);
   overflow: visible;
 }

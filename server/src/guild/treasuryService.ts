@@ -383,7 +383,7 @@ export class GuildTreasuryService {
         levelProgressElements: toProgressNumber(row.level_progress_elements, "fodder progress"),
         storedElements: toProgressNumber(row.stored_elements, "fodder stored elements"),
       }), 0);
-      const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, playerId));
+      const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, playerId), "absorption");
       const addedElements = applyAbsorptionEfficiency(baseElements, modifiers);
       const afterState = applyElementalPotential({
         level: toNonNegativeInteger(target.level, "Guild Card level"),

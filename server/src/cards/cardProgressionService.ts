@@ -260,6 +260,7 @@ async function loadValidatedAbsorption(
   const baseElements = transferableValues.reduce((total, value) => total + value, 0);
   const modifiers = getPlayerCollectionModifiers(
     await getCompletedCollectionModifiers(database, playerId),
+    "absorption",
   );
   return {
     target,

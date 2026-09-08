@@ -1,5 +1,6 @@
 import type {
   CardElement,
+  CollectionBonusScope,
   CollectionCompletionNotice,
   CollectionModifier,
   CollectionModifierType,
@@ -44,6 +45,7 @@ interface ProgressRow {
 
 interface CompletionRow {
   buff_element: CardElement | null;
+  buff_scope: CollectionBonusScope;
   buff_type: CollectionModifierType;
   buff_value: string | number;
   bonus_label: string;
@@ -56,6 +58,7 @@ function toModifier(row: CompletionRow): CollectionModifier {
     type: row.buff_type,
     value: Number(row.buff_value),
     ...(row.buff_element ? { element: row.buff_element } : {}),
+    ...(row.buff_scope ? { scope: row.buff_scope } : {}),
   };
 }
 
@@ -114,7 +117,7 @@ export async function recordCardDiscovery(
 
   const collection = await database.query<CompletionRow>(
     `
-      SELECT id, display_name, buff_type, buff_value, buff_element, bonus_label
+      SELECT id, display_name, buff_type, buff_value, buff_element, buff_scope, bonus_label
       FROM collections
       WHERE id = $1
     `,
@@ -148,7 +151,7 @@ export async function getCompletedCollectionBonuses(
   const result = await database.query<CompletionRow>(
     `
       SELECT collections.id, collections.display_name, collections.buff_type,
-        collections.buff_value, collections.buff_element, collections.bonus_label
+        collections.buff_value, collections.buff_element, collections.buff_scope, collections.bonus_label
       FROM player_collection_completions
       INNER JOIN collections
         ON collections.id = player_collection_completions.collection_id

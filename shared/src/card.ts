@@ -17,6 +17,65 @@ export const CARD_RARITIES = [
 
 export type CardRarity = (typeof CARD_RARITIES)[number];
 
+export interface CardHoloConfig {
+  enabled: boolean;
+  interactive: boolean;
+  intensity: number;
+  mask: "green-chroma";
+  palette: "cool" | "magic" | "warm";
+  preset: "holo" | "magic";
+  speed: number;
+  threshold: number;
+}
+
+const CARD_HOLO_CONFIGS: Readonly<Record<string, CardHoloConfig>> = Object.freeze({
+  plague_alchemy_03: Object.freeze({
+    enabled: true,
+    interactive: true,
+    intensity: 1,
+    mask: "green-chroma",
+    palette: "magic",
+    preset: "magic",
+    speed: 0.18,
+    threshold: 40,
+  }),
+  plague_alchemy_08: Object.freeze({
+    enabled: true,
+    interactive: true,
+    intensity: 1,
+    mask: "green-chroma",
+    palette: "warm",
+    preset: "holo",
+    speed: 0.18,
+    threshold: 40,
+  }),
+  plague_alchemy_07: Object.freeze({
+    enabled: true,
+    interactive: true,
+    intensity: 1,
+    mask: "green-chroma",
+    palette: "cool",
+    preset: "holo",
+    speed: 0.18,
+    threshold: 40,
+  }),
+  plague_alchemy_09: Object.freeze({
+    enabled: true,
+    interactive: true,
+    intensity: 1,
+    mask: "green-chroma",
+    palette: "magic",
+    preset: "magic",
+    speed: 0.18,
+    threshold: 40,
+  }),
+});
+
+export function getCardHoloConfig(cardId: string | null | undefined): CardHoloConfig | undefined {
+  if (!cardId) return undefined;
+  return CARD_HOLO_CONFIGS[cardId];
+}
+
 export interface CardDefinition {
   artKey: string | null;
   code: string;
@@ -27,6 +86,7 @@ export interface CardDefinition {
   id: string;
   limited?: boolean;
   minRarity: CardRarity;
+  holo?: CardHoloConfig;
   shopEligible: boolean;
   source?: CardSource;
 }

@@ -2,6 +2,7 @@ import { BASE_POWER_BY_LEVEL } from "@cardastika/game-core";
 import type {
   CardElement,
   CardRarity,
+  CollectionBonusScope,
   CollectionModifierType,
   PlayerCollectionCard,
   PlayerCollectionCardResponse,
@@ -15,6 +16,7 @@ import type { Pool } from "pg";
 interface SummaryRow {
   bonus_label: string;
   buff_element: CardElement | null;
+  buff_scope: CollectionBonusScope;
   buff_type: CollectionModifierType;
   buff_value: string | number;
   code: string;
@@ -73,6 +75,7 @@ function mapSummary(row: SummaryRow): PlayerCollectionSummary {
       type: row.buff_type,
       value: Number(row.buff_value),
       ...(row.buff_element ? { element: row.buff_element } : {}),
+      ...(row.buff_scope ? { scope: row.buff_scope } : {}),
     },
     bonusLabel: row.bonus_label,
     discoveredCards: Number(row.discovered_cards),
@@ -121,6 +124,7 @@ const SUMMARY_QUERY = `
     collections.buff_type,
     collections.buff_value,
     collections.buff_element,
+    collections.buff_scope,
     collections.bonus_label,
     collections.source,
     COUNT(cards.id) AS total_cards,

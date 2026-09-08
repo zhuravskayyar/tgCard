@@ -13,12 +13,30 @@ export const COLLECTION_MODIFIER_TYPES = [
 
 export type CollectionModifierType = (typeof COLLECTION_MODIFIER_TYPES)[number];
 
+/**
+ * The game mode in which a collection bonus is active. `all_battles` is
+ * intentionally separate from `all`: it never leaks into progression or
+ * guild utility systems such as absorption and the altar.
+ */
+export const COLLECTION_BONUS_SCOPES = [
+  "all_battles",
+  "duel",
+  "arena",
+  "campaign",
+  "guild_raid",
+  "absorption",
+  "altar",
+] as const;
+
+export type CollectionBonusScope = (typeof COLLECTION_BONUS_SCOPES)[number];
+
 export const COLLECTION_SOURCES = ["standard", "raid"] as const;
 
 export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 
 export interface CollectionModifier {
   element?: CardElement;
+  scope?: CollectionBonusScope;
   type: CollectionModifierType;
   value: number;
 }

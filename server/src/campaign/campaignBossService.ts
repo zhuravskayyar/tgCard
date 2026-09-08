@@ -319,7 +319,7 @@ export class CampaignBossService {
         return toBossView(active);
       }
 
-      const challenger = await loadDuelParticipant(client, playerId);
+      const challenger = await loadDuelParticipant(client, playerId, "campaign");
       const opponent = await loadBossSnapshot(client);
       const playerPool = initializeCyclicCardPool(challenger.snapshot.cards, this.random);
       const enemyPool = initializeCyclicCardPool(opponent.cards, this.random);
@@ -433,6 +433,7 @@ export class CampaignBossService {
         const currencyBoost = await getCurrencyBoostStatus(client, playerId, now);
         const currentModifiers = getPlayerCollectionModifiers(
           await getCompletedCollectionModifiers(client, playerId),
+          "campaign",
         );
         if (resolved.status === "won") {
           const stateResult = await client.query<CampaignStateRow>(

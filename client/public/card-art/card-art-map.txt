@@ -176,6 +176,17 @@ monsters_07 | Цербер | monsters_07
 monsters_08 | Орф | monsters_08
 monsters_09 | Катоблепас | monsters_09
 
+# Чумна алхімія
+plague_alchemy_01 | Моровий Алхімік | plague_alchemy_01.png
+plague_alchemy_02 | Чумний Лікар | plague_alchemy_02.png
+plague_alchemy_03 | Наречена Чуми | plague_alchemy_03.png
+plague_alchemy_04 | Щурячий Король | plague_alchemy_04.png
+plague_alchemy_05 | Мандрагора Шибеника | plague_alchemy_05.png
+plague_alchemy_06 | Гомункул | plague_alchemy_06.png
+plague_alchemy_07 | Біла Королева | plague_alchemy_07.png
+plague_alchemy_08 | Червоний Король | plague_alchemy_08.png
+plague_alchemy_09 | Філософський Камінь | plague_alchemy_09.png
+
 # Відьми
 witches_01 | Відьма Вогню | witches_01
 witches_02 | Відьма Води | witches_02

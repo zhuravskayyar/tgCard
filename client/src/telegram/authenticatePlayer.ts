@@ -1,4 +1,4 @@
-import { CARD_ELEMENTS, COLLECTION_MODIFIER_TYPES, EQUIPMENT_SLOTS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthSessionResponse, type PlayerCollectionBonus, type PlayerSummary, type PublicPlayerEquipment, type TelegramAuthRequest } from "@cardastika/shared";
+import { CARD_ELEMENTS, COLLECTION_BONUS_SCOPES, COLLECTION_MODIFIER_TYPES, EQUIPMENT_SLOTS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthSessionResponse, type PlayerCollectionBonus, type PlayerSummary, type PublicPlayerEquipment, type TelegramAuthRequest } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { clearSessionToken, getSessionToken, setSessionToken } from "../auth/session";
 
@@ -27,9 +27,11 @@ function isCollectionBonus(value: unknown): value is PlayerCollectionBonus {
   const modifier = bonus.bonus as Record<string, unknown>;
   const validType = typeof modifier.type === "string" && COLLECTION_MODIFIER_TYPES.includes(modifier.type as typeof COLLECTION_MODIFIER_TYPES[number]);
   const validElement = modifier.element === undefined || (typeof modifier.element === "string" && CARD_ELEMENTS.includes(modifier.element as typeof CARD_ELEMENTS[number]));
+  const validScope = modifier.scope === undefined || (typeof modifier.scope === "string" && COLLECTION_BONUS_SCOPES.includes(modifier.scope as typeof COLLECTION_BONUS_SCOPES[number]));
   const requiresElement = modifier.type === "element_damage_pct";
   return validType
     && validElement
+    && validScope
     && (!requiresElement || typeof modifier.element === "string")
     && typeof modifier.value === "number"
     && Number.isFinite(modifier.value)

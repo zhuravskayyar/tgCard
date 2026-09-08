@@ -1,5 +1,6 @@
 import type {
   CardElement,
+  CollectionBonusScope,
   CollectionModifier,
   CollectionModifierType,
 } from "@cardastika/shared";
@@ -17,6 +18,7 @@ export interface PlayerCollectionModifiers {
 
 export function getPlayerCollectionModifiers(
   completedCollections: readonly CollectionModifier[],
+  scope?: CollectionBonusScope,
 ): PlayerCollectionModifiers {
   const result = {
     altarGoldLevels: 0,
@@ -39,6 +41,8 @@ export function getPlayerCollectionModifiers(
   };
 
   for (const modifier of completedCollections) {
+    if (scope && modifier.scope && modifier.scope !== "all_battles" && modifier.scope !== scope) continue;
+    if (scope && modifier.scope === "all_battles" && !["duel", "arena", "campaign", "guild_raid"].includes(scope)) continue;
     if (!Number.isFinite(modifier.value) || modifier.value < 0) {
       throw new RangeError("Collection modifier value must be non-negative");
     }

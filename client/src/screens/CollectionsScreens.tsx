@@ -91,7 +91,6 @@ export function CollectionsScreen({ onBack, onOpenCollection, onOpenLimitedCard,
               <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} />
               <CardQualityBadge rarity={card.minRarity} size="tiny" />
               <span className="collection-card-tile__element"><ElementSymbol element={card.element} /></span>
-              <strong>{card.displayName}</strong>
               <small>{card.discovered ? "Знайдено" : "Не знайдено"}</small>
             </>;
             return card.strongestInstanceId && onOpenLimitedCard ? (
@@ -139,7 +138,6 @@ export function CollectionDetailScreen({ collectionId, onBack, onOpenCard, onOpe
           <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} />
           <CardQualityBadge rarity={card.minRarity} size="tiny" />
           <span className="collection-card-tile__element"><ElementSymbol element={card.element} /></span>
-          <strong>{card.displayName}</strong>
           <small>{card.discovered ? "Отримано" : "Не отримано"}</small>
         </button>)}
       </div>

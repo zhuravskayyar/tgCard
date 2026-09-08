@@ -13,6 +13,10 @@ const RETIRED_FALLBACK_CARD_CODES = [
 export async function seedCollectionDefinitions(client: PoolClient) {
   const validation = validateCollectionCatalog();
 
+  // Positions are unique. Move existing rows out of the final range first so
+  // adding or reordering a collection cannot collide with an old position.
+  await client.query("UPDATE collections SET position = position + 1000");
+
   // These temporary pre-collection rewards are not part of the canonical
   // canonical catalog. Preserve any already-owned instances; otherwise retire
   // their unused definitions and pool rows through the FK cascade.
@@ -33,9 +37,9 @@ export async function seedCollectionDefinitions(client: PoolClient) {
       `
         INSERT INTO collections (
           id, code, display_name, cover_art_key, buff_type, buff_value,
-          buff_element, bonus_label, position, source
+          buff_element, buff_scope, bonus_label, position, source
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (id) DO UPDATE SET
           code = EXCLUDED.code,
           display_name = EXCLUDED.display_name,
@@ -43,6 +47,7 @@ export async function seedCollectionDefinitions(client: PoolClient) {
           buff_type = EXCLUDED.buff_type,
           buff_value = EXCLUDED.buff_value,
           buff_element = EXCLUDED.buff_element,
+          buff_scope = EXCLUDED.buff_scope,
           bonus_label = EXCLUDED.bonus_label,
           position = EXCLUDED.position,
           source = EXCLUDED.source
@@ -55,6 +60,7 @@ export async function seedCollectionDefinitions(client: PoolClient) {
         collection.bonus.type,
         collection.bonus.value,
         collection.bonus.element ?? null,
+        collection.bonus.scope ?? "all_battles",
         collection.bonusLabel,
         index + 1,
         collection.source,
@@ -113,14 +119,14 @@ export async function seedCollectionDefinitions(client: PoolClient) {
     `,
     [canonicalIds, STARTER_CARDS.map(({ id }) => id)],
   );
-  if (Number(databaseValidation.rows[0]?.canonical_cards) !== 133) {
-    throw new Error("Database seed must contain exactly 133 canonical cards");
+  if (Number(databaseValidation.rows[0]?.canonical_cards) !== 142) {
+    throw new Error("Database seed must contain exactly 142 canonical cards");
   }
   if (Number(databaseValidation.rows[0]?.external_starters) !== 9) {
     throw new Error("All 9 starter cards must remain outside collections");
   }
-  if (Number(databaseValidation.rows[0]?.described_cards) !== 133) {
-    throw new Error("All 133 canonical cards must have non-empty descriptions");
+  if (Number(databaseValidation.rows[0]?.described_cards) !== 142) {
+    throw new Error("All 142 canonical cards must have non-empty descriptions");
   }
 
   return validation;

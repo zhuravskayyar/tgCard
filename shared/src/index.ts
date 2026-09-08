@@ -1,7 +1,9 @@
 export {
   CARD_ELEMENTS,
+  getCardHoloConfig,
   CARD_RARITIES,
   CARD_SOURCES,
+  type CardHoloConfig,
   type CardDefinition,
   type CardElement,
   type CardSource,
@@ -20,8 +22,10 @@ export {
 } from "./card.js";
 export {
   COLLECTION_MODIFIER_TYPES,
+  COLLECTION_BONUS_SCOPES,
   COLLECTION_SOURCES,
   type CollectionCompletionNotice,
+  type CollectionBonusScope,
   type CollectionModifier,
   type CollectionModifierType,
   type CollectionSource,

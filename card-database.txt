@@ -1,9 +1,9 @@
 БАЗА КАРТ CARDASTIKA
 =====================
 
-Канонічний каталог: 129 карт
+Канонічний каталог: 142 карт
 Стартові карти: 9
-Карти колекцій: 120
+Карти колекцій: 133
 
 Формат рядка:
 ID | Назва | Стихія | Колекція | Мінімальна рідкісність | Магазин
@@ -187,6 +187,18 @@ monsters_06 | Левіафан | fire | Потвори | legendary | yes
 monsters_07 | Цербер | water | Потвори | legendary | yes
 monsters_08 | Орф | air | Потвори | mythic | yes
 monsters_09 | Катоблепас | earth | Потвори | mythic | yes
+
+ЧУМНА АЛХІМІЯ
+--------------
+plague_alchemy_01 | Моровий Алхімік | earth | Чумна алхімія | epic | yes
+plague_alchemy_02 | Чумний Лікар | water | Чумна алхімія | rare | yes
+plague_alchemy_03 | Наречена Чуми | air | Чумна алхімія | legendary | yes
+plague_alchemy_04 | Щурячий Король | earth | Чумна алхімія | epic | yes
+plague_alchemy_05 | Мандрагора Шибеника | earth | Чумна алхімія | rare | yes
+plague_alchemy_06 | Гомункул | water | Чумна алхімія | epic | yes
+plague_alchemy_07 | Біла Королева | air | Чумна алхімія | legendary | yes
+plague_alchemy_08 | Червоний Король | fire | Чумна алхімія | legendary | yes
+plague_alchemy_09 | Філософський Камінь | fire | Чумна алхімія | mythic | yes
 
 Примітки:
 - fire = Вогонь; water = Вода; air = Повітря; earth = Земля.

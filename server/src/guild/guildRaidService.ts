@@ -886,7 +886,7 @@ export class GuildRaidService {
         await client.query("COMMIT");
         return view;
       }
-      const loaded = await loadDuelParticipant(client, playerId).catch((error: unknown) => {
+      const loaded = await loadDuelParticipant(client, playerId, "guild_raid").catch((error: unknown) => {
         if (error instanceof DuelDeckInvalidError) throw new GuildRaidDomainError("raid_deck_invalid", "Потрібна повна бойова колода 3/2/2/2", 409);
         throw error;
       });

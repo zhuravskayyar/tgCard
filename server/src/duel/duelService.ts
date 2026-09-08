@@ -24,6 +24,7 @@ import {
 import { applyLeagueProgression } from "@cardastika/shared";
 import type {
   CardElement,
+  CollectionBonusScope,
   CollectionModifier,
   CollectionModifierType,
   DuelBattleModifiers,
@@ -88,6 +89,7 @@ interface DeckCardRow extends CardInstanceProjectionRow {
 
 interface ModifierRow {
   buff_element: CardElement | null;
+  buff_scope: CollectionBonusScope;
   buff_type: CollectionModifierType;
   buff_value: number | string;
 }
@@ -202,8 +204,12 @@ function toSafeInteger(value: string | number, field: string) {
   return parsed;
 }
 
-function toBattleModifiers(modifiers: readonly CollectionModifier[], equipmentSummary?: ReturnType<typeof calculateEquipmentSummary>): DuelBattleModifiers {
-  const aggregated = getPlayerCollectionModifiers(modifiers);
+function toBattleModifiers(
+  modifiers: readonly CollectionModifier[],
+  equipmentSummary?: ReturnType<typeof calculateEquipmentSummary>,
+  scope: CollectionBonusScope = "duel",
+): DuelBattleModifiers {
+  const aggregated = getPlayerCollectionModifiers(modifiers, scope);
   return {
     battleDamagePct: aggregated.battleDamagePct,
     battleHpPct: aggregated.battleHpPct,
@@ -357,7 +363,11 @@ function toDuelView(row: DuelRow): DuelView {
   };
 }
 
-export async function loadDuelParticipant(client: PoolClient, playerId: string): Promise<LoadedParticipant> {
+export async function loadDuelParticipant(
+  client: PoolClient,
+  playerId: string,
+  scope: CollectionBonusScope = "duel",
+): Promise<LoadedParticipant> {
   const playerResult = await client.query<ParticipantRow>(
     `
       SELECT id, username, first_name, photo_url, level, silver, gold,
@@ -403,7 +413,7 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
 
   const modifiersResult = await client.query<ModifierRow>(
     `
-      SELECT collections.buff_type, collections.buff_value, collections.buff_element
+      SELECT collections.buff_type, collections.buff_value, collections.buff_element, collections.buff_scope
       FROM player_collection_completions
       INNER JOIN collections ON collections.id = player_collection_completions.collection_id
       WHERE player_collection_completions.player_id = $1
@@ -417,7 +427,8 @@ export async function loadDuelParticipant(client: PoolClient, playerId: string):
     type: row.buff_type,
     value: Number(row.buff_value),
     ...(row.buff_element ? { element: row.buff_element } : {}),
-  })), equipmentSummary);
+    scope: row.buff_scope,
+  })), equipmentSummary, scope);
   const cards = rawCards.map((card) => ({
     ...card,
     finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element],

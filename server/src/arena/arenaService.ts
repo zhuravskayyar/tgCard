@@ -607,7 +607,7 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
     const dailyGold = String(player.arena_gold_day).slice(0, 10) === getUtcDate() ? storedDailyGold : 0;
     const currencyBoost = await getCurrencyBoostStatus(client, participant.id);
     const reward = getArenaReward(placement, leagueBeforeIndex, dailyGold, currencyBoost.multiplier);
-    const collectionModifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, participant.id));
+    const collectionModifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, participant.id), "arena");
     const silverReward = Math.round(reward.silver * (1 + collectionModifiers.silverRewardPct / 100));
     if (!Number.isSafeInteger(silverReward) || silverReward < 0) throw new Error("Arena silver reward exceeds safe integer limits");
     const ratingAfter = Math.max(0, ratingBefore + reward.ratingChange);
@@ -835,7 +835,7 @@ export class ArenaService {
     const players: QueuedArenaPlayer[] = [];
     for (const entry of queued.rows) {
       try {
-        const loaded = await loadDuelParticipant(client, entry.player_id);
+        const loaded = await loadDuelParticipant(client, entry.player_id, "arena");
         players.push({
           createdAt: entry.created_at,
           guildCard: toGuildDuelCard(loaded.guildCard),
@@ -880,7 +880,7 @@ export class ArenaService {
     try {
       await client.query("BEGIN");
       if (await loadActiveArenaRow(client, playerId)) throw new ArenaAlreadyActiveError();
-      await loadDuelParticipant(client, playerId).catch(() => { throw new ArenaDeckInvalidError(); });
+      await loadDuelParticipant(client, playerId, "arena").catch(() => { throw new ArenaDeckInvalidError(); });
       const queued = await client.query<{ created_at: string | Date; id: string }>("SELECT id, created_at FROM arena_queue WHERE player_id = $1 FOR UPDATE", [playerId]);
       const queueId = queued.rows[0]?.id ?? randomUUID();
       if (!queued.rows[0]) {
