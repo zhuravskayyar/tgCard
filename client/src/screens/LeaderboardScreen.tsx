@@ -6,7 +6,7 @@ import { LeagueBadge } from "../components/LeagueBadge";
 import { Pagination } from "../components/Pagination";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import type { PlayerSummaryState } from "../types/player";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 
 interface LeaderboardScreenProps {
   onOpenPlayerProfile: (playerId: string) => void;
@@ -20,7 +20,7 @@ const leaderboardTabs: Array<{ icon: "duel" | "deck-power"; kind: LeaderboardKin
 ];
 
 function formatScore(value: number) {
-  return new Intl.NumberFormat(getUiNumberLocale()).format(value);
+  return formatUiNumber(value);
 }
 
 function getInitials(name: string) {

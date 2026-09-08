@@ -10,6 +10,7 @@ import { MenuRow } from "../../components/MenuRow";
 import { MenuTextureSlices } from "../../components/MenuTextureSlices";
 import { ElementSymbol } from "../../components/ElementSymbol";
 import { RibbonTitle } from "../../components/RibbonTitle";
+import { formatFullUiNumber } from "../../i18n";
 import { ELEMENT_LABELS, GuildState, formatNumber, type AsyncState } from "./GuildUi";
 
 interface GuildCardScreenProps {
@@ -113,11 +114,11 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
 
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
-        <div aria-label={`Сила ${formatNumber(active.finalPower)}`} className={`card-detail-card deck-card--${active.element} deck-card--${active.rarity}`} role="img">
+        <div aria-label={`Сила ${formatFullUiNumber(active.finalPower)}`} className={`card-detail-card deck-card--${active.element} deck-card--${active.rarity}`} role="img">
           <CardFxWrapper artKey={active.artKey} cardId={active.cardId} element={active.element} rarity={active.rarity} />
         </div>
         <div className="card-detail-reference-stats" aria-label="Поточні характеристики карти гільдії">
-          <div className="card-detail-reference-stat"><AppIcon name="card-strength" size={17} /><span>Сила:</span><strong>{formatNumber(active.finalPower)}</strong></div>
+          <div className="card-detail-reference-stat"><AppIcon name="card-strength" size={17} /><span>Сила:</span><strong>{formatFullUiNumber(active.finalPower)}</strong></div>
           <div className="card-detail-reference-stat"><span aria-hidden="true" className="card-detail-reference-stat__level-icon">↑</span><span>Рівень:</span><strong>{formatNumber(active.level)}</strong></div>
           <div className="card-detail-reference-stat"><AppIcon name="guild" size={17} /><span>Карта гільдії</span></div>
           <div className="card-detail-reference-stat"><AppIcon name="element-cards" size={17} /><span>Елемент:</span><strong>{ELEMENT_LABELS[active.element]}</strong></div>
@@ -128,7 +129,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
         <div className="progression-panel__reference-heading"><span>Прогрес рівня</span><strong>{formatNumber(progression.percent)}%</strong></div>
         <div className="level-progress" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><span style={{ width: `${progression.percent}%` }} /></div>
         <div className="progression-panel__upgrade-row"><button className="level-up-button" disabled type="button"><span>Підняти рівень</span></button></div>
-        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{nextLevel?.powerIncrease === null || nextLevel?.powerIncrease === undefined ? "—" : `+${formatNumber(nextLevel.powerIncrease)}`}</strong></div><div><span>Ціна покращення</span><strong>{upgradeGold === null ? "—" : <><CurrencyIcon kind="gold" size={15} />{formatNumber(upgradeGold)}</>}</strong></div></div>
+        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{nextLevel?.powerIncrease === null || nextLevel?.powerIncrease === undefined ? "—" : `+${formatFullUiNumber(nextLevel.powerIncrease)}`}</strong></div><div><span>Ціна покращення</span><strong>{upgradeGold === null ? "—" : <><CurrencyIcon kind="gold" size={15} />{formatNumber(upgradeGold)}</>}</strong></div></div>
       </section>
       <p className="progression-panel__external-hint">Прокачка карти гільдії відбувається через внесок магічних елементів.</p>
     </div>

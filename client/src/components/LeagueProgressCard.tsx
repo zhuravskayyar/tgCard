@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { getBaseSilverForLeague, getLeagueByRating, getLeagueIndexByRating, getPromotionReward, DUEL_LEAGUE_CONFIG } from "@cardastika/shared";
 import { LeagueBadge } from "./LeagueBadge";
 import { CurrencyIcon } from "./CurrencyDisplay";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 
 interface LeagueProgressCardProps {
   compact?: boolean;
@@ -30,10 +30,10 @@ export function LeagueProgressCard({ compact = false, nextLabel = "prefixed", ra
           <h2>{league.name}</h2>
         </div>
         <strong>
-          {new Intl.NumberFormat(getUiNumberLocale()).format(safeRating)}
+          {formatUiNumber(safeRating)}
           {ratingChange !== undefined ? (
             <small className={ratingChange >= 0 ? "league-progress-card__rating-change league-progress-card__rating-change--positive" : "league-progress-card__rating-change league-progress-card__rating-change--negative"}>
-              {ratingChange >= 0 ? "+" : "−"}{new Intl.NumberFormat(getUiNumberLocale()).format(Math.abs(ratingChange))}
+              {ratingChange >= 0 ? "+" : "−"}{formatUiNumber(Math.abs(ratingChange))}
             </small>
           ) : null}
         </strong>
@@ -43,7 +43,7 @@ export function LeagueProgressCard({ compact = false, nextLabel = "prefixed", ra
       </div>
       <div className="league-progress-card__next">
         <span>{nextLeague ? `${nextLabel === "prefixed" ? "До " : ""}${nextLeague.name}` : "Найвищий ранг"}</span>
-        <strong>{nextLeague ? `${nextLabel === "plain" ? "ще " : ""}${new Intl.NumberFormat(getUiNumberLocale()).format(Math.max(0, nextLeague.minRating - safeRating))} рейтингу` : "MAX"}</strong>
+        <strong>{nextLeague ? `${nextLabel === "plain" ? "ще " : ""}${formatUiNumber(Math.max(0, nextLeague.minRating - safeRating))} рейтингу` : "MAX"}</strong>
       </div>
       {showRewards ? (
         <div className="league-progress-card__rewards">

@@ -7,7 +7,7 @@ import { LeagueBadge } from "../components/LeagueBadge";
 import { LeagueProgressCard } from "../components/LeagueProgressCard";
 import { EMPTY_EQUIPMENT } from "../equipment/equipmentState";
 import { usePlayerProfile } from "../hooks/usePlayerProfile";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 
 interface PlayerProfileScreenProps {
   onBack: () => void;
@@ -27,7 +27,7 @@ const emptyRecords: EmptyRecord[] = [
 ];
 
 function formatScore(value: number) {
-  return new Intl.NumberFormat(getUiNumberLocale()).format(value);
+  return formatUiNumber(value);
 }
 
 function getInitials(value: string) {

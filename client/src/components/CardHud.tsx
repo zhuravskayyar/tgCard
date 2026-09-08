@@ -1,4 +1,5 @@
 import type { CardElement, CardRarity } from "@cardastika/shared";
+import { formatUiNumber } from "../i18n";
 import { AppIcon } from "./AppIcon";
 import { ElementSymbol } from "./ElementSymbol";
 
@@ -19,7 +20,7 @@ export function CardHud({ element, level, power, protectedFromAbsorption = false
         <span className="card-hud__power">
           <AppIcon name="deck-power" size={14} />
         </span>
-        <strong className="card-hud__power-value">{power}</strong>
+        <strong className="card-hud__power-value">{formatUiNumber(power)}</strong>
       </span>
       <span className={`card-hud__element card-hud__element--${element}`} aria-hidden="true">
         <ElementSymbol element={element} />

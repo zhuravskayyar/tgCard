@@ -366,6 +366,33 @@ export function getUiNumberLocale(): UiNumberLocale {
   return getUiLocale() === "ru" ? "ru-RU" : "uk-UA";
 }
 
+const COMPACT_NUMBER_UNITS = [
+  { suffix: "трлн", value: 1_000_000_000_000 },
+  { suffix: "млрд", value: 1_000_000_000 },
+  { suffix: "м", value: 1_000_000 },
+  { suffix: "к", value: 1_000 },
+] as const;
+
+export function formatUiNumber(value: number) {
+  if (!Number.isFinite(value)) return String(value);
+  const absoluteValue = Math.abs(value);
+  const unitIndex = COMPACT_NUMBER_UNITS.findIndex(({ value: unitValue }) => absoluteValue >= unitValue);
+  if (unitIndex === -1) return new Intl.NumberFormat(getUiNumberLocale()).format(value);
+
+  let unit = COMPACT_NUMBER_UNITS[unitIndex]!;
+  let scaled = value / unit.value;
+  if (Math.abs(scaled) >= 999.5 && unitIndex > 0) {
+    unit = COMPACT_NUMBER_UNITS[unitIndex - 1]!;
+    scaled = value / unit.value;
+  }
+
+  return `${new Intl.NumberFormat(getUiNumberLocale(), { maximumFractionDigits: 1 }).format(scaled)}${unit.suffix}`;
+}
+
+export function formatFullUiNumber(value: number) {
+  return new Intl.NumberFormat(getUiNumberLocale()).format(value);
+}
+
 export function translateRussian(value: string) {
   let translated = value.replace(phrasePattern, (match) => phraseTranslations.get(match) ?? match);
   return translated.replace(wordPattern, (match) => wordTranslationMap.get(match) ?? match);

@@ -1,5 +1,5 @@
 import type { PlayerSummaryState } from "../types/player";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 
 export type CurrencyKind = "silver" | "gold";
 
@@ -35,7 +35,7 @@ export function CurrencyIcon({ kind, size = 20 }: CurrencyIconProps) {
 
 export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayProps) {
   const isReady = state === "ready" && value !== undefined;
-  const displayValue = isReady ? new Intl.NumberFormat(getUiNumberLocale()).format(value) : "—";
+  const displayValue = isReady ? formatUiNumber(value) : "—";
 
   return (
     <div

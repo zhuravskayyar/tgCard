@@ -8,6 +8,7 @@ import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
 import { MenuTextureSlices } from "../components/MenuTextureSlices";
 import { Pagination } from "../components/Pagination";
+import { formatFullUiNumber } from "../i18n";
 import { getTelegramInitData } from "../telegram";
 import { absorbCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, toggleCardProtection } from "../telegram/playerCards";
 import { PlayerDataError } from "../telegram/playerDeck";
@@ -178,7 +179,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
-        <div aria-label={`Сила ${card.finalPower}`} className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`} role="img">
+        <div aria-label={`Сила ${formatFullUiNumber(card.finalPower)}`} className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`} role="img">
           <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity}>
             {card.protectedFromAbsorption ? <span aria-label="Карта захищена" className="card-detail-card__protection"><AppIcon name="lock" size={20} /></span> : null}
           </CardFxWrapper>
@@ -188,7 +189,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
           <div className="card-detail-reference-stat" data-tutorial-target="card-strength">
             <AppIcon name="card-strength" size={17} />
             <span>Сила:</span>
-            <strong>{card.finalPower}</strong>
+            <strong>{formatFullUiNumber(card.finalPower)}</strong>
           </div>
           <div className="card-detail-reference-stat">
             <span aria-hidden="true" className="card-detail-reference-stat__level-icon">↑</span>
@@ -218,7 +219,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
         <div className="progression-panel__upgrade-row"><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
           <span>{pendingAction === "level" ? "Підвищення…" : progression.requiredGold === 0 ? "Покращити безкоштовно" : "Підняти рівень"}</span>
         </button></div>
-        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{progression.powerAfterLevel === null ? "—" : `${card.finalPower} → ${progression.powerAfterLevel}`}</strong></div><div><span>{progression.requiredGold !== null && progression.requiredGold > 0 ? "Ціна покращення" : "Вартість"}</span><strong>{progression.requiredGold === null ? "—" : progression.requiredGold > 0 ? <><CurrencyIcon kind="gold" size={15} />{progression.requiredGold}</> : "Безкоштовно"}</strong></div></div>
+        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{progression.powerAfterLevel === null ? "—" : `${formatFullUiNumber(card.finalPower)} → ${formatFullUiNumber(progression.powerAfterLevel)}`}</strong></div><div><span>{progression.requiredGold !== null && progression.requiredGold > 0 ? "Ціна покращення" : "Вартість"}</span><strong>{progression.requiredGold === null ? "—" : progression.requiredGold > 0 ? <><CurrencyIcon kind="gold" size={15} />{progression.requiredGold}</> : "Безкоштовно"}</strong></div></div>
       </section>
       {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
     </div>

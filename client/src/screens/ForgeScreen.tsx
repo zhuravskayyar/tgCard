@@ -9,6 +9,7 @@ import {
   type EquipmentSlot,
   type PlayerEquipmentInventory,
 } from "@cardastika/shared";
+import { formatUiNumber } from "../i18n";
 import {
   EQUIPMENT_ELEMENT_LABELS,
   EQUIPMENT_ARTIFACT_SLOTS,
@@ -47,7 +48,7 @@ const RARITY_SHORT_LABELS: Readonly<Record<CardRarity, string>> = {
 };
 
 function formatNumber(value: number) {
-  return value.toLocaleString("uk-UA");
+  return formatUiNumber(value);
 }
 
 function rarityStyle(rarity: CardRarity) {

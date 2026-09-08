@@ -3,6 +3,7 @@ import type { DailyLoginClaimResponse, LariskaDailyRewardPlayerState, LariskaDai
 import { AppIcon } from "./AppIcon";
 import { CurrencyIcon } from "./CurrencyDisplay";
 import { Lariska } from "./Lariska";
+import { formatUiNumber } from "../i18n";
 
 interface DailyLoginModalProps {
   data: LariskaDailyRewardView;
@@ -17,13 +18,13 @@ function CurrencyRewards({ reward }: { reward: LariskaDailyRewardSummary }) {
   return (
     <div className="daily-login-modal__currency-slots" aria-label="Нагороди за вхід">
       <div className="daily-login-modal__currency-slot">
-        <CurrencyIcon kind="silver" size={32} /><strong>{reward.silver?.toLocaleString("uk-UA") ?? "—"}</strong><small>Срібло</small>
+        <CurrencyIcon kind="silver" size={32} /><strong>{reward.silver === undefined ? "—" : formatUiNumber(reward.silver)}</strong><small>Срібло</small>
       </div>
       <div className="daily-login-modal__currency-slot">
-        <CurrencyIcon kind="gold" size={32} /><strong>{reward.gold?.toLocaleString("uk-UA") ?? "—"}</strong><small>Золото</small>
+        <CurrencyIcon kind="gold" size={32} /><strong>{reward.gold === undefined ? "—" : formatUiNumber(reward.gold)}</strong><small>Золото</small>
       </div>
       <div className="daily-login-modal__currency-slot">
-        <img alt="" src="/assets/ui/world-tree/game-icons/diamond.svg" width={32} height={32} /><strong>{reward.diamonds?.toLocaleString("uk-UA") ?? "—"}</strong><small>Алмази</small>
+        <img alt="" src="/assets/ui/world-tree/game-icons/diamond.svg" width={32} height={32} /><strong>{reward.diamonds === undefined ? "—" : formatUiNumber(reward.diamonds)}</strong><small>Алмази</small>
       </div>
     </div>
   );

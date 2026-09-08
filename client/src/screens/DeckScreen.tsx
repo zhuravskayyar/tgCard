@@ -2,6 +2,7 @@ import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
+import { formatFullUiNumber } from "../i18n";
 
 interface DeckScreenProps {
   onBack: () => void;
@@ -25,7 +26,7 @@ export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: Dec
         <div>
           <h1>МОЯ КОЛОДА</h1>
         </div>
-        <strong>{state.status === "ready" ? `Сила ${state.deck.totalPower}` : "Сила —"}</strong>
+        <strong>{state.status === "ready" ? `Сила ${formatFullUiNumber(state.deck.totalPower)}` : "Сила —"}</strong>
       </header>
 
       {state.status === "loading" ? <div className="deck-state" aria-live="polite">Завантаження колоди…</div> : null}

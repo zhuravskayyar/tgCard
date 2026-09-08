@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, type CardElement, type GuildLanguage, type GuildRecruitmentMode, type GuildRole } from "@cardastika/shared";
 import { GuildApiError } from "../../telegram/guild";
+import { formatUiNumber } from "../../i18n";
 
 export type AsyncState<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "error"; message: string };
 export const LANGUAGE_LABELS: Record<GuildLanguage, string> = { uk: "Українська", ru: "Русский", en: "English", de: "Deutsch", other: "Інша" };
@@ -17,7 +18,7 @@ export const GUILD_EMBLEM_OPTIONS = [
   { id: "shield-7", label: "Кристал" },
   { id: "shield-8", label: "Зірка" },
 ] as const;
-export const formatNumber = (value: number) => new Intl.NumberFormat("uk-UA").format(value);
+export const formatNumber = formatUiNumber;
 export const formatDate = (value: string) => new Date(value).toLocaleString("uk-UA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function guildEmblemIndex(emblemId?: string) {

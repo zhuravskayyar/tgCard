@@ -19,7 +19,7 @@ import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { MenuRow } from "../components/MenuRow";
 import { Lariska } from "../components/Lariska";
 import { ResourceIcon } from "../components/ResourceIcon";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 import { getTelegramInitData } from "../telegram";
 import {
   DuelApiError,
@@ -448,7 +448,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
     );
   }
   const latestLevel = result.reachedLevels.at(-1);
-  const formatNumber = (value: number) => new Intl.NumberFormat(getUiNumberLocale()).format(value);
+  const formatNumber = formatUiNumber;
   const goldReward = (result.duelGoldReward ?? 0) + (result.levelUpGoldReward ?? result.gold);
   return (
     <section className={`duel-result duel-result--compact duel-result--${result.outcome}`}>

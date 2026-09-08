@@ -22,7 +22,7 @@ import { FirstVisitHint } from "../components/FirstVisitHint";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { ARENA_TOKEN_ICON_SOURCE, ResourceIcon } from "../components/ResourceIcon";
 import { getTelegramInitData } from "../telegram";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 import {
   ArenaApiError,
   changeArenaCards,
@@ -70,7 +70,7 @@ function ArenaTabs({ active, onChange }: { active: ArenaTab; onChange: (tab: Are
 }
 
 function ArenaTokenBalance({ value }: { value: number }) {
-  return <span className="arena-token-balance"><ResourceIcon kind="arena-token" size={20} />{new Intl.NumberFormat(getUiNumberLocale()).format(value)}</span>;
+  return <span className="arena-token-balance"><ResourceIcon kind="arena-token" size={20} />{formatUiNumber(value)}</span>;
 }
 
 function shortParticipantName(name: string) {
@@ -262,7 +262,7 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
             {target ? <PlayerAvatar name={target.name} photoUrl={target.photoUrl} /> : null}
             <div><span>ЦІЛЬ</span><strong>{target?.name ?? "Немає цілі"}</strong></div>
           </div>
-          <div className="arena-target-hp"><strong>{target ? `${target.hp.toLocaleString(getUiNumberLocale())} / ${target.maxHp.toLocaleString(getUiNumberLocale())}` : "—"}</strong><span>{Math.round(targetHpPercent)}%</span></div>
+          <div className="arena-target-hp"><strong>{target ? `${formatUiNumber(target.hp)} / ${formatUiNumber(target.maxHp)}` : "—"}</strong><span>{Math.round(targetHpPercent)}%</span></div>
         </div>
         <div className="arena-target-hpbar"><span style={{ width: `${targetHpPercent}%` }} /></div>
       </section>
@@ -280,7 +280,7 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
       {player ? <section className={`arena-player-panel${playerDefeated ? " is-defeated" : ""}`}>
         <div className="arena-player-header">
           <div className="arena-combatant-identity"><PlayerAvatar name={player.name} photoUrl={player.photoUrl} /><div><span>ВИ</span><strong>{player.name}</strong></div></div>
-          <div className="arena-target-hp"><strong>{player.hp.toLocaleString(getUiNumberLocale())} / {player.maxHp.toLocaleString(getUiNumberLocale())}</strong><span>{Math.round(percentage(player.hp, player.maxHp))}%</span></div>
+          <div className="arena-target-hp"><strong>{formatUiNumber(player.hp)} / {formatUiNumber(player.maxHp)}</strong><span>{Math.round(percentage(player.hp, player.maxHp))}%</span></div>
         </div>
         <div className="arena-player-hpbar"><span style={{ width: `${percentage(player.hp, player.maxHp)}%` }} /></div>
       </section> : null}
@@ -306,7 +306,7 @@ function ArenaResult({ match, onArena, onQueue }: { match: ArenaView; onArena: (
       <span className="arena-result__rank">{participant.placement}</span>
       <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} />
       <strong>{participant.name}</strong>
-      <span className="arena-result__damage"><AppIcon name="duel" size={16} /> {participant.totalDamageDealt.toLocaleString(getUiNumberLocale())}</span>
+      <span className="arena-result__damage"><AppIcon name="duel" size={16} /> {formatUiNumber(participant.totalDamageDealt)}</span>
     </li>
   );
   return (

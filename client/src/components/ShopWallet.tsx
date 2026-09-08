@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { getUiNumberLocale } from "../i18n";
+import { formatUiNumber } from "../i18n";
 
 export interface ShopWalletItem {
   id: string;
@@ -24,7 +24,7 @@ export function ShopWallet({ items }: ShopWalletProps) {
             <span className="shop-wallet__icon" aria-hidden="true">{item.icon}</span>
             <span className="shop-wallet__copy">
               <span>{item.label}</span>
-              <strong>{item.value === undefined ? "—" : new Intl.NumberFormat(getUiNumberLocale()).format(item.value)}</strong>
+              <strong>{item.value === undefined ? "—" : formatUiNumber(item.value)}</strong>
             </span>
           </div>
         ))}

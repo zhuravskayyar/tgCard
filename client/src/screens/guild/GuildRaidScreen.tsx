@@ -14,6 +14,7 @@ import type {
 import { getDuelLogVisualState, getElementMultiplier } from "@cardastika/game-core";
 import { getLeagueByRating } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
+import { formatUiNumber } from "../../i18n";
 import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import { LeagueBadge } from "../../components/LeagueBadge";
 import { BattleCard, getEffectLevel, HpPanel } from "../DuelScreen";
@@ -41,7 +42,7 @@ interface RaidChatMessage {
 }
 
 function formatRaidNumber(value: number) {
-  return new Intl.NumberFormat("uk-UA").format(value);
+  return formatUiNumber(value);
 }
 
 function toDuelExchange(entry: GuildRaidBattleLogEntry): DuelExchange | null {
