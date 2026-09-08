@@ -1,4 +1,13 @@
 /* The authenticated shell has no screen-specific variants. */
+:root.telegram-mini-app {
+  --shell-width: 100%;
+}
+
+.telegram-mini-app .app-shell {
+  min-height: 0;
+  box-shadow: none;
+}
+
 .top-hud {
   position: fixed;
   z-index: 10;

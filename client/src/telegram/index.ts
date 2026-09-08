@@ -53,7 +53,11 @@ export function isRussianTelegramLanguage() {
 
 export function initializeTelegram(): TelegramWebApp | null {
   const webApp = getTelegramWebApp();
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.toggle("telegram-mini-app", Boolean(webApp));
+  }
   webApp?.ready();
+  webApp?.expand?.();
   return webApp;
 }
 
