@@ -5,6 +5,7 @@ import {
   AuthIdentityAlreadyLinkedError,
   AuthIdentityConflictError,
   PlayerPersistenceError,
+  TelegramIdentityAuthoritativeError,
   type PlayerRepository,
 } from "../users/playerRepository.js";
 import { verifyGoogleCredential, GoogleIdentityError } from "./googleIdentity.js";
@@ -91,6 +92,15 @@ function sendAuthError(response: ServerResponse, error: unknown, headers: Outgoi
   if (error instanceof AuthIdentityConflictError) {
     sendJson(response, 409, {
       error: { code: "identity_belongs_to_other_player", message: "Цей акаунт уже прив'язаний до іншого профілю Cardastika." },
+    }, headers);
+    return;
+  }
+  if (error instanceof TelegramIdentityAuthoritativeError) {
+    sendJson(response, 409, {
+      error: {
+        code: "telegram_profile_is_authoritative",
+        message: "Цей Telegram уже має профіль. Увійдіть через Telegram і прив'яжіть Google у його налаштуваннях.",
+      },
     }, headers);
     return;
   }

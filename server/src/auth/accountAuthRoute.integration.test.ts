@@ -295,3 +295,63 @@ test("a signed-in Telegram player can explicitly transfer an existing Google ide
     await pool.end();
   }
 });
+
+test("a signed-in Google player cannot transfer an existing Telegram profile", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const googleCredential = `telegram-authoritative-route-${Date.now()}`;
+  const telegramId = String(Date.now() * 1_000 + 14);
+  const googleIdentity: VerifiedIdentity = {
+    provider: "google",
+    providerUserId: `telegram-authoritative-sub-${Date.now()}`,
+    email: `${googleCredential}@example.com`,
+    firstName: "Google Target",
+    lastName: null,
+    photoUrl: null,
+  };
+  const { server } = createAuthServer(pool, new Map([[googleCredential, googleIdentity]]));
+  const origin = await listen(server);
+  const playerIds: string[] = [];
+  try {
+    const telegramLogin = await requestJson(origin, "/api/auth/telegram", {
+      method: "POST",
+      body: JSON.stringify({ initData: signedMiniAppInitData(telegramId) }),
+    });
+    assert.equal(telegramLogin.status, 200);
+    const telegramLoginBody = telegramLogin.body as { player: { id: string } };
+    playerIds.push(telegramLoginBody.player.id);
+
+    const googleLogin = await requestJson(origin, "/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: googleCredential }),
+    });
+    assert.equal(googleLogin.status, 200);
+    const googleLoginBody = googleLogin.body as { player: { id: string }; sessionToken: string };
+    playerIds.push(googleLoginBody.player.id);
+
+    const transfer = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${googleLoginBody.sessionToken}` },
+      body: JSON.stringify({ provider: "telegram", authData: signedTelegramWidgetData(telegramId), replaceExisting: true }),
+    });
+    assert.deepEqual(transfer, {
+      status: 409,
+      body: {
+        error: {
+          code: "telegram_profile_is_authoritative",
+          message: "Цей Telegram уже має профіль. Увійдіть через Telegram і прив'яжіть Google у його налаштуваннях.",
+        },
+      },
+    });
+
+    const repeatedTelegramLogin = await requestJson(origin, "/api/auth/telegram", {
+      method: "POST",
+      body: JSON.stringify({ initData: signedMiniAppInitData(telegramId) }),
+    });
+    assert.equal((repeatedTelegramLogin.body as { player: { id: string } }).player.id, telegramLoginBody.player.id);
+  } finally {
+    if (playerIds.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
+    await close(server);
+    await pool.end();
+  }
+});

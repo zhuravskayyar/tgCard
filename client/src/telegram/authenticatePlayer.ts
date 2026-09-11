@@ -178,8 +178,8 @@ export async function linkGoogleAccount(credential: string, signal: AbortSignal,
   return linkIdentity({ provider: "google", credential, replaceExisting }, signal);
 }
 
-export async function linkTelegramAccount(authData: Record<string, string>, signal: AbortSignal, replaceExisting = false) {
-  return linkIdentity({ provider: "telegram", authData, replaceExisting }, signal);
+export async function linkTelegramAccount(authData: Record<string, string>, signal: AbortSignal) {
+  return linkIdentity({ provider: "telegram", authData }, signal);
 }
 
 async function linkIdentity(body: LinkIdentityRequest, signal: AbortSignal): Promise<LinkIdentityResponse> {

@@ -25,11 +25,13 @@ function isLinked(identities: AuthIdentityView[], provider: AuthIdentityView["pr
   return identities.some((identity) => identity.provider === provider);
 }
 
-type TransferRequest =
+type LinkRequest =
   | { provider: "google"; credential: string }
   | { provider: "telegram"; authData: Record<string, string> };
 
-function providerLabel(provider: TransferRequest["provider"]) {
+type TransferRequest = Extract<LinkRequest, { provider: "google" }>;
+
+function providerLabel(provider: LinkRequest["provider"]) {
   return provider === "google" ? "Google" : "Telegram";
 }
 
@@ -37,7 +39,7 @@ interface AccountTransferDialogProps {
   onCancel: () => void;
   onConfirm: () => void;
   pending: boolean;
-  provider: TransferRequest["provider"];
+  provider: LinkRequest["provider"];
 }
 
 function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: AccountTransferDialogProps) {
@@ -64,7 +66,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
-  const [pendingProvider, setPendingProvider] = useState<TransferRequest["provider"] | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<LinkRequest["provider"] | null>(null);
   const [transferRequest, setTransferRequest] = useState<TransferRequest | null>(null);
   const linkInFlightRef = useRef(false);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
@@ -78,7 +80,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
     return () => controller.abort();
   }, []);
 
-  const link = useCallback(async (request: TransferRequest, replaceExisting = false) => {
+  const link = useCallback(async (request: LinkRequest, replaceExisting = false) => {
     if (linkInFlightRef.current) return;
     linkInFlightRef.current = true;
     setLinkError(null);
@@ -88,12 +90,17 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
     try {
       const result = request.provider === "google"
         ? await linkGoogleAccount(request.credential, controller.signal, replaceExisting)
-        : await linkTelegramAccount(request.authData, controller.signal, replaceExisting);
+        : await linkTelegramAccount(request.authData, controller.signal);
       setIdentities(result.identities);
       setTransferRequest(null);
       setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.`);
     } catch (error) {
-      if (error instanceof AccountLinkError && error.code === "identity_belongs_to_other_player" && !replaceExisting) {
+      if (
+        request.provider === "google"
+        && error instanceof AccountLinkError
+        && error.code === "identity_belongs_to_other_player"
+        && !replaceExisting
+      ) {
         setTransferRequest(request);
       } else {
         setTransferRequest(null);

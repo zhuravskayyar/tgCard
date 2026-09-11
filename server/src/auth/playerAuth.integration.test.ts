@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { VerifiedIdentity } from "./identity.js";
 import { SessionRepository } from "./sessionRepository.js";
 import type { ValidatedTelegramUser } from "./telegramInitData.js";
-import { PlayerRepository } from "../users/playerRepository.js";
+import { PlayerRepository, TelegramIdentityAuthoritativeError } from "../users/playerRepository.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let sequence = 0n;
@@ -243,6 +243,39 @@ test("a verified identity can be transferred without merging or deleting player 
   } finally {
     await deletePlayers(pool, playerIds);
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegram.id]);
+    await pool.end();
+  }
+});
+
+test("an existing Telegram identity cannot be transferred away from its player", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const telegram = telegramUser("authoritative");
+  const google = googleIdentity(`telegram-authoritative-${Date.now()}-${sequence}`);
+  const telegramIdentity: VerifiedIdentity = {
+    provider: "telegram",
+    providerUserId: telegram.id,
+    email: null,
+    firstName: telegram.firstName,
+    lastName: telegram.lastName,
+    photoUrl: telegram.photoUrl,
+  };
+  const playerIds: string[] = [];
+  try {
+    const telegramOwner = await players.findOrCreateFromTelegram(telegram);
+    const googlePlayer = await players.findOrCreateFromIdentity(google);
+    playerIds.push(telegramOwner.id, googlePlayer.id);
+
+    await assert.rejects(
+      players.linkIdentity(googlePlayer.id, telegramIdentity, { replaceExisting: true }),
+      TelegramIdentityAuthoritativeError,
+    );
+
+    assert.equal((await players.findOrCreateFromTelegram(telegram)).id, telegramOwner.id);
+    assert.equal((await players.findOrCreateFromIdentity(google)).id, googlePlayer.id);
+  } finally {
+    await deletePlayers(pool, playerIds);
     await pool.end();
   }
 });

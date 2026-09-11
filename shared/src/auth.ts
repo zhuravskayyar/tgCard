@@ -27,7 +27,7 @@ export interface TelegramWebAuthRequest {
 
 export type LinkIdentityRequest =
   | { provider: "google"; credential: string; replaceExisting?: boolean }
-  | { provider: "telegram"; authData: Record<string, string>; replaceExisting?: boolean };
+  | { provider: "telegram"; authData: Record<string, string> };
 
 export interface LinkIdentityResponse {
   identities: AuthIdentityView[];

@@ -51,6 +51,13 @@ export class AuthIdentityConflictError extends Error {
   }
 }
 
+export class TelegramIdentityAuthoritativeError extends Error {
+  constructor() {
+    super("Telegram profiles cannot be transferred to another Cardastika profile.");
+    this.name = "TelegramIdentityAuthoritativeError";
+  }
+}
+
 export class AuthIdentityAlreadyLinkedError extends Error {
   constructor() {
     super("This authentication provider is already linked to the profile.");
@@ -480,18 +487,9 @@ export class PlayerRepository {
       );
       const previousOwnerId = owner.rows[0]?.player_id;
       if (previousOwnerId && previousOwnerId !== playerId) {
+        if (identity.provider === "telegram") throw new TelegramIdentityAuthoritativeError();
         if (!options.replaceExisting) throw new AuthIdentityConflictError();
         replacedExisting = true;
-        if (identity.provider === "telegram") {
-          await client.query(
-            "UPDATE players SET telegram_user_id = NULL, updated_at = NOW() WHERE id = $1 AND telegram_user_id::text = $2",
-            [previousOwnerId, identity.providerUserId],
-          );
-          await client.query(
-            "UPDATE players SET telegram_user_id = $2::bigint, updated_at = NOW() WHERE id = $1",
-            [playerId, identity.providerUserId],
-          );
-        }
         await client.query(
           `UPDATE auth_identities
            SET player_id = $1, email = $4
@@ -518,7 +516,11 @@ export class PlayerRepository {
       return { identities: await this.listAuthIdentities(playerId), replacedExisting };
     } catch (error) {
       await client?.query("ROLLBACK").catch(() => undefined);
-      if (error instanceof AuthIdentityAlreadyLinkedError || error instanceof AuthIdentityConflictError) throw error;
+      if (
+        error instanceof AuthIdentityAlreadyLinkedError
+        || error instanceof AuthIdentityConflictError
+        || error instanceof TelegramIdentityAuthoritativeError
+      ) throw error;
       throw new PlayerPersistenceError({ cause: error });
     } finally {
       client?.release();
