@@ -18,6 +18,8 @@ export type AppIconName =
   | "card-reward"
   | "card-shards"
   | "element-cards"
+  | "shop-anvil"
+  | "shop-universal-card"
   | "equipment"
   | "record"
   | "tournament"
@@ -130,6 +132,8 @@ const paths: Record<AppIconName, ReactNode> = {
       <path d="M12 3v18" />
     </>
   ),
+  "shop-anvil": null,
+  "shop-universal-card": null,
   equipment: (
     <>
       <path d="M8 10a4 4 0 0 1 8 0v2h2v9H6v-9h2v-2Z" />
@@ -224,6 +228,8 @@ const gameIconSources: Partial<Record<AppIconName, string>> = {
   "card-reward": "/assets/ui/world-tree/game-icons/card-reward.svg",
   "card-shards": "/assets/ui/shop/icon_card_shard_v2.webp",
   "element-cards": "/assets/ui/world-tree/game-icons/element-cards.svg",
+  "shop-anvil": "/assets/ui/shop/shop-workshop-anvil.png",
+  "shop-universal-card": "/assets/ui/shop/shop-cards-universal.png",
   equipment: "/assets/ui/world-tree/game-icons/equipment-backpack.svg",
   record: "/assets/ui/world-tree/game-icons/record-medallist.svg",
   tournament: "/assets/ui/world-tree/game-icons/laurels-trophy.svg",
@@ -255,6 +261,10 @@ export function AppIcon({ name, size = 24 }: AppIconProps) {
   const gameIconSource = gameIconSources[name];
 
   if (gameIconSource) {
+    if (/\.(?:avif|gif|jpe?g|png|webp)$/i.test(gameIconSource)) {
+      return <img alt="" aria-hidden="true" className="app-icon app-icon--raster" height={size} src={gameIconSource} width={size} />;
+    }
+
     return (
       <span
         aria-hidden="true"

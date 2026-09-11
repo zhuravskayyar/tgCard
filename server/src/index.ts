@@ -31,7 +31,7 @@ import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
 import { InventoryRepository } from "./inventory/inventoryRepository.js";
 import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCardsRoute.js";
-import { handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
+import { handleShopBundlePurchase, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
 import { MailService } from "./mail/mailService.js";
@@ -221,6 +221,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
+  const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
   const isCardWorkshopCatalogRoute = url.pathname === "/api/shop/card-workshop";
   const isCardWorkshopCraftRoute = url.pathname === "/api/shop/card-workshop/craft";
@@ -501,6 +502,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (isShopPurchaseRoute) {
     await handleShopPurchase(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      shop,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isShopBundlePurchaseRoute) {
+    await handleShopBundlePurchase(request, response, {
       auth,
       botToken: environment.telegramBotToken,
       players,

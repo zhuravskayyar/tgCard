@@ -5,7 +5,9 @@ import { Lariska } from "./Lariska";
 import type { TutorialStep } from "../hooks/useTutorial";
 
 interface TutorialOverlayProps {
+  actionPending?: boolean;
   duel: DuelView | null;
+  error?: string | null;
   onAction: () => void;
   onPause: () => void;
   screenKey: string;
@@ -47,7 +49,7 @@ const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = 
   campaign: "happy",
 };
 
-export function TutorialOverlay({ duel, onAction, onPause, screenKey, step }: TutorialOverlayProps) {
+export function TutorialOverlay({ actionPending = false, duel, error = null, onAction, onPause, screenKey, step }: TutorialOverlayProps) {
   const [rects, setRects] = useState<DOMRect[]>([]);
   const [viewport, setViewport] = useState<ViewportSize>(() => typeof window === "undefined"
     ? { height: 1, width: 1 }
@@ -180,8 +182,9 @@ export function TutorialOverlay({ duel, onAction, onPause, screenKey, step }: Tu
           {!referenceDuel ? <div className="tutorial-dialog__meta"><span>Лариска · Навчання</span></div> : null}
           {!referenceDuel ? <h2 id="tutorial-dialog-title">{copy.title}</h2> : null}
           <p>{step === "duel-advantage" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
-          {!referenceDuel ? <button className="tutorial-dialog__primary" onClick={onAction} type="button">{copy.action} <AppIcon name="chevron" size={16} /></button> : null}
-          {!referenceDuel ? <button className="tutorial-dialog__secondary" onClick={onPause} type="button">Пізніше</button> : null}
+          {!referenceDuel ? <button className="tutorial-dialog__primary" disabled={actionPending} onClick={onAction} type="button">{actionPending ? "ЗБЕРІГАЄМО…" : copy.action} <AppIcon name="chevron" size={16} /></button> : null}
+          {!referenceDuel && error ? <p className="tutorial-dialog__error" role="alert">{error}</p> : null}
+          {!referenceDuel ? <button className="tutorial-dialog__secondary" disabled={actionPending} onClick={onPause} type="button">Пізніше</button> : null}
         </div>
       </section>
     </div>

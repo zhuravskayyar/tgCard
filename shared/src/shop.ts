@@ -21,8 +21,17 @@ export interface ShopOffer {
 }
 
 export interface ShopCatalogResponse {
+  bundles: ShopBundleOffer[];
   limitedEvent?: LimitedShopEvent;
   offers: ShopOffer[];
+}
+
+export interface ShopBundleOffer {
+  canAfford: boolean;
+  cardCount: number;
+  currency: ShopCurrency;
+  id: string;
+  price: number;
 }
 
 export interface LimitedShopEvent {
@@ -54,6 +63,10 @@ export interface ShopPurchaseRequest {
   offerId: string;
 }
 
+export interface ShopBundlePurchaseRequest {
+  bundleId: string;
+}
+
 export interface PlayerBalance {
   gold: number;
   silver: number;
@@ -73,6 +86,16 @@ export interface ShopPurchaseResponse {
   reward: PlayerCard;
   updatedBalance: PlayerBalance;
   updatedChances: ShopChanceState[];
+}
+
+export interface ShopBundlePurchaseResponse {
+  collectionCompleted?: CollectionCompletionNotice;
+  deckChanged: boolean;
+  deckPower?: number;
+  newDiscoveryCardIds: string[];
+  previousDeckPower?: number;
+  rewards: PlayerCard[];
+  updatedBalance: PlayerBalance;
 }
 
 export interface CardWorkshopCard {

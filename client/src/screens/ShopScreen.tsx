@@ -1,20 +1,21 @@
 import { useState, type CSSProperties } from "react";
-import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type LimitedCardRedeemResponse, type ShopPurchaseResponse } from "@cardastika/shared";
+import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type ShopPurchaseResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { CurrencyIcon } from "../components/CurrencyDisplay";
-import { LimitedCardBanner } from "../components/LimitedCardBanner";
-import { LimitedCardReveal } from "../components/LimitedCardReveal";
 import { ShopOfferPanel } from "../components/ShopOfferPanel";
 import { ShopRewardReveal } from "../components/ShopRewardReveal";
 import { useShop } from "../hooks/useShop";
 import { CardArtwork } from "../components/CardArtwork";
 import { useCardWorkshop } from "../hooks/useCardWorkshop";
 import type { CardWorkshopCard } from "@cardastika/shared";
-import { getUiNumberLocale } from "../i18n";
 import { NicknameSkinShopPanel } from "../components/NicknameSkinShopPanel";
 import type { NicknameSkinId, PlayerSummary } from "@cardastika/shared";
 import type { PlayerSummaryState } from "../types/player";
 import { ShopWallet } from "../components/ShopWallet";
+import { ShopCategoryBanner } from "../components/ShopCategoryBanner";
+import { SHOP_CATEGORIES, type ShopCategory, type ShopCategoryId } from "../shop/shopCategories";
+import { ShopBoostSection } from "../components/ShopBoostSection";
+import { ShopBundleBanner } from "../components/ShopBundleBanner";
+import { SHOP_BUNDLES } from "../shop/shopBundles";
 
 interface ShopScreenProps {
   onBack: () => void;
@@ -22,6 +23,8 @@ interface ShopScreenProps {
   onCollectionCompleted: (completion: CollectionCompletionNotice) => void;
   onDeckPowerChange: (deckPower: number) => void;
   onEquippedSkinChange: (skinId: NicknameSkinId | null) => void;
+  onOpenDeck: () => void;
+  onOpenTasks: () => void;
   onTutorialPurchase?: () => void;
   onTutorialRevealContinue?: (destination?: { cardId: string; collectionId: string | null }) => void;
   onPurchaseContinue?: () => void;
@@ -34,27 +37,25 @@ const purchaseErrorMessages: Record<string, string> = {
   insufficient_silver: "Недостатньо срібла",
   insufficient_gold: "Недостатньо золота",
   reward_unavailable: "Для цієї пропозиції поки немає доступних карт.",
+  bundle_unavailable: "Карти цього набору тимчасово недоступні.",
+  bundle_not_found: "Цей набір більше не доступний.",
   database_unavailable: "Магазин тимчасово недоступний.",
   shop_request_failed: "Не вдалося виконати покупку.",
-};
-
-const limitedRedeemErrorMessages: Record<string, string> = {
-  invalid_promo_code: "Неправильний промокод.",
-  limited_card_already_redeemed: "Цей код уже активовано вашим гравцем.",
-  limited_event_inactive: "Період акції завершено.",
-  database_unavailable: "Лімітована нагорода тимчасово недоступна.",
 };
 
 interface ShopSectionHeadingProps {
   children: string;
 }
 
-type ShopSection = "cards" | "workshop" | "cosmetics";
+type ShopSection = "cards" | "workshop" | "cosmetics" | "boosts";
+type ShopView = "categories" | "section";
+type ShopReveal =
+  | { kind: "bundle"; bundleId: string; purchases: ShopPurchaseResponse[] }
+  | { kind: "offer"; offerId: string; purchases: ShopPurchaseResponse[] };
 
-const shopTabs: Array<{ icon: "element-cards" | "card-strength" | "inventory"; id: ShopSection; label: string }> = [
-  { icon: "element-cards", id: "cards", label: "Карти стихій" },
-  { icon: "card-strength", id: "workshop", label: "Майстерня карт" },
-  { icon: "inventory", id: "cosmetics", label: "Косметика" },
+const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil"; id: "cards" | "workshop"; label: string }> = [
+  { icon: "shop-universal-card", id: "cards", label: "Карти стихій" },
+  { icon: "shop-anvil", id: "workshop", label: "Майстерня карт" },
 ];
 
 function ShopSectionHeading({ children }: ShopSectionHeadingProps) {
@@ -128,18 +129,13 @@ function WorkshopCard({ card, cardShards, crafting, onCraft }: { card: CardWorks
 
 function CardWorkshopSection() {
   const { craft, craftErrorCode, craftingCardId, retry, state } = useCardWorkshop();
-  const [rarityFilter, setRarityFilter] = useState<CardRarity | "all">("all");
   const craftErrorMessages: Record<string, string> = {
     insufficient_card_shards: "Недостатньо уламків карт.",
     card_not_in_rotation: "Ця карта вже вийшла з ротації.",
     workshop_unavailable: "Ротація майстерні тимчасово недоступна.",
   };
-  const availableRarities = state.status === "ready"
-    ? CARD_RARITIES.filter((rarity) => state.data.cards.some((card) => card.rarity === rarity))
-    : [];
   const workshopCards = state.status === "ready"
     ? [...state.data.cards]
-      .filter((card) => rarityFilter === "all" || card.rarity === rarityFilter)
       .sort((left, right) => {
         const affordableDifference = Number(state.data.cardShards >= right.cost) - Number(state.data.cardShards >= left.cost);
         if (affordableDifference !== 0) return affordableDifference;
@@ -148,32 +144,26 @@ function CardWorkshopSection() {
         return (workshopRarityOrder.get(left.rarity) ?? 0) - (workshopRarityOrder.get(right.rarity) ?? 0);
       })
     : [];
-  return <section className="card-workshop" aria-labelledby="card-workshop-heading">
-    <div className="card-workshop__heading"><div><span>Нова доба — нові фрагменти</span><h2 id="card-workshop-heading">МАЙСТЕРНЯ КАРТ</h2></div></div>
+  return <section aria-label="Майстерня карт" className="card-workshop">
     <ShopWallet items={[{ id: "card-shards", icon: <CardShardMark size={18} />, label: "Кристали майстерні", value: state.status === "ready" ? state.data.cardShards : undefined }]} />
     {state.status === "loading" ? <div className="workshop-state">Завантаження ротації…</div> : null}
     {state.status === "unavailable" ? <div className="workshop-state">Майстерня доступна після запуску через Telegram.</div> : null}
     {state.status === "error" ? <div className="workshop-state workshop-state--error"><span>Не вдалося завантажити майстерню.</span><button onClick={retry} type="button">Повторити</button></div> : null}
     {state.status === "ready" ? <>
-      <p className="card-workshop__rotation">6 карт у глобальній ротації · до {new Date(state.data.rotationEndsAt).toLocaleTimeString(getUiNumberLocale(), { hour: "2-digit", minute: "2-digit" })}</p>
-      <div aria-label="Фільтр рідкості" className="workshop-filters" role="group">
-        <button className={rarityFilter === "all" ? "workshop-filter workshop-filter--active" : "workshop-filter"} onClick={() => setRarityFilter("all")} type="button">Усі</button>
-        {availableRarities.map((rarity) => <button className={rarityFilter === rarity ? "workshop-filter workshop-filter--active" : "workshop-filter"} key={rarity} onClick={() => setRarityFilter(rarity)} type="button">{rarityLabels[rarity]}</button>)}
-      </div>
       <div className="workshop-list">{workshopCards.map((card) => <WorkshopCard card={card} cardShards={state.data.cardShards} crafting={craftingCardId !== null} key={card.cardId} onCraft={() => void craft(card.cardId)} />)}</div>
     </> : null}
     {craftErrorCode ? <p className="workshop-error" role="alert">{craftErrorMessages[craftErrorCode] ?? "Не вдалося створити карту."}</p> : null}
   </section>;
 }
 
-export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
-  const { catalogState, limitedRedeemErrorCode, purchase, purchaseErrorCode, purchasingOfferId, redeemLimited, redeemingLimited, retryCatalog } = useShop();
+export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onOpenDeck, onOpenTasks, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
+  const { catalogState, purchase, purchaseBundle, purchaseErrorCode, purchasingBundleId, purchasingOfferId, retryCatalog } = useShop();
+  const [view, setView] = useState<ShopView>("categories");
   const [section, setSection] = useState<ShopSection>("cards");
+  const [activeCategory, setActiveCategory] = useState<ShopCategoryId | null>(null);
   const [batchPurchasing, setBatchPurchasing] = useState(false);
   const [purchaseCount, setPurchaseCount] = useState(0);
-  const [reveal, setReveal] = useState<{ offerId: string; purchases: ShopPurchaseResponse[] } | null>(null);
-  const [limitedReveal, setLimitedReveal] = useState<LimitedCardRedeemResponse | null>(null);
-  const [hiddenLimitedEventId, setHiddenLimitedEventId] = useState<string | null>(null);
+  const [reveal, setReveal] = useState<ShopReveal | null>(null);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const beginnerContext = returnScreen === "campaign-stage" || returnScreen === "tasks";
   const continueLabel = returnScreen === "campaign-stage"
@@ -194,32 +184,21 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
     }
   }
 
-  async function handleLimitedRedeem(eventId: string, promoCode: string) {
-    const result = await redeemLimited(eventId, promoCode);
-    if (!result) return;
-    if (result.deckChanged && result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
-    setLimitedReveal(result);
-  }
-
-  if (limitedReveal) {
-    return <LimitedCardReveal continueLabel={continueLabel} onContinue={() => { setLimitedReveal(null); onPurchaseContinue?.(); }} reward={limitedReveal.reward} />;
-  }
-
   if (reveal) {
     return (
       <ShopRewardReveal
-        canBuyTen={purchaseCount >= 10}
+        canBuyTen={reveal.kind === "offer" && purchaseCount >= 10}
         continueLabel={continueLabel}
         errorMessage={purchaseErrorCode ? purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку." : null}
-        onBuyAgain={() => void handlePurchase(reveal.offerId)}
-        onBuyTen={() => void handleBatchPurchase(reveal.offerId)}
+        onBuyAgain={() => reveal.kind === "offer" ? void handlePurchase(reveal.offerId) : void handleBundlePurchase(reveal.bundleId)}
+        onBuyTen={reveal.kind === "offer" ? () => void handleBatchPurchase(reveal.offerId) : undefined}
         onContinue={() => {
           const reward = reveal.purchases[0]?.reward;
           setReveal(null);
           onTutorialRevealContinue?.(reward ? { cardId: reward.cardId, collectionId: reward.collectionId } : undefined);
           onPurchaseContinue?.();
         }}
-        purchasing={batchPurchasing || purchasingOfferId === reveal.offerId}
+        purchasing={batchPurchasing || (reveal.kind === "offer" ? purchasingOfferId === reveal.offerId : purchasingBundleId === reveal.bundleId)}
         purchases={reveal.purchases}
       />
     );
@@ -230,7 +209,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
     if (!result) return;
     applyPurchaseResult(result);
     setPurchaseCount((current) => current + 1);
-    setReveal({ offerId, purchases: [result] });
+    setReveal({ kind: "offer", offerId, purchases: [result] });
     onTutorialPurchase?.();
   }
 
@@ -251,56 +230,101 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
 
       if (purchases.length) {
         setPurchaseCount((current) => current + completed);
-        setReveal({ offerId, purchases });
+        setReveal({ kind: "offer", offerId, purchases });
       }
     } finally {
       setBatchPurchasing(false);
     }
   }
 
+  async function handleBundlePurchase(bundleId: string) {
+    const result = await purchaseBundle(bundleId);
+    if (!result) return;
+    const discoveryIds = new Set(result.newDiscoveryCardIds);
+    const lastIndex = result.rewards.length - 1;
+    const purchases: ShopPurchaseResponse[] = result.rewards.map((reward, index) => ({
+      reward,
+      newDiscovery: discoveryIds.has(reward.cardId),
+      updatedBalance: result.updatedBalance,
+      updatedChances: [],
+      deckChanged: index === lastIndex && result.deckChanged,
+      ...(index === lastIndex && result.collectionCompleted ? { collectionCompleted: result.collectionCompleted } : {}),
+      ...(index === lastIndex && result.previousDeckPower !== undefined ? { previousDeckPower: result.previousDeckPower } : {}),
+      ...(index === lastIndex && result.deckPower !== undefined ? { deckPower: result.deckPower } : {}),
+    }));
+    applyPurchaseResult(purchases[lastIndex]);
+    setReveal({ kind: "bundle", bundleId, purchases });
+  }
+
   const errorMessage = purchaseErrorCode
     ? purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку."
     : null;
 
+  function handleCategorySelect(category: ShopCategory) {
+    setActiveCategory(category.id);
+    setSection(category.destination === "cosmetics" ? "cosmetics" : category.destination === "boosts" ? "boosts" : "cards");
+    setView("section");
+  }
+
+  function handleSectionSelect(nextSection: ShopSection) {
+    setSection(nextSection);
+  }
+
+  function handleShopBack() {
+    if (view === "section") {
+      setView("categories");
+      setActiveCategory(null);
+      return;
+    }
+    onBack();
+  }
+
+  const activeCategoryData = activeCategory ? SHOP_CATEGORIES.find((category) => category.id === activeCategory) : null;
+  const isReadyBundlesCategory = activeCategory === "ready-bundles";
+  const showCardTabs =
+    view === "section" &&
+    activeCategory === "magical-cards" &&
+    (section === "cards" || section === "workshop");
+
   return (
-    <section className={`shop-screen shop-screen--${section}`}>
+    <section className={`shop-screen shop-screen--${view} shop-screen--${section}`}>
       <header className="shop-heading">
-        <button aria-label="Назад" className="shop-back" onClick={onBack} type="button">
+        <button aria-label={view === "section" ? "До категорій" : "Назад"} className="shop-back" onClick={handleShopBack} type="button">
           <AppIcon name="chevron" size={20} />
         </button>
         <div>
-          <span>Крамниця карт</span>
+          <span>{view === "categories" ? "ОБЕРИ СВОЮ КАТЕГОРІЮ" : activeCategoryData?.title ?? "Крамниця карт"}</span>
           <h1>МАГАЗИН</h1>
         </div>
       </header>
 
-      <div className="shop-tabs" role="tablist" aria-label="Розділ магазину">
+      {view === "categories" ? (
+        <div aria-label="Категорії магазину" className="shop-category-list">
+          {SHOP_CATEGORIES.map((category) => <ShopCategoryBanner category={category} key={category.id} onSelect={handleCategorySelect} />)}
+        </div>
+      ) : null}
+
+      {showCardTabs ? <div className="shop-tabs" role="tablist" aria-label="Розділ магазину">
         {shopTabs.map((tab) => (
           <button
+            aria-label={tab.label}
             aria-selected={section === tab.id}
-            className={section === tab.id ? "shop-tab shop-tab--active" : "shop-tab"}
+            className={section === tab.id ? `shop-tab shop-tab--${tab.id} shop-tab--active` : `shop-tab shop-tab--${tab.id}`}
             key={tab.id}
-            onClick={() => setSection(tab.id)}
+            onClick={() => handleSectionSelect(tab.id)}
             role="tab"
             type="button"
           >
             <AppIcon name={tab.icon} size={24} />
-            <span>{tab.label}</span>
           </button>
         ))}
-      </div>
+      </div> : null}
 
-      {section === "cards" ? (
-        <ShopWallet items={[
-          { id: "silver", icon: <CurrencyIcon kind="silver" size={18} />, label: "Срібло", value: player?.silver },
-          { id: "gold", icon: <CurrencyIcon kind="gold" size={18} />, label: "Золото", value: player?.gold },
-        ]} />
-      ) : null}
+      {view === "section" && section === "workshop" ? <CardWorkshopSection /> : null}
+      {view === "section" && section === "cosmetics" ? <NicknameSkinShopPanel nickname={nickname} onBalanceChange={onBalanceChange} onEquippedSkinChange={onEquippedSkinChange} /> : null}
+      {view === "section" && section === "boosts" ? <ShopBoostSection onBack={handleShopBack} onOpenDeck={onOpenDeck} onOpenTasks={onOpenTasks} player={player} /> : null}
 
-      {section === "workshop" ? <CardWorkshopSection /> : null}
-      {section === "cosmetics" ? <NicknameSkinShopPanel nickname={nickname} onBalanceChange={onBalanceChange} onEquippedSkinChange={onEquippedSkinChange} /> : null}
-
-      {section === "cards" ? (
+      {view === "section" && section === "cards" ? (
         <>
           {catalogState.status === "loading" ? <div className="shop-state">Завантаження пропозицій…</div> : null}
           {catalogState.status === "unavailable" ? (
@@ -314,30 +338,27 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
           ) : null}
 
           {catalogState.status === "ready" ? (
-            <div className="shop-sections">
-              {(!beginnerContext || catalogState.catalog.limitedEvent) ? (
-                <section className="shop-featured" aria-labelledby="shop-featured-heading">
-                  <div id="shop-featured-heading">
-                    <ShopSectionHeading>Акційні набори</ShopSectionHeading>
-                  </div>
-                  {catalogState.catalog.limitedEvent && hiddenLimitedEventId !== catalogState.catalog.limitedEvent.id ? (
-                    <LimitedCardBanner
-                      errorMessage={limitedRedeemErrorCode ? limitedRedeemErrorMessages[limitedRedeemErrorCode] ?? "Не вдалося активувати карту." : null}
-                      event={catalogState.catalog.limitedEvent}
-                      onExpired={() => setHiddenLimitedEventId(catalogState.catalog.limitedEvent?.id ?? null)}
-                      onRedeem={(promoCode) => void handleLimitedRedeem(catalogState.catalog.limitedEvent!.id, promoCode)}
-                      redeeming={redeemingLimited}
-                    />
-                  ) : (
-                    <div className="shop-featured__empty">
-                      <AppIcon name="card-reward" size={18} />
-                      <strong>Акційних наборів зараз немає</strong>
-                      <span>Невдовзі</span>
-                    </div>
-                  )}
-                </section>
-              ) : null}
-
+            isReadyBundlesCategory ? (
+              <section className="shop-bundle-section" aria-label="Готові набори">
+                <ShopSectionHeading>Готові набори</ShopSectionHeading>
+                <div className="shop-bundle-list">
+                  {SHOP_BUNDLES.map((bundle) => (
+                    catalogState.catalog.bundles.find((offer) => offer.id === bundle.id) ? (
+                      <ShopBundleBanner
+                        availableBalance={player?.gold}
+                        bundle={bundle}
+                        disabled={purchasingOfferId !== null || purchasingBundleId !== null}
+                        key={bundle.id}
+                        offer={catalogState.catalog.bundles.find((offer) => offer.id === bundle.id)!}
+                        onPurchase={() => void handleBundlePurchase(bundle.id)}
+                        purchasing={purchasingBundleId === bundle.id}
+                      />
+                    ) : null
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <div className="shop-sections">
               <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
                 <ShopSectionHeading>По одній карті</ShopSectionHeading>
                 {catalogState.catalog.offers.length ? (
@@ -358,7 +379,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
                     .map((offer, index) => {
                     return (
                       <ShopOfferPanel
-                        disabled={purchasingOfferId !== null}
+                        disabled={purchasingOfferId !== null || purchasingBundleId !== null}
                         dataTutorialTarget={index === 0 ? "shop-basic-offer" : undefined}
                         availableBalance={player ? (offer.currency === "silver" ? player.silver : player.gold) : undefined}
                         key={offer.id}
@@ -373,12 +394,8 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
                 )}
               </section>
 
-              <aside className="shop-chance-note">
-                <span>Бонус до шансу</span>
-                <strong>Кожна невдала спроба наближає рідкіснішу карту</strong>
-                <p>Поточний шанс і приріст указано окремо в кожній пропозиції.</p>
-              </aside>
-            </div>
+              </div>
+            )
           ) : null}
         </>
       ) : null}

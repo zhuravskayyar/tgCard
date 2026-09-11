@@ -65,6 +65,8 @@ export function App() {
   const dailyLogin = useDailyLoginReward(playerSummaryState.status === "ready");
   const playerEquipmentState = usePlayerEquipment(true);
   const [tutorialDuel, setTutorialDuel] = useState<DuelView | null>(null);
+  const [tutorialCompletionError, setTutorialCompletionError] = useState<string | null>(null);
+  const [tutorialCompletionPending, setTutorialCompletionPending] = useState(false);
   const [webAuthError, setWebAuthError] = useState<string | null>(null);
   const initialPath = typeof window === "undefined" ? "/" : window.location.pathname;
   const initialFrom = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("from");
@@ -344,17 +346,24 @@ export function App() {
   }
 
   async function finishTutorial() {
+    if (tutorialCompletionPending) return;
     const initData = getTelegramInitData();
-    if (initData) {
-      try {
-        const player = await completeTutorial(initData);
-        updateBalance({ tutorialEligible: player.tutorialEligible });
-      } catch {
-        // Keep the local route unblocked if the server is temporarily unavailable.
-      }
+    if (!initData) {
+      setTutorialCompletionError("Не вдалося зберегти прогрес. Перевір з’єднання та спробуй ще раз.");
+      return;
     }
-    tutorial.complete();
-    openCampaign();
+    setTutorialCompletionError(null);
+    setTutorialCompletionPending(true);
+    try {
+      const player = await completeTutorial(initData);
+      updateBalance({ tutorialEligible: player.tutorialEligible });
+      tutorial.complete();
+      openCampaign();
+    } catch {
+      setTutorialCompletionError("Не вдалося зберегти прогрес. Перевір з’єднання та спробуй ще раз.");
+    } finally {
+      setTutorialCompletionPending(false);
+    }
   }
 
   function continueToTutorialDeck() {
@@ -525,7 +534,7 @@ export function App() {
       playerSummaryState={playerSummaryState}
       screenKey={screen}
       deckPowerOverride={deckPowerOverride}
-      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay duel={tutorialDuel} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
+      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
       modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
     >
       {screen === "home" ? (
@@ -616,6 +625,8 @@ export function App() {
           onCollectionCompleted={addCollectionBonus}
           onDeckPowerChange={setDeckPowerOverride}
           onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })}
+          onOpenDeck={() => openDeck("home")}
+          onOpenTasks={openTasks}
           playerSummaryState={playerSummaryState}
           nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"}
           returnScreen={shopReturnScreen}

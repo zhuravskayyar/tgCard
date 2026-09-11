@@ -193,6 +193,18 @@ witches_02 | Відьма Води | witches_02
 witches_03 | Відьма Землі | witches_03
 witches_04 | Відьма Повітря | witches_04
 
+# Духи стихій
+element_spirits_01 | Дух Вогню | element_spirits_01.png
+element_spirits_02 | Дух Води | element_spirits_02.png
+element_spirits_03 | Дух Землі | element_spirits_03.png
+element_spirits_04 | Дух Повітря | element_spirits_04.png
+
+# Гоблінська братва
+goblin_brotherhood_01 | Рвач | goblin_brotherhood_01.png
+goblin_brotherhood_02 | Шнир | goblin_brotherhood_02.png
+goblin_brotherhood_03 | Порох | goblin_brotherhood_03.png
+goblin_brotherhood_04 | Батя Грум | goblin_brotherhood_04.png
+
 # Лімітовані карти
 limited_rabbit_carter | Кролик Картер | rabbit_carter.png
 limited_necrat | Некрат | necrat.png

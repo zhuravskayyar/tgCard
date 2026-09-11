@@ -14,8 +14,9 @@ export const TUTORIAL_STEPS = [
 export type TutorialStep = (typeof TUTORIAL_STEPS)[number];
 export type TutorialStatus = TutorialStep | "paused" | null;
 
-const TUTORIAL_STORAGE_PREFIX = "cardastika:interactive-tutorial:v5:";
-const PREVIOUS_TUTORIAL_STORAGE_PREFIX = "cardastika:interactive-tutorial:v4:";
+const TUTORIAL_STORAGE_PREFIX = "cardastika:interactive-tutorial:v6:";
+const PREVIOUS_TUTORIAL_STORAGE_PREFIX = "cardastika:interactive-tutorial:v5:";
+const LEGACY_TUTORIAL_STORAGE_PREFIX = "cardastika:interactive-tutorial:v4:";
 
 interface StoredTutorialState {
   paused: boolean;
@@ -27,11 +28,7 @@ function isTutorialStep(value: unknown): value is TutorialStep {
 }
 
 function normalizeStoredState(parsed: Partial<StoredTutorialState>): StoredTutorialState {
-  const step = parsed.step === "campaign"
-    ? "complete"
-    : isTutorialStep(parsed.step)
-      ? parsed.step
-      : "intro";
+  const step = isTutorialStep(parsed.step) ? parsed.step : "intro";
   return {
     paused: step === "complete" ? false : parsed.paused === true,
     step,
@@ -47,12 +44,13 @@ function readState(playerId: string): StoredTutorialState {
     const currentKey = storageKey(playerId);
     const currentRaw = window.localStorage.getItem(currentKey);
     const previousRaw = window.localStorage.getItem(`${PREVIOUS_TUTORIAL_STORAGE_PREFIX}${playerId}`);
-    const raw = currentRaw ?? previousRaw;
+    const legacyRaw = window.localStorage.getItem(`${LEGACY_TUTORIAL_STORAGE_PREFIX}${playerId}`);
+    const raw = currentRaw ?? previousRaw ?? legacyRaw;
     if (!raw) return { paused: false, step: "intro" };
     const parsed = JSON.parse(raw) as Partial<StoredTutorialState>;
-    if (!currentRaw) {
+    if (!currentRaw && !previousRaw) {
       return parsed.step === "campaign" || parsed.step === "complete"
-        ? normalizeStoredState(parsed)
+        ? { paused: false, step: "complete" }
         : { paused: false, step: "intro" };
     }
     return normalizeStoredState(parsed);

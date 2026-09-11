@@ -3,6 +3,7 @@ import type { CardRarity, ShopOffer } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CardQualityBadge } from "./CardQualityBadge";
 import { CurrencyIcon } from "./CurrencyDisplay";
+import { ShopInsufficientFundsModal } from "./ShopInsufficientFundsModal";
 
 const rarityLabels: Record<CardRarity, string> = {
   common: "Звичайна",
@@ -29,30 +30,6 @@ interface ShopOfferPanelProps {
   offer: ShopOffer;
   onPurchase: () => void;
   purchasing: boolean;
-}
-
-interface InsufficientFundsModalProps {
-  currency: "gold" | "silver";
-  shortage: number;
-  onClose: () => void;
-}
-
-function InsufficientFundsModal({ currency, shortage, onClose }: InsufficientFundsModalProps) {
-  const currencyLabel = currency === "silver" ? "срібла" : "золота";
-
-  return (
-    <div className="shop-insufficient-modal" role="dialog" aria-modal="true" aria-labelledby="shop-insufficient-modal-title">
-      <button aria-label="Закрити" className="shop-insufficient-modal__backdrop" onClick={onClose} type="button" />
-      <section className="shop-insufficient-modal__dialog">
-        <span className="shop-insufficient-modal__eyebrow">Магазин</span>
-        <h2 id="shop-insufficient-modal-title">Недостатньо ресурсів</h2>
-        <p>
-          Потрібно ще <strong>{shortage}</strong> <CurrencyIcon kind={currency} size={20} /> {currencyLabel}.
-        </p>
-        <button className="shop-insufficient-modal__ok" onClick={onClose} type="button">ОК</button>
-      </section>
-    </div>
-  );
 }
 
 export function ShopOfferPanel({
@@ -135,7 +112,7 @@ export function ShopOfferPanel({
       </div>
       </article>
       {insufficientOpen && shortage !== null && shortage > 0 ? (
-        <InsufficientFundsModal currency={offer.currency} onClose={() => setInsufficientOpen(false)} shortage={shortage} />
+        <ShopInsufficientFundsModal currency={offer.currency} onClose={() => setInsufficientOpen(false)} shortage={shortage} />
       ) : null}
     </>
   );

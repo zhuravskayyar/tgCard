@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LimitedCardRedeemResponse, ShopCatalogResponse, ShopPurchaseResponse } from "@cardastika/shared";
+import type { LimitedCardRedeemResponse, ShopBundlePurchaseResponse, ShopCatalogResponse, ShopPurchaseResponse } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
-import { loadShopCatalog, purchaseShopOffer, redeemLimitedCard, ShopApiError } from "../telegram/shop";
+import { loadShopCatalog, purchaseShopBundle, purchaseShopOffer, redeemLimitedCard, ShopApiError } from "../telegram/shop";
 
 export type ShopCatalogState =
   | { status: "loading" }
@@ -13,6 +13,7 @@ export function useShop() {
   const [attempt, setAttempt] = useState(0);
   const [catalogState, setCatalogState] = useState<ShopCatalogState>({ status: "loading" });
   const [purchaseErrorCode, setPurchaseErrorCode] = useState<string | null>(null);
+  const [purchasingBundleId, setPurchasingBundleId] = useState<string | null>(null);
   const [purchasingOfferId, setPurchasingOfferId] = useState<string | null>(null);
   const [limitedRedeemErrorCode, setLimitedRedeemErrorCode] = useState<string | null>(null);
   const [redeemingLimited, setRedeemingLimited] = useState(false);
@@ -60,6 +61,11 @@ export function useShop() {
         ? {
             status: "ready",
             catalog: {
+              ...current.catalog,
+              bundles: current.catalog.bundles.map((bundle) => ({
+                ...bundle,
+                canAfford: result.updatedBalance[bundle.currency] >= bundle.price,
+              })),
               offers: current.catalog.offers.map((offer) => ({
                 ...offer,
                 canAfford: result.updatedBalance[offer.currency] >= offer.price,
@@ -84,6 +90,46 @@ export function useShop() {
       if (purchaseControllerRef.current === controller) purchaseControllerRef.current = null;
       purchaseInFlightRef.current = false;
       setPurchasingOfferId(null);
+    }
+  }, []);
+
+  const purchaseBundle = useCallback(async (bundleId: string): Promise<ShopBundlePurchaseResponse | null> => {
+    const initData = getTelegramInitData();
+    if (!initData || purchaseInFlightRef.current) return null;
+
+    purchaseInFlightRef.current = true;
+    const controller = new AbortController();
+    purchaseControllerRef.current = controller;
+    setPurchaseErrorCode(null);
+    setPurchasingBundleId(bundleId);
+    try {
+      const result = await purchaseShopBundle(initData, bundleId, controller.signal);
+      setCatalogState((current) => current.status === "ready"
+        ? {
+            status: "ready",
+            catalog: {
+              ...current.catalog,
+              bundles: current.catalog.bundles.map((bundle) => ({
+                ...bundle,
+                canAfford: result.updatedBalance[bundle.currency] >= bundle.price,
+              })),
+              offers: current.catalog.offers.map((offer) => ({
+                ...offer,
+                canAfford: result.updatedBalance[offer.currency] >= offer.price,
+              })),
+            },
+          }
+        : current);
+      return result;
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setPurchaseErrorCode(error instanceof ShopApiError ? error.code : "shop_request_failed");
+      }
+      return null;
+    } finally {
+      if (purchaseControllerRef.current === controller) purchaseControllerRef.current = null;
+      purchaseInFlightRef.current = false;
+      setPurchasingBundleId(null);
     }
   }, []);
 
@@ -122,7 +168,9 @@ export function useShop() {
     catalogState,
     limitedRedeemErrorCode,
     purchase,
+    purchaseBundle,
     purchaseErrorCode,
+    purchasingBundleId,
     purchasingOfferId,
     redeemLimited,
     redeemingLimited,

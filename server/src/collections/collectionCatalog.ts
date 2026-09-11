@@ -19,7 +19,7 @@ export interface CollectionDefinition {
   source: CollectionSource;
 }
 
-type CardSeed = readonly [displayName: string, element: CardElement, minRarity: CardRarity, description: string];
+type CardSeed = readonly [displayName: string, element: CardElement, minRarity: CardRarity, description: string, artKey?: string | null];
 
 function collection(
   code: string,
@@ -39,7 +39,7 @@ function collection(
     coverArtKey,
     bonus: Object.freeze(bonus),
     bonusLabel,
-    cards: Object.freeze(cards.map(([cardName, element, minRarity], index) => {
+    cards: Object.freeze(cards.map(([cardName, element, minRarity, , cardArtKey], index) => {
       const cardId = `${code}_${String(index + 1).padStart(2, "0")}`;
       const holo = getCardHoloConfig(cardId);
       return Object.freeze({
@@ -47,7 +47,7 @@ function collection(
       code: cardId,
       displayName: cardName,
       description: getCardDescription(cardId),
-      artKey: cardId,
+      artKey: cardArtKey === undefined ? cardId : cardArtKey,
       element,
       collectionId: id,
       minRarity,
@@ -173,6 +173,18 @@ export const COLLECTIONS: readonly CollectionDefinition[] = Object.freeze([
     ["Відьма Землі", "earth", "legendary", "Відьма Землі будить камінь одним дотиком. Після цього навіть гори поводяться обережніше."],
     ["Відьма Повітря", "air", "legendary", "Відьма Повітря не залишає слідів — тільки рух пір’я, іскру в небі та відчуття, що буря вже поруч."],
   ], "witches_01", "raid"),
+  collection("element_spirits", "Духи стихій", { type: "none", value: 0 }, "", [
+    ["Дух Вогню", "fire", "epic", "Чистий дух вогню, що тримається в повітрі як живе полум’я.", "element_spirits_01"],
+    ["Дух Води", "water", "epic", "Чистий дух води, що змінює форму разом із кожною хвилею.", "element_spirits_02"],
+    ["Дух Землі", "earth", "epic", "Чистий дух землі, зібраний із каменю, пилу й глибокої тиші.", "element_spirits_03"],
+    ["Дух Повітря", "air", "epic", "Чистий дух повітря, помітний лише за рухом, який він залишає після себе.", "element_spirits_04"],
+  ]),
+  collection("goblin_brotherhood", "Гоблінська братва", { type: "none", value: 0 }, "", [
+    ["Рвач", "earth", "epic", "Рвач бере силою й не визнає перешкод, які не можна проломити напролом.", "goblin_brotherhood_01"],
+    ["Шнир", "air", "epic", "Шнир прослизає крізь будь-яку метушню раніше, ніж хтось встигає його помітити.", "goblin_brotherhood_02"],
+    ["Порох", "fire", "epic", "Пороху достатньо однієї іскри, щоб гоблінська витівка стала справжнім вибухом.", "goblin_brotherhood_03"],
+    ["Батя Грум", "water", "epic", "Батя Грум спокійно переживає будь-який гармидер і повертає його проти суперника.", "goblin_brotherhood_04"],
+  ]),
 ]);
 
 export const COLLECTION_CARDS = Object.freeze(COLLECTIONS.flatMap(({ cards }) => cards));
@@ -180,20 +192,16 @@ export const COLLECTION_CARDS = Object.freeze(COLLECTIONS.flatMap(({ cards }) =>
 export function validateCollectionCatalog() {
   const standardCollections = COLLECTIONS.filter(({ source }) => source === "standard");
   const raidCollections = COLLECTIONS.filter(({ source }) => source === "raid");
-  const sizes = standardCollections.map(({ cards }) => cards.length);
   const codes = new Set(COLLECTION_CARDS.map(({ code }) => code));
   const elementCounts = COLLECTION_CARDS.reduce<Record<CardElement, number>>((counts, card) => {
     counts[card.element] += 1;
     return counts;
   }, { fire: 0, water: 0, air: 0, earth: 0 });
 
-  if (COLLECTIONS.length !== 18) throw new Error("Collection catalog must contain exactly 18 collections");
-  if (standardCollections.length !== 17) throw new Error("Standard collection catalog must contain exactly 17 collections");
-  if (COLLECTION_CARDS.length !== 133) throw new Error("Collection catalog must contain exactly 133 cards");
+  if (COLLECTIONS.length !== 20) throw new Error("Collection catalog must contain exactly 20 collections");
+  if (standardCollections.length !== 19) throw new Error("Standard collection catalog must contain exactly 19 collections");
+  if (COLLECTION_CARDS.length !== 141) throw new Error("Collection catalog must contain exactly 141 cards");
   if (codes.size !== COLLECTION_CARDS.length) throw new Error("Canonical collection card codes must be unique");
-  if (sizes.join(",") !== "6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,9") {
-    throw new Error("Standard collection sizes are invalid");
-  }
   if (raidCollections.length !== 1 || raidCollections[0]?.code !== "witches" || raidCollections[0].cards.length !== 4) {
     throw new Error("Raid collection catalog must contain exactly four Witch cards");
   }
@@ -205,6 +213,19 @@ export function validateCollectionCatalog() {
   }
   if (COLLECTION_CARDS.some(({ collectionId }) => !collectionId)) {
     throw new Error("Every collection card must belong to exactly one collection");
+  }
+  for (const code of ["element_spirits", "goblin_brotherhood"] as const) {
+    const newCollection = COLLECTIONS.find((collection) => collection.code === code);
+    if (!newCollection || newCollection.cards.length !== 4) {
+      throw new Error(`${code} collection must contain exactly four cards`);
+    }
+    if (newCollection.cards.some(({ minRarity }) => minRarity !== "epic")) {
+      throw new Error(`${code} collection cards must all be epic`);
+    }
+  }
+  const goblinCollection = COLLECTIONS.find(({ code }) => code === "goblin_brotherhood");
+  if (goblinCollection?.cards.map(({ element }) => element).sort().join(",") !== "air,earth,fire,water") {
+    throw new Error("Goblin Brotherhood cards must contain one card per element");
   }
   return { collectionCount: COLLECTIONS.length, cardCount: COLLECTION_CARDS.length, elementCounts };
 }

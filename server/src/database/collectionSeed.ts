@@ -119,14 +119,16 @@ export async function seedCollectionDefinitions(client: PoolClient) {
     `,
     [canonicalIds, STARTER_CARDS.map(({ id }) => id)],
   );
-  if (Number(databaseValidation.rows[0]?.canonical_cards) !== 142) {
-    throw new Error("Database seed must contain exactly 142 canonical cards");
+  const canonicalCardCount = canonicalIds.length;
+  const starterCardCount = STARTER_CARDS.length;
+  if (Number(databaseValidation.rows[0]?.canonical_cards) !== canonicalCardCount) {
+    throw new Error(`Database seed must contain exactly ${canonicalCardCount} canonical cards`);
   }
-  if (Number(databaseValidation.rows[0]?.external_starters) !== 9) {
-    throw new Error("All 9 starter cards must remain outside collections");
+  if (Number(databaseValidation.rows[0]?.external_starters) !== starterCardCount) {
+    throw new Error(`All ${starterCardCount} starter cards must remain outside collections`);
   }
-  if (Number(databaseValidation.rows[0]?.described_cards) !== 142) {
-    throw new Error("All 142 canonical cards must have non-empty descriptions");
+  if (Number(databaseValidation.rows[0]?.described_cards) !== canonicalCardCount) {
+    throw new Error(`All ${canonicalCardCount} canonical cards must have non-empty descriptions`);
   }
 
   return validation;

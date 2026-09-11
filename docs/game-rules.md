@@ -4,8 +4,9 @@ These are the current product constraints.
 
 - A deck contains 9 cards.
 - The game has 4 elements and 6 rarity levels.
-- The final card target is 180 cards arranged as 20 collections of 9 cards.
-- There are also 9 starter cards outside those collections.
+- The canonical catalog currently contains 150 cards: 141 collection cards in
+  20 collections of varying sizes and 9 starter cards outside those
+  collections.
 - Collection bonuses come from completed collections; an instance's persisted
   creation `bonusPower` is part of its own final power, not a mutable card buff.
 - A new account starts with 1,500 silver, 0 gold, and 9 starter cards.

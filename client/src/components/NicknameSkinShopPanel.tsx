@@ -46,7 +46,7 @@ export function NicknameSkinShopPanel({ nickname, onBalanceChange, onEquippedSki
   return (
     <section className="nickname-shop-section" aria-labelledby="nickname-shop-heading">
       <ShopWallet items={[{ id: "arena-tokens", icon: <AppIcon name="arena-token" size={18} />, label: "Жетони", value: offer?.tokenBalance }]} />
-      <div className="shop-section-heading"><span aria-hidden="true" /><h2 id="nickname-shop-heading">КОСМЕТИКА</h2><span aria-hidden="true" /></div>
+      <div className="shop-section-heading"><span aria-hidden="true" /><h2 id="nickname-shop-heading">ВИГЛЯД</h2><span aria-hidden="true" /></div>
       {state.status === "loading" ? <div className="shop-state">Завантаження косметики…</div> : null}
       {state.status === "unavailable" ? <div className="shop-state">Косметика доступна після запуску через Telegram.</div> : null}
       {state.status === "error" ? <div className="shop-state shop-state--error"><span>Не вдалося завантажити косметику.</span><button onClick={retry} type="button">Повторити</button></div> : null}

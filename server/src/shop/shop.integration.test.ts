@@ -181,6 +181,48 @@ test("prices, miss increments, independent instances, and persisted pity are aut
   }
 });
 
+test("ready bundles cost 60 gold and grant their four canonical epic cards", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const inventory = new InventoryRepository(pool);
+  const user = createTelegramUser("ready-bundle");
+
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET gold = 60 WHERE id = $1", [player.id]);
+    const shop = new ShopService(pool);
+    const catalog = await shop.getCardsCatalog(player.id);
+    assert.deepEqual(catalog.bundles, [
+      { id: "elemental-spirits", currency: "gold", price: 60, cardCount: 4, canAfford: true },
+      { id: "goblin-brotherhood", currency: "gold", price: 60, cardCount: 4, canAfford: true },
+    ]);
+
+    const result = await shop.purchaseBundle(player.id, "elemental-spirits");
+    const expectedCardIds = [
+      "element_spirits_01",
+      "element_spirits_02",
+      "element_spirits_03",
+      "element_spirits_04",
+    ];
+    assert.deepEqual(result.updatedBalance.gold, 0);
+    assert.deepEqual(result.rewards.map(({ cardId }) => cardId), expectedCardIds);
+    assert.ok(result.rewards.every(({ rarity }) => rarity === "epic"));
+    assert.equal(new Set(result.rewards.map(({ instanceId }) => instanceId)).size, 4);
+    const ownedCards = await inventory.findByPlayerId(player.id);
+    assert.equal(ownedCards.filter(({ cardId }) => expectedCardIds.includes(cardId)).length, 4);
+    await assert.rejects(
+      shop.purchaseBundle(player.id, "goblin-brotherhood"),
+      (error) => error instanceof InsufficientShopFundsError,
+    );
+  } finally {
+    await cleanup(pool, [user.id], []);
+    await pool.end();
+  }
+});
+
 test("pity belongs to one player and survives a new service/session", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });

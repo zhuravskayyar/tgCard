@@ -6,8 +6,10 @@ import {
   type GeneratedLevelPolicy,
 } from "@cardastika/game-core";
 import type {
+  CardDefinition,
   CardRarity,
   PlayerBalance,
+  ShopBundlePurchaseResponse,
   ShopCatalogResponse,
   ShopOffer,
   ShopPurchaseResponse,
@@ -28,6 +30,7 @@ import {
   type StoredShopChance,
 } from "./shopChancePolicy.js";
 import { findShopOffer, SHOP_OFFERS, type ShopOfferDefinition } from "./shopCatalog.js";
+import { findShopBundle, SHOP_BUNDLES } from "./shopBundleCatalog.js";
 import {
   CryptoShopRandomSource,
   selectCanonicalShopReward,
@@ -51,6 +54,19 @@ interface ShopChanceRow {
 interface DeckPowerCardRow {
   bonus_power: string | number;
   level: string | number;
+}
+
+interface BundleCardRow {
+  art_key: string | null;
+  card_id: string;
+  code: string;
+  collection_id: string | null;
+  description: string;
+  display_name: string | null;
+  element: CardDefinition["element"];
+  limited: boolean;
+  min_rarity: CardRarity;
+  shop_eligible: boolean;
 }
 
 type ShopRewardSelector = (
@@ -80,6 +96,20 @@ export class ShopOfferMissingError extends Error {
   constructor() {
     super("Shop offer does not exist");
     this.name = "ShopOfferMissingError";
+  }
+}
+
+export class ShopBundleMissingError extends Error {
+  constructor() {
+    super("Shop bundle does not exist");
+    this.name = "ShopBundleMissingError";
+  }
+}
+
+export class ShopBundleUnavailableError extends Error {
+  constructor() {
+    super("Shop bundle cards are unavailable");
+    this.name = "ShopBundleUnavailableError";
   }
 }
 
@@ -226,12 +256,143 @@ export class ShopService {
       const balance = toBalance(player);
       const limitedEvent = await this.limitedCards?.getActiveEvent(playerId);
       return {
+        bundles: SHOP_BUNDLES.map((bundle) => ({
+          id: bundle.id,
+          currency: bundle.currency,
+          price: bundle.price,
+          cardCount: bundle.cardIds.length,
+          canAfford: balance[bundle.currency] >= bundle.price,
+        })),
         offers: SHOP_OFFERS.map((offer) => toPlayerFacingOffer(offer, balance, chanceResult.rows)),
         ...(limitedEvent ? { limitedEvent } : {}),
       };
     } catch (error) {
       if (error instanceof ShopPlayerMissingError) throw error;
       throw new ShopPersistenceError();
+    }
+  }
+
+  async purchaseBundle(playerId: string, bundleId: string): Promise<ShopBundlePurchaseResponse> {
+    const bundle = findShopBundle(bundleId);
+    if (!bundle) throw new ShopBundleMissingError();
+
+    let client: PoolClient;
+    try {
+      client = await this.pool.connect();
+    } catch {
+      throw new ShopPersistenceError();
+    }
+
+    try {
+      await client.query("BEGIN");
+      const playerResult = await client.query<PlayerBalanceRow>(
+        "SELECT id, silver, gold FROM players WHERE id = $1 FOR UPDATE",
+        [playerId],
+      );
+      const player = playerResult.rows[0];
+      if (!player) throw new ShopPlayerMissingError();
+
+      const currentBalance = toBalance(player);
+      if (currentBalance[bundle.currency] < bundle.price) {
+        throw new InsufficientShopFundsError(bundle.currency);
+      }
+
+      const cardsResult = await client.query<BundleCardRow>(
+        `
+          SELECT
+            cards.id AS card_id,
+            cards.code,
+            cards.display_name,
+            cards.art_key,
+            cards.element,
+            cards.collection_id,
+            cards.min_rarity,
+            cards.shop_eligible,
+            cards.description,
+            cards.limited
+          FROM cards
+          WHERE cards.id = ANY($1::text[])
+            AND cards.shop_eligible = TRUE
+            AND cards.limited = FALSE
+            AND cards.source = 'standard'
+          FOR SHARE OF cards
+        `,
+        [bundle.cardIds],
+      );
+      const cardsById = new Map(cardsResult.rows.map((row) => [row.card_id, row]));
+      const bundleCards = bundle.cardIds.map((cardId) => cardsById.get(cardId));
+      if (bundleCards.some((card) => !card)) throw new ShopBundleUnavailableError();
+
+      const previousDeckPower = await loadCurrentDeckPower(client, playerId);
+      const balanceResult = await client.query<PlayerBalanceRow>(
+        `
+          UPDATE players
+          SET ${bundle.currency} = ${bundle.currency} - $2, updated_at = NOW()
+          WHERE id = $1 AND ${bundle.currency} >= $2
+          RETURNING id, silver, gold
+        `,
+        [playerId, bundle.price],
+      );
+      const updatedPlayer = balanceResult.rows[0];
+      if (!updatedPlayer) throw new InsufficientShopFundsError(bundle.currency);
+
+      const rewards: ShopBundlePurchaseResponse["rewards"] = [];
+      const newDiscoveryCardIds: string[] = [];
+      let collectionCompleted: ShopBundlePurchaseResponse["collectionCompleted"];
+      for (const row of bundleCards) {
+        if (!row) throw new ShopBundleUnavailableError();
+        const definition: CardDefinition = {
+          id: row.card_id,
+          code: row.code,
+          displayName: row.display_name,
+          artKey: row.art_key,
+          element: row.element,
+          collectionId: row.collection_id,
+          description: row.description,
+          minRarity: row.min_rarity,
+          shopEligible: row.shop_eligible,
+          limited: row.limited,
+        };
+        const level = selectGeneratedLevelForRarity(row.min_rarity, this.rng, this.levelPolicy);
+        const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
+        const discovery = await recordCardDiscovery(client, playerId, definition.id);
+        rewards.push(reward);
+        if (discovery.newDiscovery) newDiscoveryCardIds.push(definition.id);
+        if (discovery.collectionCompleted) collectionCompleted = discovery.collectionCompleted;
+        await this.campaign?.recordEvent(client, playerId, "SHOP_CARD_PURCHASED");
+        await this.campaign?.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: reward.rarity });
+        if (discovery.newDiscovery) {
+          await this.campaign?.recordEvent(client, playerId, "CARD_DISCOVERED");
+        }
+      }
+
+      const deckResult = await this.recalculateDeck(client, playerId);
+      const response: ShopBundlePurchaseResponse = {
+        rewards,
+        newDiscoveryCardIds,
+        updatedBalance: toBalance(updatedPlayer),
+        deckChanged: deckResult.status === "updated",
+      };
+      if (collectionCompleted) response.collectionCompleted = collectionCompleted;
+      if (deckResult.status !== "insufficient_valid_cards") {
+        response.previousDeckPower = previousDeckPower;
+        response.deckPower = deckResult.totalPower;
+      }
+
+      await client.query("COMMIT");
+      return response;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      if (
+        error instanceof InsufficientShopFundsError ||
+        error instanceof ShopBundleUnavailableError ||
+        error instanceof ShopPlayerMissingError
+      ) {
+        throw error;
+      }
+      throw new ShopPersistenceError();
+    } finally {
+      client.release();
     }
   }
 

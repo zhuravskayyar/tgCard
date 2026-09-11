@@ -228,6 +228,14 @@ test("tutorial exchange damage matches the displayed element multipliers", {
     duel = await service.action(challenger.id, duel.duelId, { slotIndex: 2, expectedVersion: duel.version });
     assert.equal(duel.battleLog[0]?.playerDamage, 5);
     assert.equal(duel.status, "won");
+    assert.equal(duel.result?.duelGoldReward, 0);
+    assert.equal(duel.result?.gold, 0);
+    assert.equal(duel.result?.player.gold, 0);
+    const persisted = await pool.query<{ duel_gold_earned_today: number; gold: string }>(
+      "SELECT duel_gold_earned_today, gold FROM players WHERE id = $1",
+      [challenger.id],
+    );
+    assert.deepEqual(persisted.rows[0], { duel_gold_earned_today: 0, gold: "0" });
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();

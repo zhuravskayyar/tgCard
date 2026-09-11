@@ -1,6 +1,7 @@
 import type { CardElement, CardRarity } from "./card.js";
 
 export const COLLECTION_MODIFIER_TYPES = [
+  "none",
   "battle_damage_pct",
   "battle_hp_pct",
   "element_damage_pct",

@@ -91,3 +91,58 @@ test("completed progress and bonus survive consuming four current instances", {
     await pool.end();
   }
 });
+
+test("a four-card collection completes after its fourth discovery", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const telegramId = String(BigInt(Date.now()) * 10_000n + BigInt(process.pid) + 1n);
+  const user: ValidatedTelegramUser = {
+    id: telegramId,
+    username: null,
+    firstName: "Four-card collection test",
+    lastName: null,
+    photoUrl: null,
+  };
+  const elementalSpirits = COLLECTIONS.find(({ code }) => code === "element_spirits");
+  assert.ok(elementalSpirits);
+
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      let completionCount = 0;
+      for (const card of elementalSpirits.cards) {
+        const discovery = await recordCardDiscovery(client, player.id, card.id);
+        if (discovery.collectionCompleted) completionCount += 1;
+      }
+      await client.query("COMMIT");
+      assert.equal(completionCount, 1);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    const detail = await new CollectionRepository(pool).detail(player.id, elementalSpirits.id);
+    assert.equal(detail.collection.totalCards, 4);
+    assert.equal(detail.collection.discoveredCards, 4);
+    assert.equal(detail.collection.completed, true);
+    assert.deepEqual(getPlayerCollectionModifiers(await getCompletedCollectionModifiers(pool, player.id)), {
+      altarGoldLevels: 0,
+      absorptionEfficiencyPct: 0,
+      battleDamagePct: 0,
+      battleHpPct: 0,
+      deckPowerPct: 0,
+      elementDamagePct: { fire: 0, water: 0, air: 0, earth: 0 },
+      experienceRewardPct: 0,
+      silverRewardPct: 0,
+    });
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.end();
+  }
+});

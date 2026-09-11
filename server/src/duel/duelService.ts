@@ -814,13 +814,15 @@ export class DuelService {
         const sameDayAndLevel = storedDuelGoldDate === actionDate && player.duel_gold_level === player.level;
         const earnedDuelGold = sameDayAndLevel ? Math.min(storedDuelGold, player.level) : 0;
         const levelChanged = progression.newLevel !== player.level;
-        const duelGoldReward = getDuelGoldReward(
-          progression.newLevel,
-          outcome,
-          levelChanged ? 0 : earnedDuelGold,
-          this.random,
-          currencyBoost.multiplier,
-        );
+        const duelGoldReward = duel.tutorial_mode
+          ? 0
+          : getDuelGoldReward(
+            progression.newLevel,
+            outcome,
+            levelChanged ? 0 : earnedDuelGold,
+            this.random,
+            currencyBoost.multiplier,
+          );
         const duelGoldEarnedToday = levelChanged ? duelGoldReward : earnedDuelGold + duelGoldReward;
         const levelUpGoldReward = progression.goldReward * currencyBoost.multiplier;
         const stats = applyDuelOutcomeToStats({

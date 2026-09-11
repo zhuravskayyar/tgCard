@@ -96,7 +96,6 @@
   .leaderboard-tab,
   .equipment-category-tab,
   .equipment-filter-button,
-  .workshop-filter,
   .arena-tabs button,
   .guild-tabs button,
   .pagination button,
@@ -212,7 +211,6 @@
   .leaderboard-tab,
   .equipment-category-tab,
   .equipment-filter-button,
-  .workshop-filter,
   .arena-tabs button,
   .guild-tabs button,
   .pagination button,
@@ -228,4 +226,71 @@
 .collection-filter { flex: 1; }
 .shop-offer__purchase { bottom: -22px; }
 .arena-shop-item__purchase { flex-direction: column; gap: var(--space-1); }
+
+.shop-tabs {
+  width: fit-content;
+  max-width: none;
+  margin-inline: auto;
+  grid-template-columns: repeat(2, 42px);
+  gap: 7px;
+}
+
+.shop-tabs .shop-tab {
+  --shop-tab-tone: #d5a74f;
+  width: 42px;
+  min-height: 32px;
+  height: 32px;
+  padding: 3px;
+  gap: 0;
+  border-radius: 6px;
+  border-color: color-mix(in srgb, var(--shop-tab-tone) 62%, var(--border-default));
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--shop-tab-tone) 20%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--shop-tab-tone) 15%, var(--bg-panel)), color-mix(in srgb, var(--shop-tab-tone) 5%, var(--bg-inset)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shop-tab-tone) 16%, transparent), 0 3px 9px rgb(0 0 0 / 20%);
+}
+
+.shop-tabs .shop-tab--cards { --shop-tab-tone: #e0b354; }
+.shop-tabs .shop-tab--workshop { --shop-tab-tone: #62c1cc; }
+
+.shop-tabs .shop-tab .app-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--shop-tab-tone);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--shop-tab-tone) 42%, transparent));
+}
+
+.shop-tabs .shop-tab--active {
+  border-color: color-mix(in srgb, var(--shop-tab-tone) 92%, var(--accent-gold));
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--shop-tab-tone) 34%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--shop-tab-tone) 27%, var(--bg-panel)), color-mix(in srgb, var(--shop-tab-tone) 10%, var(--bg-inset)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shop-tab-tone) 28%, transparent), 0 0 12px color-mix(in srgb, var(--shop-tab-tone) 22%, transparent);
+}
+
+/* Shop purchase controls use the original currency-specific button sprites. */
+.shop-offer__purchase,
+.shop-bundle-banner__purchase,
+.shop-boost-card__purchase {
+  min-height: 45px;
+  padding: 8px 14px;
+  color: #d6efad;
+  background-color: transparent !important;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  font-weight: 850;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
+}
+.shop-offer__purchase--gold,
+.shop-bundle-banner__purchase--gold,
+.shop-boost-card__purchase--gold { background-image: url("/assets/ui/shop/shop_purchase_gold.png") !important; }
+.shop-offer__purchase--silver,
+.shop-boost-card__purchase--silver { color: #d6efff; background-image: url("/assets/ui/shop/shop_purchase_silver.png") !important; }
+.shop-offer__purchase:disabled,
+.shop-bundle-banner__purchase:disabled,
+.shop-boost-card__purchase:disabled { opacity: .78; }
 .guild-screen :is(.guild-primary-button,.guild-secondary-button,.guild-danger-button,.guild-icon-button,.guild-inline-button) { font: 600 var(--font-sm)/1.25 var(--font-label); }

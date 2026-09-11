@@ -1,9 +1,9 @@
 БАЗА КАРТ CARDASTIKA
 =====================
 
-Канонічний каталог: 142 карт
+Канонічний каталог: 150 карт
 Стартові карти: 9
-Карти колекцій: 133
+Карти колекцій: 141
 
 Формат рядка:
 ID | Назва | Стихія | Колекція | Мінімальна рідкісність | Магазин
@@ -199,6 +199,20 @@ plague_alchemy_06 | Гомункул | water | Чумна алхімія | epic 
 plague_alchemy_07 | Біла Королева | air | Чумна алхімія | legendary | yes
 plague_alchemy_08 | Червоний Король | fire | Чумна алхімія | legendary | yes
 plague_alchemy_09 | Філософський Камінь | fire | Чумна алхімія | mythic | yes
+
+ДУХИ СТИХІЙ
+------------
+element_spirits_01 | Дух Вогню | fire | Духи стихій | epic | yes
+element_spirits_02 | Дух Води | water | Духи стихій | epic | yes
+element_spirits_03 | Дух Землі | earth | Духи стихій | epic | yes
+element_spirits_04 | Дух Повітря | air | Духи стихій | epic | yes
+
+ГОБЛІНСЬКА БРАТВА
+-----------------
+goblin_brotherhood_01 | Рвач | earth | Гоблінська братва | epic | yes
+goblin_brotherhood_02 | Шнир | air | Гоблінська братва | epic | yes
+goblin_brotherhood_03 | Порох | fire | Гоблінська братва | epic | yes
+goblin_brotherhood_04 | Батя Грум | water | Гоблінська братва | epic | yes
 
 Примітки:
 - fire = Вогонь; water = Вода; air = Повітря; earth = Земля.

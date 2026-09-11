@@ -5,6 +5,8 @@ import {
   type LimitedShopEvent,
   SHOP_CURRENCIES,
   type PlayerCard,
+  type ShopBundleOffer,
+  type ShopBundlePurchaseResponse,
   type ShopCatalogResponse,
   type ShopOffer,
   type ShopPurchaseResponse,
@@ -95,19 +97,56 @@ function isShopOffer(value: unknown): value is ShopOffer {
   );
 }
 
+function isShopBundleOffer(value: unknown): value is ShopBundleOffer {
+  if (!value || typeof value !== "object") return false;
+  const offer = value as Record<string, unknown>;
+  return (
+    typeof offer.id === "string" && Boolean(offer.id) &&
+    typeof offer.currency === "string" && SHOP_CURRENCIES.some((currency) => currency === offer.currency) &&
+    isPositiveInteger(offer.price) &&
+    isPositiveInteger(offer.cardCount) &&
+    typeof offer.canAfford === "boolean"
+  );
+}
+
 function parseCatalog(value: unknown): ShopCatalogResponse {
   if (!value || typeof value !== "object") throw new ShopApiError(502, "invalid_response");
   const catalog = value as Partial<ShopCatalogResponse>;
   if (!Array.isArray(catalog.offers) || !catalog.offers.every(isShopOffer)) {
     throw new ShopApiError(502, "invalid_response");
   }
+  if (!Array.isArray(catalog.bundles) || !catalog.bundles.every(isShopBundleOffer)) {
+    throw new ShopApiError(502, "invalid_response");
+  }
   if (catalog.limitedEvent !== undefined && !isLimitedShopEvent(catalog.limitedEvent)) {
     throw new ShopApiError(502, "invalid_response");
   }
   return {
+    bundles: catalog.bundles,
     offers: catalog.offers,
     ...(catalog.limitedEvent ? { limitedEvent: catalog.limitedEvent } : {}),
   };
+}
+
+function parseBundlePurchase(value: unknown): ShopBundlePurchaseResponse {
+  if (!value || typeof value !== "object") throw new ShopApiError(502, "invalid_response");
+  const purchase = value as Partial<ShopBundlePurchaseResponse>;
+  if (
+    !Array.isArray(purchase.rewards) ||
+    purchase.rewards.length === 0 ||
+    !purchase.rewards.every(isPlayerCard) ||
+    !purchase.updatedBalance ||
+    !isNonNegativeInteger(purchase.updatedBalance.silver) ||
+    !isNonNegativeInteger(purchase.updatedBalance.gold) ||
+    !Array.isArray(purchase.newDiscoveryCardIds) ||
+    !purchase.newDiscoveryCardIds.every((cardId) => typeof cardId === "string") ||
+    typeof purchase.deckChanged !== "boolean" ||
+    (purchase.deckPower !== undefined && !isNonNegativeInteger(purchase.deckPower)) ||
+    (purchase.previousDeckPower !== undefined && !isNonNegativeInteger(purchase.previousDeckPower))
+  ) {
+    throw new ShopApiError(502, "invalid_response");
+  }
+  return purchase as ShopBundlePurchaseResponse;
 }
 
 function parsePurchase(value: unknown): ShopPurchaseResponse {
@@ -171,6 +210,22 @@ export async function purchaseShopOffer(initData: string, offerId: string, signa
   });
   if (!response.ok) return parseError(response);
   return parsePurchase(await response.json());
+}
+
+export async function purchaseShopBundle(initData: string, bundleId: string, signal: AbortSignal) {
+  const response = await fetch(getApiEndpoint("/api/shop/bundles/purchase"), {
+    method: "POST",
+    headers: {
+      Authorization: getPlayerAuthHeader(initData),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ bundleId }),
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  return parseBundlePurchase(await response.json());
 }
 
 export async function redeemLimitedCard(

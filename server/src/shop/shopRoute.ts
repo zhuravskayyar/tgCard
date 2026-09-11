@@ -1,5 +1,7 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type {
+  ShopBundlePurchaseRequest,
+  ShopBundlePurchaseResponse,
   ShopCatalogResponse,
   ShopPurchaseRequest,
   ShopPurchaseResponse,
@@ -9,6 +11,8 @@ import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
   InsufficientShopFundsError,
+  ShopBundleMissingError,
+  ShopBundleUnavailableError,
   ShopLevelSelectionPolicyUnavailableError,
   ShopOfferMissingError,
   ShopPersistenceError,
@@ -19,6 +23,7 @@ import { ShopRewardUnavailableError } from "./shopRewardSelector.js";
 interface ShopPurchaseService {
   getCardsCatalog(playerId: string): Promise<ShopCatalogResponse>;
   purchase(playerId: string, offerId: string): Promise<ShopPurchaseResponse>;
+  purchaseBundle(playerId: string, bundleId: string): Promise<ShopBundlePurchaseResponse>;
 }
 
 interface ShopRouteDependencies extends RouteAuthDependencies {
@@ -30,6 +35,12 @@ export function isShopPurchaseRequest(value: unknown): value is ShopPurchaseRequ
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
   return Object.keys(record).length === 1 && typeof record.offerId === "string" && Boolean(record.offerId.trim());
+}
+
+export function isShopBundlePurchaseRequest(value: unknown): value is ShopBundlePurchaseRequest {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return Object.keys(record).length === 1 && typeof record.bundleId === "string" && Boolean(record.bundleId.trim());
 }
 
 async function authenticatePlayer(request: IncomingMessage, dependencies: ShopRouteDependencies) {
@@ -55,6 +66,10 @@ function sendShopError(
     sendJson(response, 404, { error: { code: "offer_not_found", message: error.message } }, responseHeaders);
     return;
   }
+  if (error instanceof ShopBundleMissingError) {
+    sendJson(response, 404, { error: { code: "bundle_not_found", message: error.message } }, responseHeaders);
+    return;
+  }
   if (error instanceof InsufficientShopFundsError) {
     sendJson(response, 409, {
       error: { code: `insufficient_${error.currency}`, message: error.message },
@@ -64,6 +79,12 @@ function sendShopError(
   if (error instanceof ShopRewardUnavailableError) {
     sendJson(response, 503, {
       error: { code: "reward_unavailable", message: "No eligible canonical reward is available" },
+    }, responseHeaders);
+    return;
+  }
+  if (error instanceof ShopBundleUnavailableError) {
+    sendJson(response, 503, {
+      error: { code: "bundle_unavailable", message: error.message },
     }, responseHeaders);
     return;
   }
@@ -131,6 +152,29 @@ export async function handleShopPurchase(
       throw new HttpRequestError(400, "invalid_purchase_request", "Only offerId may be submitted");
     }
     sendJson(response, 200, await dependencies.shop.purchase(player.id, body.offerId), responseHeaders);
+  } catch (error) {
+    sendShopError(response, error, responseHeaders);
+  }
+}
+
+export async function handleShopBundlePurchase(
+  request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: ShopRouteDependencies,
+) {
+  const responseHeaders = dependencies.responseHeaders ?? {};
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, responseHeaders);
+    return;
+  }
+
+  try {
+    const player = await authenticatePlayer(request, dependencies);
+    const body = await readJsonBody(request);
+    if (!isShopBundlePurchaseRequest(body)) {
+      throw new HttpRequestError(400, "invalid_bundle_purchase_request", "Only bundleId may be submitted");
+    }
+    sendJson(response, 200, await dependencies.shop.purchaseBundle(player.id, body.bundleId), responseHeaders);
   } catch (error) {
     sendShopError(response, error, responseHeaders);
   }
