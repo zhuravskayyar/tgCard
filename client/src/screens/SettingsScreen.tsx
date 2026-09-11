@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { getTelegramWebApp } from "../telegram";
 import {
+  AccountLinkError,
   linkGoogleAccount,
   linkTelegramAccount,
   loadCurrentAuth,
@@ -24,10 +25,48 @@ function isLinked(identities: AuthIdentityView[], provider: AuthIdentityView["pr
   return identities.some((identity) => identity.provider === provider);
 }
 
+type TransferRequest =
+  | { provider: "google"; credential: string }
+  | { provider: "telegram"; authData: Record<string, string> };
+
+function providerLabel(provider: TransferRequest["provider"]) {
+  return provider === "google" ? "Google" : "Telegram";
+}
+
+interface AccountTransferDialogProps {
+  onCancel: () => void;
+  onConfirm: () => void;
+  pending: boolean;
+  provider: TransferRequest["provider"];
+}
+
+function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: AccountTransferDialogProps) {
+  const label = providerLabel(provider);
+  return (
+    <div className="confirmation-backdrop" role="presentation">
+      <section aria-labelledby="settings-transfer-title" aria-modal="true" className="confirmation-modal settings-card settings-transfer-dialog" role="dialog">
+        <h2 id="settings-transfer-title">Перенести {label}?</h2>
+        <p>{label} уже прив'язаний до іншого профілю Cardastika.</p>
+        <p>Прогрес і ресурси поточного профілю залишаться без змін. Старий профіль не видаляється, але його активні {label}-сесії буде завершено.</p>
+        <div className="settings-transfer-actions">
+          <button disabled={pending} onClick={onCancel} type="button">Скасувати</button>
+          <button className="settings-transfer-confirm" disabled={pending} onClick={onConfirm} type="button">
+            {pending ? "Перенесення…" : `Перенести ${label}`}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSummaryState, showTutorialReplay }: SettingsScreenProps) {
   const [identities, setIdentities] = useState<AuthIdentityView[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<TransferRequest["provider"] | null>(null);
+  const [transferRequest, setTransferRequest] = useState<TransferRequest | null>(null);
+  const linkInFlightRef = useRef(false);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const isTelegram = Boolean(getTelegramWebApp());
 
@@ -39,18 +78,30 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
     return () => controller.abort();
   }, []);
 
-  const link = useCallback(async (provider: "google" | "telegram", credential: string | Record<string, string>) => {
+  const link = useCallback(async (request: TransferRequest, replaceExisting = false) => {
+    if (linkInFlightRef.current) return;
+    linkInFlightRef.current = true;
     setLinkError(null);
+    setLinkNotice(null);
+    setPendingProvider(request.provider);
     const controller = new AbortController();
     try {
-      const result = provider === "google"
-        ? await linkGoogleAccount(credential as string, controller.signal)
-        : await linkTelegramAccount(credential as Record<string, string>, controller.signal);
+      const result = request.provider === "google"
+        ? await linkGoogleAccount(request.credential, controller.signal, replaceExisting)
+        : await linkTelegramAccount(request.authData, controller.signal, replaceExisting);
       setIdentities(result.identities);
+      setTransferRequest(null);
+      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.`);
     } catch (error) {
-      setLinkError(error instanceof Error && "status" in error && Number((error as { status?: unknown }).status) === 409
-        ? "Цей акаунт уже прив'язаний до іншого профілю Cardastika."
-        : "Не вдалося прив'язати цей спосіб входу.");
+      if (error instanceof AccountLinkError && error.code === "identity_belongs_to_other_player" && !replaceExisting) {
+        setTransferRequest(request);
+      } else {
+        setTransferRequest(null);
+        setLinkError(error instanceof AccountLinkError ? error.message : "Не вдалося прив'язати цей спосіб входу.");
+      }
+    } finally {
+      linkInFlightRef.current = false;
+      setPendingProvider(null);
     }
   }, []);
 
@@ -70,10 +121,21 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-account">
         <h2 id="settings-account">АКАУНТ</h2>
         <div className="settings-card">
-          <div className="settings-provider"><span>Telegram</span>{isLinked(identities, "telegram") ? <strong>✓ Прив'язано</strong> : <TelegramLoginButton onAuth={(data) => void link("telegram", data)} />}</div>
-          <div className="settings-provider"><span>Google</span>{isLinked(identities, "google") ? <strong>✓ Прив'язано</strong> : <GoogleSignInButton onCredential={(credential) => void link("google", credential)} />}</div>
+          <div className="settings-provider">
+            <span>Telegram</span>
+            {isLinked(identities, "telegram")
+              ? <strong>✓ Прив'язано</strong>
+              : <TelegramLoginButton disabled={pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
+          </div>
+          <div className="settings-provider">
+            <span>Google</span>
+            {isLinked(identities, "google")
+              ? <strong>✓ Прив'язано</strong>
+              : <GoogleSignInButton disabled={pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
+          </div>
         </div>
         {state === "loading" ? <p className="settings-hint">Завантаження способів входу…</p> : null}
+        {linkNotice ? <p className="settings-success" role="status">{linkNotice}</p> : null}
         {state === "error" || linkError ? <p className="settings-error" role="alert">{linkError ?? "Не вдалося завантажити способи входу."}</p> : null}
       </section>
 
@@ -114,6 +176,14 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       </section>
 
       {!isTelegram ? <button className="settings-logout" onClick={() => void handleLogout()} type="button">Вийти з акаунта</button> : null}
+      {transferRequest ? (
+        <AccountTransferDialog
+          onCancel={() => setTransferRequest(null)}
+          onConfirm={() => void link(transferRequest, true)}
+          pending={pendingProvider !== null}
+          provider={transferRequest.provider}
+        />
+      ) : null}
     </section>
   );
 }

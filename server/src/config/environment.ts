@@ -8,13 +8,26 @@ function requireEnvironmentValue(name: "DATABASE_URL" | "TELEGRAM_BOT_TOKEN") {
   return value;
 }
 
+const OWNER_TELEGRAM_USER_ID = "521834372";
+
 export interface ServerEnvironment {
+  adminTelegramUserIds: readonly string[];
   clientOrigin: string | null;
   databaseUrl: string;
   googleClientId: string | null;
   port: number;
   telegramBotToken: string;
   telegramBotUsername: string | null;
+}
+
+function readAdminTelegramUserIds() {
+  const raw = process.env.ADMIN_TELEGRAM_USER_IDS?.trim();
+  if (!raw) return [OWNER_TELEGRAM_USER_ID];
+  const ids = raw.split(",").map((value) => value.trim()).filter(Boolean);
+  if (ids.some((value) => !/^\d+$/.test(value))) {
+    throw new Error("ADMIN_TELEGRAM_USER_IDS must contain comma-separated Telegram user IDs");
+  }
+  return ids.includes(OWNER_TELEGRAM_USER_ID) ? [OWNER_TELEGRAM_USER_ID] : [];
 }
 
 export function getServerEnvironment(): ServerEnvironment {
@@ -37,6 +50,7 @@ export function getServerEnvironment(): ServerEnvironment {
   }
 
   return {
+    adminTelegramUserIds: readAdminTelegramUserIds(),
     clientOrigin,
     databaseUrl: requireEnvironmentValue("DATABASE_URL"),
     googleClientId: process.env.GOOGLE_CLIENT_ID?.trim() || null,

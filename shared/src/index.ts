@@ -118,6 +118,7 @@ export type {
   AuthSessionResponse,
   GoogleAuthRequest,
   LinkIdentityRequest,
+  LinkIdentityResponse,
   TelegramWebAuthRequest,
 } from "./auth.js";
 export {
@@ -308,3 +309,22 @@ export {
   type GuildViewerState,
   type UpdateGuildSettingsRequest,
 } from "./guild.js";
+export type {
+  AdminAuditAction,
+  AdminAuditLogItem,
+  AdminAuditResponse,
+  AdminCardDefinitionItem,
+  AdminCardGrantResponse,
+  AdminCardRemoveResponse,
+  AdminCardsResponse,
+  AdminCurrency,
+  AdminDashboardResponse,
+  AdminIdentity,
+  AdminOwnedCard,
+  AdminPagination,
+  AdminPlayerDetailResponse,
+  AdminPlayerListItem,
+  AdminPlayerMutationResponse,
+  AdminPlayersResponse,
+  AdminSessionResponse,
+} from "./admin.js";

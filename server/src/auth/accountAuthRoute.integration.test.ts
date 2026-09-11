@@ -209,6 +209,7 @@ test("Google web login and explicit Telegram linking resolve to one player", { s
       body: JSON.stringify({ provider: "telegram", authData: signedTelegramWidgetData(telegramId) }),
     });
     assert.equal(link.status, 200);
+    assert.equal((link.body as { replacedExisting: boolean }).replacedExisting, false);
     assert.deepEqual((link.body as { identities: Array<{ provider: string }> }).identities.map(({ provider }) => provider).sort(), ["google", "telegram"]);
 
     const telegramLogin = await requestJson(origin, "/api/auth/telegram/web", {
@@ -219,6 +220,77 @@ test("Google web login and explicit Telegram linking resolve to one player", { s
     assert.equal((telegramLogin.body as { player: { id: string } }).player.id, playerId);
   } finally {
     if (playerId) await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
+    await close(server);
+    await pool.end();
+  }
+});
+
+test("a signed-in Telegram player can explicitly transfer an existing Google identity", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const googleCredential = `google-transfer-route-${Date.now()}`;
+  const telegramId = String(Date.now() * 1_000 + 13);
+  const googleIdentity: VerifiedIdentity = {
+    provider: "google",
+    providerUserId: `google-transfer-sub-${Date.now()}`,
+    email: `${googleCredential}@example.com`,
+    firstName: "Google Transfer",
+    lastName: null,
+    photoUrl: null,
+  };
+  const { server } = createAuthServer(pool, new Map([[googleCredential, googleIdentity]]));
+  const origin = await listen(server);
+  const playerIds: string[] = [];
+  try {
+    const googleLogin = await requestJson(origin, "/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: googleCredential }),
+    });
+    assert.equal(googleLogin.status, 200);
+    const googleLoginBody = googleLogin.body as { player: { id: string }; sessionToken: string };
+    playerIds.push(googleLoginBody.player.id);
+
+    const telegramLogin = await requestJson(origin, "/api/auth/telegram", {
+      method: "POST",
+      body: JSON.stringify({ initData: signedMiniAppInitData(telegramId) }),
+    });
+    assert.equal(telegramLogin.status, 200);
+    const telegramLoginBody = telegramLogin.body as { player: { id: string }; sessionToken: string };
+    playerIds.push(telegramLoginBody.player.id);
+
+    const conflict = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${telegramLoginBody.sessionToken}` },
+      body: JSON.stringify({ provider: "google", credential: googleCredential }),
+    });
+    assert.deepEqual(conflict, {
+      status: 409,
+      body: { error: { code: "identity_belongs_to_other_player", message: "Цей акаунт уже прив'язаний до іншого профілю Cardastika." } },
+    });
+
+    const transfer = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${telegramLoginBody.sessionToken}` },
+      body: JSON.stringify({ provider: "google", credential: googleCredential, replaceExisting: true }),
+    });
+    assert.equal(transfer.status, 200);
+    assert.equal((transfer.body as { replacedExisting: boolean }).replacedExisting, true);
+    assert.deepEqual((transfer.body as { identities: Array<{ provider: string }> }).identities.map(({ provider }) => provider).sort(), ["google", "telegram"]);
+
+    const oldSession = await requestJson(origin, "/api/auth/me", {
+      headers: { Authorization: `Bearer ${googleLoginBody.sessionToken}` },
+    });
+    assert.equal(oldSession.status, 401);
+
+    const repeatedGoogleLogin = await requestJson(origin, "/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: googleCredential }),
+    });
+    assert.equal(repeatedGoogleLogin.status, 200);
+    assert.equal((repeatedGoogleLogin.body as { player: { id: string } }).player.id, telegramLoginBody.player.id);
+    assert.equal(Number((await pool.query("SELECT count(*) FROM players WHERE id = $1", [googleLoginBody.player.id])).rows[0].count), 1);
+  } finally {
+    if (playerIds.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
     await close(server);
     await pool.end();
   }

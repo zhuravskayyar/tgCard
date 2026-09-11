@@ -1,6 +1,5 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
 import { RussianLanguageProvider } from "./i18n";
 import "./styles/global.css";
 import "./styles/tokens.css";
@@ -12,6 +11,10 @@ import "./styles/shell.css";
 import "./styles/rewards.css";
 
 const rootElement = document.getElementById("root");
+const isAdminPath = window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/");
+const RootApplication = isAdminPath
+  ? lazy(() => import("./admin/AdminApp"))
+  : lazy(() => import("./App").then(({ App }) => ({ default: App })));
 
 if (!rootElement) {
   throw new Error("Root element was not found");
@@ -20,7 +23,9 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <RussianLanguageProvider>
-      <App />
+      <Suspense fallback={<div aria-busy="true" />}>
+        <RootApplication />
+      </Suspense>
     </RussianLanguageProvider>
   </StrictMode>,
 );

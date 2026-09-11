@@ -459,8 +459,13 @@ export class PlayerRepository {
     }));
   }
 
-  async linkIdentity(playerId: string, identity: VerifiedIdentity): Promise<AuthIdentityView[]> {
+  async linkIdentity(
+    playerId: string,
+    identity: VerifiedIdentity,
+    options: { replaceExisting?: boolean } = {},
+  ): Promise<{ identities: AuthIdentityView[]; replacedExisting: boolean }> {
     let client: PoolClient | undefined;
+    let replacedExisting = false;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -473,17 +478,44 @@ export class PlayerRepository {
         "SELECT player_id FROM auth_identities WHERE provider = $1 AND provider_user_id = $2 FOR UPDATE",
         [identity.provider, identity.providerUserId],
       );
-      if (owner.rows[0] && owner.rows[0].player_id !== playerId) throw new AuthIdentityConflictError();
-      const insertedIdentity = await this.persistIdentity(client, playerId, identity);
-      if (!insertedIdentity) {
-        const linkedOwner = await client.query<{ player_id: string }>(
-          "SELECT player_id FROM auth_identities WHERE provider = $1 AND provider_user_id = $2",
-          [identity.provider, identity.providerUserId],
+      const previousOwnerId = owner.rows[0]?.player_id;
+      if (previousOwnerId && previousOwnerId !== playerId) {
+        if (!options.replaceExisting) throw new AuthIdentityConflictError();
+        replacedExisting = true;
+        if (identity.provider === "telegram") {
+          await client.query(
+            "UPDATE players SET telegram_user_id = NULL, updated_at = NOW() WHERE id = $1 AND telegram_user_id::text = $2",
+            [previousOwnerId, identity.providerUserId],
+          );
+          await client.query(
+            "UPDATE players SET telegram_user_id = $2::bigint, updated_at = NOW() WHERE id = $1",
+            [playerId, identity.providerUserId],
+          );
+        }
+        await client.query(
+          `UPDATE auth_identities
+           SET player_id = $1, email = $4
+           WHERE provider = $2 AND provider_user_id = $3`,
+          [playerId, identity.provider, identity.providerUserId, identity.email],
         );
-        if (linkedOwner.rows[0]?.player_id !== playerId) throw new AuthIdentityConflictError();
+        await client.query(
+          `UPDATE player_sessions
+           SET revoked_at = NOW()
+           WHERE player_id = $1 AND provider = $2 AND revoked_at IS NULL`,
+          [previousOwnerId, identity.provider],
+        );
+      } else {
+        const insertedIdentity = await this.persistIdentity(client, playerId, identity);
+        if (!insertedIdentity) {
+          const linkedOwner = await client.query<{ player_id: string }>(
+            "SELECT player_id FROM auth_identities WHERE provider = $1 AND provider_user_id = $2",
+            [identity.provider, identity.providerUserId],
+          );
+          if (linkedOwner.rows[0]?.player_id !== playerId) throw new AuthIdentityConflictError();
+        }
       }
       await client.query("COMMIT");
-      return this.listAuthIdentities(playerId);
+      return { identities: await this.listAuthIdentities(playerId), replacedExisting };
     } catch (error) {
       await client?.query("ROLLBACK").catch(() => undefined);
       if (error instanceof AuthIdentityAlreadyLinkedError || error instanceof AuthIdentityConflictError) throw error;

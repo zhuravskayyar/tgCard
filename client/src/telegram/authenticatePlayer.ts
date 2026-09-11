@@ -1,4 +1,18 @@
-import { CARD_ELEMENTS, COLLECTION_BONUS_SCOPES, COLLECTION_MODIFIER_TYPES, EQUIPMENT_SLOTS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthSessionResponse, type PlayerCollectionBonus, type PlayerSummary, type PublicPlayerEquipment, type TelegramAuthRequest } from "@cardastika/shared";
+import {
+  CARD_ELEMENTS,
+  COLLECTION_BONUS_SCOPES,
+  COLLECTION_MODIFIER_TYPES,
+  EQUIPMENT_SLOTS,
+  PLAYER_NICKNAME_MAX_LENGTH,
+  type AuthIdentityView,
+  type AuthSessionResponse,
+  type LinkIdentityRequest,
+  type LinkIdentityResponse,
+  type PlayerCollectionBonus,
+  type PlayerSummary,
+  type PublicPlayerEquipment,
+  type TelegramAuthRequest,
+} from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { clearSessionToken, getSessionToken, setSessionToken } from "../auth/session";
 
@@ -6,6 +20,17 @@ export class PlayerBootstrapError extends Error {
   constructor(public readonly status: number) {
     super("Player bootstrap failed");
     this.name = "PlayerBootstrapError";
+  }
+}
+
+export class AccountLinkError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AccountLinkError";
   }
 }
 
@@ -149,15 +174,15 @@ export async function loadCurrentAuth(signal: AbortSignal) {
   return value as { player: PlayerSummary; identities: AuthIdentityView[] };
 }
 
-export async function linkGoogleAccount(credential: string, signal: AbortSignal) {
-  return linkIdentity({ provider: "google", credential }, signal);
+export async function linkGoogleAccount(credential: string, signal: AbortSignal, replaceExisting = false) {
+  return linkIdentity({ provider: "google", credential, replaceExisting }, signal);
 }
 
-export async function linkTelegramAccount(authData: Record<string, string>, signal: AbortSignal) {
-  return linkIdentity({ provider: "telegram", authData }, signal);
+export async function linkTelegramAccount(authData: Record<string, string>, signal: AbortSignal, replaceExisting = false) {
+  return linkIdentity({ provider: "telegram", authData, replaceExisting }, signal);
 }
 
-async function linkIdentity(body: unknown, signal: AbortSignal) {
+async function linkIdentity(body: LinkIdentityRequest, signal: AbortSignal): Promise<LinkIdentityResponse> {
   const token = getSessionToken();
   if (!token) throw new PlayerBootstrapError(401);
   const response = await fetch(getApiEndpoint("/api/auth/link"), {
@@ -167,8 +192,22 @@ async function linkIdentity(body: unknown, signal: AbortSignal) {
     credentials: "same-origin",
     signal,
   });
-  if (!response.ok) throw new PlayerBootstrapError(response.status);
-  return response.json() as Promise<{ identities: AuthIdentityView[] }>;
+  const value: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const apiError = value && typeof value === "object" && "error" in value
+      ? (value as { error?: unknown }).error
+      : null;
+    const details = apiError && typeof apiError === "object" ? apiError as Record<string, unknown> : null;
+    throw new AccountLinkError(
+      response.status,
+      typeof details?.code === "string" ? details.code : "account_link_failed",
+      typeof details?.message === "string" ? details.message : "Не вдалося прив'язати цей спосіб входу.",
+    );
+  }
+  if (!value || typeof value !== "object" || !Array.isArray((value as Record<string, unknown>).identities) || typeof (value as Record<string, unknown>).replacedExisting !== "boolean") {
+    throw new AccountLinkError(502, "invalid_account_link_response", "Сервер повернув некоректну відповідь.");
+  }
+  return value as LinkIdentityResponse;
 }
 
 export async function logoutPlayer() {

@@ -65,6 +65,14 @@ function readProvider(body: unknown): AuthProvider {
   return body.provider;
 }
 
+function readReplaceExisting(body: unknown) {
+  if (!isRecord(body) || body.replaceExisting === undefined) return false;
+  if (typeof body.replaceExisting !== "boolean") {
+    throw new HttpRequestError(400, "invalid_identity_transfer", "replaceExisting must be a boolean");
+  }
+  return body.replaceExisting;
+}
+
 function sendAuthError(response: ServerResponse, error: unknown, headers: OutgoingHttpHeaders) {
   if (error instanceof HttpRequestError) {
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
@@ -177,6 +185,7 @@ export async function handleLinkIdentity(
     const authenticated = await dependencies.auth.authenticateRequest(request, dependencies.players);
     const body = await readJsonBody(request);
     const provider = readProvider(body);
+    const replaceExisting = readReplaceExisting(body);
     let identity;
     if (provider === "google") {
       identity = await (dependencies.verifyGoogle ?? verifyGoogleCredential)(readCredential(body), dependencies.googleClientId);
@@ -184,9 +193,12 @@ export async function handleLinkIdentity(
       const authData = readTelegramWidgetData(body);
       identity = validateTelegramLoginWidget(authData, dependencies.botToken);
     }
-    sendJson(response, 200, {
-      identities: await dependencies.players.linkIdentity(authenticated.player.id, identity),
-    }, headers);
+    sendJson(
+      response,
+      200,
+      await dependencies.players.linkIdentity(authenticated.player.id, identity, { replaceExisting }),
+      headers,
+    );
   } catch (error) {
     sendAuthError(response, error, headers);
   }

@@ -177,7 +177,8 @@ test("Google can be linked to a Telegram player and both identities resolve to o
   const identity = googleIdentity(`link-${Date.now()}-${sequence}`);
   try {
     const player = await players.findOrCreateFromTelegram(telegram);
-    const identities = await players.linkIdentity(player.id, identity);
+    const { identities, replacedExisting } = await players.linkIdentity(player.id, identity);
+    assert.equal(replacedExisting, false);
     assert.deepEqual(identities.map(({ provider }) => provider).sort(), ["google", "telegram"]);
     const googleLogin = await players.findOrCreateFromIdentity(identity);
     assert.equal(googleLogin.id, player.id);
@@ -205,6 +206,43 @@ test("an identity cannot be linked to another player and rating remains player-o
     await deletePlayers(pool, [first.id, second.id]);
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = ANY($1::bigint[])", [[firstUser.id, secondUser.id]]);
+    await pool.end();
+  }
+});
+
+test("a verified identity can be transferred without merging or deleting player progress", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const sessions = new SessionRepository(pool);
+  const telegram = telegramUser("transfer-target");
+  const identity = googleIdentity(`transfer-${Date.now()}-${sequence}`);
+  let playerIds: string[] = [];
+  try {
+    const previousOwner = await players.findOrCreateFromIdentity(identity);
+    const target = await players.findOrCreateFromTelegram(telegram);
+    playerIds = [previousOwner.id, target.id];
+    await pool.query("UPDATE players SET rating = 1874 WHERE id = $1", [previousOwner.id]);
+    await pool.query("UPDATE players SET level = 9, silver = 8765, gold = 31, rating = 3150 WHERE id = $1", [target.id]);
+    const previousOwnerSession = await sessions.create(previousOwner.id, "google");
+    const targetSession = await sessions.create(target.id, "telegram");
+
+    await assert.rejects(players.linkIdentity(target.id, identity), /already linked to another/);
+    const result = await players.linkIdentity(target.id, identity, { replaceExisting: true });
+
+    assert.equal(result.replacedExisting, true);
+    assert.deepEqual(result.identities.map(({ provider }) => provider).sort(), ["google", "telegram"]);
+    assert.equal(await sessions.findActive(previousOwnerSession.token), null);
+    assert.deepEqual(await sessions.findActive(targetSession.token), { playerId: target.id, provider: "telegram" });
+    assert.equal((await players.findOrCreateFromIdentity(identity)).id, target.id);
+    assert.equal((await players.findSummaryById(previousOwner.id)).rating, 1874);
+    assert.deepEqual(
+      await pool.query("SELECT level, silver, gold, rating FROM players WHERE id = $1", [target.id]).then(({ rows }) => rows[0]),
+      { level: 9, silver: "8765", gold: "31", rating: 3150 },
+    );
+  } finally {
+    await deletePlayers(pool, playerIds);
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegram.id]);
     await pool.end();
   }
 });

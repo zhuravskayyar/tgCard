@@ -69,12 +69,17 @@ import { handleGuildRequest } from "./guild/guildRoute.js";
 import { GuildService } from "./guild/guildService.js";
 import { GuildForumService } from "./guild/guildForumService.js";
 import { GuildRaidService } from "./guild/guildRaidService.js";
+import { AdminAuthService } from "./admin/adminAuth.js";
+import { handleAdminRequest } from "./admin/adminRoute.js";
+import { AdminService } from "./admin/adminService.js";
 
 export const environment = getServerEnvironment();
 export const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const sessions = new SessionRepository(pool);
 const auth = new PlayerAuthService(players, sessions, environment.telegramBotToken);
+const adminAuth = new AdminAuthService(auth, players, pool, environment.adminTelegramUserIds);
+const admin = new AdminService(pool);
 const guilds = new GuildService(pool);
 const guildForum = new GuildForumService(pool);
 const guildRaids = new GuildRaidService(pool);
@@ -201,6 +206,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   }
 
   const isTelegramAuthRoute = url.pathname === "/api/auth/telegram";
+  const isAdminRoute = url.pathname === "/api/admin" || url.pathname.startsWith("/api/admin/");
   const isTelegramWebAuthRoute = url.pathname === "/api/auth/telegram/web";
   const isGoogleAuthRoute = url.pathname === "/api/auth/google";
   const isAuthMeRoute = url.pathname === "/api/auth/me";
@@ -248,7 +254,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -273,6 +279,15 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       enabled: devAuthEnabled,
       players,
       responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isAdminRoute) {
+    await handleAdminRequest(request, response, {
+      auth: adminAuth,
+      responseHeaders: cors.headers,
+      service: admin,
     });
     return;
   }

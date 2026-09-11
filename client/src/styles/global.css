@@ -8130,8 +8130,10 @@ button.mode-tile::before,
 .settings-provider > strong { color: #83ad78; font-size: var(--font-xs); }
 .settings-provider .google-sign-in { min-height: 0; transform: scale(.82); transform-origin: right center; }
 .settings-provider .telegram-login { min-height: 0; }
-.settings-hint, .settings-error { margin: 0 5px; color: var(--text-muted); font-size: var(--font-xs); }
+.settings-hint, .settings-error, .settings-success { margin: 0 5px; color: var(--text-muted); font-size: var(--font-xs); }
 .settings-error { color: #d8877a; }
+.settings-success { color: #83ad78; }
+.settings-transfer-dialog { display: grid; gap: 10px; }
 .settings-facts { margin: 0; }
 .settings-facts > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 11px 13px; border-bottom: 1px solid var(--border-subtle); }
 .settings-facts > div:last-child { border-bottom: 0; }
