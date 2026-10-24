@@ -23,8 +23,8 @@ import { ForgeScreen } from "./screens/ForgeScreen";
 import { BattlePassScreen } from "./screens/BattlePassScreen";
 import { TasksScreen } from "./screens/TasksScreen";
 import { GuildScreen } from "./screens/GuildScreen";
-import { getTelegramInitData, initializeTelegram } from "./telegram";
-import { authenticateGooglePlayer, authenticateTelegramWebPlayer } from "./telegram/authenticatePlayer";
+import { getRawTelegramInitData, getTelegramInitData, initializeTelegram } from "./telegram";
+import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer } from "./telegram/authenticatePlayer";
 import { completeTutorial } from "./telegram/tutorial";
 import { savePlayerEquipment } from "./telegram/equipment";
 import type { BottomNavItem } from "./components/BottomNav";
@@ -541,9 +541,19 @@ export function App() {
     return (
       <AuthScreen
         error={webAuthError}
+        isTelegramMiniApp={Boolean(getRawTelegramInitData())}
         loading={false}
+        onGuest={() => handleWebLogin(() => authenticateGuestPlayer(new AbortController().signal))}
         onGoogle={(credential) => handleWebLogin(() => authenticateGooglePlayer(credential, new AbortController().signal))}
         onTelegram={(authData) => handleWebLogin(() => authenticateTelegramWebPlayer(authData, new AbortController().signal))}
+        onTelegramMiniApp={() => {
+          const initData = getRawTelegramInitData();
+          if (!initData) {
+            setWebAuthError("Не вдалося перевірити Telegram. Закрий і знову відкрий гру з Telegram.");
+            return;
+          }
+          return handleWebLogin(() => authenticateTelegramPlayer(initData, new AbortController().signal));
+        }}
       />
     );
   }

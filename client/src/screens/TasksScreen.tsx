@@ -3,6 +3,7 @@ import { AppIcon } from "../components/AppIcon";
 import { DailyTaskRow } from "../components/DailyTaskRow";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
+import { AccountProtectionTask } from "../components/AccountProtectionTask";
 
 const DIAMOND_ASSET = "/assets/ui/world-tree/game-icons/diamond.svg";
 
@@ -56,6 +57,8 @@ export function TasksScreen({ onBack, onOpenTask }: { onBack: () => void; onOpen
         <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
         <div><h1>Завдання</h1><span>Щоденні цілі та нагороди за виконання</span></div>
       </header>
+
+      <AccountProtectionTask onRewardGranted={retry} />
 
       {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо завдання…</div> : null}
       {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Завдання недоступні</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}

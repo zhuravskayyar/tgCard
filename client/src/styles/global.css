@@ -13685,6 +13685,194 @@ body {
 .auth-screen__dev-login { display: grid; gap: 5px; margin-top: 18px; color: #a8895b; font-size: var(--font-micro); font-weight: 800; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
 .auth-screen__dev-login select { min-height: 36px; padding: 0 9px; color: #ddcdb2; background: #151516; border: 1px solid #4d3e30; border-radius: var(--radius-md); font: inherit; font-size: var(--font-micro); letter-spacing: 0; text-transform: none; }
 
+/* Guest-first landing: retain the World Tree artwork and existing wood CTA texture. */
+.auth-screen--guest {
+  justify-items: center;
+  align-content: center;
+  min-height: 100dvh;
+  max-height: none;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(22px, env(safe-area-inset-bottom));
+}
+.auth-screen--guest .auth-screen__layout {
+  display: grid;
+  width: min(100%, 480px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(18px, 3vh, 28px);
+}
+.auth-screen--guest .auth-screen__hero {
+  display: grid;
+  justify-items: center;
+}
+.auth-screen--guest .auth-screen__crest {
+  width: clamp(92px, 25vw, 124px);
+  height: clamp(92px, 25vw, 124px);
+  margin-bottom: 16px;
+}
+.auth-screen--guest .auth-screen__eyebrow {
+  margin-bottom: 7px;
+  letter-spacing: .27em;
+}
+.auth-screen--guest .auth-screen__hero h1 {
+  font-size: clamp(1.75rem, 8vw, 2.35rem);
+  letter-spacing: .08em;
+}
+.auth-screen--guest .auth-screen__subtitle {
+  max-width: 340px;
+  margin: 12px 0 0;
+  font-size: var(--font-sm);
+}
+.auth-screen--guest .auth-screen__login-panel {
+  display: grid;
+  width: min(100%, 360px);
+  justify-items: center;
+  gap: 12px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.auth-screen__start-button {
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  padding: 0 18px;
+  place-items: center;
+  color: #f5e2b6;
+  background-color: transparent;
+  background-image: url("/assets/ui/world-tree/menu-button-wood-action-v2.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  border-radius: 0;
+  filter: drop-shadow(0 7px 10px rgb(0 0 0 / 40%));
+  font: 800 var(--font-md) var(--font-display);
+  letter-spacing: .04em;
+  text-shadow: 0 1px 3px #170c06, 0 0 10px rgb(226 181 94 / 22%);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+.auth-screen__start-button:hover:not(:disabled) { filter: brightness(1.12) drop-shadow(0 8px 12px rgb(0 0 0 / 42%)); }
+.auth-screen__start-button:active:not(:disabled) { transform: scale(.985); filter: brightness(.94); }
+.auth-screen__start-button:focus-visible,
+.auth-screen__return-button:focus-visible,
+.auth-screen__dialog-cancel:focus-visible,
+.auth-screen__dialog-close:focus-visible { outline: 2px solid #e1c17c; outline-offset: 3px; }
+.auth-screen__start-button:disabled { cursor: progress; filter: saturate(.65) brightness(.8); }
+.auth-screen__return-button {
+  min-height: 42px;
+  padding: 5px 12px;
+  color: #d8c7a5;
+  background: transparent;
+  border: 0;
+  font: 650 var(--font-sm) var(--font-display);
+  text-decoration: underline;
+  text-decoration-color: rgb(216 199 165 / 42%);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.auth-screen__return-button:hover:not(:disabled) { color: #fff0cf; }
+.auth-screen__return-button:disabled { cursor: progress; opacity: .6; }
+.auth-screen--guest .auth-screen__note { max-width: 330px; margin: 4px 0 0; }
+.auth-screen--guest .auth-screen__footer { margin-top: clamp(16px, 3vh, 28px); }
+.auth-screen__dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  padding: 16px;
+  place-items: center;
+  background: rgb(2 4 6 / 78%);
+  backdrop-filter: blur(5px);
+}
+.auth-screen__account-dialog {
+  position: relative;
+  display: grid;
+  width: min(100%, 380px);
+  max-height: min(90dvh, 680px);
+  overflow: auto;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 20px 20px;
+  color: var(--text-primary);
+  background:
+    radial-gradient(ellipse at 50% 0, rgb(81 105 81 / 17%), transparent 54%),
+    linear-gradient(160deg, #1b1b19, #101212 66%, #0b0e10);
+  border: 1px solid rgb(190 154 91 / 54%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 66%), inset 0 0 28px rgb(190 154 91 / 6%);
+  text-align: center;
+}
+.auth-screen__account-dialog h2 { margin: 0; font-family: var(--font-display); font-size: clamp(1.2rem, 5vw, 1.55rem); }
+.auth-screen__account-dialog .auth-screen__eyebrow { margin: 0; font-size: var(--font-micro); }
+.auth-screen__dialog-copy { max-width: 300px; margin: 0; color: var(--text-secondary); font-size: var(--font-xs); line-height: 1.5; }
+.auth-screen__account-dialog .auth-screen__providers { gap: 10px; margin-top: 4px; }
+.auth-screen__account-dialog .auth-provider-shell,
+.auth-screen__account-dialog .auth-provider-button--landing,
+.auth-screen__account-dialog .auth-provider-shell > .google-sign-in--landing,
+.auth-screen__account-dialog .auth-provider-shell > .telegram-login--landing { min-height: 56px; border-radius: var(--radius-md); }
+.auth-screen__account-dialog .auth-provider-shell--google .auth-provider-visual { background-image: url("/assets/ui/auth/google-login-button.png"), linear-gradient(135deg, rgb(22 28 34 / 95%), rgb(11 16 21 / 97%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__account-dialog .auth-provider-shell--telegram .auth-provider-visual { background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__account-dialog .auth-provider-button--telegram { gap: 10px; background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__dialog-close { position: absolute; top: 8px; right: 10px; display: grid; width: 32px; height: 32px; place-items: center; color: var(--text-secondary); background: transparent; border: 0; font-size: 1.45rem; cursor: pointer; }
+.auth-screen__dialog-cancel { min-height: 38px; padding: 4px 14px; color: var(--text-secondary); background: transparent; border: 0; font: inherit; font-size: var(--font-xs); cursor: pointer; }
+.auth-screen__account-dialog .auth-screen__status,
+.auth-screen__account-dialog .auth-screen__error { margin: 0; }
+.tasks-screen__account-protection {
+  display: grid;
+  min-width: 0;
+  gap: 11px;
+  padding: 13px;
+  background:
+    radial-gradient(ellipse at 90% 0, rgb(180 143 78 / 10%), transparent 55%),
+    linear-gradient(145deg, rgb(35 31 25 / 96%), rgb(17 18 18 / 98%) 70%);
+  border: 1px solid rgb(166 129 70 / 44%);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 20px rgb(213 175 103 / 4%), 0 8px 24px rgb(0 0 0 / 18%);
+}
+.tasks-screen__account-protection--error { grid-template-columns: minmax(0, 1fr) auto; align-items: center; color: var(--text-secondary); font-size: var(--font-xs); }
+.tasks-screen__account-protection--error button { min-height: 36px; padding: 0 10px; color: var(--accent-gold); background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); font: inherit; cursor: pointer; }
+.tasks-screen__account-protection-heading { display: grid; min-width: 0; grid-template-columns: 27px minmax(0, 1fr) auto; align-items: center; gap: 9px; }
+.tasks-screen__account-protection-heading > span { color: var(--accent-gold); font-size: 1.25rem; text-align: center; text-shadow: 0 0 12px rgb(226 180 89 / 35%); }
+.tasks-screen__account-protection-heading > div:nth-child(2) { display: grid; min-width: 0; gap: 4px; }
+.tasks-screen__account-protection-heading strong { color: #e8d2a3; font-family: var(--font-display); font-size: var(--font-sm); }
+.tasks-screen__account-protection-heading p { margin: 0; color: var(--text-secondary); font-size: var(--font-micro); line-height: 1.4; }
+.tasks-screen__account-protection-reward { display: grid; grid-template-columns: 20px auto; align-items: center; gap: 4px; color: var(--accent-gold); font-size: var(--font-xs); white-space: nowrap; }
+.tasks-screen__account-protection-reward img { width: 20px; height: 20px; }
+.tasks-screen__account-protection-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tasks-screen__account-protection-actions .auth-provider-shell,
+.tasks-screen__account-protection-actions .auth-provider-button--landing,
+.tasks-screen__account-protection-actions .auth-provider-shell > .google-sign-in--landing,
+.tasks-screen__account-protection-actions .auth-provider-shell > .telegram-login--landing { min-height: 48px; border-radius: var(--radius-md); }
+.tasks-screen__account-protection-actions .auth-provider-visual { gap: 6px; padding-inline: 8px; font-size: var(--font-micro); }
+.tasks-screen__account-protection-actions .auth-provider-shell--google .auth-provider-visual { background-image: url("/assets/ui/auth/google-login-button.png"), linear-gradient(135deg, rgb(22 28 34 / 95%), rgb(11 16 21 / 97%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.tasks-screen__account-protection-actions .auth-provider-shell--telegram .auth-provider-visual { background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.tasks-screen__account-protection-actions .auth-provider-button--landing { min-width: 0; padding-inline: 5px; font-size: var(--font-micro); }
+.tasks-screen__account-protection-error,
+.tasks-screen__account-protection-success { margin: 0; font-size: var(--font-micro); line-height: 1.4; }
+.tasks-screen__account-protection-error { color: #dc968b; }
+.tasks-screen__account-protection-success { color: #a8d0a7; }
+.tasks-screen__account-protection--rewarded { animation: account-protection-complete 340ms ease both; }
+@keyframes account-protection-complete {
+  from { filter: brightness(1.22); transform: translateY(2px); }
+  to { filter: brightness(1); transform: translateY(0); }
+}
+@media (max-width: 370px) {
+  .auth-screen--guest { padding-inline: 12px; }
+  .auth-screen--guest .auth-screen__layout { gap: 16px; }
+  .auth-screen__start-button { min-height: 62px; font-size: var(--font-sm); }
+  .auth-screen__account-dialog { padding-inline: 15px; }
+  .tasks-screen__account-protection { padding: 11px; }
+  .tasks-screen__account-protection-heading { grid-template-columns: 21px minmax(0, 1fr) auto; gap: 6px; }
+  .tasks-screen__account-protection-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-screen__start-button { transition: none; }
+  .tasks-screen__account-protection--rewarded { animation: none; }
+}
+
 .duel-card--guild { box-shadow: inset 0 0 0 2px #bc8a43, 0 0 13px rgb(190 143 69 / 22%); }
 .duel-card__guild-mark { position: absolute; right: 6px; bottom: 6px; z-index: 4; display: inline-flex; min-height: 13px; align-items: center; padding: 1px 4px; color: #24170a; background: #d1a45a; border: 1px solid #f0d18d; border-radius: var(--radius-sm); font: 800 .47rem var(--font-display); letter-spacing: .03em; line-height: 1; text-transform: uppercase; }
 .duel-card--guild > .card-fx .duel-card__guild-mark { right: 6px; bottom: 6px; }

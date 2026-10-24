@@ -3,14 +3,16 @@ import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared"
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
-import { getTelegramWebApp } from "../telegram";
+import { getRawTelegramInitData } from "../telegram";
 import {
   AccountLinkError,
   linkGoogleAccount,
   linkTelegramAccount,
+  linkTelegramMiniAppAccount,
   loadCurrentAuth,
   logoutPlayer,
 } from "../telegram/authenticatePlayer";
+import type { AuthSessionProvider } from "@cardastika/shared";
 import type { PlayerSummaryState } from "../types/player";
 
 interface SettingsScreenProps {
@@ -27,7 +29,8 @@ function isLinked(identities: AuthIdentityView[], provider: AuthIdentityView["pr
 
 type LinkRequest =
   | { provider: "google"; credential: string }
-  | { provider: "telegram"; authData: Record<string, string> };
+  | { provider: "telegram"; authData: Record<string, string> }
+  | { provider: "telegram"; initData: string };
 
 type TransferRequest = Extract<LinkRequest, { provider: "google" }>;
 
@@ -66,16 +69,17 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
+  const [sessionProvider, setSessionProvider] = useState<AuthSessionProvider | null>(null);
   const [pendingProvider, setPendingProvider] = useState<LinkRequest["provider"] | null>(null);
   const [transferRequest, setTransferRequest] = useState<TransferRequest | null>(null);
   const linkInFlightRef = useRef(false);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
-  const isTelegram = Boolean(getTelegramWebApp());
+  const isTelegram = Boolean(getRawTelegramInitData());
 
   useEffect(() => {
     const controller = new AbortController();
     void loadCurrentAuth(controller.signal)
-      .then((value) => { setIdentities(value.identities); setState("ready"); })
+      .then((value) => { setIdentities(value.identities); setSessionProvider(value.sessionProvider); setState("ready"); })
       .catch(() => { if (!controller.signal.aborted) setState("error"); });
     return () => controller.abort();
   }, []);
@@ -90,16 +94,20 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
     try {
       const result = request.provider === "google"
         ? await linkGoogleAccount(request.credential, controller.signal, replaceExisting)
-        : await linkTelegramAccount(request.authData, controller.signal);
+        : "initData" in request
+          ? await linkTelegramMiniAppAccount(request.initData, controller.signal)
+          : await linkTelegramAccount(request.authData, controller.signal);
       setIdentities(result.identities);
       setTransferRequest(null);
-      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.`);
+      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Отримано 5 діамантів." : ""}`);
     } catch (error) {
       if (
         request.provider === "google"
         && error instanceof AccountLinkError
         && error.code === "identity_belongs_to_other_player"
         && !replaceExisting
+        && sessionProvider !== null
+        && sessionProvider !== "guest"
       ) {
         setTransferRequest(request);
       } else {
@@ -110,7 +118,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       linkInFlightRef.current = false;
       setPendingProvider(null);
     }
-  }, []);
+  }, [sessionProvider]);
 
   async function handleLogout() {
     await logoutPlayer();
@@ -132,13 +140,19 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
             <span>Telegram</span>
             {isLinked(identities, "telegram")
               ? <strong>✓ Прив'язано</strong>
-              : <TelegramLoginButton disabled={pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
+              : isTelegram
+                ? <button className="auth-provider-button" disabled={state !== "ready" || pendingProvider !== null} onClick={() => {
+                    const initData = getRawTelegramInitData();
+                    if (initData) void link({ provider: "telegram", initData });
+                    else setLinkError("Не вдалося перевірити Telegram. Закрий і знову відкрий гру з Telegram.");
+                  }} type="button">{pendingProvider === "telegram" ? "Прив’язуємо…" : "Прив’язати Telegram"}</button>
+                : <TelegramLoginButton disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
           </div>
           <div className="settings-provider">
             <span>Google</span>
             {isLinked(identities, "google")
               ? <strong>✓ Прив'язано</strong>
-              : <GoogleSignInButton disabled={pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
+              : <GoogleSignInButton disabled={state !== "ready" || pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
           </div>
         </div>
         {state === "loading" ? <p className="settings-hint">Завантаження способів входу…</p> : null}
