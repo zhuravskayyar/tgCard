@@ -30,6 +30,11 @@ const guestAuthState = {
 
 test("guest start creates a protected session and ignores rapid repeat clicks", async ({ page }) => {
   let createRequests = 0;
+  let refreshRequests = 0;
+  await page.route("**/api/auth/refresh", (route) => {
+    refreshRequests += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
   await page.route("**/api/auth/guest", async (route) => {
     createRequests += 1;
     await new Promise((resolve) => setTimeout(resolve, 180));
@@ -54,6 +59,25 @@ test("guest start creates a protected session and ignores rapid repeat clicks", 
   await page.reload();
   await expect(page.locator(".top-hud")).toContainText("Сірий маг #48271");
   expect(createRequests).toBe(1);
+  expect(refreshRequests).toBeGreaterThanOrEqual(2);
+});
+
+test("guest rate limit is explained on the start screen", async ({ page }) => {
+  await page.route("**/api/auth/guest", (route) => route.fulfill({
+    status: 429,
+    contentType: "application/json",
+    headers: { "Retry-After": "3600" },
+    body: JSON.stringify({
+      error: {
+        code: "guest_creation_rate_limited",
+        message: "Забагато гостьових акаунтів із цієї мережі. Спробуй пізніше.",
+      },
+    }),
+  }));
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Почати нову гру" }).click();
+  await expect(page.getByRole("alert")).toContainText("Забагато гостьових акаунтів із цієї мережі. Спробуй пізніше.");
 });
 
 test("landing dialog is keyboard accessible and fits narrow mobile widths", async ({ page }) => {
@@ -99,6 +123,11 @@ test("Telegram Mini App waits for an explicit return-account choice", async ({ p
     });
   });
   let telegramLogins = 0;
+  await page.route("**/api/auth/refresh", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true }),
+  }));
   await page.route("**/api/auth/telegram", async (route) => {
     telegramLogins += 1;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
@@ -138,6 +167,11 @@ test("account protection appears after the tutorial and awards diamonds once", a
       Telegram: { WebApp: { initData: "signed-mini-app-init-data", ready: () => undefined, expand: () => undefined } },
     });
   });
+  await page.route("**/api/auth/refresh", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true }),
+  }));
   let tutorialComplete = false;
   await page.route("**/api/auth/me", (route) => route.fulfill({
     status: 200,

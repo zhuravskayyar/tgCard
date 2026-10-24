@@ -175,6 +175,17 @@ export async function loadCurrentPlayer(signal: AbortSignal) {
 export async function loadCurrentAuth(signal: AbortSignal) {
   const token = getSessionToken();
   if (!token) throw new PlayerBootstrapError(401);
+  const refresh = await fetch(getApiEndpoint("/api/auth/refresh"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!refresh.ok) {
+    if (refresh.status === 401) clearSessionToken();
+    throw new PlayerBootstrapError(refresh.status);
+  }
   const response = await fetch(getApiEndpoint("/api/auth/me"), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",

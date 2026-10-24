@@ -201,11 +201,12 @@ export class PlayerRepository {
     await recalculateAutomaticDeck(client, playerId);
   }
 
-  async createGuestProfile(): Promise<PlayerSummary> {
-    let client: PoolClient | undefined;
+  async createGuestProfile(transactionClient?: PoolClient): Promise<PlayerSummary> {
+    const ownsClient = transactionClient === undefined;
+    let client = transactionClient;
     try {
-      client = await this.pool.connect();
-      await client.query("BEGIN");
+      client ??= await this.pool.connect();
+      if (ownsClient) await client.query("BEGIN");
       const playerId = randomUUID();
       const inserted = await client.query<PlayerRow>(
         `
@@ -229,13 +230,13 @@ export class PlayerRepository {
       if (!row) throw new Error("Guest player insert returned no row");
       await this.bootstrapPlayer(client, row.id);
       const summary = await this.toSummary(client, row);
-      await client.query("COMMIT");
+      if (ownsClient) await client.query("COMMIT");
       return summary;
     } catch (error) {
-      await client?.query("ROLLBACK").catch(() => undefined);
+      if (ownsClient) await client?.query("ROLLBACK").catch(() => undefined);
       throw new PlayerPersistenceError({ cause: error });
     } finally {
-      client?.release();
+      if (ownsClient) client?.release();
     }
   }
 
@@ -528,6 +529,8 @@ export class PlayerRepository {
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
+      const playerLock = await client.query("SELECT id FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      if (playerLock.rowCount !== 1) throw new Error("Player to link identity was not found");
       const current = await client.query(
         "SELECT provider FROM auth_identities WHERE player_id = $1 AND provider = $2 FOR UPDATE",
         [playerId, identity.provider],
@@ -567,12 +570,14 @@ export class PlayerRepository {
       if (options.grantAccountProtectionReward) {
         const rewardInsert = await client.query(
           `
-            INSERT INTO player_account_link_rewards (player_id, diamonds_awarded)
-            VALUES ($1, 5)
-            ON CONFLICT (player_id) DO NOTHING
+            INSERT INTO player_account_link_rewards (
+              player_id, diamonds_awarded, linked_provider, linked_provider_user_id
+            )
+            VALUES ($1, 5, $2, $3)
+            ON CONFLICT DO NOTHING
             RETURNING player_id
           `,
-          [playerId],
+          [playerId, identity.provider, identity.providerUserId],
         );
         rewardGranted = rewardInsert.rowCount === 1;
         if (rewardGranted) {

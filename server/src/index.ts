@@ -8,11 +8,13 @@ import {
   handleGoogleAuth,
   handleLinkIdentity,
   handleLogout,
+  handleRefreshSession,
   handleTelegramAuth,
   handleTelegramWebAuth,
 } from "./auth/accountAuthRoute.js";
 import { PlayerAuthService } from "./auth/playerAuth.js";
 import { SessionRepository } from "./auth/sessionRepository.js";
+import { GuestCreationRateLimiter } from "./auth/guestCreationRateLimiter.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
 import { handleCampaignRequest } from "./campaign/campaignRoute.js";
@@ -79,6 +81,7 @@ export const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const sessions = new SessionRepository(pool);
 const auth = new PlayerAuthService(players, sessions, environment.telegramBotToken);
+const guestCreationRateLimiter = new GuestCreationRateLimiter(pool, environment.telegramBotToken);
 const adminAuth = new AdminAuthService(auth, players, pool, environment.adminTelegramUserIds);
 const admin = new AdminService(pool);
 const guilds = new GuildService(pool);
@@ -212,6 +215,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isGoogleAuthRoute = url.pathname === "/api/auth/google";
   const isGuestAuthRoute = url.pathname === "/api/auth/guest";
   const isAuthMeRoute = url.pathname === "/api/auth/me";
+  const isAuthRefreshRoute = url.pathname === "/api/auth/refresh";
   const isAuthConfigRoute = url.pathname === "/api/auth/config";
   const isAuthLinkRoute = url.pathname === "/api/auth/link";
   const isAuthLogoutRoute = url.pathname === "/api/auth/logout";
@@ -256,7 +260,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -308,6 +312,18 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (request.method === "POST" && isGuestAuthRoute) {
     await handleGuestAuth(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      googleClientId: environment.googleClientId,
+      guestCreationRateLimiter,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && isAuthRefreshRoute) {
+    await handleRefreshSession(request, response, {
       auth,
       botToken: environment.telegramBotToken,
       googleClientId: environment.googleClientId,

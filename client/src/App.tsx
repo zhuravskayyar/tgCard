@@ -24,7 +24,7 @@ import { BattlePassScreen } from "./screens/BattlePassScreen";
 import { TasksScreen } from "./screens/TasksScreen";
 import { GuildScreen } from "./screens/GuildScreen";
 import { getRawTelegramInitData, getTelegramInitData, initializeTelegram } from "./telegram";
-import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer } from "./telegram/authenticatePlayer";
+import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer, PlayerBootstrapError } from "./telegram/authenticatePlayer";
 import { completeTutorial } from "./telegram/tutorial";
 import { savePlayerEquipment } from "./telegram/equipment";
 import type { BottomNavItem } from "./components/BottomNav";
@@ -279,8 +279,10 @@ export function App() {
     try {
       await login();
       retry();
-    } catch {
-      setWebAuthError("Не вдалося виконати вхід. Спробуйте ще раз.");
+    } catch (error) {
+      setWebAuthError(error instanceof PlayerBootstrapError && error.status === 429
+        ? "Забагато гостьових акаунтів із цієї мережі. Спробуй пізніше."
+        : "Не вдалося виконати вхід. Спробуйте ще раз.");
     }
   }
 

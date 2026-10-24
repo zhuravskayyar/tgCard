@@ -13,6 +13,7 @@ import { PlayerSessionError, PlayerAuthService } from "./playerAuth.js";
 import { resolveTelegramBotUsername, validateTelegramLoginWidget, TelegramWidgetAuthError } from "./telegramLoginWidget.js";
 import { validateTelegramInitDataPayload, TelegramInitDataError } from "./telegramInitData.js";
 import type { VerifiedIdentity } from "./identity.js";
+import { getGuestClientIp, GuestCreationRateLimiter, GuestCreationRateLimiterUnavailableError } from "./guestCreationRateLimiter.js";
 
 interface AuthRouteDependencies {
   auth: PlayerAuthService;
@@ -22,6 +23,7 @@ interface AuthRouteDependencies {
   telegramBotUsername?: string | null;
   referrals?: { acceptFromTelegramStart(playerId: string, startParam: string | null): Promise<unknown> };
   responseHeaders?: OutgoingHttpHeaders;
+  guestCreationRateLimiter?: GuestCreationRateLimiter;
   verifyGoogle?: typeof verifyGoogleCredential;
 }
 
@@ -84,6 +86,10 @@ function sendAuthError(response: ServerResponse, error: unknown, headers: Outgoi
     sendJson(response, 401, { error: { code: error.code, message: "Authentication failed" } }, headers);
     return;
   }
+  if (error instanceof GuestCreationRateLimiterUnavailableError) {
+    sendJson(response, 503, { error: { code: "guest_creation_unavailable", message: "Гостьовий вхід тимчасово недоступний." } }, headers);
+    return;
+  }
   if (error instanceof GoogleIdentityError) {
     sendJson(response, error.code === "google_not_configured" ? 503 : 401, {
       error: { code: error.code, message: error.code === "google_not_configured" ? "Google login is not configured" : "Google authentication failed" },
@@ -138,14 +144,49 @@ export async function handleTelegramAuth(
 }
 
 export async function handleGuestAuth(
-  _request: IncomingMessage,
+  request: IncomingMessage,
   response: ServerResponse,
   dependencies: AuthRouteDependencies,
 ) {
   const headers = dependencies.responseHeaders ?? {};
   try {
-    const player = await dependencies.players.createGuestProfile();
-    sendJson(response, 200, await dependencies.auth.createSession(player, "guest"), headers);
+    if (!dependencies.guestCreationRateLimiter) {
+      sendJson(response, 503, { error: { code: "guest_creation_unavailable", message: "Гостьовий вхід тимчасово недоступний." } }, headers);
+      return;
+    }
+    const clientIp = getGuestClientIp(request);
+    if (!clientIp) {
+      sendJson(response, 503, { error: { code: "guest_creation_unavailable", message: "Не вдалося безпечно перевірити запит." } }, headers);
+      return;
+    }
+    const rateLimit = await dependencies.guestCreationRateLimiter.consume(clientIp);
+    if (!rateLimit.allowed) {
+      sendJson(
+        response,
+        429,
+        { error: { code: "guest_creation_rate_limited", message: "Забагато гостьових акаунтів із цієї мережі. Спробуй пізніше." } },
+        { ...headers, "Retry-After": String(rateLimit.retryAfterSeconds ?? 3_600) },
+      );
+      return;
+    }
+    sendJson(response, 200, await dependencies.auth.createGuestSession(), headers);
+  } catch (error) {
+    sendAuthError(response, error, headers);
+  }
+}
+
+export async function handleRefreshSession(
+  request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: AuthRouteDependencies,
+) {
+  const headers = dependencies.responseHeaders ?? {};
+  try {
+    const authorization = request.headers.authorization?.trim() ?? "";
+    if (!authorization.startsWith("Bearer ")) throw new PlayerSessionError("missing_session");
+    const token = authorization.slice(7).trim();
+    if (!token || !(await dependencies.auth.refreshSession(token))) throw new PlayerSessionError("invalid_session");
+    sendJson(response, 200, { ok: true }, headers);
   } catch (error) {
     sendAuthError(response, error, headers);
   }
