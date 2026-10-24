@@ -14,6 +14,20 @@ import { PlayerRepository } from "../users/playerRepository.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 
+async function getEventWindowTime(pool: Pool, eventId: string) {
+  const result = await pool.query<{ starts_at: Date; ends_at: Date }>(
+    "SELECT starts_at, ends_at FROM limited_card_events WHERE id = $1",
+    [eventId],
+  );
+  const event = result.rows[0];
+  assert.ok(event, `Expected seeded limited card event ${eventId}`);
+
+  const startsAt = event.starts_at.getTime();
+  const endsAt = event.ends_at.getTime();
+  assert.ok(endsAt > startsAt, `Expected ${eventId} to have a valid event window`);
+  return new Date(startsAt + Math.floor((endsAt - startsAt) / 2));
+}
+
 test("limited Carter card remains redeemable once per player", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
@@ -32,14 +46,15 @@ test("limited Carter card remains redeemable once per player", { skip: !database
   );
 
   try {
-    const reward = await service.redeem(player.id, LIMITED_CARD_EVENT_ID, LIMITED_CARD_PROMO_CODE);
+    const eventNow = await getEventWindowTime(pool, LIMITED_CARD_EVENT_ID);
+    const reward = await service.redeem(player.id, LIMITED_CARD_EVENT_ID, LIMITED_CARD_PROMO_CODE, eventNow);
     assert.equal(reward.message, "Лімітовану карту отримано");
     assert.equal(reward.reward.displayName, "Кролик Картер");
     assert.equal(reward.reward.limited, true);
     assert.equal(reward.reward.level, 35);
 
     await assert.rejects(
-      service.redeem(player.id, LIMITED_CARD_EVENT_ID, LIMITED_CARD_PROMO_CODE),
+      service.redeem(player.id, LIMITED_CARD_EVENT_ID, LIMITED_CARD_PROMO_CODE, eventNow),
       (error) => error instanceof LimitedCardAlreadyRedeemedError,
     );
     const count = await pool.query<{ count: string }>(
@@ -78,16 +93,17 @@ test("limited Necrat card is active, persistent, and redeemable once per player"
   );
 
   try {
-    const event = await service.getActiveEvent(firstPlayer.id);
+    const eventNow = await getEventWindowTime(pool, NECRAT_CARD_EVENT_ID);
+    const event = await service.getActiveEvent(firstPlayer.id, eventNow);
     assert.ok(event);
     assert.equal(event.id, NECRAT_CARD_EVENT_ID);
     assert.equal(event.displayName, "Некрат");
     assert.equal(event.element, "water");
     assert.equal(event.rarity, "legendary");
     assert.equal(event.limited, true);
-    assert.ok(new Date(event.endsAt).getTime() > Date.now());
+    assert.ok(new Date(event.endsAt).getTime() > eventNow.getTime());
 
-    const reward = await service.redeem(firstPlayer.id, event.id, NECRAT_CARD_PROMO_CODE.toUpperCase());
+    const reward = await service.redeem(firstPlayer.id, event.id, NECRAT_CARD_PROMO_CODE.toUpperCase(), eventNow);
     assert.equal(reward.reward.cardId, "limited_necrat");
     assert.equal(reward.reward.code, "necrat");
     assert.equal(reward.reward.displayName, "Некрат");
@@ -124,14 +140,14 @@ test("limited Necrat card is active, persistent, and redeemable once per player"
       discovered: true,
       ownedCopies: 1,
     });
-    assert.equal((await service.getActiveEvent(firstPlayer.id))?.redeemed, true);
+    assert.equal((await service.getActiveEvent(firstPlayer.id, eventNow))?.redeemed, true);
 
     await assert.rejects(
-      service.redeem(firstPlayer.id, event.id, NECRAT_CARD_PROMO_CODE),
+      service.redeem(firstPlayer.id, event.id, NECRAT_CARD_PROMO_CODE, eventNow),
       (error) => error instanceof LimitedCardAlreadyRedeemedError,
     );
 
-    const secondReward = await service.redeem(secondPlayer.id, event.id, NECRAT_CARD_PROMO_CODE);
+    const secondReward = await service.redeem(secondPlayer.id, event.id, NECRAT_CARD_PROMO_CODE, eventNow);
     assert.equal(secondReward.reward.cardId, "limited_necrat");
 
     const totalCards = await pool.query<{ count: string }>(
