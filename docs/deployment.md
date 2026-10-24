@@ -10,6 +10,13 @@ The local Vite proxy, WSL PostgreSQL, and Cloudflare tunnel remain available
 for development only. Production browser requests use the same-origin `/api`
 path, so `VITE_API_URL` should be unset or empty in Vercel.
 
+**Deployment safety:** The Vercel `buildCommand` must only build code. Never run
+`migrate`, `seed`, or automatic-deck backfills from a deployment build. Before
+any production schema/data change, back up the database, review the migration,
+and run the migration and seed commands deliberately against the correct
+production database, one operator/job at a time. Concurrent previews or
+rebuilds must not write to the player database.
+
 ## 1. Create Neon and move the database
 
 1. Create a Neon project and database.

@@ -400,10 +400,12 @@ export function resolveDuelExchange(input: {
 
   const playerEquipment = input.equipmentEnabled ? input.playerModifiers.equipment : undefined;
   const enemyEquipment = input.equipmentEnabled ? input.enemyModifiers.equipment : undefined;
+  // Each defender's mirror reflects part of the attacker's card power back to that attacker.
+  // The duel log uses playerDamage for damage TO the enemy and enemyDamage for damage TO the player.
   const playerDamage = Math.round(playerAttack.damage * Math.max(0, 1 - (enemyEquipment?.incomingDamageReductionPct ?? 0) / 100))
-    + Math.round(enemyCard.finalPower * (enemyEquipment?.damageReflectionPct ?? 0) / 100);
+    + Math.round(enemyCard.finalPower * (playerEquipment?.damageReflectionPct ?? 0) / 100);
   const enemyDamage = Math.round(enemyAttack.damage * Math.max(0, 1 - (playerEquipment?.incomingDamageReductionPct ?? 0) / 100))
-    + Math.round(playerCard.finalPower * (playerEquipment?.damageReflectionPct ?? 0) / 100);
+    + Math.round(playerCard.finalPower * (enemyEquipment?.damageReflectionPct ?? 0) / 100);
   let playerHp = Math.max(0, input.playerHp - enemyDamage);
   let enemyHp = Math.max(0, input.enemyHp - playerDamage);
   const playerEquipmentState: EquipmentBattleState = { reviveUsed: input.playerModifiers.equipmentState?.reviveUsed ?? false, voodooUsed: input.playerModifiers.equipmentState?.voodooUsed ?? false };
