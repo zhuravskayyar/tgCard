@@ -1,14 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "installCommand": "npm ci",
-  "buildCommand": "npm run build --workspace shared && npm run build --workspace game-core && npm run migrate --workspace server && npm run seed --workspace server && npm run build --workspace server && npm run build --workspace client",
+  "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "/api?__cardastika_api_path=:path*"
     },
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api(?:/|$)).*)",
+      "destination": "/index.html"
+    }
   ]
 }
