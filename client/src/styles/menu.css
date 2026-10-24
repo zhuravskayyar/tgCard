@@ -20,7 +20,7 @@
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
-  transition: filter var(--transition-fast);
+  transition: filter var(--transition-fast), scale 110ms ease-out;
 }
 .menu-row--compact { min-height: 52px; --menu-side-width: 31px; }
 .menu-row:not(.menu-row--metal-texture) { border: 1px solid var(--border-accent); border-radius: var(--radius-md); background: var(--surface-button); padding-inline: var(--space-3); }
@@ -42,7 +42,7 @@
 .menu-row__indicator { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--state-success); box-shadow: 0 0 5px rgb(169 200 143 / 35%); }
 .menu-row:disabled { opacity: .6; cursor: not-allowed; }
 .menu-row:not(:disabled):hover { --menu-brightness: 1.08; }
-.menu-row:not(:disabled):active { --menu-brightness: .93; }
+.menu-row:not(:disabled):active { --menu-brightness: .93; scale: .985; }
 .menu-row:focus-visible { outline-offset: -5px; }
 .home-menu { gap: var(--space-2); }
 .mode-tile__title { font-family: var(--font-display); font-size: var(--font-sm); line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }

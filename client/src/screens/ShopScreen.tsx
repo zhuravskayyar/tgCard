@@ -316,6 +316,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
             type="button"
           >
             <AppIcon name={tab.icon} size={24} />
+            <span>{tab.label}</span>
           </button>
         ))}
       </div> : null}
