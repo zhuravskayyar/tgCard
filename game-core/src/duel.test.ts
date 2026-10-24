@@ -208,6 +208,44 @@ test("equipment modifies damage and consumes the amulet only once", () => {
   assert.equal(result.status, "active");
 });
 
+test("mirror reflection damages the attacker instead of the artifact owner", () => {
+  const playerPool = initializeCyclicCardPool([card("A", "fire", 80), ..."BCDEFGHI".split("").map((code) => card(code))], () => 0.999999);
+  const enemyPool = initializeCyclicCardPool([card("J", "fire", 100), ..."KLMNOPQR".split("").map((code) => card(code))], () => 0.999999);
+  const playerModifiers: DuelBattleModifiers = {
+    ...noModifiers,
+    equipment: { damageReflectionPct: 10, incomingDamageReductionPct: 20, outgoingDamagePct: 0, reviveHpPct: 0, voodooHpReductionPct: 0 },
+  };
+  const enemyModifiers: DuelBattleModifiers = {
+    ...noModifiers,
+    equipment: { damageReflectionPct: 30, incomingDamageReductionPct: 25, outgoingDamagePct: 0, reviveHpPct: 0, voodooHpReductionPct: 0 },
+  };
+  const input = {
+    playerHp: 200,
+    enemyHp: 200,
+    playerPool,
+    enemyPool,
+    playerModifiers,
+    enemyModifiers,
+    slotIndex: 0 as const,
+    turnNumber: 0,
+  };
+
+  const reflected = resolveDuelExchange({ ...input, equipmentEnabled: true });
+  // Player's base 80 damage is reduced by 25% to 60; the player's mirror reflects 10% of enemy's 100 power.
+  assert.equal(reflected.exchange.playerDamage, 70);
+  // Enemy's base 100 damage is reduced by 20% to 80; enemy's mirror reflects 30% of player's 80 power.
+  assert.equal(reflected.exchange.enemyDamage, 104);
+  assert.equal(reflected.enemyHp, 130);
+  assert.equal(reflected.playerHp, 96);
+  assert.equal(reflected.status, "active");
+
+  const noEquipment = resolveDuelExchange({ ...input, equipmentEnabled: false });
+  assert.equal(noEquipment.exchange.playerDamage, 80);
+  assert.equal(noEquipment.exchange.enemyDamage, 100);
+  assert.equal(noEquipment.enemyHp, 120);
+  assert.equal(noEquipment.playerHp, 100);
+});
+
 test("win streak increments on wins, resets on loss, and widens the next search", () => {
   assert.equal(applyDuelOutcomeToStats({ duelWins: 0, duelLosses: 0, duelWinStreak: 0 }, "win").duelWinStreak, 1);
   assert.equal(applyDuelOutcomeToStats({ duelWins: 1, duelLosses: 0, duelWinStreak: 1 }, "win").duelWinStreak, 2);
