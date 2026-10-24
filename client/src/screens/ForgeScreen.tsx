@@ -254,7 +254,8 @@ export function ForgeScreen({ equipped, inventory, inventoryStatus, onBack }: Fo
           <div aria-label={`Підготовлено ${progressPercent}%`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={progressPercent} className="forge-progress__track" role="progressbar"><span style={{ width: `${progressPercent}%` }} /></div>
           <div className="forge-progress__cost"><CurrencyIcon kind="gold" size={16} /><strong>{formatNumber(activeRecipe.goldCost)}</strong><span>золота</span></div>
         </div>
-        <button aria-label={`Перекувати за ${formatNumber(activeRecipe.goldCost)} золота`} className="forge-action" disabled={!isReady} type="button"><EquipmentIcon name="forge" size={17} /><span>ПЕРЕКУВАТИ</span><small>{isReady ? "Умови виконано" : `Потрібно ще ${Math.max(0, activeRecipe.inputCount - selectedCount)}`}</small></button>
+        <button aria-label="Кування поки недоступне" className="forge-action" disabled type="button"><EquipmentIcon name="forge" size={17} /><span>КУВАННЯ НЕЗАБАРОМ</span><small>{isReady ? "Набір для перегляду підібрано" : `Для перегляду потрібно ще ${Math.max(0, activeRecipe.inputCount - selectedCount)}`}</small></button>
+        <p className="forge-inventory__hint">Зараз можна підібрати матеріали та переглянути результат. Створення предмета ще не працює — золото і спорядження не витрачаються.</p>
       </section>
 
       <section aria-label="Інвентар кузні" className="forge-inventory">

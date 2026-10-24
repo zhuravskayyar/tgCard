@@ -286,8 +286,8 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
       </section> : null}
       <div className="arena-controls">
         <div className="arena-actions">
-          <button aria-label="Змінити ціль" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onTarget()} title="Змінити ціль" type="button"><AppIcon name="target" size={20} /><span>Ціль</span></button>
-          <button aria-label="Оновити карти" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={onCards} title="Оновити карти" type="button"><AppIcon name="refresh" size={20} /><span>Карти</span><small>{match.changeCardsCost === 0 ? "0" : <><CurrencyIcon kind="gold" size={15} />{match.changeCardsCost}</>}</small></button>
+          <button aria-label="Змінити ціль" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onTarget()} title="Змінити ціль" type="button"><AppIcon name="target" size={20} /><span>Змінити ціль</span></button>
+          <button aria-label="Оновити карти" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={onCards} title="Оновити карти" type="button"><AppIcon name="refresh" size={20} /><span>Оновити карти</span><small>{match.changeCardsCost === 0 ? "0" : <><CurrencyIcon kind="gold" size={15} />{match.changeCardsCost}</>}</small></button>
         </div>
         <p aria-live="polite" className="arena-action-status">{pending ? "…" : playerDefeated ? "Вибули" : "Обери карту"}</p>
       </div>
@@ -487,7 +487,7 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
       <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Після бою використані карти переходять у відновлення.", "Жетони Арени можна витрачати в її магазині."]} />
       <ArenaTabs active={tab} onChange={setTab} />
       {error ? <p className="arena-error">{error}</p> : null}
-      {tab === "battle" ? <section className="arena-lobby"><div className="arena-lobby__hero"><AppIcon name="arena" size={46} /><div><span>6 учасників · 30 секунд</span><h2>Готові вийти на пісок?</h2><p>Спочатку збираємо живих гравців. Після відліку вільні місця заповнять боти.</p></div></div><div className="arena-lobby__stats"><span>Ліга <b>{profile.arenaLeague.name}</b></span><span>Рейтинг <b>{profile.arenaRating}</b></span><span>Жетони <ArenaTokenBalance value={profile.arenaTokens} /></span></div><button className="duel-primary-button" disabled={pending !== null} onClick={() => void queue()} type="button">{pending === "queue" ? "Записуємо в чергу…" : "Увійти в Arena Queue"}</button></section> : null}
+      {tab === "battle" ? <section className="arena-lobby"><div className="arena-lobby__hero"><AppIcon name="arena" size={46} /><div><span>6 учасників · 30 секунд</span><h2>Готові вийти на пісок?</h2><p>Спочатку збираємо живих гравців. Після відліку вільні місця заповнять боти.</p></div></div><div className="arena-lobby__stats"><span>Ліга <b>{profile.arenaLeague.name}</b></span><span>Рейтинг <b>{profile.arenaRating}</b></span><span>Жетони <ArenaTokenBalance value={profile.arenaTokens} /></span></div><button className="duel-primary-button" disabled={pending !== null} onClick={() => void queue()} type="button">{pending === "queue" ? "Записуємо в чергу…" : "Записатися на арену"}</button></section> : null}
       {tab === "league" ? <LeagueTab profile={profile} /> : null}
       {tab === "shop" ? <ShopTab catalog={catalog} onLoad={() => { if (initData) void loadArenaShop(initData).then(setCatalog).catch(() => setError("Магазин тимчасово недоступний.")); }} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
     </div>

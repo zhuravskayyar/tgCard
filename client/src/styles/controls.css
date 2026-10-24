@@ -128,11 +128,11 @@
   overflow-wrap: anywhere;
   cursor: pointer;
   touch-action: manipulation;
-  transition: border-color var(--transition-fast), filter var(--transition-fast);
+  transition: border-color var(--transition-fast), filter var(--transition-fast), transform var(--transition-fast);
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
 
   &:not(:disabled):not([aria-disabled="true"]):hover { border-color: var(--border-active); filter: brightness(1.1); }
-  &:not(:disabled):active { filter: brightness(.92); }
+  &:not(:disabled):active { filter: brightness(.92); transform: translateY(1px) scale(.985); }
   &:is(:disabled,[aria-disabled="true"]) { color: var(--text-disabled); background: var(--bg-inset); border-color: var(--border-subtle); box-shadow: none; opacity: .7; filter: none; cursor: not-allowed; }
   & .app-icon { color: currentColor; filter: none; }
 }
@@ -231,17 +231,17 @@
   width: fit-content;
   max-width: none;
   margin-inline: auto;
-  grid-template-columns: repeat(2, 42px);
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
   gap: 7px;
 }
 
 .shop-tabs .shop-tab {
   --shop-tab-tone: #d5a74f;
-  width: 42px;
-  min-height: 32px;
-  height: 32px;
-  padding: 3px;
-  gap: 0;
+  width: auto;
+  min-height: var(--control-height);
+  height: auto;
+  padding: 8px 10px;
+  gap: 6px;
   border-radius: 6px;
   border-color: color-mix(in srgb, var(--shop-tab-tone) 62%, var(--border-default));
   background:
@@ -252,6 +252,12 @@
 
 .shop-tabs .shop-tab--cards { --shop-tab-tone: #e0b354; }
 .shop-tabs .shop-tab--workshop { --shop-tab-tone: #62c1cc; }
+
+.shop-tabs .shop-tab span {
+  font-size: var(--font-xs);
+  line-height: 1.2;
+  white-space: nowrap;
+}
 
 .shop-tabs .shop-tab .app-icon {
   width: 18px;
@@ -294,3 +300,12 @@
 .shop-bundle-banner__purchase:disabled,
 .shop-boost-card__purchase:disabled { opacity: .78; }
 .guild-screen :is(.guild-primary-button,.guild-secondary-button,.guild-danger-button,.guild-icon-button,.guild-inline-button) { font: 600 var(--font-sm)/1.25 var(--font-label); }
+
+/* Prefer tactile feedback without motion for users requesting reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-button, .shop-tab, .quest-paper__button, .duel-primary-button, .duel-secondary-button,
+  .screen-back, .collection-back, .deck-back, .shop-back, .arena-tabs button {
+    transition: none;
+    transform: none !important;
+  }
+}

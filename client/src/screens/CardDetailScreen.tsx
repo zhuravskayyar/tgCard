@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardFxWrapper } from "../components/CardFxWrapper";
@@ -46,6 +46,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const [candidates, setCandidates] = useState<CandidatesState>({ status: "loading" });
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
+  const [absorptionCandidate, setAbsorptionCandidate] = useState<{ instanceId: string; name: string } | null>(null);
+  const absorptionCancelRef = useRef<HTMLButtonElement>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,6 +126,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       });
       setCandidatePage(1);
       setCandidateAttempt((current) => current + 1);
+      setAbsorptionCandidate(null);
     } catch (error) {
       setActionError(requestErrorMessage(error));
       setCandidateAttempt((current) => current + 1);
@@ -144,6 +147,16 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       setPendingAction(null);
     }
   }
+
+  useEffect(() => {
+    if (!absorptionCandidate) return;
+    absorptionCancelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && pendingAction === null) setAbsorptionCandidate(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [absorptionCandidate, pendingAction]);
 
   if (detail.status !== "ready") {
     return <section className="card-detail-screen">
@@ -235,10 +248,21 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       {candidates.status === "loading" ? <div className="selector-state">Завантаження…</div> : null}
       {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
       {candidates.status === "ready" && candidates.data.totalCards === 0 ? <div className="selector-state">Немає слабких карт цієї стихії.</div> : null}
-      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <DeckCard card={candidate} key={candidate.instanceId} onClick={() => void performAbsorption([candidate.instanceId])} showLevel />)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
+      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <DeckCard card={candidate} key={candidate.instanceId} onClick={() => setAbsorptionCandidate({ instanceId: candidate.instanceId, name: candidate.displayName ?? candidate.code })} showLevel />)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
     </section>
 
     <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact icon="deck" metalTexture onClick={onOpenDeck} title="Колода" /><MenuRow compact icon="weak-cards" attention={hasAbsorptionAction} metalTexture onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow compact icon="shop" metalTexture onClick={onOpenShop} title="Магазин" /></nav>
+
+    {absorptionCandidate ? <div className="confirmation-backdrop" role="presentation">
+      <div aria-describedby="absorb-confirm-description" aria-labelledby="absorb-confirm-title" aria-modal="true" className="confirmation-modal" role="dialog">
+        <h2 id="absorb-confirm-title">Поглинути карту?</h2>
+        <p id="absorb-confirm-description">«{absorptionCandidate.name}» буде витрачено для прогресу цієї карти та назавжди видалено з інвентарю.</p>
+        <div>
+          <button ref={absorptionCancelRef} disabled={pendingAction !== null} onClick={() => setAbsorptionCandidate(null)} type="button">Скасувати</button>
+          <button className="ui-button--danger" disabled={pendingAction !== null} onClick={() => void performAbsorption([absorptionCandidate.instanceId])} type="button">{pendingAction === "absorb" ? "Поглинаємо…" : "Поглинути карту"}</button>
+        </div>
+      </div>
+    </div> : null}
 
     {levelConfirmationOpen && progression.requiredGold !== null ? <div className="confirmation-backdrop" role="presentation"><div aria-labelledby="level-confirm-title" aria-modal="true" className="confirmation-modal" role="dialog"><h2 id="level-confirm-title">Підняти рівень?</h2><p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p><div><button disabled={pendingAction !== null} onClick={() => setLevelConfirmationOpen(false)} type="button">Скасувати</button><button disabled={pendingAction !== null} onClick={() => void performLevelUp()} type="button">{pendingAction === "level" ? "Підвищення…" : "Підняти рівень"}</button></div></div></div> : null}
   </section>;

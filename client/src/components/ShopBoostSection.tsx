@@ -37,10 +37,8 @@ function ShopBoostCard({ boost, onPurchase, player }: { boost: ShopBoost; onPurc
         <BoostEffect boost={boost} />
       </div>
       <div className="shop-boost-card__footer">
-        <button aria-label={`Купити ${boost.title.toLowerCase()} за ${boost.price}`} className={`shop-boost-card__purchase shop-boost-card__purchase--${boost.currency}`} disabled={!canAfford || !onPurchase} onClick={() => onPurchase?.(boost)} type="button">
-          <span>Купити за</span>
-          <CurrencyIcon kind={boost.currency} size={16} />
-          <strong>{boost.price}</strong>
+        <button aria-label={onPurchase ? `Купити ${boost.title.toLowerCase()} за ${boost.price}` : `${boost.title}: покупка поки недоступна`} className={`shop-boost-card__purchase shop-boost-card__purchase--${boost.currency}`} disabled={!canAfford || !onPurchase} onClick={() => onPurchase?.(boost)} type="button">
+          {onPurchase ? <><span>Купити за</span><CurrencyIcon kind={boost.currency} size={16} /><strong>{boost.price}</strong></> : <span>Незабаром</span>}
         </button>
       </div>
     </article>
