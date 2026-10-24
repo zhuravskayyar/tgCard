@@ -12,6 +12,7 @@ import { verifyGoogleCredential, GoogleIdentityError } from "./googleIdentity.js
 import { PlayerSessionError, PlayerAuthService } from "./playerAuth.js";
 import { resolveTelegramBotUsername, validateTelegramLoginWidget, TelegramWidgetAuthError } from "./telegramLoginWidget.js";
 import { validateTelegramInitDataPayload, TelegramInitDataError } from "./telegramInitData.js";
+import type { VerifiedIdentity } from "./identity.js";
 
 interface AuthRouteDependencies {
   auth: PlayerAuthService;
@@ -136,6 +137,20 @@ export async function handleTelegramAuth(
   }
 }
 
+export async function handleGuestAuth(
+  _request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: AuthRouteDependencies,
+) {
+  const headers = dependencies.responseHeaders ?? {};
+  try {
+    const player = await dependencies.players.createGuestProfile();
+    sendJson(response, 200, await dependencies.auth.createSession(player, "guest"), headers);
+  } catch (error) {
+    sendAuthError(response, error, headers);
+  }
+}
+
 export async function handleTelegramWebAuth(
   request: IncomingMessage,
   response: ServerResponse,
@@ -176,13 +191,40 @@ export async function handleAuthMe(
   const headers = dependencies.responseHeaders ?? {};
   try {
     const authenticated = await dependencies.auth.authenticateRequest(request, dependencies.players);
+    const hasReward = authenticated.provider === "guest"
+      ? await dependencies.players.hasAccountProtectionReward(authenticated.player.id)
+      : false;
     sendJson(response, 200, {
       player: authenticated.player,
       identities: await dependencies.players.listAuthIdentities(authenticated.player.id),
+      sessionProvider: authenticated.provider,
+      accountProtection: {
+        rewardDiamonds: 5,
+        status: authenticated.provider !== "guest"
+          ? "not_applicable"
+          : hasReward
+            ? "completed"
+            : authenticated.player.tutorialEligible === false ? "available" : "locked",
+      },
     }, headers);
   } catch (error) {
     sendAuthError(response, error, headers);
   }
+}
+
+function readTelegramLinkIdentity(body: unknown, botToken: string): VerifiedIdentity {
+  if (isRecord(body) && typeof body.initData === "string" && body.initData.trim()) {
+    const { user } = validateTelegramInitDataPayload(body.initData, botToken);
+    return {
+      provider: "telegram",
+      providerUserId: user.id,
+      email: null,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoUrl: user.photoUrl,
+    };
+  }
+  return validateTelegramLoginWidget(readTelegramWidgetData(body), botToken);
 }
 
 export async function handleLinkIdentity(
@@ -196,17 +238,26 @@ export async function handleLinkIdentity(
     const body = await readJsonBody(request);
     const provider = readProvider(body);
     const replaceExisting = readReplaceExisting(body);
+    if (authenticated.provider === "guest" && authenticated.player.tutorialEligible !== false) {
+      throw new HttpRequestError(409, "account_protection_locked", "Спочатку заверши вступне навчання, щоб захистити прогрес.");
+    }
+    if (authenticated.provider === "guest" && replaceExisting) {
+      throw new HttpRequestError(409, "guest_identity_transfer_forbidden", "Гостьовий профіль не може замінити або об'єднати інший акаунт.");
+    }
     let identity;
     if (provider === "google") {
       identity = await (dependencies.verifyGoogle ?? verifyGoogleCredential)(readCredential(body), dependencies.googleClientId);
     } else {
-      const authData = readTelegramWidgetData(body);
-      identity = validateTelegramLoginWidget(authData, dependencies.botToken);
+      identity = readTelegramLinkIdentity(body, dependencies.botToken);
     }
     sendJson(
       response,
       200,
-      await dependencies.players.linkIdentity(authenticated.player.id, identity, { replaceExisting }),
+      await dependencies.players.linkIdentity(authenticated.player.id, identity, {
+        allowExistingIdentityTransfer: authenticated.provider !== "guest",
+        grantAccountProtectionReward: authenticated.provider === "guest",
+        replaceExisting,
+      }),
       headers,
     );
   } catch (error) {

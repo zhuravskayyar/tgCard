@@ -7,6 +7,7 @@ import type { VerifiedIdentity } from "./identity.js";
 import {
   handleAuthConfig,
   handleAuthMe,
+  handleGuestAuth,
   handleGoogleAuth,
   handleLinkIdentity,
   handleLogout,
@@ -17,6 +18,7 @@ import { GoogleIdentityError, verifyGoogleCredential } from "./googleIdentity.js
 import { PlayerAuthService } from "./playerAuth.js";
 import { SessionRepository } from "./sessionRepository.js";
 import { PlayerRepository } from "../users/playerRepository.js";
+import { getSeasonWindow } from "../battlePassConfig.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 const botToken = "123456:test-route-token";
@@ -107,6 +109,8 @@ function createAuthServer(pool: Pool, googleIdentities: Map<string, VerifiedIden
       ? handleAuthConfig(request, response, dependencies)
       : request.method === "POST" && path === "/api/auth/telegram"
       ? handleTelegramAuth(request, response, dependencies)
+      : request.method === "POST" && path === "/api/auth/guest"
+        ? handleGuestAuth(request, response, dependencies)
       : request.method === "POST" && path === "/api/auth/telegram/web"
         ? handleTelegramWebAuth(request, response, dependencies)
         : request.method === "POST" && path === "/api/auth/google"
@@ -349,6 +353,142 @@ test("a signed-in Google player cannot transfer an existing Telegram profile", {
       body: JSON.stringify({ initData: signedMiniAppInitData(telegramId) }),
     });
     assert.equal((repeatedTelegramLogin.body as { player: { id: string } }).player.id, telegramLoginBody.player.id);
+  } finally {
+    if (playerIds.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
+    await close(server);
+    await pool.end();
+  }
+});
+
+test("guest profiles persist, reject identity conflicts, and grant the link reward once", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const conflictCredential = `guest-conflict-${Date.now()}`;
+  const linkedCredential = `guest-linked-${Date.now()}`;
+  const conflictIdentity: VerifiedIdentity = {
+    provider: "google",
+    providerUserId: `guest-conflict-sub-${Date.now()}`,
+    email: `${conflictCredential}@example.com`,
+    firstName: "Account Owner",
+    lastName: null,
+    photoUrl: null,
+  };
+  const linkedIdentity: VerifiedIdentity = {
+    provider: "google",
+    providerUserId: `guest-linked-sub-${Date.now()}`,
+    email: `${linkedCredential}@example.com`,
+    firstName: "Guest Linked",
+    lastName: null,
+    photoUrl: null,
+  };
+  const telegramId = String(Date.now() * 1_000 + 21);
+  const { server } = createAuthServer(pool, new Map([
+    [conflictCredential, conflictIdentity],
+    [linkedCredential, linkedIdentity],
+  ]));
+  const origin = await listen(server);
+  const playerIds: string[] = [];
+  try {
+    const existingAccount = await requestJson(origin, "/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: conflictCredential }),
+    });
+    assert.equal(existingAccount.status, 200);
+    const existingBody = existingAccount.body as { player: { id: string }; sessionToken: string };
+    playerIds.push(existingBody.player.id);
+
+    const guestLogin = await requestJson(origin, "/api/auth/guest", { method: "POST" });
+    assert.equal(guestLogin.status, 200);
+    const guestBody = guestLogin.body as {
+      identities: unknown[];
+      player: { firstName: string; gold: number; id: string; level: number; silver: number; tutorialEligible: boolean };
+      sessionProvider: string;
+      sessionToken: string;
+    };
+    playerIds.push(guestBody.player.id);
+    assert.equal(guestBody.sessionProvider, "guest");
+    assert.match(guestBody.player.firstName, /^Сірий маг #\d{5}$/u);
+    assert.equal(guestBody.player.level, 1);
+    assert.equal(guestBody.player.silver, 1_500);
+    assert.equal(guestBody.player.gold, 0);
+    assert.equal(guestBody.player.tutorialEligible, true);
+    assert.deepEqual(guestBody.identities, []);
+    assert.ok(Number((await pool.query<{ count: number }>(
+      "SELECT count(*)::integer AS count FROM player_card_instances WHERE player_id = $1",
+      [guestBody.player.id],
+    )).rows[0]?.count) > 0);
+
+    const guestMe = await requestJson(origin, "/api/auth/me", {
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+    });
+    assert.equal(guestMe.status, 200);
+    assert.equal((guestMe.body as { player: { id: string }; sessionProvider: string; accountProtection: { status: string } }).player.id, guestBody.player.id);
+    assert.equal((guestMe.body as { sessionProvider: string }).sessionProvider, "guest");
+    assert.equal((guestMe.body as { accountProtection: { status: string } }).accountProtection.status, "locked");
+
+    const earlyLink = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+      body: JSON.stringify({ provider: "telegram", initData: signedMiniAppInitData(telegramId) }),
+    });
+    assert.equal(earlyLink.status, 409);
+    assert.equal((earlyLink.body as { error: { code: string } }).error.code, "account_protection_locked");
+
+    await pool.query("UPDATE players SET tutorial_eligible = FALSE WHERE id = $1", [guestBody.player.id]);
+    const available = await requestJson(origin, "/api/auth/me", {
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+    });
+    assert.equal((available.body as { accountProtection: { status: string } }).accountProtection.status, "available");
+
+    const conflict = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+      body: JSON.stringify({ provider: "google", credential: conflictCredential }),
+    });
+    assert.equal(conflict.status, 409);
+    assert.equal((conflict.body as { error: { code: string } }).error.code, "identity_belongs_to_other_player");
+
+    const transfer = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+      body: JSON.stringify({ provider: "google", credential: conflictCredential, replaceExisting: true }),
+    });
+    assert.equal(transfer.status, 409);
+    assert.equal((transfer.body as { error: { code: string } }).error.code, "guest_identity_transfer_forbidden");
+
+    const telegramLink = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+      body: JSON.stringify({ provider: "telegram", initData: signedMiniAppInitData(telegramId) }),
+    });
+    assert.equal(telegramLink.status, 200);
+    assert.equal((telegramLink.body as { rewardGranted: boolean }).rewardGranted, true);
+
+    const { seasonId } = getSeasonWindow(new Date());
+    const rewardBalance = async () => Number((await pool.query<{ diamonds: string | number }>(
+      "SELECT diamonds FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2",
+      [guestBody.player.id, seasonId],
+    )).rows[0]?.diamonds ?? 0);
+    assert.equal(await rewardBalance(), 5);
+
+    const googleLink = await requestJson(origin, "/api/auth/link", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+      body: JSON.stringify({ provider: "google", credential: linkedCredential }),
+    });
+    assert.equal(googleLink.status, 200);
+    assert.equal((googleLink.body as { rewardGranted: boolean }).rewardGranted, false);
+    assert.equal(await rewardBalance(), 5);
+
+    const completed = await requestJson(origin, "/api/auth/me", {
+      headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
+    });
+    assert.equal((completed.body as { accountProtection: { status: string } }).accountProtection.status, "completed");
+    const conflictOwner = await pool.query<{ player_id: string }>(
+      "SELECT player_id FROM auth_identities WHERE provider = 'google' AND provider_user_id = $1",
+      [conflictIdentity.providerUserId],
+    );
+    assert.equal(conflictOwner.rows[0]?.player_id, existingBody.player.id);
   } finally {
     if (playerIds.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
     await close(server);

@@ -1,4 +1,12 @@
 export type AuthProvider = "telegram" | "google";
+export type AuthSessionProvider = AuthProvider | "guest";
+
+export type AccountProtectionStatus = "locked" | "available" | "completed" | "not_applicable";
+
+export interface AccountProtectionTaskView {
+  rewardDiamonds: 5;
+  status: AccountProtectionStatus;
+}
 
 export interface AuthConfigResponse {
   googleClientId: string | null;
@@ -13,8 +21,16 @@ export interface AuthIdentityView {
 
 export interface AuthSessionResponse {
   player: import("./player.js").PlayerSummary;
+  sessionProvider: AuthSessionProvider;
   sessionToken: string;
   identities: AuthIdentityView[];
+}
+
+export interface AuthMeResponse {
+  accountProtection: AccountProtectionTaskView;
+  identities: AuthIdentityView[];
+  player: import("./player.js").PlayerSummary;
+  sessionProvider: AuthSessionProvider;
 }
 
 export interface GoogleAuthRequest {
@@ -27,9 +43,11 @@ export interface TelegramWebAuthRequest {
 
 export type LinkIdentityRequest =
   | { provider: "google"; credential: string; replaceExisting?: boolean }
-  | { provider: "telegram"; authData: Record<string, string> };
+  | { provider: "telegram"; authData: Record<string, string> }
+  | { provider: "telegram"; initData: string };
 
 export interface LinkIdentityResponse {
   identities: AuthIdentityView[];
+  rewardGranted: boolean;
   replacedExisting: boolean;
 }

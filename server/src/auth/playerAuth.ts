@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import type { AuthIdentityView, AuthProvider, PlayerSummary } from "@cardastika/shared";
+import type { AuthIdentityView, AuthProvider, AuthSessionProvider, PlayerSummary } from "@cardastika/shared";
 import { PlayerPersistenceError, type PlayerRepository } from "../users/playerRepository.js";
 import { validateTelegramInitData } from "./telegramInitData.js";
 import { SessionRepository } from "./sessionRepository.js";
@@ -13,7 +13,7 @@ export class PlayerSessionError extends Error {
 
 export interface AuthenticatedPlayer {
   player: PlayerSummary;
-  provider: AuthProvider;
+  provider: AuthSessionProvider;
   sessionToken?: string;
 }
 
@@ -53,9 +53,9 @@ export class PlayerAuthService {
     };
   }
 
-  async createSession(player: PlayerSummary, provider: AuthProvider) {
+  async createSession(player: PlayerSummary, provider: AuthSessionProvider) {
     const session = await this.sessions.create(player.id, provider);
-    return { player, sessionToken: session.token, identities: await this.players.listAuthIdentities(player.id) };
+    return { player, sessionProvider: provider, sessionToken: session.token, identities: await this.players.listAuthIdentities(player.id) };
   }
 
   async revokeSession(token: string) {

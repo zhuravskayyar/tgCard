@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { getPlayerCollectionModifiers, getRequiredAccountXp } from "@cardastika/game-core";
 import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { VerifiedIdentity } from "../auth/identity.js";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
+import { getSeasonWindow } from "../battlePassConfig.js";
 import { getCompletedCollectionBonuses } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { grantStarterCards } from "../inventory/starterCardGrant.js";
@@ -198,6 +199,44 @@ export class PlayerRepository {
   private async bootstrapPlayer(client: PoolClient, playerId: string) {
     await grantStarterCards(client, playerId);
     await recalculateAutomaticDeck(client, playerId);
+  }
+
+  async createGuestProfile(): Promise<PlayerSummary> {
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const playerId = randomUUID();
+      const inserted = await client.query<PlayerRow>(
+        `
+          INSERT INTO players (
+            id, telegram_user_id, username, nickname, first_name, last_name, photo_url,
+            level, silver, gold, referral_code, tutorial_eligible
+          )
+          VALUES ($1, NULL, NULL, NULL, $2, NULL, NULL, $3, $4, $5, $6, TRUE)
+          RETURNING ${playerReturningColumns()}
+        `,
+        [
+          playerId,
+          `Сірий маг #${randomInt(10_000, 100_000)}`,
+          NEW_PLAYER_DEFAULTS.level,
+          NEW_PLAYER_DEFAULTS.silver,
+          NEW_PLAYER_DEFAULTS.gold,
+          playerId.replaceAll("-", "").slice(0, 12).toLowerCase(),
+        ],
+      );
+      const row = inserted.rows[0];
+      if (!row) throw new Error("Guest player insert returned no row");
+      await this.bootstrapPlayer(client, row.id);
+      const summary = await this.toSummary(client, row);
+      await client.query("COMMIT");
+      return summary;
+    } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
+    }
   }
 
   private async persistIdentity(client: PoolClient, playerId: string, identity: VerifiedIdentity) {
@@ -466,13 +505,26 @@ export class PlayerRepository {
     }));
   }
 
+  async hasAccountProtectionReward(playerId: string) {
+    try {
+      const result = await this.pool.query(
+        "SELECT 1 FROM player_account_link_rewards WHERE player_id = $1",
+        [playerId],
+      );
+      return result.rowCount === 1;
+    } catch (error) {
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
   async linkIdentity(
     playerId: string,
     identity: VerifiedIdentity,
-    options: { replaceExisting?: boolean } = {},
-  ): Promise<{ identities: AuthIdentityView[]; replacedExisting: boolean }> {
+    options: { grantAccountProtectionReward?: boolean; replaceExisting?: boolean; allowExistingIdentityTransfer?: boolean } = {},
+  ): Promise<{ identities: AuthIdentityView[]; rewardGranted: boolean; replacedExisting: boolean }> {
     let client: PoolClient | undefined;
     let replacedExisting = false;
+    let rewardGranted = false;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
@@ -488,7 +540,7 @@ export class PlayerRepository {
       const previousOwnerId = owner.rows[0]?.player_id;
       if (previousOwnerId && previousOwnerId !== playerId) {
         if (identity.provider === "telegram") throw new TelegramIdentityAuthoritativeError();
-        if (!options.replaceExisting) throw new AuthIdentityConflictError();
+        if (!options.replaceExisting || options.allowExistingIdentityTransfer === false) throw new AuthIdentityConflictError();
         replacedExisting = true;
         await client.query(
           `UPDATE auth_identities
@@ -512,8 +564,33 @@ export class PlayerRepository {
           if (linkedOwner.rows[0]?.player_id !== playerId) throw new AuthIdentityConflictError();
         }
       }
+      if (options.grantAccountProtectionReward) {
+        const rewardInsert = await client.query(
+          `
+            INSERT INTO player_account_link_rewards (player_id, diamonds_awarded)
+            VALUES ($1, 5)
+            ON CONFLICT (player_id) DO NOTHING
+            RETURNING player_id
+          `,
+          [playerId],
+        );
+        rewardGranted = rewardInsert.rowCount === 1;
+        if (rewardGranted) {
+          const { seasonId } = getSeasonWindow(new Date());
+          await client.query(
+            `
+              INSERT INTO player_battle_pass_state (player_id, season_id, diamonds)
+              VALUES ($1, $2, 5)
+              ON CONFLICT (player_id, season_id) DO UPDATE
+                SET diamonds = player_battle_pass_state.diamonds + EXCLUDED.diamonds,
+                    updated_at = NOW()
+            `,
+            [playerId, seasonId],
+          );
+        }
+      }
       await client.query("COMMIT");
-      return { identities: await this.listAuthIdentities(playerId), replacedExisting };
+      return { identities: await this.listAuthIdentities(playerId), rewardGranted, replacedExisting };
     } catch (error) {
       await client?.query("ROLLBACK").catch(() => undefined);
       if (

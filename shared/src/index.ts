@@ -112,9 +112,13 @@ export {
   type PlayerInventoryResponse,
 } from "./cosmetics.js";
 export type {
+  AccountProtectionStatus,
+  AccountProtectionTaskView,
   AuthConfigResponse,
   AuthIdentityView,
+  AuthMeResponse,
   AuthProvider,
+  AuthSessionProvider,
   AuthSessionResponse,
   GoogleAuthRequest,
   LinkIdentityRequest,

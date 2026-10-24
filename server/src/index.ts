@@ -4,6 +4,7 @@ import { basename, extname, relative, resolve } from "node:path";
 import {
   handleAuthMe,
   handleAuthConfig,
+  handleGuestAuth,
   handleGoogleAuth,
   handleLinkIdentity,
   handleLogout,
@@ -209,6 +210,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isAdminRoute = url.pathname === "/api/admin" || url.pathname.startsWith("/api/admin/");
   const isTelegramWebAuthRoute = url.pathname === "/api/auth/telegram/web";
   const isGoogleAuthRoute = url.pathname === "/api/auth/google";
+  const isGuestAuthRoute = url.pathname === "/api/auth/guest";
   const isAuthMeRoute = url.pathname === "/api/auth/me";
   const isAuthConfigRoute = url.pathname === "/api/auth/config";
   const isAuthLinkRoute = url.pathname === "/api/auth/link";
@@ -254,7 +256,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -299,6 +301,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       googleClientId: environment.googleClientId,
       players,
       referrals,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && isGuestAuthRoute) {
+    await handleGuestAuth(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      googleClientId: environment.googleClientId,
+      players,
       responseHeaders: cors.headers,
     });
     return;

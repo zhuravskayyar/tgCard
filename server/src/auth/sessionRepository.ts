@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { AuthProvider } from "@cardastika/shared";
+import type { AuthSessionProvider } from "@cardastika/shared";
 import type { Pool } from "pg";
 
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1_000;
 
 export interface CreatedSession {
   playerId: string;
-  provider: AuthProvider;
+  provider: AuthSessionProvider;
   token: string;
   expiresAt: string;
 }
@@ -18,7 +18,7 @@ function hashToken(token: string) {
 export class SessionRepository {
   constructor(private readonly pool: Pool) {}
 
-  async create(playerId: string, provider: AuthProvider): Promise<CreatedSession> {
+  async create(playerId: string, provider: AuthSessionProvider): Promise<CreatedSession> {
     const token = randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS);
     await this.pool.query(
@@ -31,9 +31,9 @@ export class SessionRepository {
     return { playerId, provider, token, expiresAt: expiresAt.toISOString() };
   }
 
-  async findActive(token: string): Promise<{ playerId: string; provider: AuthProvider } | null> {
+  async findActive(token: string): Promise<{ playerId: string; provider: AuthSessionProvider } | null> {
     if (!token.trim()) return null;
-    const result = await this.pool.query<{ player_id: string; provider: AuthProvider }>(
+    const result = await this.pool.query<{ player_id: string; provider: AuthSessionProvider }>(
       `
         SELECT player_id, provider
         FROM player_sessions
