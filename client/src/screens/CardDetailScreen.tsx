@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardNameBadge } from "../components/CardNameBadge";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
@@ -45,8 +46,12 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const [candidateAttempt, setCandidateAttempt] = useState(0);
   const [candidates, setCandidates] = useState<CandidatesState>({ status: "loading" });
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
+  const [absorptionCandidate, setAbsorptionCandidate] = useState<AbsorptionCandidatesResponse["cards"][number] | null>(null);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const actionInFlightRef = useRef(false);
+  const absorptionPanelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const initData = getTelegramInitData();
@@ -78,18 +83,24 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
   async function performLevelUp() {
     const initData = getTelegramInitData();
-    if (!initData || pendingAction) return;
+    if (!initData || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setPendingAction("level"); setActionError(null);
     try {
       const result = await levelUpCard(initData, cardInstanceId);
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
       if (result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
+      setActionSuccess("Рівень карти підвищено.");
+      setLevelConfirmationOpen(false);
     } catch (error) { setActionError(requestErrorMessage(error)); }
-    finally { setPendingAction(null); setLevelConfirmationOpen(false); }
+    finally { actionInFlightRef.current = false; setPendingAction(null); }
   }
 
   function requestLevelUp() {
+    if (actionInFlightRef.current) return;
+    setActionError(null);
+    setActionSuccess(null);
     if (progression.requiredGold !== null && progression.requiredGold > 0) {
       setLevelConfirmationOpen(true);
       return;
@@ -99,7 +110,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
   async function performAbsorption(fodderInstanceIds: readonly string[]) {
     const initData = getTelegramInitData();
-    if (!initData || pendingAction || fodderInstanceIds.length === 0) return;
+    if (!initData || actionInFlightRef.current || fodderInstanceIds.length === 0) return;
+    actionInFlightRef.current = true;
     setPendingAction("absorb"); setActionError(null);
     try {
       const result = await absorbCards(initData, cardInstanceId, [...fodderInstanceIds]);
@@ -124,23 +136,35 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       });
       setCandidatePage(1);
       setCandidateAttempt((current) => current + 1);
+      setAbsorptionCandidate(null);
+      setActionSuccess("Карту поглинуто. Сила основної карти оновлена.");
     } catch (error) {
       setActionError(requestErrorMessage(error));
       setCandidateAttempt((current) => current + 1);
-    } finally { setPendingAction(null); }
+    } finally { actionInFlightRef.current = false; setPendingAction(null); }
+  }
+
+  function requestAbsorption(candidate: AbsorptionCandidatesResponse["cards"][number]) {
+    if (actionInFlightRef.current || pendingAction) return;
+    setActionError(null);
+    setActionSuccess(null);
+    setAbsorptionCandidate(candidate);
   }
 
   async function performProtectionToggle() {
     const initData = getTelegramInitData();
-    if (!initData || pendingAction || detail.status !== "ready") return;
+    if (!initData || actionInFlightRef.current || detail.status !== "ready") return;
+    actionInFlightRef.current = true;
     setPendingAction("protection"); setActionError(null);
     try {
       const result = await toggleCardProtection(initData, cardInstanceId);
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
+      setActionSuccess(result.card.protectedFromAbsorption ? "Захист карти увімкнено." : "Захист карти вимкнено.");
     } catch (error) {
       setActionError(requestErrorMessage(error));
     } finally {
+      actionInFlightRef.current = false;
       setPendingAction(null);
     }
   }
@@ -224,9 +248,10 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
     </div>
 
-    {actionError ? <p className="card-action-error" role="alert">{actionError}</p> : null}
+    {actionError && !absorptionCandidate && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
+    {actionSuccess ? <p className="action-feedback action-feedback--success" key={actionSuccess} role="status">{actionSuccess}</p> : null}
 
-    <section className="absorption-panel">
+    <section className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>
       <div className="weak-cards-heading menu-row--metal-texture">
         <MenuTextureSlices />
         <span>Слабкі карти</span>
@@ -235,11 +260,12 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       {candidates.status === "loading" ? <div className="selector-state">Завантаження…</div> : null}
       {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
       {candidates.status === "ready" && candidates.data.totalCards === 0 ? <div className="selector-state">Немає слабких карт цієї стихії.</div> : null}
-      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <DeckCard card={candidate} key={candidate.instanceId} onClick={() => void performAbsorption([candidate.instanceId])} showLevel />)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
+      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <DeckCard card={candidate} disabled={pendingAction !== null} key={candidate.instanceId} onClick={() => requestAbsorption(candidate)} showLevel />)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
     </section>
 
     <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact icon="deck" metalTexture onClick={onOpenDeck} title="Колода" /><MenuRow compact icon="weak-cards" attention={hasAbsorptionAction} metalTexture onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow compact icon="shop" metalTexture onClick={onOpenShop} title="Магазин" /></nav>
 
-    {levelConfirmationOpen && progression.requiredGold !== null ? <div className="confirmation-backdrop" role="presentation"><div aria-labelledby="level-confirm-title" aria-modal="true" className="confirmation-modal" role="dialog"><h2 id="level-confirm-title">Підняти рівень?</h2><p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p><div><button disabled={pendingAction !== null} onClick={() => setLevelConfirmationOpen(false)} type="button">Скасувати</button><button disabled={pendingAction !== null} onClick={() => void performLevelUp()} type="button">{pendingAction === "level" ? "Підвищення…" : "Підняти рівень"}</button></div></div></div> : null}
+    {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
+    {absorptionCandidate ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути карту" description={<p>Поглинути карту <strong>{absorptionCandidate.displayName ?? "без назви"}</strong>? Вона буде витрачена, щоб посилити цю карту.</p>} error={actionError} onCancel={() => setAbsorptionCandidate(null)} onConfirm={() => void performAbsorption([absorptionCandidate.instanceId])} restoreFocusTargetRef={absorptionPanelRef} title="Підтвердити поглинання?" /> : null}
   </section>;
 }

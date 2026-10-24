@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { usePlayerSummary } from "./hooks/usePlayerSummary";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -101,6 +101,9 @@ export function App() {
   const [playerProfileId, setPlayerProfileId] = useState<string | null>(() => decodeURIComponent(initialPlayerProfile?.[1] ?? "") || null);
   const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
   const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
+  const [equipmentSavePending, setEquipmentSavePending] = useState(false);
+  const [equipmentSaveError, setEquipmentSaveError] = useState<string | null>(null);
+  const equipmentSaveInFlightRef = useRef(false);
   const [deckPowerOverride, setDeckPowerOverride] = useState<number | undefined>(undefined);
   const [guildOpenKey, setGuildOpenKey] = useState(0);
   const [dailyLoginDismissedDate, setDailyLoginDismissedDate] = useState<string | null>(null);
@@ -245,11 +248,30 @@ export function App() {
     updatePath("/forge");
   }
 
-  function handleEquipmentChange(nextEquipment: EquippedEquipment) {
-    setEquipment(nextEquipment);
-    updateBalance({ equipment: { equipped: nextEquipment } });
+  async function handleEquipmentChange(nextEquipment: EquippedEquipment): Promise<boolean> {
+    if (equipmentSaveInFlightRef.current) return false;
     const credential = getTelegramInitData();
-    if (credential) void savePlayerEquipment(credential, nextEquipment).catch(() => undefined);
+    if (!credential) {
+      setEquipmentSaveError("Спорядження можна зберегти після запуску через Telegram.");
+      return false;
+    }
+
+    equipmentSaveInFlightRef.current = true;
+    setEquipmentSavePending(true);
+    setEquipmentSaveError(null);
+    try {
+      const response = await savePlayerEquipment(credential, nextEquipment);
+      const savedEquipment = reconcileEquipment(response.equipment.equipped, response.inventory);
+      setEquipment(savedEquipment);
+      updateBalance({ equipment: { equipped: savedEquipment } });
+      return true;
+    } catch {
+      setEquipmentSaveError("Не вдалося зберегти спорядження. Перевірте зв’язок і спробуйте ще раз.");
+      return false;
+    } finally {
+      equipmentSaveInFlightRef.current = false;
+      setEquipmentSavePending(false);
+    }
   }
 
   async function handleWebLogin(login: () => Promise<unknown>) {
@@ -588,7 +610,7 @@ export function App() {
       ) : null}
       {screen === "settings" ? <SettingsScreen onBack={goHome} onLogout={retry} onReplayTutorial={() => { tutorial.replay(); goHome(); }} playerSummaryState={playerSummaryState} showTutorialReplay={tutorial.eligible} /> : null}
       {screen === "inventory" ? <InventoryScreen nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"} onBack={() => navigateFromBottom("profile")} onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })} /> : null}
-      {screen === "equipment" ? <EquipmentScreen equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} /> : null}
+      {screen === "equipment" ? <EquipmentScreen equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} saveError={equipmentSaveError} savePending={equipmentSavePending} /> : null}
       {screen === "forge" ? <ForgeScreen equipped={equipment} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={openEquipment} /> : null}
       {screen === "mail" ? <MailScreen changeNickname={updateNickname} claim={claimMail} currentNickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : ""} onBack={() => mailReturnScreen === "profile" ? navigateFromBottom("profile") : goHome()} onBalanceChange={updateBalance} onRetry={retryMail} resolveAction={resolveMailAction} state={mailState} /> : null}
       {screen === "leagues" ? <LeaderboardScreen onBack={() => navigateFromBottom("profile")} onOpenPlayerProfile={openPlayerProfile} playerSummaryState={playerSummaryState} /> : null}

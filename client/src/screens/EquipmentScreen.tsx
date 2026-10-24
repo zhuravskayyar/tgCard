@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import {
@@ -25,8 +25,10 @@ interface EquipmentScreenProps {
   inventoryStatus: EquipmentInventoryStatus;
   initialItemId?: string | null;
   onBack: () => void;
-  onEquippedChange: (equipped: EquippedEquipment) => void;
+  onEquippedChange: (equipped: EquippedEquipment) => Promise<boolean>;
   onOpenForge: () => void;
+  saveError: string | null;
+  savePending: boolean;
 }
 
 type FilterValue = "all" | "none";
@@ -88,12 +90,17 @@ function getBonusText(definition: EquipmentDefinition) {
   }
 }
 
-export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialItemId = null, onBack, onEquippedChange, onOpenForge }: EquipmentScreenProps) {
+export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialItemId = null, onBack, onEquippedChange, onOpenForge, saveError, savePending }: EquipmentScreenProps) {
   const initialDefinition = initialItemId ? STARTER_EQUIPMENT_DEFINITIONS.find((definition) => definition.id === initialItemId) : undefined;
   const [category, setCategory] = useState<EquipmentCategory>(initialDefinition?.category ?? "things");
   const [elementFilter, setElementFilter] = useState<ElementFilter>("all");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(initialItemId);
   const [slotFilter, setSlotFilter] = useState<SlotFilter>("all");
+  const headingRef = useRef<HTMLElement>(null);
+  const sheetRef = useRef<HTMLElement>(null);
+  const sheetCloseRef = useRef<HTMLButtonElement>(null);
+  const savePendingRef = useRef(savePending);
+  savePendingRef.current = savePending;
 
   const definitionsById = useMemo(() => new Map(STARTER_EQUIPMENT_DEFINITIONS.map((definition) => [definition.id, definition])), []);
   const inventoryById = useMemo(() => new Map(inventory.map((entry) => [entry.itemId, entry.quantity])), [inventory]);
@@ -134,25 +141,61 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
     setSelectedItemId(definition?.id ?? null);
   }
 
-  function equipItem(definition: EquipmentDefinition) {
-    if ((inventoryById.get(definition.id) ?? 0) < 1) return;
-    onEquippedChange({ ...equipped, [definition.slot]: definition.id });
-    setSelectedItemId(null);
+  async function equipItem(definition: EquipmentDefinition) {
+    if (savePending || (inventoryById.get(definition.id) ?? 0) < 1) return;
+    if (await onEquippedChange({ ...equipped, [definition.slot]: definition.id })) setSelectedItemId(null);
   }
 
-  function unequipItem(definition: EquipmentDefinition) {
-    if (equipped[definition.slot] !== definition.id) return;
-    onEquippedChange({ ...equipped, [definition.slot]: null });
-    setSelectedItemId(null);
+  async function unequipItem(definition: EquipmentDefinition) {
+    if (savePending || equipped[definition.slot] !== definition.id) return;
+    if (await onEquippedChange({ ...equipped, [definition.slot]: null })) setSelectedItemId(null);
   }
 
   const selectedIsEquipped = selectedItem ? equipped[selectedItem.slot] === selectedItem.id : false;
   const selectedSlotHasOtherItem = selectedItem ? Boolean(equipped[selectedItem.slot] && !selectedIsEquipped) : false;
   const selectedRarity = selectedItem ? EQUIPMENT_RARITY_CONFIG[selectedItem.rarity] : null;
 
+  useEffect(() => {
+    if (!selectedItem) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    sheetCloseRef.current?.focus();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        if (!savePendingRef.current) {
+          event.preventDefault();
+          setSelectedItemId(null);
+        }
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...(sheetRef.current?.querySelectorAll<HTMLElement>("button:not(:disabled), [href], [tabindex]:not([tabindex='-1'])") ?? [])]
+        .filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) {
+        event.preventDefault();
+        sheetRef.current?.focus();
+        return;
+      }
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && (document.activeElement === first || !sheetRef.current?.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !sheetRef.current?.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousFocus?.isConnected && !previousFocus.matches(":disabled, [aria-disabled='true']") && previousFocus.getClientRects().length > 0) previousFocus.focus();
+      else headingRef.current?.focus();
+    };
+  }, [selectedItem?.id]);
+
   return (
     <section className="equipment-screen" aria-labelledby="equipment-screen-title">
-      <header className="equipment-heading equipment-heading--cardastika">
+      <header className="equipment-heading equipment-heading--cardastika" ref={headingRef} tabIndex={-1}>
         <button aria-label="Назад" className="screen-back equipment-heading__back" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
         <div><span>МІФИЧНИЙ АРСЕНАЛ</span><h1 id="equipment-screen-title">СПОРЯДЖЕННЯ</h1></div>
         <div aria-label={hasEquippedItems ? `Рейтинг спорядження ${summary.equipmentRating}` : "Спорядження не екіпіровано"} className={`equipment-rating${hasEquippedItems ? "" : " equipment-rating--empty"}`}>
@@ -227,9 +270,9 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
       </section>
 
       {selectedItem && typeof document !== "undefined" ? createPortal(
-        <div className="equipment-sheet-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedItemId(null); }}>
-          <section aria-labelledby="equipment-item-detail-heading" aria-modal="true" className="equipment-item-sheet" role="dialog">
-            <button aria-label="Закрити" className="equipment-sheet-close" onClick={() => setSelectedItemId(null)} type="button"><AppIcon name="close" size={17} /></button>
+        <div className="equipment-sheet-backdrop" onMouseDown={(event) => { if (!savePending && event.currentTarget === event.target) setSelectedItemId(null); }}>
+          <section aria-labelledby="equipment-item-detail-heading" aria-modal="true" className="equipment-item-sheet" ref={sheetRef} role="dialog" tabIndex={-1}>
+            <button aria-label="Закрити" className="equipment-sheet-close" disabled={savePending} onClick={() => setSelectedItemId(null)} ref={sheetCloseRef} type="button"><AppIcon name="close" size={17} /></button>
             <div className="equipment-item-detail__preview" style={getRarityStyle(selectedItem.rarity)}><img alt="" className="equipment-item-detail__raw-sprite" src={getEquipmentSpritePath(selectedItem)} /></div>
             <div className="equipment-item-detail__content">
               <div className="equipment-item-detail__eyebrow"><span className="equipment-item-detail__element">{selectedItem.element ? <><ElementSymbol element={selectedItem.element} size={14} /> {EQUIPMENT_ELEMENT_LABELS[selectedItem.element]}</> : "Без стихії"}</span><b className="equipment-item-detail__rarity" style={{ color: selectedRarity?.color }}>{getRarityStatusLabel(selectedItem.rarity)}</b></div>
@@ -237,8 +280,9 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
               <p className="equipment-item-detail__bonus">{getBonusText(selectedItem)}</p>
               <p>{selectedItem.description}</p>
               <blockquote>{selectedItem.flavorText}</blockquote>
+              {saveError ? <p className="equipment-save-error" role="alert">{saveError}</p> : null}
               <div className={`equipment-item-detail__actions${selectedIsEquipped ? " equipment-item-detail__actions--equipped" : ""}`}>
-                {selectedIsEquipped ? <><span className="equipment-equipped-status">Одягнено</span><button className="equipment-action equipment-action--primary" onClick={() => unequipItem(selectedItem)} type="button">Зняти</button></> : <button className="equipment-action equipment-action--primary" onClick={() => equipItem(selectedItem)} type="button">{selectedSlotHasOtherItem ? "Замінити" : "Одягнути"}</button>}
+                {selectedIsEquipped ? <><span className="equipment-equipped-status">Одягнено</span><button className="equipment-action equipment-action--primary" disabled={savePending} onClick={() => void unequipItem(selectedItem)} type="button">{savePending ? "Зберігаємо…" : "Зняти"}</button></> : <button className="equipment-action equipment-action--primary" disabled={savePending} onClick={() => void equipItem(selectedItem)} type="button">{savePending ? "Зберігаємо…" : selectedSlotHasOtherItem ? "Замінити" : "Одягнути"}</button>}
               </div>
             </div>
           </section>

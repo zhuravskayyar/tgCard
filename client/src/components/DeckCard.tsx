@@ -7,13 +7,14 @@ interface DeckCardProps {
   card: Omit<PlayerDeckCard, "slot"> & { slot?: number };
   dataTutorialTarget?: string;
   depthAssets?: CardFxArtworkLayers;
+  disabled?: boolean;
   onClick?: () => void;
   selected?: boolean;
   showLevel?: boolean;
   upgradeIndicator?: "element" | "gold";
 }
 
-export function DeckCard({ card, dataTutorialTarget, depthAssets, onClick, selected = false, showLevel = false, upgradeIndicator }: DeckCardProps) {
+export function DeckCard({ card, dataTutorialTarget, depthAssets, disabled = false, onClick, selected = false, showLevel = false, upgradeIndicator }: DeckCardProps) {
   const indicator = upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements);
   return (
     <button
@@ -21,6 +22,7 @@ export function DeckCard({ card, dataTutorialTarget, depthAssets, onClick, selec
       aria-pressed={showLevel ? selected : undefined}
       className={`deck-card deck-card--${card.element} deck-card--${card.rarity}${selected ? " deck-card--selected" : ""}`}
       data-tutorial-target={dataTutorialTarget}
+      disabled={disabled}
       onClick={onClick}
       type="button"
     >

@@ -21,8 +21,8 @@ const DEFAULT_TREASURY_METRIC = TREASURY_METRICS[0]!;
 interface GuildTreasuryScreenProps {
   busy: boolean;
   onBack: () => void;
-  onDonateCardElements: (instanceIds: string[]) => void;
-  onDonateCurrency: (currency: GuildTreasuryCurrency, amount: number) => void;
+  onDonateCardElements: (instanceIds: string[]) => Promise<boolean>;
+  onDonateCurrency: (currency: GuildTreasuryCurrency, amount: number) => Promise<boolean>;
   onLoadCardCandidates: () => void;
   profile: GuildProfileResponse;
   treasuryCardCandidates: AsyncState<PlayerCardInstance[]>;
@@ -67,17 +67,23 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
     onBack();
   }
 
-  function submitCurrency(currency: GuildTreasuryCurrency) {
+  async function submitCurrency(currency: GuildTreasuryCurrency) {
     const rawAmount = currency === "silver" ? silverAmount : goldAmount;
     const amount = Number(rawAmount);
     if (!Number.isSafeInteger(amount) || amount <= 0) return;
-    onDonateCurrency(currency, amount);
-    if (currency === "silver") setSilverAmount("");
-    else setGoldAmount("");
+    if (await onDonateCurrency(currency, amount)) {
+      if (currency === "silver") setSilverAmount("");
+      else setGoldAmount("");
+    }
   }
 
   function toggleCard(instanceId: string) {
     setSelectedCardIds((current) => current.includes(instanceId) ? current.filter((id) => id !== instanceId) : [...current, instanceId]);
+  }
+
+  async function donateSelectedCards() {
+    if (busy || selectedCardIds.length === 0) return;
+    if (await onDonateCardElements(selectedCardIds)) setSelectedCardIds([]);
   }
 
   const sortedMembers = [...treasury.members].sort((left, right) => {
@@ -105,11 +111,11 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
         <div className="guild-treasury__donations" aria-label="Внесок ресурсів у казну">
           <div className="guild-treasury__donation-row">
             <label><span><AppIcon name="silver" size={16} /> Срібло</span><input inputMode="numeric" min="1" max={treasury.viewer.silver} type="number" value={silverAmount} onChange={(event) => setSilverAmount(event.target.value)} /></label>
-            <button className="guild-secondary-button" disabled={busy || !canContribute || !silverAmount} onClick={() => submitCurrency("silver")} type="button">Внести</button>
+            <button className="guild-secondary-button" disabled={busy || !canContribute || !silverAmount} onClick={() => void submitCurrency("silver")} type="button">{busy ? "Вносимо…" : "Внести"}</button>
           </div>
           <div className="guild-treasury__donation-row">
             <label><span><AppIcon name="gold" size={16} /> Золото</span><input inputMode="numeric" min="1" max={treasury.viewer.gold} type="number" value={goldAmount} onChange={(event) => setGoldAmount(event.target.value)} /></label>
-            <button className="guild-secondary-button" disabled={busy || !canContribute || !goldAmount} onClick={() => submitCurrency("gold")} type="button">Внести</button>
+            <button className="guild-secondary-button" disabled={busy || !canContribute || !goldAmount} onClick={() => void submitCurrency("gold")} type="button">{busy ? "Вносимо…" : "Внести"}</button>
           </div>
         </div>
 
@@ -120,7 +126,7 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
             <button className="guild-secondary-button" disabled={busy || treasuryCardCandidates.status === "loading"} onClick={onLoadCardCandidates} type="button">{treasuryCardCandidates.status === "loading" ? "Завантаження…" : "Показати слабкі карти"}</button>
             {treasuryCardCandidates.status === "error" ? <p className="guild-treasury__empty" role="alert">{treasuryCardCandidates.message}</p> : treasuryCardCandidates.status === "ready" && treasuryCardCandidates.data.length === 0 ? <p className="guild-treasury__empty">Немає доступних карт для пожертви.</p> : treasuryCardCandidates.status === "ready" ? <>
               <div className="guild-treasury__card-grid">{treasuryCardCandidates.data.map((card) => <DeckCard card={card} key={card.instanceId} onClick={() => toggleCard(card.instanceId)} selected={selectedCardIds.includes(card.instanceId)} showLevel />)}</div>
-              <button className="guild-primary-button" disabled={busy || selectedCardIds.length === 0} onClick={() => onDonateCardElements(selectedCardIds)} type="button">Пожертвувати карти ({selectedCardIds.length})</button>
+              <button className="guild-primary-button" disabled={busy || selectedCardIds.length === 0} onClick={() => void donateSelectedCards()} type="button">{busy ? "Вносимо…" : `Пожертвувати карти (${selectedCardIds.length})`}</button>
             </> : null}
           </> : <p className="guild-helper">{!canContribute ? "Після трьох днів у гільдії тут з’явиться можливість внеску." : "Спочатку лідер має виставити карту гільдії."}</p>}
         </section>

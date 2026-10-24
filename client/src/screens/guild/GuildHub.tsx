@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GUILD_CONFIG, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
@@ -21,10 +21,10 @@ interface GuildHubProps {
   onTreasury: () => void;
   onJournal: () => void;
   onAnnouncements: () => void;
-  onUpdateAnnouncement: (body: string) => void;
+  onUpdateAnnouncement: (body: string) => Promise<boolean>;
   guildCardCandidates: AsyncState<PlayerCardInstance[]>;
   onLoadGuildCardCandidates: () => void;
-  onSetGuildCard: (instanceId: string) => void;
+  onSetGuildCard: (instanceId: string) => Promise<boolean>;
 }
 
 interface GuildModeTileProps {
@@ -62,7 +62,7 @@ export interface GuildPromoBannerProps {
   title: string;
 }
 
-function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidates, onSetGuildCard }: { active: PlayerCardInstance | null; canManage: boolean; candidates: AsyncState<PlayerCardInstance[]>; busy: boolean; onLoadCandidates: () => void; onSetGuildCard: (instanceId: string) => void }) {
+function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidates, onSetGuildCard }: { active: PlayerCardInstance | null; canManage: boolean; candidates: AsyncState<PlayerCardInstance[]>; busy: boolean; onLoadCandidates: () => void; onSetGuildCard: (instanceId: string) => Promise<boolean> }) {
   const [panel, setPanel] = useState<"details" | "selection" | null>(null);
   const [pending, setPending] = useState<PlayerCardInstance | null>(null);
 
@@ -81,6 +81,14 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
     onLoadCandidates();
   }
 
+  async function confirmGuildCard() {
+    if (!pending || busy) return;
+    if (await onSetGuildCard(pending.instanceId)) {
+      setPending(null);
+      setPanel("details");
+    }
+  }
+
   return <>
     <button aria-label={active ? `Карта гільдії: ${active.displayName ?? active.code}, ${active.finalPower} сили` : canManage ? "Карта гільдії: Обрати карту" : "Карта гільдії: Карту ще не обрано"} aria-pressed={panel !== null} className="guild-card-platform" onClick={openPlatform} type="button">
       <span className="guild-card-platform__art" aria-hidden="true"><img alt="" src="/assets/guild/guild-reward.svg" /></span>
@@ -96,7 +104,7 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
         <p className="guild-card-sheet__copy">Лідер обирає одну карту зі своєї бойової колоди. Вона не займає окремий слот у колоді.</p>
         {candidates.status === "loading" ? <p className="guild-empty-copy">Завантаження колоди…</p> : candidates.status === "error" ? <div className="guild-card-sheet__state"><p className="guild-empty-copy">{candidates.message}</p><button className="guild-secondary-button" onClick={onLoadCandidates} type="button">Повторити</button></div> : candidates.data.length === 0 ? <p className="guild-empty-copy">У лідера ще немає карт у бойовій колоді.</p> : <>
           <div className="guild-card-selection" aria-label="Карти бойової колоди лідера">{candidates.data.map((card) => <DeckCard key={card.instanceId} card={card} selected={card.instanceId === active?.instanceId} showLevel onClick={() => setPending(card)} />)}</div>
-          {pending ? <div className="guild-card-confirmation"><p>Встановити «{pending.displayName ?? pending.code}» як карту гільдії?</p><div><button className="guild-primary-button" disabled={busy} onClick={() => { onSetGuildCard(pending.instanceId); setPending(null); setPanel("details"); }} type="button">Підтвердити</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Натисніть на карту, щоб підготувати вибір.</p>}
+          {pending ? <div className="guild-card-confirmation"><p>Встановити «{pending.displayName ?? pending.code}» як карту гільдії?</p><div><button className="guild-primary-button" disabled={busy} onClick={() => void confirmGuildCard()} type="button">{busy ? "Зберігаємо…" : "Підтвердити"}</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Натисніть на карту, щоб підготувати вибір.</p>}
         </>}
       </> : <>
         {active ? <div className="guild-card-sheet__active"><span className="guild-card-sheet__active-card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} showLevel /></CardFxWrapper></span><dl><div><dt>Сила</dt><dd>{active.finalPower}</dd></div><div><dt>Елемент</dt><dd>{active.element}</dd></div><div><dt>Рідкість</dt><dd>{active.rarity}</dd></div></dl></div> : <p className="guild-empty-copy">Карту ще не обрано. Вона з’являтиметься в бою тільки після вибору лідера.</p>}
@@ -207,7 +215,7 @@ export function GuildJournal({ profile }: { profile: GuildProfileResponse }) {
   </section>;
 }
 
-export function GuildAnnouncements({ profile, busy, onUpdateAnnouncement }: { profile: GuildProfileResponse; busy: boolean; onUpdateAnnouncement: (body: string) => void }) {
+export function GuildAnnouncements({ profile, busy, onUpdateAnnouncement }: { profile: GuildProfileResponse; busy: boolean; onUpdateAnnouncement: (body: string) => Promise<boolean> }) {
   const announcement = profile.dashboard.announcement;
   const canEdit = profile.viewer.permissions.includes("manage_announcements");
   const [body, setBody] = useState(announcement?.body ?? "");
@@ -215,9 +223,14 @@ export function GuildAnnouncements({ profile, busy, onUpdateAnnouncement }: { pr
 
   useEffect(() => { setBody(announcement?.body ?? ""); setEditing(!announcement && canEdit); }, [announcement?.body, canEdit]);
 
+  async function saveAnnouncement() {
+    if (busy) return;
+    if (await onUpdateAnnouncement(body)) setEditing(false);
+  }
+
   return <section className="guild-announcements" aria-labelledby="guild-announcements-title">
     <GuildPromoBanner action={canEdit ? <button className="guild-inline-button" onClick={() => setEditing((value) => !value)} type="button">{editing ? "Скасувати" : "Змінити"}</button> : null} icon="campaign" meta={announcement ? `${announcement.authorName} · ${formatMissionDate(announcement.createdAt)}` : "Поки без оголошень"} title="Оголошення">
-      {editing ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); onUpdateAnnouncement(body); setEditing(false); }}><textarea maxLength={280} rows={4} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{body.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">Зберегти</button></div></form> : announcement ? <p className="guild-promo-banner__copy">{announcement.body}</p> : <p className="guild-empty-copy">Для учасників ще немає оголошень.</p>}
+      {editing ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); void saveAnnouncement(); }}><textarea disabled={busy} maxLength={280} rows={4} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{body.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">{busy ? "Зберігаємо…" : "Зберегти"}</button></div></form> : announcement ? <p className="guild-promo-banner__copy">{announcement.body}</p> : <p className="guild-empty-copy">Для учасників ще немає оголошень.</p>}
     </GuildPromoBanner>
   </section>;
 }
@@ -237,9 +250,14 @@ export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onD
 
   useEffect(() => { setAnnouncement(dashboard.announcement?.body ?? ""); setAnnouncementOpen(Boolean(dashboard.announcement)); setEditingAnnouncement(false); setFeature(null); }, [dashboard.announcement?.body]);
 
+  async function saveAnnouncement() {
+    if (busy) return;
+    if (await onUpdateAnnouncement(announcement)) setEditingAnnouncement(false);
+  }
+
   return <div className="guild-hub">
     {announcementOpen && (dashboard.announcement || managesAnnouncement) ? <GuildPromoBanner action={managesAnnouncement ? <button className="guild-inline-button" onClick={() => setEditingAnnouncement((value) => !value)} type="button">{editingAnnouncement ? "Скасувати" : "Змінити"}</button> : null} icon="campaign" meta={dashboard.announcement ? `${dashboard.announcement.authorName} · ${formatMissionDate(dashboard.announcement.createdAt)}` : "Поки без оголошень"} title="Оголошення">
-      {editingAnnouncement ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); onUpdateAnnouncement(announcement); setEditingAnnouncement(false); }}><textarea maxLength={280} rows={3} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{announcement.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">Зберегти</button></div></form> : dashboard.announcement ? <p className="guild-promo-banner__copy">{dashboard.announcement.body}</p> : <p className="guild-empty-copy">Додай перше оголошення для учасників.</p>}
+      {editingAnnouncement ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); void saveAnnouncement(); }}><textarea disabled={busy} maxLength={280} rows={3} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{announcement.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">{busy ? "Зберігаємо…" : "Зберегти"}</button></div></form> : dashboard.announcement ? <p className="guild-promo-banner__copy">{dashboard.announcement.body}</p> : <p className="guild-empty-copy">Додай перше оголошення для учасників.</p>}
     </GuildPromoBanner> : null}
 
     <section className="guild-mode-menu" aria-label="Основні розділи гільдії">
@@ -291,22 +309,25 @@ const GUILD_ALTAR_ASSETS: Record<GuildAltarCurrency, { asset: string; tone: stri
 export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, onForum, onDirectory, onRaid }: { profile: GuildProfileResponse; busy: boolean; onPurchaseAltar: (currency: GuildAltarCurrency) => Promise<GuildAltarUpgradeResponse>; onMembers: () => void; onForum: () => void; onDirectory: () => void; onRaid: () => void }) {
   const { guild } = profile;
   const [altar, setAltar] = useState(profile.altar);
-  const [altarNotice, setAltarNotice] = useState<string | null>(null);
+  const [altarNotice, setAltarNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [purchasing, setPurchasing] = useState<GuildAltarCurrency | null>(null);
+  const purchasingRef = useRef(false);
 
   useEffect(() => { setAltar(profile.altar); }, [profile.altar]);
 
   async function purchase(currency: GuildAltarCurrency) {
-    if (busy || purchasing || !profile.viewer.member) return;
+    if (busy || purchasingRef.current || !profile.viewer.member) return;
+    purchasingRef.current = true;
     setPurchasing(currency);
     setAltarNotice(null);
     try {
       const result = await onPurchaseAltar(currency);
       setAltar(result.altar);
-      setAltarNotice(`Алтар підсилено: ${result.previousLevel} → ${result.newLevel} (+${result.totalIncrease} рів.)`);
+      setAltarNotice({ error: false, text: `Алтар підсилено: ${result.previousLevel} → ${result.newLevel} (+${result.totalIncrease} рів.)` });
     } catch (error) {
-      setAltarNotice(guildErrorMessage(error));
+      setAltarNotice({ error: true, text: guildErrorMessage(error) });
     } finally {
+      purchasingRef.current = false;
       setPurchasing(null);
     }
   }
@@ -315,13 +336,13 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
     <RibbonTitle as="h3" id="guild-altar-title" leading={<AppIcon name="guild" size={17} />} size="wide" trailing={`Рівень ${formatNumber(altar.currentLevel)}`}>АЛТАР ГІЛЬДІЇ</RibbonTitle>
     <p className="guild-altar__intro">Підсилення Алтаря купуються за ресурси гравця та діють одразу.</p>
     <div className="guild-altar__activation"><strong>Підсилення активується одразу</strong><p>Завершена колекція «Відьми» додає +2 рівні лише до золотого підсилення.</p></div>
-    {altarNotice ? <p className="guild-altar__status" role="status">{altarNotice}</p> : null}
+    {altarNotice ? <p className={`guild-altar__status${altarNotice.error ? " guild-altar__status--error" : " action-feedback action-feedback--success"}`} role={altarNotice.error ? "alert" : "status"}>{altarNotice.text}</p> : null}
     <div className="guild-altar__upgrades" aria-label="Підсилення алтаря">
       {altar.upgrades.map((item) => {
         const asset = GUILD_ALTAR_ASSETS[item.currency];
         return <article className={`guild-altar-upgrade guild-altar-upgrade--${asset.tone}`} key={item.currency}>
           <span className="guild-altar-upgrade__art"><img alt="" src={asset.asset} /></span>
-          <div className="guild-altar-upgrade__body"><div className="guild-altar-upgrade__heading"><h4>{item.name}</h4><small><AppIcon name={item.currency} size={13} /> {formatNumber(item.price)}</small></div><p>+{item.totalIncrease} рів. {item.currency === "gold" ? "за золото" : "за срібло"}{item.collectionBonus ? ` · Відьми +${item.collectionBonus}` : ""}</p><button className="guild-altar__buy" disabled={busy || purchasing !== null || !item.canAfford || !profile.viewer.member} onClick={() => { void purchase(item.currency); }} type="button">{item.canAfford ? "Придбати" : "Недостатньо ресурсу"}</button></div>
+          <div className="guild-altar-upgrade__body"><div className="guild-altar-upgrade__heading"><h4>{item.name}</h4><small><AppIcon name={item.currency} size={13} /> {formatNumber(item.price)}</small></div><p>+{item.totalIncrease} рів. {item.currency === "gold" ? "за золото" : "за срібло"}{item.collectionBonus ? ` · Відьми +${item.collectionBonus}` : ""}</p><button className="guild-altar__buy" disabled={busy || purchasing !== null || !item.canAfford || !profile.viewer.member} onClick={() => { void purchase(item.currency); }} type="button">{purchasing === item.currency ? "Підсилюємо…" : item.canAfford ? "Придбати" : "Недостатньо ресурсу"}</button></div>
         </article>;
       })}
     </div>

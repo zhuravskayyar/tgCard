@@ -23,7 +23,7 @@ export function MenuRow({ active: _active = false, actionContent, attention = fa
   return (
     <button
       className={`menu-row${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${metalTexture ? " menu-row--metal-texture" : ""}`}
-      disabled={disabled}
+      disabled={disabled || !onClick}
       aria-label={locked ? `${title}: поки недоступно` : undefined}
       onClick={onClick}
       type="button"

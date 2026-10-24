@@ -486,6 +486,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
+  const requestInFlightRef = useRef(false);
   const searchRuneIndexRef = useRef(0);
   const [searchRuneVariant, setSearchRuneVariant] = useState<DuelSearchRuneVariant>(DUEL_SEARCH_RUNE_VARIANTS[0]!);
 
@@ -502,6 +503,8 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   }, [onPlayerSummaryChange, onTutorialDuelState, tutorialMode]);
 
   const search = useCallback(async (initData: string, signal?: AbortSignal) => {
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     const searchStartedAt = typeof performance === "undefined" ? Date.now() : performance.now();
     const nextRuneVariant = DUEL_SEARCH_RUNE_VARIANTS[searchRuneIndexRef.current % DUEL_SEARCH_RUNE_VARIANTS.length]!;
     searchRuneIndexRef.current += 1;
@@ -531,6 +534,8 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         return;
       }
       setState({ status: "error", message: "Не вдалося виконати пошук суперника" });
+    } finally {
+      requestInFlightRef.current = false;
     }
   }, [showDuel, tutorialMode]);
 
@@ -588,7 +593,8 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
 
   async function handleStart(searchId: string) {
     const initData = getTelegramInitData();
-    if (!initData) return;
+    if (!initData || requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     setState({ status: "loading" });
     try {
       showDuel(await startDuel(initData, searchId));
@@ -598,13 +604,16 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         return;
       }
       setState({ status: "error", message: "Не вдалося розпочати Дуель" });
+    } finally {
+      requestInFlightRef.current = false;
     }
   }
 
   async function handleAction(slotIndex: 0 | 1 | 2) {
-    if (state.status !== "duel" || state.duel.status !== "active" || pendingSlot !== null) return;
+    if (state.status !== "duel" || state.duel.status !== "active" || pendingSlot !== null || requestInFlightRef.current) return;
     const initData = getTelegramInitData();
     if (!initData) return;
+    requestInFlightRef.current = true;
     setPendingSlot(slotIndex);
     try {
       showDuel(await submitDuelAction(initData, state.duel.duelId, {
@@ -622,6 +631,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         setState({ status: "error", message: "Хід не виконано. Спробуйте ще раз" });
       }
     } finally {
+      requestInFlightRef.current = false;
       setPendingSlot(null);
     }
   }

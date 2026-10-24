@@ -31,14 +31,14 @@ interface GuildProfileProps {
   onUpdateSettings: (input: { description: string; recruitmentMode: GuildRecruitmentMode }) => void;
   onDirectory: () => void;
   onForum: () => void;
-  onUpdateAnnouncement: (body: string) => void;
+  onUpdateAnnouncement: (body: string) => Promise<boolean>;
   guildCardCandidates: AsyncState<PlayerCardInstance[]>;
   onLoadGuildCardCandidates: () => void;
-  onSetGuildCard: (instanceId: string) => void;
+  onSetGuildCard: (instanceId: string) => Promise<boolean>;
   onPurchaseAltar: (currency: GuildAltarCurrency) => Promise<GuildAltarUpgradeResponse>;
-  onDonateTreasuryCurrency: (currency: GuildTreasuryCurrency, amount: number) => void;
+  onDonateTreasuryCurrency: (currency: GuildTreasuryCurrency, amount: number) => Promise<boolean>;
   onLoadTreasuryCardCandidates: () => void;
-  onDonateGuildCardElements: (instanceIds: string[]) => void;
+  onDonateGuildCardElements: (instanceIds: string[]) => Promise<boolean>;
   treasuryCardCandidates: AsyncState<PlayerCardInstance[]>;
 }
 

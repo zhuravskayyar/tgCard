@@ -20,8 +20,8 @@ interface GuildCardScreenProps {
   onTreasury: () => void;
   onLoadCardCandidates: () => void;
   onLoadTreasuryCardCandidates: () => void;
-  onSetGuildCard: (instanceId: string) => void;
-  onDonateGuildCardElements: (instanceIds: string[]) => void;
+  onSetGuildCard: (instanceId: string) => Promise<boolean>;
+  onDonateGuildCardElements: (instanceIds: string[]) => Promise<boolean>;
   profile: GuildProfileResponse;
   guildCardCandidates: AsyncState<PlayerCardInstance[]>;
   treasuryCardCandidates: AsyncState<PlayerCardInstance[]>;
@@ -71,6 +71,11 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
     setSelectedCardIds((current) => current.includes(instanceId) ? current.filter((id) => id !== instanceId) : [...current, instanceId]);
   }
 
+  async function donateSelectedCards() {
+    if (busy || selectedCardIds.length === 0) return;
+    if (await onDonateGuildCardElements(selectedCardIds)) setSelectedCardIds([]);
+  }
+
   function selectElement(element: CardElement) {
     setSelectedElement(element);
     setSelectedCardIds([]);
@@ -89,7 +94,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
         <p>Лідер гільдії може виставити одну карту зі своєї бойової колоди.</p>
         {profile.guildCard.canManage ? <button className="guild-primary-button" disabled={busy} onClick={openCardSelection} type="button">Обрати карту</button> : null}
       </div>
-      {selectionOpen ? <GuildCardSelection busy={busy} candidates={guildCardCandidates} active={active} onClose={() => setSelectionOpen(false)} onLoad={onLoadCardCandidates} onSet={(instanceId) => { setSelectionOpen(false); onSetGuildCard(instanceId); }} /> : null}
+      {selectionOpen ? <GuildCardSelection busy={busy} candidates={guildCardCandidates} active={active} onClose={() => setSelectionOpen(false)} onLoad={onLoadCardCandidates} onSet={onSetGuildCard} /> : null}
       <GuildCardNavigation busy={busy} onBack={onCardBack} onForum={onForum} onTreasury={onTreasury} />
     </section>;
   }
@@ -151,25 +156,33 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
         <div className="deck-grid absorption-grid" aria-label={`Слабкі карти стихії ${ELEMENT_LABELS[selectedElement]}`}>
           {visibleCandidates.map((candidate) => <DeckCard card={candidate} key={candidate.instanceId} onClick={() => toggleCard(candidate.instanceId)} selected={selectedCardIds.includes(candidate.instanceId)} showLevel />)}
         </div>
-        <div className="guild-card-screen__absorption-action"><span>{selectedCardIds.length ? `Обрано карт: ${selectedCardIds.length}` : "Оберіть карти для внеску"}</span><button className="guild-primary-button" disabled={busy || selectedCardIds.length === 0} onClick={() => { onDonateGuildCardElements(selectedCardIds); setSelectedCardIds([]); }} type="button">Пожертвувати вибрані ({selectedCardIds.length})</button></div>
+        <div className="guild-card-screen__absorption-action"><span>{selectedCardIds.length ? `Обрано карт: ${selectedCardIds.length}` : "Оберіть карти для внеску"}</span><button className="guild-primary-button" disabled={busy || selectedCardIds.length === 0} onClick={() => void donateSelectedCards()} type="button">{busy ? "Вносимо…" : `Пожертвувати вибрані (${selectedCardIds.length})`}</button></div>
       </> : null}
     </section>
 
     {profile.guildCard.canManage ? <button className="guild-card-screen__change" disabled={busy} onClick={openCardSelection} type="button">Змінити карту гільдії</button> : null}
-    {selectionOpen ? <GuildCardSelection busy={busy} candidates={guildCardCandidates} active={active} onClose={() => setSelectionOpen(false)} onLoad={onLoadCardCandidates} onSet={(instanceId) => { setSelectionOpen(false); onSetGuildCard(instanceId); }} /> : null}
+    {selectionOpen ? <GuildCardSelection busy={busy} candidates={guildCardCandidates} active={active} onClose={() => setSelectionOpen(false)} onLoad={onLoadCardCandidates} onSet={onSetGuildCard} /> : null}
     <GuildCardNavigation busy={busy} onBack={onCardBack} onForum={onForum} onTreasury={onTreasury} />
   </section>;
 }
 
-function GuildCardSelection({ active, busy, candidates, onClose, onLoad, onSet }: { active: PlayerCardInstance | null; busy: boolean; candidates: AsyncState<PlayerCardInstance[]>; onClose: () => void; onLoad: () => void; onSet: (instanceId: string) => void }) {
+function GuildCardSelection({ active, busy, candidates, onClose, onLoad, onSet }: { active: PlayerCardInstance | null; busy: boolean; candidates: AsyncState<PlayerCardInstance[]>; onClose: () => void; onLoad: () => void; onSet: (instanceId: string) => Promise<boolean> }) {
   const [pending, setPending] = useState<PlayerCardInstance | null>(null);
   const selectedInstanceId = pending?.instanceId ?? active?.instanceId;
+
+  async function confirmSelection() {
+    if (!pending || busy) return;
+    if (await onSet(pending.instanceId)) {
+      setPending(null);
+      onClose();
+    }
+  }
 
   return <section className="guild-card-screen__selection" aria-label="Вибір карти гільдії">
     <div className="guild-card-screen__selection-heading"><div><strong>Карта з бойової колоди</strong><small>Тільки лідер може змінити карту гільдії.</small></div><button className="guild-inline-button" onClick={onClose} type="button">Закрити</button></div>
     {candidates.status === "loading" ? <GuildState>Завантажуємо колоду лідера…</GuildState> : candidates.status === "error" ? <div className="guild-card-screen__candidate-state"><span>{candidates.message}</span><button className="guild-secondary-button" disabled={busy} onClick={onLoad} type="button">Повторити</button></div> : candidates.data.length === 0 ? <div className="guild-card-screen__candidate-state"><span>У бойовій колоді лідера немає доступних карт.</span><button className="guild-secondary-button" disabled={busy} onClick={onLoad} type="button">Оновити</button></div> : <>
       <div className="guild-card-screen__selection-grid">{candidates.data.map((candidate) => <DeckCard card={candidate} key={candidate.instanceId} selected={candidate.instanceId === selectedInstanceId} showLevel onClick={() => setPending(candidate)} />)}</div>
-      {pending ? <div className="guild-card-screen__selection-confirmation"><span>Виставити «{pending.displayName ?? pending.code}» як карту гільдії?</span><div><button className="guild-primary-button" disabled={busy} onClick={() => { onSet(pending.instanceId); setPending(null); }} type="button">Підтвердити</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Торкніться карти, щоб підготувати вибір.</p>}
+      {pending ? <div className="guild-card-screen__selection-confirmation"><span>Виставити «{pending.displayName ?? pending.code}» як карту гільдії?</span><div><button className="guild-primary-button" disabled={busy} onClick={() => void confirmSelection()} type="button">{busy ? "Зберігаємо…" : "Підтвердити"}</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Торкніться карти, щоб підготувати вибір.</p>}
     </>}
   </section>;
 }

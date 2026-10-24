@@ -353,13 +353,13 @@ function arenaShopRewardPreview(item: ArenaShopItem) {
   return cosmeticPreview(item.cosmeticType);
 }
 
-function ShopTab({ profile, catalog, pending, onLoad, onPurchase }: { profile: ArenaProfileResponse; catalog: ArenaShopCatalogResponse | null; pending: string | null; onLoad: () => void; onPurchase: (id: string) => void }) {
-  useEffect(() => { if (!catalog) onLoad(); }, [catalog, onLoad]);
+function ShopTab({ profile, catalog, catalogError, catalogLoading, pending, onLoad, onPurchase }: { profile: ArenaProfileResponse; catalog: ArenaShopCatalogResponse | null; catalogError: string | null; catalogLoading: boolean; pending: string | null; onLoad: () => void; onPurchase: (id: string) => void }) {
+  useEffect(() => { if (!catalog && !catalogError) onLoad(); }, [catalog, catalogError, onLoad]);
   return (
     <section className="arena-shop-panel">
       <header><div><span>Магазин арени</span><h2>Трофеї за жетони</h2></div><ArenaTokenBalance value={profile.arenaTokens} /></header>
       <p className="arena-shop-panel__intro">Витрачайте жетони Арени на загальні осколки, випадкове спорядження, карти та косметику.</p>
-      {!catalog ? <div className="arena-empty-state">Завантажуємо асортимент…</div> : <div className="arena-shop-grid">{catalog.items.map((item) => <article className="arena-shop-item" key={item.id}><div aria-hidden="true" className="arena-shop-item__art"><img alt="" src={arenaShopRewardPreview(item)} /></div><div className="arena-shop-item__details"><strong>{item.displayName}</strong><small>{item.rewardType === "cosmetic" ? "Косметика" : item.rewardType === "card" ? "Випадкова карта" : item.rewardType === "equipment" ? "Спорядження" : "Загальні осколки"}</small></div><button aria-label={`Придбати за ${item.price} жетонів`} className="arena-shop-item__purchase" disabled={pending !== null || profile.arenaTokens < item.price} onClick={() => onPurchase(item.id)} type="button"><span>Купити</span><span className="arena-shop-item__price"><ResourceIcon kind="arena-token" size={17} /><strong>{item.price}</strong></span></button></article>)}</div>}
+      {!catalog ? catalogError ? <div className="arena-empty-state" role="alert"><span>{catalogError}</span><button className="duel-secondary-button" disabled={catalogLoading} onClick={onLoad} type="button">{catalogLoading ? "Завантажуємо…" : "Повторити"}</button></div> : <div aria-live="polite" className="arena-empty-state" role="status">Завантажуємо асортимент…</div> : <div className="arena-shop-grid">{catalog.items.map((item) => <article className="arena-shop-item" key={item.id}><div aria-hidden="true" className="arena-shop-item__art"><img alt="" src={arenaShopRewardPreview(item)} /></div><div className="arena-shop-item__details"><strong>{item.displayName}</strong><small>{item.rewardType === "cosmetic" ? "Косметика" : item.rewardType === "card" ? "Випадкова карта" : item.rewardType === "equipment" ? "Спорядження" : "Загальні осколки"}</small></div><button aria-label={`Придбати за ${item.price} жетонів`} className="arena-shop-item__purchase" disabled={pending !== null || profile.arenaTokens < item.price} onClick={() => onPurchase(item.id)} type="button"><span>Купити</span><span className="arena-shop-item__price"><ResourceIcon kind="arena-token" size={17} /><strong>{item.price}</strong></span></button></article>)}</div>}
     </section>
   );
 }
@@ -370,14 +370,23 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
   const resultReady = useBattleResultReady(match?.status === "active", match?.status === "finished");
   const [queueState, setQueueState] = useState<ArenaQueueView | null>(null);
   const [catalog, setCatalog] = useState<ArenaShopCatalogResponse | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [tab, setTab] = useState<ArenaTab>("battle");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingRef = useRef<string | null>(null);
+  const catalogLoadInFlightRef = useRef(false);
   const pollInFlightRef = useRef(false);
   const syncRevisionRef = useRef(0);
 
   const initData = getTelegramInitData();
+
+  function retrySync() {
+    setError(null);
+    setLoadAttempt((current) => current + 1);
+  }
 
   function beginPending(kind: string) {
     if (pendingRef.current !== null) return false;
@@ -423,12 +432,27 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
     return next;
   }, [initData, onPlayerSummaryChange]);
 
+  const loadShopCatalog = useCallback(async () => {
+    if (!initData || catalog || catalogLoadInFlightRef.current) return;
+    catalogLoadInFlightRef.current = true;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    try {
+      setCatalog(await loadArenaShop(initData));
+    } catch {
+      setCatalogError("Магазин тимчасово недоступний.");
+    } finally {
+      catalogLoadInFlightRef.current = false;
+      setCatalogLoading(false);
+    }
+  }, [catalog, initData]);
+
   useEffect(() => {
     if (!initData) { setError("Арена доступна лише в Telegram Mini App"); return; }
     const controller = new AbortController();
     void Promise.all([syncProfile(controller.signal), syncMatch(controller.signal, true)]).catch((reason: unknown) => { if (!(reason instanceof DOMException && reason.name === "AbortError")) setError("Не вдалося завантажити Arena"); });
     return () => controller.abort();
-  }, [initData, syncMatch, syncProfile]);
+  }, [initData, loadAttempt, syncMatch, syncProfile]);
 
   useEffect(() => {
     const shouldPoll = Boolean(initData && pending === null && (match?.status === "active" || queueState));
@@ -476,9 +500,18 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
     try { const result = await purchaseArenaShopItem(initData, { offerId }); onPlayerSummaryChange({ arenaTokens: result.arenaTokens, cardShards: result.cardShards, gold: result.playerGold, silver: result.silver }); if (result.collectionCompleted) onCollectionCompleted(result.collectionCompleted); await syncProfile(); } catch (reason: unknown) { setError(reason instanceof ArenaApiError && reason.code === "insufficient_arena_tokens" ? "Недостатньо жетонів Арени." : "Покупку не виконано."); } finally { endPending(); }
   }
 
-  if (!profile) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><div className="arena-empty-state">{error ?? "Завантажуємо арену…"}</div></div>;
+  if (!profile) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><div className="arena-empty-state" role={error ? "alert" : "status"}><span>{error ?? "Завантажуємо арену…"}</span>{error && initData ? <button className="duel-secondary-button" onClick={retrySync} type="button">Повторити</button> : null}</div></div>;
   if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaHeading onBack={onBack} /><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
-  if (match?.status === "finished") return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaTabs active={tab} onChange={setTab} />{tab === "battle" ? <ArenaResult match={match} onArena={() => { setMatch(null); setQueueState(null); setError(null); setTab("battle"); }} onQueue={() => void queue()} /> : null}{tab === "league" ? <LeagueTab profile={profile} /> : null}{tab === "shop" ? <ShopTab catalog={catalog} onLoad={() => { if (initData) void loadArenaShop(initData).then(setCatalog).catch(() => setError("Магазин тимчасово недоступний.")); }} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}</div>;
+  if (match?.status === "finished") return (
+    <div className="arena-screen">
+      <ArenaHeading onBack={onBack} />
+      <ArenaTabs active={tab} onChange={setTab} />
+      {error ? <><p className="arena-error" role="alert">{error}</p><button className="duel-secondary-button" disabled={pending !== null} onClick={retrySync} type="button">Оновити стан</button></> : null}
+      {tab === "battle" ? <ArenaResult match={match} onArena={() => { setMatch(null); setQueueState(null); setError(null); setTab("battle"); }} onQueue={() => void queue()} /> : null}
+      {tab === "league" ? <LeagueTab profile={profile} /> : null}
+      {tab === "shop" ? <ShopTab catalog={catalog} catalogError={catalogError} catalogLoading={catalogLoading} onLoad={loadShopCatalog} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
+    </div>
+  );
   if (queueState) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaQueuePanel onLeave={() => void leaveQueue()} pending={pending} queue={queueState} /></div>;
 
   return (
@@ -486,10 +519,10 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
       <ArenaHeading onBack={onBack} />
       <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Після бою використані карти переходять у відновлення.", "Жетони Арени можна витрачати в її магазині."]} />
       <ArenaTabs active={tab} onChange={setTab} />
-      {error ? <p className="arena-error">{error}</p> : null}
-      {tab === "battle" ? <section className="arena-lobby"><div className="arena-lobby__hero"><AppIcon name="arena" size={46} /><div><span>6 учасників · 30 секунд</span><h2>Готові вийти на пісок?</h2><p>Спочатку збираємо живих гравців. Після відліку вільні місця заповнять боти.</p></div></div><div className="arena-lobby__stats"><span>Ліга <b>{profile.arenaLeague.name}</b></span><span>Рейтинг <b>{profile.arenaRating}</b></span><span>Жетони <ArenaTokenBalance value={profile.arenaTokens} /></span></div><button className="duel-primary-button" disabled={pending !== null} onClick={() => void queue()} type="button">{pending === "queue" ? "Записуємо в чергу…" : "Увійти в Arena Queue"}</button></section> : null}
+      {error ? <><p className="arena-error" role="alert">{error}</p><button className="duel-secondary-button" disabled={pending !== null} onClick={retrySync} type="button">Оновити стан</button></> : null}
+      {tab === "battle" ? <section className="arena-lobby"><div className="arena-lobby__hero"><AppIcon name="arena" size={46} /><div><span>6 учасників · 30 секунд</span><h2>Готові вийти на пісок?</h2><p>Спочатку збираємо живих гравців. Після відліку вільні місця заповнять боти.</p></div></div><div className="arena-lobby__stats"><span>Ліга <b>{profile.arenaLeague.name}</b></span><span>Рейтинг <b>{profile.arenaRating}</b></span><span>Жетони <ArenaTokenBalance value={profile.arenaTokens} /></span></div><button className="duel-primary-button" disabled={pending !== null} onClick={() => void queue()} type="button">{pending === "queue" ? "Записуємо в чергу…" : "Записатися на арену"}</button></section> : null}
       {tab === "league" ? <LeagueTab profile={profile} /> : null}
-      {tab === "shop" ? <ShopTab catalog={catalog} onLoad={() => { if (initData) void loadArenaShop(initData).then(setCatalog).catch(() => setError("Магазин тимчасово недоступний.")); }} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
+      {tab === "shop" ? <ShopTab catalog={catalog} catalogError={catalogError} catalogLoading={catalogLoading} onLoad={loadShopCatalog} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
     </div>
   );
 }
