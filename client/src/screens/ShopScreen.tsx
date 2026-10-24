@@ -315,7 +315,8 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
             role="tab"
             type="button"
           >
-            <AppIcon name={tab.icon} size={24} />
+            <AppIcon name={tab.icon} size={20} />
+            <span>{tab.id === "cards" ? "Карти" : "Майстерня"}</span>
           </button>
         ))}
       </div> : null}
