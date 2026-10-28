@@ -2,7 +2,7 @@
 :root {
   --font-body: "Roboto Condensed", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Philosopher", "Segoe UI", serif;
-  --font-number: "Oswald", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-number: "Cardastika Numbers", Georgia, "Times New Roman", serif;
   --font-label: "Roboto Condensed", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --bg-page: #0d0b08;
   --bg-app: #14110d;
@@ -83,4 +83,173 @@
   --element-water: #73a9d0;
   --element-earth: #8faf70;
   --element-air: #e3c266;
+}
+
+:root[data-game-theme="light"] {
+  color-scheme: light;
+  --bg-page: #e6dcc9;
+  --bg-app: #f0e7d7;
+  --bg-panel: #fbf5e9;
+  --bg-elevated: #f7efdf;
+  --bg-inset: #e6dac5;
+  --bg-active: #ead7b3;
+  --text-primary: #35291d;
+  --text-secondary: #5e4b36;
+  --text-muted: #79654d;
+  --text-disabled: #99866c;
+  --text-on-parchment: #302013;
+  --accent-bronze: #8d6135;
+  --accent-gold: #8f601e;
+  --accent-silver: #68727a;
+  --state-active: #80591f;
+  --state-danger: #a34e42;
+  --border-subtle: #dccdb4;
+  --border-default: #bca681;
+  --border-accent: #987849;
+  --border-active: #745321;
+  --surface-panel: linear-gradient(150deg, rgb(255 255 255 / 68%), transparent 65%), var(--bg-panel);
+  --surface-button: linear-gradient(180deg, #f5ead6, #e2d0b3);
+  --surface-button-primary: linear-gradient(180deg, #eddaa7, #d3b573);
+  --surface-button-danger: linear-gradient(180deg, #f0d8d1, #dfbcb3);
+  --surface-button-success: linear-gradient(180deg, #e0e8d4, #cbd9bc);
+  --highlight-inner: inset 0 1px 0 rgb(255 255 255 / 86%);
+  --shadow-panel: var(--highlight-inner), 0 4px 12px rgb(73 52 26 / 14%);
+  --shadow-fixed: 0 8px 24px rgb(73 52 26 / 22%);
+  --shadow-shell: 0 0 48px rgb(54 39 18 / 20%);
+  --tree-ink: rgb(123 91 50 / 8%);
+  --tree-glow: rgb(184 127 65 / 8%);
+}
+
+/* Home UI kit: parchment surfaces, engraved ink, and a restrained bronze shell. */
+:root {
+  --home-paper: #ead9ba;
+  --home-paper-rgb: 234 217 186;
+  --home-ink: #443426;
+  --home-ink-muted: #78634b;
+  --home-icon-ink: #513b25;
+  --home-disabled-ink: #75614b;
+  --home-metal: #9b7848;
+  --home-gold: #e1bf78;
+  --home-ornament-wash: .58;
+  --home-frame-shadow: drop-shadow(0 2px 3px rgb(68 52 38 / 16%));
+  --home-initials-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  --home-text-highlight: 0 1px 0 rgb(255 248 233 / 50%);
+  --home-hud-gold-ink: #fff0c8;
+  --home-hud-gold-shadow: 0 1px 2px rgb(54 29 4 / 85%);
+  --home-control-shadow: inset 0 1px rgb(255 248 233 / 8%), 0 2px 3px rgb(68 52 38 / 16%);
+  --home-nav-shadow: 0 -2px 8px rgb(68 52 38 / 18%);
+  --home-meta-size: 10px;
+  --home-caption-size: 12px;
+  --home-guide-ink: #f0e4cf;
+  --home-content-inset: var(--space-4);
+  --home-content-block-inset: var(--space-2);
+  --home-header-gap: var(--space-3);
+  --home-section-gap: var(--space-4);
+  --home-mode-gap: var(--space-3);
+  --home-link-gap: var(--space-3);
+  --home-header-height: 72px;
+  --home-control-size: 44px;
+  --home-mode-corner: 16px;
+  --home-mode-icon-box: 48px;
+  --home-mode-icon-size: 44px;
+  --home-mode-icon-ratio: .48;
+  --home-mode-title-size: 16px;
+  --home-mode-state-size: 10px;
+  --home-mode-padding-top: var(--space-1);
+  --home-mode-padding-bottom: var(--space-3);
+  --home-mode-padding-inline: var(--space-2);
+  --home-link-height: 52px;
+  --home-link-frame-opacity: .84;
+  --home-link-icon-size: 24px;
+  --home-link-title-size: 14px;
+  --home-link-state-size: 10px;
+  --home-link-padding-inline: var(--space-4);
+  --home-hud-max-width: 416px;
+  --home-hud-inset-start: var(--space-6);
+  --home-hud-inset-end: var(--space-4);
+  --home-hud-gap: var(--space-3);
+  --home-hud-avatar-gap: var(--space-4);
+  --home-hud-name-size: 16px;
+  --home-hud-stat-size: 11px;
+  --home-hud-number-size: 14px;
+  --home-hud-counter-height: 32px;
+  --home-currency-icon-size: 16px;
+  --home-currency-icon-track: 12px;
+  --home-currency-end-inset: var(--space-2);
+  --home-navigation-height: 68px;
+  --home-nav-icon-size: 24px;
+  --home-nav-surface-top: #efe2c9;
+  --home-nav-surface-bottom: #d5be98;
+  --home-nav-ink: #4a3827;
+  --home-nav-active: #865a24;
+}
+
+@media (max-width: 400px) {
+  :root { --home-mode-icon-size: 40px; --home-mode-title-size: 15px; }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --home-mode-icon-box: 40px;
+    --home-mode-icon-size: 36px;
+    --home-mode-title-size: 14px;
+    --home-mode-state-size: 9px;
+    --home-mode-padding-inline: var(--space-1);
+    --home-link-icon-size: 20px;
+    --home-link-title-size: 12px;
+    --home-link-state-size: 9px;
+    --home-link-padding-inline: var(--space-3);
+    --home-hud-inset-start: var(--space-5);
+    --home-hud-inset-end: var(--space-3);
+    --home-hud-gap: var(--space-2);
+    --home-hud-avatar-gap: var(--space-3);
+    --home-hud-name-size: 14px;
+    --home-hud-stat-size: 10px;
+    --home-hud-number-size: 11px;
+    --home-currency-icon-size: 12px;
+    --home-currency-icon-track: 8px;
+    --home-currency-end-inset: var(--space-1);
+  }
+}
+
+@media (max-width: 340px) {
+  :root { --home-mode-icon-box: 32px; --home-mode-icon-size: 30px; --home-mode-title-size: 12px; --home-link-title-size: 11px; }
+}
+
+@media (max-height: 600px) {
+  :root {
+    --home-navigation-height: 60px;
+    --home-link-height: 34px;
+    --home-link-gap: 2px;
+    --home-mode-icon-ratio: .36;
+    --home-mode-corner: 14px;
+    --home-mode-padding-bottom: var(--space-2);
+    --home-header-gap: 6px;
+    --home-section-gap: 6px;
+    --home-mode-gap: 4px;
+  }
+}
+
+@media (max-height: 520px) {
+  :root {
+    --home-hud-max-width: 360px;
+    --home-navigation-height: 60px;
+    --home-link-height: 32px;
+    --home-link-gap: 2px;
+    --home-mode-icon-ratio: .34;
+    --home-mode-corner: 12px;
+    --home-mode-padding-top: 0px;
+    --home-mode-padding-inline: var(--space-1);
+    --home-mode-gap: 4px;
+    --home-header-gap: 6px;
+    --home-section-gap: 4px;
+    --home-link-title-size: 12px;
+    --home-link-icon-size: 20px;
+    --home-hud-name-size: 14px;
+    --home-hud-number-size: 12px;
+  }
+}
+
+@media (max-height: 520px) and (max-width: 360px) {
+  :root { --home-hud-number-size: 11px; }
 }

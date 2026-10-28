@@ -3,6 +3,7 @@ import { getCardLevelTableEntry, getUpgradeGoldPrice, getUpgradeProgress, MAX_CA
 import type { CardElement, GuildProfileResponse, PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
+import { CardHud } from "../../components/CardHud";
 import { CardNameBadge } from "../../components/CardNameBadge";
 import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import { DeckCard } from "../../components/DeckCard";
@@ -120,7 +121,9 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
         <div aria-label={`Сила ${formatFullUiNumber(active.finalPower)}`} className={`card-detail-card deck-card--${active.element} deck-card--${active.rarity}`} role="img">
-          <CardFxWrapper artKey={active.artKey} cardId={active.cardId} element={active.element} rarity={active.rarity} />
+          <CardFxWrapper artKey={active.artKey} cardId={active.cardId} element={active.element} interactive rarity={active.rarity}>
+            <CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} showLevel />
+          </CardFxWrapper>
         </div>
         <div className="card-detail-reference-stats" aria-label="Поточні характеристики карти гільдії">
           <div className="card-detail-reference-stat"><AppIcon name="card-strength" size={17} /><span>Сила:</span><strong>{formatFullUiNumber(active.finalPower)}</strong></div>

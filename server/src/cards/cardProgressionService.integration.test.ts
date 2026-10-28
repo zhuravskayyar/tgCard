@@ -58,8 +58,8 @@ test("absorption validates ownership, weak membership and element while preservi
     );
     const byCode = new Map(starterRows.rows.map((row) => [row.code, row.id]));
     const targetId = randomUUID();
-    const activeFireId = byCode.get("starter_02")!;
-    const displacedFireId = byCode.get("starter_03")!;
+    const activeFireId = byCode.get("starter_v5_04")!;
+    const retainedStarterId = byCode.get("starter_v5_02")!;
     await pool.query(
       `UPDATE player_card_instances SET level = 15
        WHERE player_id = $1 AND card_id = ANY($2::text[])`,
@@ -162,9 +162,9 @@ test("absorption validates ownership, weak membership and element while preservi
     assert.equal(upgraded.deckPower, deck.totalPower);
     assert.ok(deck.cards.some(({ instanceId }) => instanceId === targetId));
     const weakAfterUpgrade = await inventory.findWeakByPlayerId(owner.id);
-    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === byCode.get("starter_01")));
-    assert.ok(!weakAfterUpgrade.some(({ instanceId }) => instanceId === displacedFireId));
-    assert.deepEqual(countDeckElements(deck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === byCode.get("starter_v5_01")));
+    assert.ok(!weakAfterUpgrade.some(({ instanceId }) => instanceId === retainedStarterId));
+    assert.deepEqual(countDeckElements(deck.cards), { earth: 3, fire: 2, water: 2, air: 2 });
     assert.equal(deck.totalPower, deck.cards.reduce((total, card) => total + card.finalPower, 0));
   } finally {
     await cleanupPlayers(pool, [ownerUser.id, otherUser.id]);

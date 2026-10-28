@@ -3,26 +3,26 @@
 # Формат: card_id | нормальна назва карти | файл_без_розширення або файл_з_розширенням
 #
 # Найпростіший варіант: поклади файл у цю ж папку з таким ім'ям, як ID карти:
-#   starter_01.webp
+#   starter_v5_01.webp
 #   predators_01.webp
 # Підтримуються webp, png, jpg і jpeg. Розширення можна не вказувати —
 # клієнт перевірить їх у цьому порядку. Якщо арт має інше ім'я, вкажи його
-# праворуч, наприклад: starter_01 = salamandra-v2.webp
+# праворуч, наприклад: starter_v5_01 = new-cards/starter_v2_01
 #
 # Після копіювання нового файлу перезавантаж веб-сторінку або повторно відкрий
 # Mini App у Telegram. Базовий варіант нижче вже прив'язаний до ID, тому цей
 # файл не потрібно редагувати для кожної нової картинки.
 
-# Стартові карти
-starter_01 | Саламандра | starter_01
-starter_02 | Лис | starter_02
-starter_03 | Жук-бомбардир | starter_03
-starter_04 | Вугор | starter_04
-starter_05 | Щука | starter_05
-starter_06 | Ворон | starter_06
-starter_07 | Сокіл | starter_07
-starter_08 | Кріт | starter_08
-starter_09 | Вепр | starter_09
+# Нові стартові карти. Поклади їхній арт у new-cards/ з одним із підтримуваних розширень.
+starter_v5_01 | Борсук | new-cards/starter_v2_01
+starter_v5_02 | Рогач | new-cards/starter_v2_02
+starter_v5_03 | Корона коренів | new-cards/starter_v2_03
+starter_v5_04 | Вогняний кабан | new-cards/starter_v2_04
+starter_v5_05 | Вугільна ропуха | new-cards/starter_v2_05
+starter_v5_06 | Морський коник | new-cards/starter_v2_06
+starter_v5_07 | Чаша хвиль | new-cards/starter_v2_07
+starter_v5_08 | Ластівка | new-cards/starter_v2_08
+starter_v5_09 | Вихор | new-cards/starter_v2_09
 
 # Хижаки
 predators_01 | Вовк | predators_01

@@ -73,3 +73,28 @@
   .currency-display { min-width: 62px; padding-inline: 4px 6px; font-size: var(--font-xs); }
   .currency-display--silver { min-width: 70px; }
 }
+
+:root[data-game-theme="light"] body {
+  background: linear-gradient(180deg, #eee5d5, #d9ccb5);
+}
+
+:root[data-game-theme="light"] .app-shell {
+  background-color: var(--bg-app);
+  background-image: linear-gradient(180deg, #f5eddf, #e7dcc8);
+}
+
+:root[data-game-theme="light"] .app-shell::before,
+:root[data-game-theme="light"] .app-shell::after {
+  opacity: 0;
+}
+
+:root[data-game-theme="light"] .top-hud {
+  background-color: var(--bg-elevated);
+  background-image: linear-gradient(180deg, #fbf5e9, #e7dac3);
+  border-bottom: 1px solid var(--border-default);
+}
+
+:root[data-game-theme="light"] .bottom-navigation {
+  background: linear-gradient(180deg, #f7efdf, #e6dac5);
+  box-shadow: 0 -4px 12px rgb(73 52 26 / 14%);
+}

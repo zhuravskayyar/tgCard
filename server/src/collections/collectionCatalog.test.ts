@@ -65,7 +65,7 @@ test("canonical cards use the supplied descriptions and only the requested renam
   assert.ok(cards.every(({ description }) => description.trim().length > 0));
   assert.equal(new Set(cards.map(({ description }) => description)).size, 150);
   assert.ok(cards.every(({ code, description }) => CARD_DESCRIPTIONS[code] === description));
-  for (const [id, displayName] of [["starter_03", "Жук-бомбардир"], ["caveborn_01", "Протей"], ["thunderborn_02", "Птах Рух"]] as const) {
+  for (const [id, displayName] of [["starter_v5_02", "Рогач"], ["caveborn_01", "Протей"], ["thunderborn_02", "Птах Рух"]] as const) {
     const card = cards.find((candidate) => candidate.id === id);
     assert.equal(card?.code, id);
     assert.equal(card?.displayName, displayName);

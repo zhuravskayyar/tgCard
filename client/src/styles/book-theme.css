@@ -1,0 +1,769 @@
+/* Shared parchment-and-engraving system for every authenticated screen. */
+:root .app-shell {
+  --home-paper: #ead9ba;
+  --home-paper-rgb: 234 217 186;
+  --home-ink: #2d1b0e;
+  --home-ink-muted: #51391f;
+  --home-icon-ink: #513b25;
+  --home-disabled-ink: #6a5438;
+  --home-metal: #815a2b;
+  --home-gold: #e1bf78;
+  --home-nav-ink: #30200f;
+  --home-nav-active: #6d3e10;
+
+  --bg-page: #cbb58f;
+  --bg-app: #ead9ba;
+  --bg-panel: #ead5aa;
+  --bg-elevated: #f0dfbc;
+  --bg-inset: #d5bd91;
+  --bg-active: #e4c98f;
+  --text-primary: #2d1b0e;
+  --text-secondary: #49331d;
+  --text-muted: #5a4329;
+  --text-disabled: #6c573d;
+  --text-on-parchment: #28170b;
+  --accent-bronze: #74491f;
+  --accent-gold: #70430d;
+  --accent-silver: #6d747a;
+  --state-active: #76501c;
+  --state-danger: #8d4035;
+  --border-subtle: #ad8c5c;
+  --border-default: #86633b;
+  --border-accent: #704e28;
+  --border-active: #563614;
+  --surface-panel: #ead5aa;
+  --surface-button: url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
+  --surface-button-primary: url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
+  --surface-button-danger: url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
+  --surface-button-success: url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
+  --highlight-inner: inset 0 1px 0 rgb(255 250 235 / 78%);
+  --shadow-panel: 0 4px 10px rgb(54 36 17 / 22%);
+  --shadow-fixed: 0 8px 24px rgb(54 39 18 / 24%);
+  --shadow-button: 0 3px 6px rgb(54 36 17 / 22%);
+  color: var(--home-ink);
+  background: var(--home-paper);
+}
+
+:root[data-game-theme] .app-shell {
+  background: var(--home-paper);
+}
+
+:root[data-game-theme] .app-shell::before {
+  opacity: 1;
+}
+
+:root .app-content:not(:has(.home-screen)) {
+  color: var(--home-ink);
+  background: transparent;
+}
+
+:root .app-content :is(h1, h2, h3) {
+  color: var(--home-ink);
+  text-shadow: none;
+}
+
+:root .app-content :is(p, small, label, dt, dd) { color: var(--home-ink-muted); }
+
+:root .app-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  color: var(--home-ink);
+  background: linear-gradient(180deg, #f1e4cc, #e4d1ad);
+  border-color: #a98a5d;
+  border-radius: 5px;
+  box-shadow: inset 0 1px 3px rgb(90 65 34 / 12%);
+}
+
+/* Common panels use printed paper, a fine engraved grain, and a restrained edge. */
+:root .app-content :is(
+  .ui-panel,
+  .profile-heading,
+  .profile-showcase,
+  .profile-section,
+  .profile-state,
+  .profile-hero,
+  .player-profile-card,
+  .player-profile-section,
+  .inventory-section,
+  .settings-section,
+  .arena-lobby,
+  .arena-league-panel,
+  .arena-shop-panel,
+  .arena-queue-panel,
+  .arena-target-panel,
+  .arena-player-panel,
+  .duel-hp-panel,
+  .dungeon-result__panel,
+  .guild-dashboard-card,
+  .guild-level,
+  .guild-lock,
+  .guild-pending,
+  .guild-state,
+  .guild-notice,
+  .tasks-screen__mascot,
+  .tasks-screen__marathon,
+  .tasks-screen__account-protection,
+  .guild-forum-section,
+  .guild-forum-topic,
+  .guild-list,
+  .inventory-item,
+  .inventory-cosmetic,
+  .arena-shop-item,
+  .progression-panel,
+  .absorption-panel,
+  .shop-wallet,
+  .battle-pass-hero,
+  .battle-pass-circle,
+  .battle-pass-milestone__reward,
+  .profile-record-grid article,
+  .profile-rating-grid article,
+  .profile-empty-row,
+  .profile-facts,
+  .profile-gifts > p,
+  .profile-guild-card
+) {
+  color: var(--home-ink);
+  background-color: #ead5aa;
+  background-image: none;
+  border: 0 solid transparent;
+  border-image-source: url("/assets/ui/game/text-panel-plate-v1.webp");
+  border-image-slice: 92 fill;
+  border-image-width: 10px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-radius: 0;
+  box-shadow: var(--shadow-panel);
+}
+
+:root .app-content :is(.profile-record-grid article, .profile-rating-grid article) {
+  border-radius: 4px;
+}
+
+:root .app-shell .app-content .guild-screen > .guild-screen__heading:not(.guild-screen__heading--roster) {
+  color: var(--home-ink);
+  background: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  border: 0;
+  box-shadow: none;
+}
+
+:root .app-shell .app-content .guild-screen > .guild-screen__heading:not(.guild-screen__heading--roster) h1,
+:root .app-shell .app-content .guild-screen > .guild-screen__heading:not(.guild-screen__heading--roster) > .app-icon {
+  color: var(--home-ink);
+  text-shadow: none;
+}
+
+:root .app-shell .app-content .guild-screen .guild-screen__heading--guild {
+  color: var(--home-ink);
+  background: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  border: 0;
+  box-shadow: none;
+}
+
+:root .app-shell .app-content .guild-screen .guild-screen__heading--guild h1,
+:root .app-shell .app-content .guild-screen .guild-screen__heading--guild > .app-icon {
+  color: var(--home-ink);
+  text-shadow: none;
+}
+
+:root .app-shell .app-content .guild-screen .guild-screen__heading--guild > .app-icon { filter: none; }
+
+:root .app-content .guild-list { overflow: hidden; }
+:root .app-content .guild-list-row { color: var(--home-ink); }
+:root .app-content .guild-list-row + .guild-list-row { border-color: rgb(105 76 40 / 24%); }
+:root .app-content .guild-list-row:hover { background: rgb(109 79 42 / 7%); }
+:root .app-content .guild-list-row__body strong { color: #443426; }
+:root .app-content .guild-list-row__body small,
+:root .app-content .guild-list-row__body > span { color: #78634b; }
+
+:root .app-content .profile-player-card .nickname-skin .nickname {
+  color: var(--home-ink) !important;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+:root .app-content .profile-player-card__level,
+:root .app-content .profile-guild-card__copy strong,
+:root .app-content .profile-guild-card__copy span,
+:root .app-content .profile-showcase__power { color: var(--home-ink-muted); }
+
+:root .app-content .profile-guild-card__copy strong { color: #76501c; }
+:root .app-content .profile-showcase__power > strong { color: #443426; }
+
+:root .app-shell .app-content .profile-equipment .equipment-character__sceneBackgroundLayer {
+  filter: sepia(.58) saturate(.72) brightness(1.14);
+}
+
+:root .app-shell .app-content .profile-equipment .equipment-character__sceneOverlayLayer {
+  background: linear-gradient(90deg, rgb(67 47 25 / 20%), transparent 25% 75%, rgb(67 47 25 / 20%)), linear-gradient(transparent 54%, rgb(67 47 25 / 24%));
+}
+
+:root .app-shell .app-content .profile-equipment .equipment-slot--empty {
+  color: #765b36;
+  background: linear-gradient(145deg, #f3e5c9, #ddc69b);
+  border-color: #947247;
+  box-shadow: inset 0 1px 0 rgb(255 249 229 / 82%), inset 0 0 0 2px rgb(111 78 38 / 10%), 0 2px 4px rgb(74 52 27 / 18%);
+}
+
+:root .app-shell .app-content .profile-equipment .equipment-slot--empty > .slotFrame {
+  border-color: rgb(108 78 42 / 52%);
+  box-shadow: inset 0 0 0 1px rgb(255 248 226 / 50%);
+}
+
+:root .app-shell .app-content .profile-equipment .equipment-art__background {
+  background: radial-gradient(circle at 50% 42%, rgb(177 138 82 / 13%), transparent 72%);
+}
+
+:root .app-content .badge {
+  color: #443426;
+  background: #e1cca3;
+  border-color: #947146;
+  box-shadow: inset 0 1px rgb(255 250 235 / 70%);
+  text-shadow: none;
+}
+
+/* Shop illustrations keep their real art, but sit in the same engraved folio. */
+:root .app-shell .app-content .shop-category-banner {
+  min-height: 116px;
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image-source: url("/assets/ui/game/text-panel-plate-v1.webp");
+  border-image-slice: 92 fill;
+  border-image-width: 10px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content .shop-category-banner::before {
+  inset: 8px;
+  top: 8px;
+  right: 8px;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background-image: linear-gradient(180deg, rgb(234 217 186 / 6%) 8%, rgb(234 217 186 / 32%) 48%, rgb(234 217 186 / 82%) 100%), var(--shop-category-art, none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: none;
+  filter: sepia(.72) saturate(.68) brightness(1.08) contrast(.92);
+  opacity: .9;
+  transform: none;
+}
+
+:root .app-shell .app-content .shop-category-banner::after {
+  opacity: .18;
+}
+
+:root .app-shell .app-content .shop-category-banner__copy {
+  text-shadow: 0 1px 0 rgb(255 246 224 / 88%);
+}
+
+:root .app-shell .app-content .shop-category-banner__copy strong { color: #3d2c1b; }
+:root .app-shell .app-content .shop-category-banner__copy > span { color: #69533a; }
+
+:root .app-shell .app-content .shop-category-banner__arrow {
+  color: #62451f;
+  background: rgb(234 217 186 / 74%);
+  border-color: #947146;
+  border-radius: 4px;
+}
+
+:root .app-content :is(.ui-button, .ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab) {
+  text-shadow: none;
+}
+
+:root .app-content .ui-button--success { color: #3e512f; }
+:root .app-content .ui-button--danger { color: #7f342b; }
+
+/* Three fixed engraved tabs sit inside the shared framed navigation strip. */
+:root .app-shell .bottom-navigation {
+  background-image: url("/assets/ui/home/navigation-parchment-v2.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+}
+
+:root .app-shell .bottom-navigation__items { padding-inline: 7px; }
+
+:root .app-shell .bottom-navigation__item {
+  margin: 3px 4px;
+  color: #30200f;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font: 700 14px/1 var(--font-display);
+  text-shadow: none;
+  touch-action: manipulation;
+  transition: filter 120ms ease-out, transform 120ms ease-out;
+}
+
+:root .app-shell .bottom-navigation__item:active { filter: brightness(.93); transform: translateY(1px); }
+
+:root .app-shell .bottom-navigation__item .app-icon {
+  box-sizing: border-box;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0;
+  color: #39230e;
+  background: currentColor;
+  filter: none;
+}
+
+:root .app-shell .bottom-navigation__item > span:not(.app-icon) {
+  font-family: var(--font-display) !important;
+}
+
+:root .app-shell .bottom-navigation__item[aria-current="page"] {
+  color: #6d3e10;
+  background: transparent;
+  filter: brightness(1.08);
+}
+
+:root .app-shell .bottom-navigation__item[aria-current="page"]::after {
+  bottom: 7px;
+  width: 28px;
+  height: 3px;
+  background: #865a24;
+  box-shadow: 0 1px 1px rgb(57 38 16 / 34%);
+}
+
+/* Keep short mobile screens usable without shrinking the persistent shell. */
+@media (max-width: 430px) and (max-height: 760px) {
+  :root .app-content:not(:has(.home-screen)) {
+    padding-block: 76px;
+  }
+
+  :root .app-shell .app-content .shop-screen--categories {
+    gap: 8px;
+  }
+
+  :root .app-shell .app-content .shop-screen--categories .shop-category-list {
+    gap: 6px;
+  }
+
+  :root .app-shell .app-content .shop-screen--categories .shop-category-banner {
+    min-height: 96px;
+    padding-block: 8px 10px;
+  }
+
+  :root .app-shell .app-content .tasks-screen {
+    gap: 8px;
+    padding: 4px 5px 12px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__panel {
+    gap: 6px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__mascot {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    min-height: 56px;
+    gap: 6px;
+    padding: 3px 6px 3px 2px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__mascot-art {
+    width: 58px;
+    height: 58px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__mascot-copy p {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  :root .app-shell .app-content .tasks-screen__mascot-reset {
+    grid-row: 1;
+    grid-column: 3;
+    align-self: end;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  :root .app-shell .app-content .tasks-screen__marathon {
+    gap: 4px;
+    padding: 8px 10px 12px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__daily-reward-row {
+    gap: 5px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__daily-note {
+    transform: translateY(-4px);
+  }
+
+  :root .app-shell .app-content .tasks-screen__multiplier {
+    min-height: 34px;
+  }
+
+  :root .app-shell .app-content .tasks-screen__list {
+    gap: 4px;
+  }
+
+  :root .app-shell .app-content .quest-paper {
+    min-height: 112px;
+  }
+
+  :root .app-shell .app-content .quest-paper__content {
+    min-height: 110px;
+    grid-template-rows: auto auto auto;
+    gap: 4px;
+    padding: 7px 10px;
+  }
+
+  :root .app-shell .app-content .quest-paper__header {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  :root .app-shell .app-content .quest-paper__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  :root .app-shell .app-content .quest-paper__icon .app-icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  :root .app-shell .app-content .quest-paper__progress {
+    gap: 2px;
+  }
+
+  :root .app-shell .app-content .quest-paper__footer {
+    gap: 5px;
+  }
+
+  :root .app-shell .app-content .quest-paper__button {
+    min-height: 32px;
+    padding: 3px 7px;
+  }
+
+  :root .app-shell .app-content .profile-screen {
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  :root .app-shell .app-content .profile-showcase {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  :root .app-shell .app-content .profile-equipment .equipment-loadout-panel {
+    min-height: 176px;
+    padding-block: 4px;
+  }
+
+  :root .app-shell .app-content .profile-equipment .equipment-character {
+    min-height: 150px;
+  }
+
+  :root .app-shell .app-content .profile-equipment .equipment-character__frame {
+    min-height: 140px;
+  }
+
+  :root .app-shell .app-content .profile-menu {
+    gap: 5px;
+  }
+
+  :root .app-shell .app-content .profile-menu > .menu-row,
+  :root .app-shell .app-content .profile-gifts > .menu-row {
+    min-height: 44px;
+    padding-block: 5px;
+  }
+
+  :root .app-shell .app-content .profile-record-grid article,
+  :root .app-shell .app-content .profile-rating-grid article {
+    min-height: 100px;
+    padding-block: 6px;
+    gap: 3px;
+  }
+
+  :root .app-shell .app-content .profile-record-grid__asset {
+    height: 40px;
+  }
+
+  :root .app-shell .app-content .profile-rating-grid__asset {
+    height: 38px;
+  }
+
+  :root .app-shell .app-content .profile-section {
+    gap: 6px;
+  }
+
+  :root .app-shell .app-content .profile-gifts > p {
+    padding-block: 8px;
+  }
+}
+
+/* Game-readable type and tactile controls for the shared book shell. */
+:root .app-content :is(h1, h2, h3) {
+  color: #2d1b0e;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-shadow: none;
+}
+
+:root .app-content :is(p, small, label, dt, dd) {
+  color: #51391f;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content :is(.tasks-screen__mascot-copy strong, .tasks-screen__ornate-heading strong, .tasks-screen__daily-progress strong, .tasks-screen__daily-reward strong) {
+  color: #2d1b0e;
+  text-shadow: none;
+}
+
+:root .app-content :is(button, .ui-tab) {
+  color: #2d1b0e;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+:root .app-content button:disabled:not(.mode-tile) {
+  color: #675237;
+  filter: grayscale(.72);
+}
+
+:root .app-shell .app-content :is(.shop-bundle-banner__purchase, .shop-boost-card__purchase) {
+  color: #d6efad;
+  font-weight: 850;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
+}
+
+:root .app-shell .app-content .shop-boost-card__purchase--silver { color: #f1f1e8; }
+
+:root .app-shell .app-content :is(.shop-offer, .shop-bundle-banner, .shop-boost-card, .workshop-card) :is(p, small, label, dt, dd) {
+  color: #eadbbd;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 82%);
+}
+
+:root .app-shell .app-content .shop-offer__copy h3 {
+  color: var(--offer-accent);
+  text-shadow: 0 1px 2px #090605;
+}
+
+:root .app-shell .app-content .shop-bundle-banner__copy h3 { color: #efd28e; }
+:root .app-shell .app-content .shop-boost-card__copy h3 { color: #e6c67a; }
+:root .app-shell .app-content .shop-boost-card__copy > span:not(.shop-boost-card__effect) { color: #e0cfad; }
+:root .app-shell .app-content .shop-boost-card__effect { color: #f1e5ce; }
+:root .app-shell .app-content .workshop-card__title-row strong { color: #f0e2c7; }
+:root .app-shell .app-content .workshop-card__meta { color: #ddc99f; }
+:root .app-shell .app-content .workshop-card__progress { color: #eadbbd; }
+:root .app-shell .app-content .shop-offer__details summary { color: #e5d3b1; }
+
+:root .app-content :is(.menu-row__title, .shop-category-banner__copy strong) {
+  color: #2d1b0e;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+:root .app-content :is(.menu-row__action, .menu-row__detail, .shop-category-banner__copy > span) {
+  color: #51391f;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content :is(.ui-button, .ui-button--primary, .ui-button--success, .ui-button--danger) {
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content :is(.ui-button, .ui-button--primary, .ui-button--success) {
+  color: #2d1b0e;
+}
+
+:root .app-shell .app-content .ui-button--danger { color: #742d21; }
+
+:root .app-shell .app-content :is(.ui-button, .ui-button--primary, .ui-button--success, .ui-button--danger):not(:disabled):active {
+  filter: brightness(.91);
+  transform: translateY(1px);
+}
+
+:root .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .arena-tabs button, .guild-tabs button, .pagination button, .guild-roster__rank-tab) {
+  min-height: 40px;
+  color: #4b341c;
+  background: linear-gradient(180deg, #e7d2a8, #cbb287);
+  border: 1px solid #78562e;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgb(255 247 222 / 70%), inset 0 -2px 3px rgb(77 49 20 / 18%);
+  font-weight: 700;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .arena-tabs button, .guild-tabs button, .pagination button, .guild-roster__rank-tab):is([aria-selected="true"], [aria-current="page"], .is-active, [class*="--active"]) {
+  color: #2d1b0e;
+  background: url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root .app-shell .home-screen .mode-tile {
+  background-image: url("/assets/ui/home/mode-panel-parchment-ink-v2.webp");
+}
+
+:root .app-shell .bottom-navigation__item .app-icon {
+  filter: drop-shadow(0 1px 0 rgb(255 246 220 / 54%));
+}
+
+:root .app-shell .bottom-navigation__item[aria-current="page"] .app-icon {
+  filter: brightness(1.1) drop-shadow(0 1px 0 rgb(255 246 220 / 60%));
+  transform: translateY(-1px);
+}
+
+:root .app-shell .app-content :is(
+  .deck-heading,
+  .campaign-heading,
+  .shop-heading,
+  .profile-heading,
+  .settings-heading,
+  .arena-heading,
+  .duel-heading,
+  .equipment-heading,
+  .dungeon-heading,
+  .collections-heading,
+  .player-profile-screen__heading
+) {
+  min-height: 50px;
+  padding: 3px 8px;
+  color: #2d1b0e;
+  background: #ead5aa;
+  border: 0 solid transparent;
+  border-image-source: url("/assets/ui/game/text-panel-plate-v1.webp");
+  border-image-slice: 92 fill;
+  border-image-width: 8px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-radius: 0;
+  box-shadow: 0 3px 7px rgb(54 36 17 / 18%);
+}
+
+:root .app-shell .app-content :is(
+  .deck-heading,
+  .campaign-heading,
+  .shop-heading,
+  .profile-heading,
+  .settings-heading,
+  .arena-heading,
+  .duel-heading,
+  .equipment-heading,
+  .dungeon-heading,
+  .collections-heading,
+  .player-profile-screen__heading
+) :is(h1, h2, span, small) {
+  color: #2d1b0e;
+  text-shadow: none;
+}
+
+:root .app-shell .app-content :is(
+  .deck-heading,
+  .campaign-heading,
+  .shop-heading,
+  .profile-heading,
+  .settings-heading,
+  .arena-heading,
+  .duel-heading,
+  .equipment-heading,
+  .dungeon-heading,
+  .collections-heading,
+  .player-profile-screen__heading
+) :is(button, .app-icon) {
+  color: #3d2811;
+}
+
+/* Deck title plaque follows the illustrated book reference. */
+:root .app-shell .app-content .deck-screen > .deck-heading {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 58px;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(80px, 27%);
+  align-items: center;
+  gap: clamp(4px, 1.4vw, 7px);
+  padding: 4px 7.5% 4px 5%;
+  color: #2d1b0e;
+  background: url("/assets/ui/home/deck-heading-plaque-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading h1 {
+  min-width: 0;
+  margin: 0;
+  color: #2d1b0e;
+  font-family: var(--font-display) !important;
+  font-size: clamp(17px, 5.2vw, 23px);
+  line-height: 1;
+  letter-spacing: .015em;
+  white-space: nowrap;
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading > strong {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  color: #2d1b0e;
+  border: 0;
+  font-family: var(--font-display) !important;
+  font-size: clamp(11px, 3vw, 13px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading > .deck-heading__power {
+  gap: 0;
+  transform: translateX(-4px);
+  color: #1a0c03;
+  font-size: clamp(14px, 3.8vw, 16px);
+  font-weight: 800;
+  background-image: none;
+  -webkit-text-fill-color: #1a0c03;
+  -webkit-text-stroke: .35px #1a0c03;
+  text-shadow: 0 1px 0 #f4e3ba;
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading .deck-back {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  place-items: center;
+  justify-self: center;
+  padding: 0;
+  color: #ead6aa;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading .deck-back .app-icon {
+  width: 28px;
+  height: 28px;
+  color: #ead6aa;
+  transform: rotate(180deg);
+  filter: drop-shadow(0 1px 1px rgb(23 14 6 / 65%));
+}
+
+:root .app-shell .app-content .deck-screen > .deck-heading .deck-back .app-icon g {
+  stroke-width: 2.2;
+}
+
+:root .app-shell .app-content .profile-showcase__power {
+  padding-inline: 14px;
+  transform: translateY(-4px);
+}

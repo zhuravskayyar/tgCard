@@ -117,7 +117,7 @@ function WorkshopCard({ card, cardShards, crafting, onCraft }: { card: CardWorks
     "--workshop-tone": workshopRarityTones[card.rarity],
   } as CSSProperties;
   return <article className={`workshop-card workshop-card--${card.rarity}${canAfford ? " workshop-card--available" : ""}`} style={style}>
-    <div className="workshop-card__art"><CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} /><span aria-hidden="true" className="workshop-card__rarity-badge"><AppIcon name="deck-power" size={12} /></span></div>
+    <div className="workshop-card__art"><CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity} /></div>
     <div className="workshop-card__copy">
       <div className="workshop-card__title-row"><strong>{card.displayName ?? "Невідома карта"}</strong></div>
       <span className="workshop-card__meta">{rarityLabels[card.rarity]} · Копій: {card.ownedQuantity}</span>
@@ -343,7 +343,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
               <section className="shop-bundle-section" aria-label="Готові набори">
                 <ShopSectionHeading>Готові набори</ShopSectionHeading>
                 <div className="shop-bundle-list">
-                  {SHOP_BUNDLES.map((bundle) => (
+                  {SHOP_BUNDLES.length ? SHOP_BUNDLES.map((bundle) => (
                     catalogState.catalog.bundles.find((offer) => offer.id === bundle.id) ? (
                       <ShopBundleBanner
                         availableBalance={player?.gold}
@@ -355,7 +355,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
                         purchasing={purchasingBundleId === bundle.id}
                       />
                     ) : null
-                  ))}
+                  )) : <div className="shop-inline-empty">Набори з новими картами з’являться тут.</div>}
                 </div>
               </section>
             ) : (

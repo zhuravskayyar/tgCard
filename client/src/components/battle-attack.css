@@ -1,25 +1,82 @@
-.battle-attack { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+.battle-attack {
+  position: absolute;
+  z-index: 15;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
 [data-attack-covered="true"] { visibility: hidden; }
-.battle-attack .battle-attack__card { position: absolute; margin: 0; pointer-events: none; overflow: visible; }
-.battle-attack__card--player { z-index: 2; animation: battle-player-strike var(--attack-duration) ease-in-out both; }
-.battle-attack__card--enemy { z-index: 1; animation: battle-enemy-impact var(--attack-duration) ease-out both; }
-.battle-attack__damage { position: absolute; z-index: 4; top: 10%; left: 50%; color: #ffdbb4; font-weight: 800; font-size: 22px; text-shadow: 0 2px 4px #000; animation: battle-damage var(--attack-duration) ease-out both; }
+
+.battle-attack .battle-attack__card {
+  position: absolute;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform, filter;
+}
+
+.battle-attack__card--player {
+  z-index: 2;
+  animation: battle-player-strike var(--attack-duration) cubic-bezier(.2, .76, .28, 1) both;
+}
+
+.battle-attack__card--enemy {
+  z-index: 1;
+  animation: battle-enemy-impact var(--attack-duration) ease-out both;
+}
+
+.battle-attack__fx {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.battle-attack__damage {
+  position: absolute;
+  z-index: 4;
+  color: #fff2cd;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 6vw, 25px);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 3px #25170c, 0 0 10px #18100a;
+  transform: translate(-50%, -15%);
+  animation: battle-damage var(--attack-duration) ease-out both;
+}
+
+.battle-attack__damage--enemy { color: #ffc0a8; }
+.battle-attack--strong .battle-attack__damage { color: #ffe29b; }
+
 @keyframes battle-player-strike {
-  0%, 12% { transform: translate(0, 0); }
-  44%, 53% { transform: translate(var(--attack-x), var(--attack-y)); }
-  85%, 100% { transform: translate(0, 0); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1) rotateZ(0); filter: drop-shadow(0 7px 6px #0008); }
+  11% { transform: translate3d(0, var(--attack-lift-y), 0) scale(1.06) rotateZ(-1deg); }
+  24% { transform: translate3d(0, var(--attack-lift-y), 0) scale(1.1) rotateZ(1deg); filter: drop-shadow(0 0 12px color-mix(in srgb, var(--element-glow) 66%, transparent)) drop-shadow(0 12px 8px #0008); }
+  50% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(1.18) rotateZ(0); filter: drop-shadow(0 0 18px var(--element-glow)) drop-shadow(0 12px 8px #0008); }
+  59% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(.98) rotateZ(-2deg); }
+  68% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(1.04) rotateZ(1deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotateZ(0); }
 }
+
 @keyframes battle-enemy-impact {
-  0%, 43%, 76%, 100% { transform: translate(0, 0); filter: none; }
-  48%, 60% { transform: translate(3px, -4px); filter: brightness(1.5); }
-  54%, 66% { transform: translate(-3px, 2px); }
+  0%, 42%, 76%, 100% { transform: translate3d(0, 0, 0) rotateZ(0); filter: none; }
+  47% { transform: translate3d(-2px, -3px, 0) rotateZ(-1.5deg); filter: brightness(1.65) saturate(.72); }
+  53% { transform: translate3d(3px, 2px, 0) rotateZ(1deg); filter: brightness(1.24); }
+  61% { transform: translate3d(-1px, 1px, 0) rotateZ(-.4deg); }
 }
+
 @keyframes battle-damage {
-  0%, 43% { opacity: 0; transform: translate(-50%, 0); }
-  50%, 75% { opacity: 1; transform: translate(-50%, -12px); }
-  100% { opacity: 0; transform: translate(-50%, -24px); }
+  0%, 40% { opacity: 0; transform: translate(-50%, 3px) scale(.7); }
+  49% { opacity: 1; transform: translate(-50%, -9px) scale(1.12); }
+  60% { opacity: 1; transform: translate(-50%, -16px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -32px) scale(.92); }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .battle-attack .battle-attack__card { animation: none; }
-  .battle-attack__damage { animation: none; transform: translateX(-50%); }
+  .battle-attack__card { animation: none !important; transform: none; }
+  .battle-attack__damage { animation: none; opacity: 1; transform: translate(-50%, -50%); }
 }

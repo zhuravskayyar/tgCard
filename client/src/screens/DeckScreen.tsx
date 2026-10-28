@@ -26,7 +26,9 @@ export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: Dec
         <div>
           <h1>МОЯ КОЛОДА</h1>
         </div>
-        <strong>{state.status === "ready" ? `Сила ${formatFullUiNumber(state.deck.totalPower)}` : "Сила —"}</strong>
+        <strong aria-label={state.status === "ready" ? `Загальна сила колоди: ${formatFullUiNumber(state.deck.totalPower)}` : "Загальна сила колоди недоступна"} className="deck-heading__power">
+          {state.status === "ready" ? formatFullUiNumber(state.deck.totalPower) : "—"}
+        </strong>
       </header>
 
       {state.status === "loading" ? <div className="deck-state" aria-live="polite">Завантаження колоди…</div> : null}

@@ -26,7 +26,7 @@ import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import type { InventoryRepository } from "../inventory/inventoryRepository.js";
 import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
 
-const PAGE_SIZE = 9 as const;
+const PAGE_SIZE = 5 as const;
 const MAX_FODDER_CARDS = 100;
 
 interface ProgressionCardRow extends CardInstanceProjectionRow {

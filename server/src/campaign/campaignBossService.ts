@@ -42,11 +42,11 @@ import {
   CAMPAIGN_BOSS_CARD_CONFIG,
   CAMPAIGN_BOSS_LEVEL,
   CAMPAIGN_BOSS_REWARD_CARD,
+  CAMPAIGN_BOSS_REWARD_CARD_CODE,
   CAMPAIGN_ID,
   CAMPAIGN_STAGES,
   BOSS_VICTORY_DIALOGUES,
   BOSS_INTRO_DIALOGUES,
-  MANTICORE_CARD_CODE,
 } from "./campaignConfig.js";
 
 const MAX_BATTLE_LOG_ENTRIES = 10;
@@ -238,7 +238,7 @@ async function loadBossSnapshot(client: Parameters<typeof loadDuelParticipant>[0
   const byCode = new Map(result.rows.map((row) => [row.code, row]));
   const cards: DuelCardSnapshot[] = CAMPAIGN_BOSS_CARD_CONFIG.map(({ code, level }, index) => {
     const row = byCode.get(code);
-    if (!row || !row.collection_id) {
+    if (!row) {
       throw new CampaignBossConfigurationError(`Canonical Campaign boss card ${code} is missing`);
     }
     const basePower = getBasePowerForLevel(level);
@@ -477,11 +477,11 @@ export class CampaignBossService {
               SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible, description
               FROM cards WHERE code = $1
             `,
-            [MANTICORE_CARD_CODE],
+            [CAMPAIGN_BOSS_REWARD_CARD_CODE],
           );
           const manticoreRow = manticoreDefinitionResult.rows[0];
-          if (!manticoreRow || manticoreRow.display_name !== "Мантикора") {
-            throw new CampaignBossConfigurationError("Canonical Мантикора card is missing");
+          if (!manticoreRow || manticoreRow.display_name !== CAMPAIGN_BOSS_REWARD_CARD.name) {
+            throw new CampaignBossConfigurationError(`Canonical ${CAMPAIGN_BOSS_REWARD_CARD.name} card is missing`);
           }
           const rewardCard = await createStandardCardInstance(
             client,

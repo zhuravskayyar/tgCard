@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BattlePassReward, BattlePassMilestoneView, PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { CardArtwork } from "../components/CardArtwork";
+import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { useBattlePass } from "../hooks/useBattlePass";
@@ -31,13 +31,17 @@ function romanCircle(circle: number) {
 }
 
 function CardRewardPreview({ card, compact = false }: { card: PlayerCardInstance; compact?: boolean }) {
-  return (
-    <div className={`${compact ? "battle-pass-card-thumbnail" : "campaign-boss-reward-card battle-pass-card-reveal__card"} deck-card--${card.element} deck-card--${card.rarity}`}>
-      <CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} />
+  const plate = <div className={`${compact ? "battle-pass-card-thumbnail" : "campaign-boss-reward-card"} deck-card--${card.element} deck-card--${card.rarity}`}>
+    <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity}>
       <CardHud element={card.element} level={card.level} power={card.finalPower} rarity={card.rarity} showLevel={!compact} />
-      {!compact ? <><strong>{card.displayName ?? card.code}</strong><small>Рівень {card.level} · {card.rarity}</small></> : null}
-    </div>
-  );
+    </CardFxWrapper>
+  </div>;
+  if (compact) return plate;
+  return <div className="battle-pass-card-reveal__card">
+    {plate}
+    <strong>{card.displayName ?? card.code}</strong>
+    <small>Рівень {card.level} · {card.rarity}</small>
+  </div>;
 }
 
 function Milestone({

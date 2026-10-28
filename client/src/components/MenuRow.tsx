@@ -9,26 +9,31 @@ interface MenuRowProps {
   compact?: boolean;
   detail?: string;
   disabled?: boolean;
+  chevron?: boolean;
   icon: AppIconName;
   iconSrc?: string;
+  illustrationSrc?: string;
   locked?: boolean;
   metalTexture?: boolean;
   onClick?: () => void;
   attention?: boolean;
   actionContent?: ReactNode;
   title: string;
+  variant?: "default" | "book";
 }
 
-export function MenuRow({ active: _active = false, actionContent, attention = false, badge, compact = false, detail, disabled = false, icon, iconSrc, locked = false, metalTexture = true, onClick, title }: MenuRowProps) {
+export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, metalTexture = true, onClick, title, variant = "default" }: MenuRowProps) {
+  const hasMetalTexture = metalTexture && variant !== "book";
   return (
     <button
-      className={`menu-row${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${metalTexture ? " menu-row--metal-texture" : ""}`}
+      className={`menu-row${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${hasMetalTexture ? " menu-row--metal-texture" : ""}${variant === "book" ? " menu-row--book" : ""}`}
       disabled={disabled || !onClick}
       aria-label={locked ? `${title}: поки недоступно` : undefined}
       onClick={onClick}
       type="button"
     >
-      {metalTexture ? <MenuTextureSlices /> : null}
+      {hasMetalTexture ? <MenuTextureSlices /> : null}
+      {illustrationSrc ? <img alt="" aria-hidden="true" className="menu-row__illustration" src={illustrationSrc} /> : null}
       <span className="menu-row__icon">
         {iconSrc ? <img alt="" aria-hidden="true" className="menu-row__icon-image" src={iconSrc} /> : <AppIcon name={icon} size={23} />}
       </span>
@@ -36,6 +41,7 @@ export function MenuRow({ active: _active = false, actionContent, attention = fa
       <span className="menu-row__action">
         {actionContent ?? (locked ? <AppIcon name="lock" size={14} /> : attention ? <span aria-hidden="true" className="menu-row__indicator" /> : detail ? <span className="menu-row__detail">{detail}</span> : badge ? <Badge value={badge} /> : null)}
       </span>
+      {chevron ? <span aria-hidden="true" className="menu-row__chevron"><AppIcon name="chevron" size={16} /></span> : null}
     </button>
   );
 }

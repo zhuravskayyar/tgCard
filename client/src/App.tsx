@@ -36,6 +36,7 @@ import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
 import { useTutorial } from "./hooks/useTutorial";
 import { getPlayerDisplayName, type DuelView, type EquippedEquipment } from "@cardastika/shared";
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
+import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
 type Screen = "home" | "profile" | "guild" | "inventory" | "equipment" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks";
 
@@ -57,7 +58,7 @@ export function App() {
   const { addCollectionBonus, retry, state: playerSummaryState, updateBalance, updateNickname } = usePlayerSummary();
   const { claim: claimMail, resolveAction: resolveMailAction, retry: retryMail, state: mailState } = useMail();
   const tutorialPlayerId = playerSummaryState.status === "ready" ? playerSummaryState.data.id : null;
-  const tutorialEligible = playerSummaryState.status === "ready" && playerSummaryState.data.tutorialEligible === true;
+  const tutorialEligible = INTERACTIVE_TUTORIAL_ENABLED && playerSummaryState.status === "ready" && playerSummaryState.data.tutorialEligible === true;
   const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
   const campaignTraining = tutorial.step === "campaign";
   const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);

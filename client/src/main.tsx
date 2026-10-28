@@ -9,6 +9,11 @@ import "./styles/typography.css";
 import "./styles/menu.css";
 import "./styles/shell.css";
 import "./styles/rewards.css";
+import "./styles/card-plates.css";
+import "./styles/home-menu.css";
+import "./styles/book-theme.css";
+import "./styles/card-upgrade.css";
+import "./styles/numbers.css";
 
 const rootElement = document.getElementById("root");
 const isAdminPath = window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/");

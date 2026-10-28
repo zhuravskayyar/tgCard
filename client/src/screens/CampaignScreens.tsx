@@ -10,7 +10,7 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { CardArtwork } from "../components/CardArtwork";
+import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { FirstVisitHint } from "../components/FirstVisitHint";
@@ -448,10 +448,14 @@ function BossVictoryResult({ battle, onReturn }: { battle: CampaignBossView; onR
       </div>
       {result.accountBoostMultiplier === 2 ? <p>Буст ×2 активний на 24 години</p> : null}
       {result.rewardCard ? (
-        <div className={`campaign-boss-reward-card deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}>
-          <CardArtwork artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} />
-          <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
+        <div className="campaign-boss-reward">
+          <div className={`campaign-boss-reward-card deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}>
+          <CardFxWrapper artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} rarity={result.rewardCard.rarity}>
+            <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
+          </CardFxWrapper>
+          </div>
           <strong>{result.rewardCard.displayName ?? result.rewardCard.code}</strong>
+          <small>Рівень {result.rewardCard.level} · {result.rewardCard.rarity}</small>
         </div>
       ) : null}
       <button onClick={onReturn} type="button">До кампанії</button>

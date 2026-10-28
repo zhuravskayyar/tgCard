@@ -12,6 +12,7 @@ export type AppIconName =
   | "arena"
   | "deck"
   | "deck-power"
+  | "fleur-de-lis"
   | "weak-cards"
   | "card-absorb"
   | "card-strength"
@@ -101,6 +102,7 @@ const paths: Record<AppIconName, ReactNode> = {
       <path d="M3.5 3.5h11a2 2 0 0 1 2 2M11.5 8 9 13h3l-1 4 4-6h-3l1-3Z" />
     </>
   ),
+  "fleur-de-lis": <path d="M12 22c1.9-1.7 2.2-4.3 1.1-6.8 2.5 2 5.7 1 6.7-1.9-2.7.8-4.2-.7-4.1-3.1C15.9 8 14.4 5.8 12 3 9.6 5.8 8.1 8 8.2 10.2c.1 2.4-1.4 3.9-4.1 3.1 1 2.9 4.2 3.9 6.7 1.9-1.1 2.5-.8 5.1 1.2 6.8ZM5 14h14" />,
   "weak-cards": (
     <>
       <path d="m7 5 10 2-2.5 13-10-2L7 5Z" />
@@ -222,6 +224,7 @@ const gameIconSources: Partial<Record<AppIconName, string>> = {
   arena: "/assets/ui/world-tree/game-icons/coliseum.svg",
   deck: "/assets/ui/world-tree/game-icons/card-random.svg",
   "deck-power": "/assets/ui/world-tree/game-icons/deck-power-winged-sword.svg",
+  "fleur-de-lis": "/assets/ui/world-tree/game-icons/fleur-de-lis.svg",
   "weak-cards": "/assets/ui/world-tree/game-icons/weak-cards.svg",
   "card-absorb": "/assets/ui/world-tree/game-icons/card-absorb.svg",
   "card-strength": "/assets/ui/world-tree/game-icons/card-strength.svg",

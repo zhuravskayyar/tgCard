@@ -80,7 +80,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
       `SELECT player_card_instances.id
        FROM player_card_instances
        INNER JOIN cards ON cards.id = player_card_instances.card_id
-       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_v5_01'`,
       [player.id],
     )).rows[0];
     assert.ok(starter);
@@ -97,7 +97,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
         `SELECT COUNT(*) AS count
          FROM player_card_instances
          INNER JOIN cards ON cards.id = player_card_instances.card_id
-         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_v5_01'`,
         [player.id],
       )).rows[0]?.count),
       0,

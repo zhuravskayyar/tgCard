@@ -91,6 +91,10 @@ If the full test suite was not run for an isolated, low-risk change, report:
 
 ## Asset generation
 
+- Before implementing game UI from a visual reference, check that the required
+  sprites exist and match it. Generate missing frames, plates, buttons, and
+  controls before styling; do not substitute unrelated assets or CSS stand-ins
+  for artwork-backed UI.
 - If the user requests one asset or one variant, generate and save exactly one
   final file. If preview delivery fails, reuse the existing generation result
   instead of generating a duplicate.

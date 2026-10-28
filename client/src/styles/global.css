@@ -8130,6 +8130,14 @@ button.mode-tile::before,
 .settings-provider > strong { color: #83ad78; font-size: var(--font-xs); }
 .settings-provider .google-sign-in { min-height: 0; transform: scale(.82); transform-origin: right center; }
 .settings-provider .telegram-login { min-height: 0; }
+.settings-theme-row { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); }
+.settings-theme-copy { display: grid; gap: 3px; min-width: 0; }
+.settings-theme-copy strong { color: var(--text-primary); font-size: var(--font-sm); }
+.settings-theme-copy span { color: var(--text-muted); font-size: var(--font-xs); }
+.settings-theme-switch { display: grid; flex: 0 0 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
+.settings-theme-switch button { min-height: 34px; padding: 5px 9px; color: var(--text-secondary); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); font: 600 var(--font-xs)/1.2 var(--font-label); cursor: pointer; }
+.settings-theme-switch button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-button-primary); border-color: var(--border-active); box-shadow: var(--shadow-button); }
+.settings-theme-switch button:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
 .settings-hint, .settings-error, .settings-success { margin: 0 5px; color: var(--text-muted); font-size: var(--font-xs); }
 .settings-error { color: #d8877a; }
 .settings-success { color: #83ad78; }

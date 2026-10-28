@@ -36,7 +36,7 @@ test("admin player mutations are validated, audited, and rolled back atomically"
     const leveled = await service.changeLevel(admin, targetPlayer.id, 5);
     assert.equal(leveled.player.level, 5);
 
-    const granted = await service.grantCards(admin, targetPlayer.id, "starter_01", 1, 10);
+    const granted = await service.grantCards(admin, targetPlayer.id, "starter_v5_01", 1, 10);
     assert.equal(granted.createdCards.length, 1);
     const grantedInstanceId = granted.createdCards[0]?.instanceId;
     assert.ok(grantedInstanceId);

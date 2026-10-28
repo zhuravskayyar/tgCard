@@ -36,6 +36,8 @@ export function CurrencyIcon({ kind, size = 20 }: CurrencyIconProps) {
 export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayProps) {
   const isReady = state === "ready" && value !== undefined;
   const displayValue = isReady ? formatUiNumber(value) : "—";
+  const compactValue = displayValue.match(/^(.+?)(трлн|млрд|м|к)$/u);
+  const extendedUnit = compactValue !== null && compactValue[2].length > 1;
 
   return (
     <div
@@ -46,7 +48,17 @@ export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayPr
       {state === "loading" ? (
         <span className="skeleton skeleton--currency" />
       ) : (
-        <span className="currency-display__value" key={displayValue}>{displayValue}</span>
+        <span
+          className={`currency-display__value${compactValue ? " currency-display__value--with-unit" : ""}${extendedUnit ? " currency-display__value--extended-unit" : ""}`}
+          key={displayValue}
+        >
+          {compactValue ? (
+            <>
+              <span>{compactValue[1]}</span>
+              <span className="currency-display__unit">{compactValue[2]}</span>
+            </>
+          ) : displayValue}
+        </span>
       )}
     </div>
   );

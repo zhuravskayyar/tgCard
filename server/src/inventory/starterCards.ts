@@ -1,22 +1,23 @@
 import { getCardPower } from "@cardastika/game-core";
 import type { CardDefinition, CardElement } from "@cardastika/shared";
-import { getCardDescription } from "../cards/cardDescriptions.js";
 
 export const STARTER_CARD_COUNT = 9;
+
+type StarterCardType = "creature" | "artifact" | "phenomenon";
 
 // Explicit canonical content configuration; deck balance is enforced in game-core.
 export const STARTER_CARD_SEED_CONFIG = Object.freeze({
   cards: Object.freeze([
-    { displayName: "Саламандра", description: getCardDescription("starter_01"), element: "fire" },
-    { displayName: "Лис", description: getCardDescription("starter_02"), element: "fire" },
-    { displayName: "Жук-бомбардир", description: getCardDescription("starter_03"), element: "fire" },
-    { displayName: "Вугор", description: getCardDescription("starter_04"), element: "water" },
-    { displayName: "Щука", description: getCardDescription("starter_05"), element: "water" },
-    { displayName: "Ворон", description: getCardDescription("starter_06"), element: "air" },
-    { displayName: "Сокіл", description: getCardDescription("starter_07"), element: "air" },
-    { displayName: "Кріт", description: getCardDescription("starter_08"), element: "earth" },
-    { displayName: "Вепр", description: getCardDescription("starter_09"), element: "earth" },
-  ] as const satisfies readonly { description: string; displayName: string; element: CardElement }[]),
+    { displayName: "Борсук", description: "Істота стихії Земля.", element: "earth", type: "creature" },
+    { displayName: "Рогач", description: "Істота стихії Земля.", element: "earth", type: "creature" },
+    { displayName: "Корона коренів", description: "Артефакт стихії Земля.", element: "earth", type: "artifact" },
+    { displayName: "Вогняний кабан", description: "Істота стихії Вогонь.", element: "fire", type: "creature" },
+    { displayName: "Вугільна ропуха", description: "Істота стихії Вогонь.", element: "fire", type: "creature" },
+    { displayName: "Морський коник", description: "Істота стихії Вода.", element: "water", type: "creature" },
+    { displayName: "Чаша хвиль", description: "Артефакт стихії Вода.", element: "water", type: "artifact" },
+    { displayName: "Ластівка", description: "Істота стихії Повітря.", element: "air", type: "creature" },
+    { displayName: "Вихор", description: "Явище стихії Повітря.", element: "air", type: "phenomenon" },
+  ] as const satisfies readonly { description: string; displayName: string; element: CardElement; type: StarterCardType }[]),
 });
 
 export const STARTER_INSTANCE_DEFAULTS = Object.freeze({
@@ -28,7 +29,7 @@ export const STARTER_INSTANCE_DEFAULTS = Object.freeze({
 export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
   Array.from({ length: STARTER_CARD_COUNT }, (_, index) => {
     const sequence = String(index + 1).padStart(2, "0");
-    const id = `starter_${sequence}`;
+    const id = `starter_v5_${sequence}`;
     const content = STARTER_CARD_SEED_CONFIG.cards[index];
 
     if (!content) {
@@ -40,7 +41,7 @@ export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
       code: id,
       displayName: content.displayName,
       description: content.description,
-      artKey: null,
+      artKey: `new-cards/starter_v2_${sequence}`,
       element: content.element,
       collectionId: null,
       minRarity: "common",

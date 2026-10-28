@@ -1,7 +1,6 @@
 import { getLeagueByRating } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardArtwork } from "../components/CardArtwork";
-import { CardQualityBadge } from "../components/CardQualityBadge";
 import { EquipmentLoadout } from "../components/EquipmentLoadout";
 import { LeagueBadge } from "../components/LeagueBadge";
 import { LeagueProgressCard } from "../components/LeagueProgressCard";
@@ -118,9 +117,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
               <div className="player-profile-strongest-cards">
                 {state.data.strongestCards.map((card) => (
                   <article className={`player-profile-card-preview player-profile-card-preview--${card.element} player-profile-card-preview--${card.rarity}`} key={card.instanceId}>
-                    <CardArtwork artKey={card.artKey} cardId={card.cardId} disableHolo element={card.element} />
-                    <CardQualityBadge rarity={card.rarity} size="tiny" />
-                    <strong>{formatScore(card.finalPower)}</strong>
+                    <div className="player-profile-card-plate"><CardArtwork artKey={card.artKey} cardId={card.cardId} disableHolo element={card.element} power={card.finalPower} rarity={card.rarity} /></div>
                     <span>{card.displayName ?? "Карта"}</span>
                   </article>
                 ))}

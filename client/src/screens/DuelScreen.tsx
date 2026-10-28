@@ -1,6 +1,8 @@
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import "../styles/duel-screen.css";
+import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
 import type {
   CardElement,
   DuelCardSnapshot,
@@ -11,8 +13,7 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { BattleSwordIcon } from "../components/BattleSwordIcon";
-import { CardArtwork, preloadCardArtwork } from "../components/CardArtwork";
+import { CardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
@@ -51,12 +52,11 @@ function preloadDuelArtwork(duel: DuelView) {
     const cacheKey = `${card.artKey ?? ""}:${card.cardId}`;
     if (seen.has(cacheKey)) return;
     seen.add(cacheKey);
-    preloadCardArtwork(card.artKey, card.cardId);
   });
 }
 
 type DuelScreenState =
-  | { status: "loading" | "searching" }
+  | { status: "loading" | "searching" | "cancelled" }
   | { status: "preview"; search: DuelSearchResponse }
   | { status: "duel"; duel: DuelView }
   | { status: "no-opponent" }
@@ -75,40 +75,6 @@ interface DuelScreenProps extends DuelResultNavigation {
   onTutorialDuelState?: (duel: DuelView) => void;
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
-}
-
-type DuelSearchRunePhase = "searching" | "found";
-type DuelSearchRuneVariant = "outer" | "inner" | "core";
-
-const DUEL_SEARCH_RUNE_VARIANTS: DuelSearchRuneVariant[] = ["outer", "inner", "core"];
-const DUEL_SEARCH_RUNE_SOURCES: Record<DuelSearchRuneVariant, string> = {
-  outer: "/assets/ui/duel-search/magic-swirl.svg",
-  inner: "/assets/ui/duel-search/rune-stone.svg",
-  core: "/assets/ui/duel-search/vortex.svg",
-};
-
-function DuelSearchRune({ phase, variant }: { phase: DuelSearchRunePhase; variant: DuelSearchRuneVariant }) {
-  return (
-    <div aria-hidden="true" className={`duel-search-rune duel-search-rune--${phase} duel-search-rune--${variant}`}>
-      <img alt="" className={`duel-search-rune__${variant}`} src={DUEL_SEARCH_RUNE_SOURCES[variant]} />
-      <span className="duel-search-rune__particles">
-        {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
-      </span>
-    </div>
-  );
-}
-
-function getOpponentStrengthCategory(powerDifferencePct: number) {
-  if (powerDifferencePct <= -20) return { label: "ЗНАЧНО СЛАБШИЙ", tone: "much-weaker" };
-  if (powerDifferencePct < -8) return { label: "СЛАБШИЙ", tone: "weaker" };
-  if (powerDifferencePct <= 8) return { label: "ДОСТОЙНИЙ СУПЕРНИК", tone: "worthy" };
-  if (powerDifferencePct < 20) return { label: "СИЛЬНІШИЙ", tone: "stronger" };
-  return { label: "НЕБЕЗПЕЧНИЙ СУПЕРНИК", tone: "dangerous" };
-}
-
-function estimatePlayerDeckPower(opponentPower: number, powerDifferencePct: number) {
-  const ratio = 1 + powerDifferencePct / 100;
-  return ratio > 0 ? Math.max(0, Math.round(opponentPower / ratio)) : opponentPower;
 }
 
 export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
@@ -230,7 +196,6 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
   const contents = (
     <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact depthAssets={depthAssets} element={card.element} rarity={card.rarity}>
       <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
-      {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
     </CardFxWrapper>
   );
   if (enemy) return <div className={className}>{contents}</div>;
@@ -265,7 +230,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; la
   const swordSource = playerStrong || enemyStrong ? DUEL_LOG_SWORDS_ADVANTAGE : DUEL_LOG_SWORDS_NEUTRAL;
   return (
     <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}`}>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} /></span>
+      <span className="battle-log-art"><CardArtwork artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
       <strong className="battle-log-damage battle-log-damage--player">{exchange.playerDamage}</strong>
       <span
         aria-label={playerStrong ? "Перевага вашої стихії" : enemyStrong ? "Перевага стихії суперника" : "Стихії рівноцінні"}
@@ -279,7 +244,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; la
         />
       </span>
       <strong className="battle-log-damage battle-log-damage--enemy">{exchange.enemyDamage}</strong>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} /></span>
+      <span className="battle-log-art"><CardArtwork artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} /></span>
     </li>
   );
 }
@@ -327,6 +292,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
 
   const clashSlot = clash?.slotIndex ?? null;
   const battleClassName = [
+    "duel-page",
     "duel-battle",
     introActive ? "duel-battle--intro" : "",
     clash ? "duel-battle--clash" : "",
@@ -417,7 +383,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
   if (!result) return null;
   if (tutorialMode) {
     return (
-      <section className="duel-result duel-result--tutorial" data-tutorial-target="duel-result">
+      <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
         <div className="tutorial-result__banner" aria-hidden="true"><span>ПЕРЕМОГА</span></div>
         <p className="tutorial-result__received">Ти отримав:</p>
         <div aria-label="Нагороди за перемогу" className="tutorial-result__rewards">
@@ -451,7 +417,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
   const formatNumber = formatUiNumber;
   const goldReward = (result.duelGoldReward ?? 0) + (result.levelUpGoldReward ?? result.gold);
   return (
-    <section className={`duel-result duel-result--compact duel-result--${result.outcome}`}>
+    <section className={`duel-page duel-result duel-result--compact duel-result--${result.outcome}`}>
       <header className="duel-result-banner">
         <h1>{result.outcome === "win" ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
         <p>Ти отримав:</p>
@@ -487,8 +453,8 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
   const requestInFlightRef = useRef(false);
-  const searchRuneIndexRef = useRef(0);
-  const [searchRuneVariant, setSearchRuneVariant] = useState<DuelSearchRuneVariant>(DUEL_SEARCH_RUNE_VARIANTS[0]!);
+  const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const searchSequenceRef = useRef(0);
 
   const showDuel = useCallback((duel: DuelView) => {
     if (duel.status === "active") {
@@ -503,39 +469,50 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   }, [onPlayerSummaryChange, onTutorialDuelState, tutorialMode]);
 
   const search = useCallback(async (initData: string, signal?: AbortSignal) => {
-    if (requestInFlightRef.current) return;
+    if (requestInFlightRef.current && !searchAbortControllerRef.current?.signal.aborted) return;
     requestInFlightRef.current = true;
+    const controller = signal ? null : new AbortController();
+    const searchSignal = signal ?? controller!.signal;
+    if (controller) searchAbortControllerRef.current = controller;
+    const searchSequence = ++searchSequenceRef.current;
     const searchStartedAt = typeof performance === "undefined" ? Date.now() : performance.now();
-    const nextRuneVariant = DUEL_SEARCH_RUNE_VARIANTS[searchRuneIndexRef.current % DUEL_SEARCH_RUNE_VARIANTS.length]!;
-    searchRuneIndexRef.current += 1;
-    setSearchRuneVariant(nextRuneVariant);
+    const waitForMinimumDisplay = async (elapsed: number) => {
+      const remaining = DUEL_SEARCH_MIN_DISPLAY_MS - elapsed;
+      if (remaining <= 0) return;
+      await new Promise<void>((resolve) => {
+        const timer = window.setTimeout(resolve, remaining);
+        searchSignal.addEventListener("abort", () => {
+          window.clearTimeout(timer);
+          resolve();
+        }, { once: true });
+      });
+    };
     setState({ status: "searching" });
     try {
-      const searchResult = await searchDuelOpponent(initData, signal);
+      const searchResult = await searchDuelOpponent(initData, searchSignal);
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
-      if (elapsed < DUEL_SEARCH_MIN_DISPLAY_MS) {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, DUEL_SEARCH_MIN_DISPLAY_MS - elapsed));
-      }
-      if (signal?.aborted) return;
+      await waitForMinimumDisplay(elapsed);
+      if (searchSignal.aborted) return;
       if (tutorialMode) {
-        showDuel(await startDuel(initData, searchResult.searchId, tutorialMode, signal));
+        showDuel(await startDuel(initData, searchResult.searchId, tutorialMode, searchSignal));
       } else {
         setState({ status: "preview", search: searchResult });
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
-      if (elapsed < DUEL_SEARCH_MIN_DISPLAY_MS) {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, DUEL_SEARCH_MIN_DISPLAY_MS - elapsed));
-      }
-      if (signal?.aborted) return;
+      await waitForMinimumDisplay(elapsed);
+      if (searchSignal.aborted) return;
       if (error instanceof DuelApiError && error.code === "no_opponent_found") {
         setState({ status: "no-opponent" });
         return;
       }
       setState({ status: "error", message: "Не вдалося виконати пошук суперника" });
     } finally {
-      requestInFlightRef.current = false;
+      if (searchSequence === searchSequenceRef.current) {
+        requestInFlightRef.current = false;
+        if (searchAbortControllerRef.current?.signal === searchSignal) searchAbortControllerRef.current = null;
+      }
     }
   }, [showDuel, tutorialMode]);
 
@@ -554,12 +531,14 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
       return;
     }
     const controller = new AbortController();
+    searchAbortControllerRef.current = controller;
     const presentDuel = showDuelRef.current;
     const searchOpponent = searchRef.current;
     void (async () => {
       try {
         const active = await loadActiveDuel(initData, controller.signal);
         if (active.duel) {
+          searchAbortControllerRef.current = null;
           presentDuel(active.duel);
           return;
         }
@@ -568,6 +547,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
           try {
             const remembered = await loadDuel(initData, rememberedId, controller.signal);
             if (remembered.status === "active") {
+              searchAbortControllerRef.current = null;
               presentDuel(remembered);
               return;
             }
@@ -583,12 +563,23 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         setState({ status: "error", message: "Не вдалося відновити стан Дуелі" });
       }
     })();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (searchAbortControllerRef.current === controller) searchAbortControllerRef.current = null;
+    };
   }, []);
 
   async function handleSearchAgain() {
     const initData = getTelegramInitData();
     if (initData) await search(initData);
+  }
+
+  function handleCancelSearch() {
+    searchSequenceRef.current += 1;
+    searchAbortControllerRef.current?.abort();
+    searchAbortControllerRef.current = null;
+    requestInFlightRef.current = false;
+    setState({ status: "cancelled" });
   }
 
   async function handleStart(searchId: string) {
@@ -648,60 +639,16 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   }
 
   return (
-    <div className="duel-search-screen">
+    <div className="duel-page duel-search-screen">
       <DuelHeading onBack={onBack} />
-      {state.status === "loading" || state.status === "searching" ? (
-        <div aria-live="polite" className="duel-search-state" role="status">
-          <DuelSearchRune phase="searching" variant={searchRuneVariant} />
-          <strong>{state.status === "searching" ? "ШУКАЄМО СУПЕРНИКА" : "ЗАВАНТАЖУЄМО ДУЕЛЬ"}</strong>
-          <span>Підбір за силою колоди</span>
-          {state.status === "searching" ? <span aria-label="Пошук триває" className="duel-search-dots"><i /><i /><i /></span> : null}
-        </div>
-      ) : null}
-      {state.status === "preview" ? (
-        <section aria-live="polite" className="duel-opponent-preview duel-opponent-preview--found">
-          <div className="duel-opponent-preview__mark">
-            <span className="duel-opponent-preview__avatar"><PlayerAvatar name={state.search.opponent.name} photoUrl={state.search.opponent.photoUrl} /></span>
-          </div>
-          <div className="duel-opponent-preview__intro">
-            <span>ЗНАЙДЕНО СУПЕРНИКА</span>
-            <h2>{state.search.opponent.name}</h2>
-            <p>Рівень {state.search.opponent.level}</p>
-          </div>
-          {(() => {
-            const category = getOpponentStrengthCategory(state.search.opponent.powerDifferencePct);
-            return <>
-              <p className={`duel-opponent-category duel-opponent-category--${category.tone}`}>{category.label}</p>
-              <div
-                aria-label={`Сила колоди: ви ${estimatePlayerDeckPower(state.search.opponent.effectiveDeckPower, state.search.opponent.powerDifferencePct)}, суперник ${state.search.opponent.effectiveDeckPower}`}
-                className="duel-power-comparison"
-              >
-                <div><strong>{estimatePlayerDeckPower(state.search.opponent.effectiveDeckPower, state.search.opponent.powerDifferencePct)}</strong><span>ВИ</span></div>
-                <BattleSwordIcon tone="gold" />
-                <div><strong>{state.search.opponent.effectiveDeckPower}</strong><span>СУПЕРНИК</span></div>
-              </div>
-            </>;
-          })()}
-          <div className="duel-opponent-preview__actions">
-            <button className="duel-primary-button" onClick={() => void handleStart(state.search.searchId)} type="button">НАПАСТИ</button>
-            <button className="duel-secondary-button" onClick={() => void handleSearchAgain()} type="button">ШУКАТИ ІНШОГО</button>
-          </div>
-        </section>
-      ) : null}
-      {state.status === "no-opponent" ? (
-        <div aria-live="polite" className="duel-search-state duel-search-state--empty" role="status">
-          <strong>Суперника не знайдено</strong>
-          <span>Зараз немає реального гравця з відповідною силою колоди.</span>
-          <button className="duel-primary-button" onClick={() => void handleSearchAgain()} type="button">ШУКАТИ ІНШОГО</button>
-        </div>
-      ) : null}
-      {state.status === "error" ? (
-        <div aria-live="assertive" className="duel-search-state duel-search-state--error" role="alert">
-          <strong>Дуель недоступна</strong>
-          <span>{state.message}</span>
-          <button className="duel-secondary-button" onClick={() => void handleSearchAgain()} type="button">СПРОБУВАТИ ЩЕ</button>
-        </div>
-      ) : null}
+      <DuelSearchExperience
+        message={state.status === "error" ? state.message : undefined}
+        onAttack={(searchId) => void handleStart(searchId)}
+        onCancel={handleCancelSearch}
+        onSearchAgain={() => void handleSearchAgain()}
+        phase={state.status as DuelSearchExperiencePhase}
+        search={state.status === "preview" ? state.search : undefined}
+      />
     </div>
   );
 }

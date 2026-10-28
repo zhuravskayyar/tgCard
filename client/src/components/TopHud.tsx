@@ -74,8 +74,9 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
             {!isLoading && state.status !== "error" ? (
               player ? (
                 <span className="player-deck-power" aria-label={`Сила колоди: ${deckPower ?? "недоступна"}. Рівень: ${player.level}`}>
-                  <AppIcon name="deck-power" size={14} />
-                  <span>{deckPower ?? "—"} · Рів. {player.level}</span>
+                  <AppIcon name="fleur-de-lis" size={14} />
+                  <span className="player-deck-power__value">{deckPower ?? "—"}</span>
+                  <span className="player-deck-power__level"><span>Рів.</span><strong>{player.level}</strong></span>
                 </span>
               ) : <span>{fallbackSubtitle}</span>
             ) : null}

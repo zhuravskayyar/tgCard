@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardFxWrapper } from "../components/CardFxWrapper";
-import { CardNameBadge } from "../components/CardNameBadge";
+import { CardHud } from "../components/CardHud";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
-import { MenuTextureSlices } from "../components/MenuTextureSlices";
 import { Pagination } from "../components/Pagination";
 import { formatFullUiNumber } from "../i18n";
+import { playCardDestructionFx, playCardPowerFx } from "./cardProgressionFx";
+import { CardProtectionFx } from "./CardProtectionFx";
 import { getTelegramInitData } from "../telegram";
 import { absorbCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, toggleCardProtection } from "../telegram/playerCards";
 import { PlayerDataError } from "../telegram/playerDeck";
@@ -45,13 +47,23 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const [candidatePage, setCandidatePage] = useState(1);
   const [candidateAttempt, setCandidateAttempt] = useState(0);
   const [candidates, setCandidates] = useState<CandidatesState>({ status: "loading" });
+  const [cardDisplayPower, setCardDisplayPower] = useState<number | null>(null);
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
   const [absorptionCandidate, setAbsorptionCandidate] = useState<AbsorptionCandidatesResponse["cards"][number] | null>(null);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [weakCardsExpanded, setWeakCardsExpanded] = useState(false);
   const actionInFlightRef = useRef(false);
   const absorptionPanelRef = useRef<HTMLElement>(null);
+  const cardDetailRef = useRef<HTMLDivElement>(null);
+  const absorptionCardRefs = useRef(new Map<string, HTMLDivElement>());
+
+  useEffect(() => {
+    if (!actionSuccess) return;
+    const timer = window.setTimeout(() => setActionSuccess(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [actionSuccess]);
 
   useEffect(() => {
     const initData = getTelegramInitData();
@@ -84,6 +96,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   async function performLevelUp() {
     const initData = getTelegramInitData();
     if (!initData || actionInFlightRef.current) return;
+    const previousCard = detail.status === "ready" ? detail.data.card : null;
     actionInFlightRef.current = true;
     setPendingAction("level"); setActionError(null);
     try {
@@ -91,6 +104,18 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
       if (result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
+      const powerDelta = previousCard ? result.card.finalPower - previousCard.finalPower : 0;
+      const rarityChanged = previousCard !== null && result.card.rarity !== previousCard.rarity;
+      const levelChanged = previousCard !== null && result.card.level !== previousCard.level;
+      if (powerDelta > 0 || rarityChanged || levelChanged) {
+        const startingPower = previousCard?.finalPower ?? result.card.finalPower;
+        setCardDisplayPower(startingPower);
+        window.requestAnimationFrame(() => {
+          void playCardPowerFx(cardDetailRef.current, powerDelta, rarityChanged, startingPower, setCardDisplayPower)
+            .catch(() => undefined)
+            .finally(() => setCardDisplayPower(null));
+        });
+      }
       setActionSuccess("Рівень карти підвищено.");
       setLevelConfirmationOpen(false);
     } catch (error) { setActionError(requestErrorMessage(error)); }
@@ -111,6 +136,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   async function performAbsorption(fodderInstanceIds: readonly string[]) {
     const initData = getTelegramInitData();
     if (!initData || actionInFlightRef.current || fodderInstanceIds.length === 0) return;
+    const previousCard = detail.status === "ready" ? detail.data.card : null;
     actionInFlightRef.current = true;
     setPendingAction("absorb"); setActionError(null);
     try {
@@ -119,6 +145,24 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
       if (result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
+      setAbsorptionCandidate(null);
+      const powerDelta = previousCard ? result.card.finalPower - previousCard.finalPower : 0;
+      const rarityChanged = previousCard !== null && result.card.rarity !== previousCard.rarity;
+      const levelChanged = previousCard !== null && result.card.level !== previousCard.level;
+      const shouldAnimatePower = powerDelta > 0 || rarityChanged || levelChanged;
+      const startingPower = previousCard?.finalPower ?? result.card.finalPower;
+      if (shouldAnimatePower) setCardDisplayPower(startingPower);
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const effects = result.consumedInstanceIds.map((instanceId) => {
+        const element = absorptionCardRefs.current.get(instanceId) ?? null;
+        return playCardDestructionFx(element);
+      });
+      if (shouldAnimatePower) {
+        effects.push(playCardPowerFx(cardDetailRef.current, powerDelta, rarityChanged, startingPower, setCardDisplayPower)
+          .catch(() => undefined)
+          .finally(() => setCardDisplayPower(null)));
+      }
+      await Promise.all(effects.map((effect) => effect.catch(() => undefined)));
       setCandidates((current) => {
         if (current.status !== "ready") return current;
         const totalCards = Math.max(0, current.data.totalCards - consumedIds.size);
@@ -136,7 +180,6 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       });
       setCandidatePage(1);
       setCandidateAttempt((current) => current + 1);
-      setAbsorptionCandidate(null);
       setActionSuccess("Карту поглинуто. Сила основної карти оновлена.");
     } catch (error) {
       setActionError(requestErrorMessage(error));
@@ -171,7 +214,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
   if (detail.status !== "ready") {
     return <section className="card-detail-screen">
-      <header className="card-detail-topbar"><button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button></header>
+      <header className="card-detail-topbar"><button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button><div className="card-detail-heading"><h1>Карта</h1></div></header>
       <div className="deck-state">
         {detail.status === "loading" ? "Завантаження карти…" : null}
         {detail.status === "unavailable" ? "Карта доступна після запуску через Telegram." : null}
@@ -187,83 +230,96 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       : progression.availability === "maximum_level" ? "Досягнуто максимального рівня." : null;
   const progressionHint = progression.availability === "ready"
     ? progression.requiredGold === 0 ? "Покращення доступне безкоштовно." : "Підніміть карту за золото. Поглинання може зменшити ціну."
-    : progression.availability === "insufficient_elements" || progression.availability === "insufficient_gold"
-      ? "Потрібно більше золота. Поглинання може зменшити ціну."
+    : progression.availability === "insufficient_elements" ? "Заповніть прогрес рівня поглинанням слабких карт."
+      : progression.availability === "insufficient_gold" ? "Недостатньо золота. Поглинання може зменшити ціну."
       : availabilityText;
   const hasAbsorptionAction = candidates.status === "ready" && candidates.data.totalCards > 0;
 
-  return <section className="card-detail-screen">
+  return <section className="card-detail-screen" data-expanded-panel={weakCardsExpanded ? "weak" : "progress"}>
     <header className="card-detail-topbar">
       <button aria-label="Назад" data-tutorial-target="card-back" onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button>
       <div className="card-detail-heading">
-        {card.displayName ? <CardNameBadge name={card.displayName} /> : <h1 className="card-detail-name-empty">Назва карти недоступна</h1>}
-        <p className="card-detail-meta"><span data-tutorial-target="card-element">{elementLabels[card.element]}</span> <span aria-hidden="true">•</span> <span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></p>
+        <h1>{card.displayName ?? "Карта"}</h1>
+        <p className="card-detail-meta"><span>{card.displayName ?? "Назва недоступна"}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-element">{elementLabels[card.element]}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></p>
       </div>
     </header>
 
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
-        <div aria-label={`Сила ${formatFullUiNumber(card.finalPower)}`} className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`} role="img">
-          <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity}>
-            {card.protectedFromAbsorption ? <span aria-label="Карта захищена" className="card-detail-card__protection"><AppIcon name="lock" size={20} /></span> : null}
+        <div aria-label={`${card.displayName ?? "Карта"}, сила ${formatFullUiNumber(card.finalPower)}`} className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`} ref={cardDetailRef} role="img">
+          <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} interactive rarity={card.rarity}>
+            <CardHud element={card.element} level={card.level} power={cardDisplayPower ?? card.finalPower} rarity={card.rarity} />
           </CardFxWrapper>
+          <CardProtectionFx active={card.protectedFromAbsorption} targetRef={cardDetailRef} />
         </div>
 
-        <div className="card-detail-reference-stats" aria-label="Поточні характеристики">
+        <div className="card-detail-overview__side">
+          <div className="card-detail-reference-stats" aria-label="Поточні характеристики">
           <div className="card-detail-reference-stat" data-tutorial-target="card-strength">
-            <AppIcon name="card-strength" size={17} />
-            <span>Сила:</span>
+            <span>Сила</span>
             <strong>{formatFullUiNumber(card.finalPower)}</strong>
           </div>
           <div className="card-detail-reference-stat">
-            <span aria-hidden="true" className="card-detail-reference-stat__level-icon">↑</span>
-            <span>Рівень:</span>
+            <span>Рівень</span>
             <strong>{card.level}</strong>
           </div>
           <div className="card-detail-reference-stat">
-            <AppIcon name="deck" size={17} />
-            <span>{inActiveDeck ? "У бойовій колоді" : "Слабка карта"}</span>
+            <span>У колоді</span>
+            <strong aria-label={inActiveDeck ? "Карта входить до бойової колоди" : "Карта поза бойовою колодою"}>{inActiveDeck ? 1 : 0}</strong>
+          </div>
           </div>
           <button
-            aria-pressed={card.protectedFromAbsorption}
+            aria-checked={card.protectedFromAbsorption}
+            aria-busy={pendingAction === "protection"}
             className={`card-protection-toggle${card.protectedFromAbsorption ? " card-protection-toggle--active" : ""}`}
             disabled={pendingAction !== null}
             onClick={performProtectionToggle}
+            role="switch"
             type="button"
           >
             <AppIcon name="lock" size={17} />
             <span>{pendingAction === "protection" ? "Оновлення…" : card.protectedFromAbsorption ? "Захист увімкнено" : "Захист вимкнено"}</span>
+            <span aria-hidden="true" className="card-protection-toggle__switch"><span /></span>
           </button>
         </div>
       </div>
 
+      {progressionHint ? <p className="progression-panel__external-hint"><span aria-hidden="true">⚜</span>{progressionHint}</p> : null}
       <section className={`progression-panel progression-panel--reference progression-panel--${progression.availability}${progression.isGoldLevel ? " progression-panel--gold" : ""}`} aria-label="Прокачка карти">
-        <div className="progression-panel__reference-heading"><span>Прогрес рівня</span></div>
+        <div className="progression-panel__content" hidden={weakCardsExpanded} id="card-progression-content">
         <div className="level-progress" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><span style={{ width: `${progression.percent}%` }} /></div>
         <div className="progression-panel__upgrade-row"><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
           <span>{pendingAction === "level" ? "Підвищення…" : progression.requiredGold === 0 ? "Покращити безкоштовно" : "Підняти рівень"}</span>
         </button></div>
-        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{progression.powerAfterLevel === null ? "—" : `${formatFullUiNumber(card.finalPower)} → ${formatFullUiNumber(progression.powerAfterLevel)}`}</strong></div><div><span>{progression.requiredGold !== null && progression.requiredGold > 0 ? "Ціна покращення" : "Вартість"}</span><strong>{progression.requiredGold === null ? "—" : progression.requiredGold > 0 ? <><CurrencyIcon kind="gold" size={15} />{progression.requiredGold}</> : "Безкоштовно"}</strong></div></div>
+        <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong className="progression-panel__power-preview">{progression.powerAfterLevel === null ? "—" : <><span className="ui-number">{formatFullUiNumber(card.finalPower)}</span><span aria-hidden="true">→</span><span className="ui-number progression-panel__next-power">{formatFullUiNumber(progression.powerAfterLevel)}</span></>}</strong></div><div><span>{progression.requiredGold !== null && progression.requiredGold > 0 ? "Ціна покращення" : "Вартість"}</span><strong>{progression.requiredGold === null ? "—" : progression.requiredGold > 0 ? <><CurrencyIcon kind="gold" size={20} /><span className="ui-number">{progression.requiredGold}</span></> : "Безкоштовно"}</strong></div></div>
+        </div>
       </section>
-      {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
     </div>
 
-    {actionError && !absorptionCandidate && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
-    {actionSuccess ? <p className="action-feedback action-feedback--success" key={actionSuccess} role="status">{actionSuccess}</p> : null}
+    {typeof document !== "undefined" && (actionError && !absorptionCandidate && !levelConfirmationOpen || actionSuccess) ? createPortal(
+      <div className="card-detail-feedback-layer">
+        {actionError && !absorptionCandidate && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
+        {actionSuccess ? <p className="action-feedback action-feedback--success" key={actionSuccess} role="status">{actionSuccess}</p> : null}
+      </div>,
+      document.body,
+    ) : null}
 
     <section className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>
-      <div className="weak-cards-heading menu-row--metal-texture">
-        <MenuTextureSlices />
-        <span>Слабкі карти</span>
-        <small>{candidates.status === "ready" ? candidates.data.totalCards : candidates.status === "loading" ? "…" : "—"}</small>
-      </div>
+      <button aria-controls="card-weak-cards-content" aria-expanded={weakCardsExpanded} className="weak-cards-heading" onClick={() => setWeakCardsExpanded((expanded) => !expanded)} type="button">
+        <img alt="" aria-hidden="true" className="weak-cards-heading__icon" src="/assets/ui/upgrade/icon-deck-v1.webp" />
+        <span className="weak-cards-heading__title">Карти для поглинання</span>
+        <small><span className="ui-number">{candidates.status === "ready" ? candidates.data.totalCards : candidates.status === "loading" ? "…" : "—"}</span></small>
+        <span aria-hidden="true" className="weak-cards-heading__chevron"><AppIcon name="chevron" size={19} /></span>
+      </button>
+      <div className="weak-cards-content" hidden={!weakCardsExpanded} id="card-weak-cards-content">
       {candidates.status === "loading" ? <div className="selector-state">Завантаження…</div> : null}
       {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
-      {candidates.status === "ready" && candidates.data.totalCards === 0 ? <div className="selector-state">Немає слабких карт цієї стихії.</div> : null}
-      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <DeckCard card={candidate} disabled={pendingAction !== null} key={candidate.instanceId} onClick={() => requestAbsorption(candidate)} showLevel />)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
+      {candidates.status === "ready" && candidates.data.totalCards === 0 ? <div className="selector-state selector-state--empty"><span>Немає слабких карт цієї стихії.</span></div> : null}
+      {candidates.status === "ready" && candidates.data.totalCards > 0 ? <><div className="deck-grid absorption-grid">{candidates.data.cards.map((candidate) => <div className="absorption-card-slot" data-absorption-candidate={candidate.instanceId} key={candidate.instanceId} ref={(element) => { if (element) absorptionCardRefs.current.set(candidate.instanceId, element); else absorptionCardRefs.current.delete(candidate.instanceId); }}><DeckCard card={candidate} disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} showLevel /></div>)}</div><Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} /></> : null}
+      </div>
     </section>
 
-    <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact icon="deck" metalTexture onClick={onOpenDeck} title="Колода" /><MenuRow compact icon="weak-cards" attention={hasAbsorptionAction} metalTexture onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow compact icon="shop" metalTexture onClick={onOpenShop} title="Магазин" /></nav>
+    <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact chevron icon="deck" iconSrc="/assets/ui/upgrade/icon-deck-v1.webp" onClick={onOpenDeck} title="Колода" variant="book" /><MenuRow compact chevron icon="weak-cards" iconSrc="/assets/ui/upgrade/icon-weak-v1.webp" attention={hasAbsorptionAction} onClick={onOpenWeakCards} title="Слабкі карти" variant="book" /><MenuRow compact chevron icon="shop" iconSrc="/assets/ui/upgrade/icon-shop-v1.webp" onClick={onOpenShop} title="Магазин" variant="book" /></nav>
 
     {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
     {absorptionCandidate ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути карту" description={<p>Поглинути карту <strong>{absorptionCandidate.displayName ?? "без назви"}</strong>? Вона буде витрачена, щоб посилити цю карту.</p>} error={actionError} onCancel={() => setAbsorptionCandidate(null)} onConfirm={() => void performAbsorption([absorptionCandidate.instanceId])} restoreFocusTargetRef={absorptionPanelRef} title="Підтвердити поглинання?" /> : null}
