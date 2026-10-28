@@ -1,5 +1,5 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useState } from "react";
-import { AppIcon } from "../components/AppIcon";
 import { DailyTaskRow } from "../components/DailyTaskRow";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
@@ -53,10 +53,7 @@ export function TasksScreen({ onBack, onOpenTask }: { onBack: () => void; onOpen
 
   return (
     <div className="tasks-screen">
-      <header className="campaign-heading campaign-heading--title-first">
-        <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-        <div><h1>Завдання</h1><span>Щоденні цілі та нагороди за виконання</span></div>
-      </header>
+      <ScreenHeading eyebrow="Щоденні цілі та нагороди за виконання" onBack={onBack} title="Завдання" titleFirst />
 
       <AccountProtectionTask onRewardGranted={retry} />
 

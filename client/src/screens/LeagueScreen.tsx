@@ -1,7 +1,7 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import type { CSSProperties } from "react";
 import { DUEL_LEAGUE_CONFIG, getLeagueIndexByRating } from "@cardastika/shared";
 import { LeagueBadge } from "../components/LeagueBadge";
-import { AppIcon } from "../components/AppIcon";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import type { PlayerSummaryState } from "../types/player";
 
@@ -18,16 +18,7 @@ export function LeagueScreen({ onBack, playerSummaryState }: LeagueScreenProps) 
 
   return (
     <section className="league-screen">
-      <header className="league-screen__heading">
-        <button aria-label="Назад" className="league-screen__back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>ПРОГРЕСІЯ</span>
-          <h1>ДУЕЛЬНІ ЛІГИ</h1>
-          <p>{rating} рейтингу · найвища: {DUEL_LEAGUE_CONFIG.leagues[highestIndex]?.name ?? "Мандрівник III"}</p>
-        </div>
-      </header>
+      <ScreenHeading description={<>{rating} рейтингу · найвища: {DUEL_LEAGUE_CONFIG.leagues[highestIndex]?.name ?? "Мандрівник III"}</>} eyebrow="ПРОГРЕСІЯ" onBack={onBack} title="ДУЕЛЬНІ ЛІГИ" />
       <div className="league-list" aria-label="Список дуельних ліг">
         {DUEL_LEAGUE_CONFIG.leagues.map((league) => {
           const isCurrent = league.index === currentIndex;

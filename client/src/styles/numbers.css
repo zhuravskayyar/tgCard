@@ -9,6 +9,14 @@
 
 /* The same numeral outlines and engraved metal bands as the card trays. */
 :root .app-shell {
+  --number-metal-top: #f4dfa5;
+  --number-metal-highlight: #fff5d3;
+  --number-metal-mid: #cbb89e;
+  --number-metal-low: #b98b4b;
+  --number-metal-outline: #14110d;
+}
+
+:root[data-game-theme="light"] .app-shell {
   --number-metal-top: #6b4012;
   --number-metal-highlight: #b58942;
   --number-metal-mid: #38200a;
@@ -49,7 +57,6 @@
   text-shadow: none;
 }
 
-:root .app-shell .card-detail-reference-stats,
 :root .app-shell .weak-cards-heading > small {
   --number-metal-top: #fff5d3;
   --number-metal-highlight: #f4dfa5;
@@ -59,16 +66,14 @@
 }
 
 :root .app-shell .progression-panel__facts strong {
-  color: #38200a;
+  color: var(--home-ink);
   font-family: var(--font-number) !important;
   font-weight: 400;
 }
 
 :root .app-shell .progression-panel__facts .progression-panel__next-power {
-  color: #326122;
-  background-image: linear-gradient(#bdd28b, #538443 38%, #a2bf76 52%, #2b5824 78%, #759b50);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: .2px #294e20;
+  color: var(--state-success);
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  -webkit-text-stroke: 0;
 }

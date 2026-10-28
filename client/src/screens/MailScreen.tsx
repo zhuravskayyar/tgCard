@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useState } from "react";
 import type { PlayerBalance, PlayerMailAction, PlayerMailActionResponse, PlayerMailClaimResponse, PlayerNicknameUpdateResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -89,15 +90,7 @@ export function MailScreen({ changeNickname, claim, currentNickname, onBack, onB
 
   return (
     <section className="mail-screen">
-      <header className="shop-heading">
-        <button aria-label="Назад" className="shop-back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>Внутрішні повідомлення</span>
-          <h1>ПОШТА</h1>
-        </div>
-      </header>
+      <ScreenHeading eyebrow="Внутрішні повідомлення" onBack={onBack} title="ПОШТА" />
 
       {state.status === "loading" ? <div className="mail-state">Завантаження пошти…</div> : null}
       {state.status === "unavailable" ? <div className="mail-state">Пошта доступна після запуску через Telegram.</div> : null}

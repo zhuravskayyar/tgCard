@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
@@ -66,6 +67,7 @@ function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: Accou
 }
 
 export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSummaryState, showTutorialReplay }: SettingsScreenProps) {
+  const isLocalBrowser = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const [gameTheme, setSelectedGameTheme] = useState<GameTheme>(() => getGameTheme());
   const [identities, setIdentities] = useState<AuthIdentityView[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -129,11 +131,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
 
   return (
     <section className="settings-screen">
-      <header className="settings-heading">
-        <button className="screen-back" onClick={onBack} type="button" aria-label="Назад">‹</button>
-        <h1>НАЛАШТУВАННЯ</h1>
-        <span aria-hidden="true" />
-      </header>
+      <ScreenHeading onBack={onBack} title="НАЛАШТУВАННЯ" />
 
       <section className="settings-section" aria-labelledby="settings-account">
         <h2 id="settings-account">АКАУНТ</h2>
@@ -148,7 +146,9 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
                     if (initData) void link({ provider: "telegram", initData });
                     else setLinkError("Не вдалося перевірити Telegram. Закрий і знову відкрий гру з Telegram.");
                   }} type="button">{pendingProvider === "telegram" ? "Прив’язуємо…" : "Прив’язати Telegram"}</button>
-                : <TelegramLoginButton disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
+                : isLocalBrowser
+                  ? <span className="settings-provider__hint">Відкрий гру в Telegram, щоб прив’язати акаунт.</span>
+                  : <TelegramLoginButton disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
           </div>
           <div className="settings-provider">
             <span>Google</span>

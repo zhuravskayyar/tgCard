@@ -1,9 +1,9 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import { GUILD_CONFIG, type GuildAltarCurrency, type GuildMineResponse, type GuildProfileResponse, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
 import { setSessionToken } from "../auth/session";
 import { AppIcon } from "../components/AppIcon";
 import { MenuRow } from "../components/MenuRow";
-import { RibbonTitle } from "../components/RibbonTitle";
 import type { PlayerSummaryState } from "../types/player";
 import { applyToGuild, changeGuildRole, createGuild, decideGuildApplication, donateGuildCardElements, donateGuildTreasury, dissolveGuild, joinGuild, kickGuildMember, leaveGuild, loadGuildCardCandidates, loadGuildProfile, loadGuildTreasuryCardCandidates, loadMyGuild, purchaseGuildAltarUpgrade, setGuildCard, transferGuildLeadership, updateGuildAnnouncement, updateGuildSettings, withdrawGuildApplication } from "../telegram/guild";
 import { GuildDirectory, GuildCreateForm } from "./guild/GuildDirectory";
@@ -104,7 +104,6 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   const mine = mineState.status === "ready" ? mineState.data : null;
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const profile = view.kind === "mine" ? mine?.guild : view.kind === "profile" && profileState.status === "ready" && profileState.data.guild.id === view.id ? profileState.data : null;
-  const isRosterView = Boolean(profile && (profileTab === "members" || profileTab === "card" || profileTab === "treasury" || profileTab === "journal"));
   async function loadGuildCardCandidatesForProfile() {
     if (!profile) return;
     setGuildCardCandidatesState({ status: "loading" });
@@ -127,6 +126,7 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   }
   const title = view.kind === "create" ? "Створити гільдію" : view.kind === "directory" ? "Каталог гільдій" : profile ? profile.guild.name : "Гільдія";
   const isGuildHeading = Boolean(profile);
+  const isRosterView = Boolean(profile && ["members", "card", "treasury", "journal"].includes(profileTab));
   const noticeContent = notice ? <div className={`guild-notice${notice.error ? " guild-notice--error" : " action-feedback action-feedback--success"}`} key={`${notice.error}:${notice.text}`} role={notice.error ? "alert" : "status"}><span>{notice.text}</span>{notice.error ? <button className="guild-secondary-button" disabled={busy} onClick={() => { setNotice(null); retry(); }} type="button">Оновити дані</button> : null}</div> : null;
 
   if (view.kind === "forum" && forumGuildId) {
@@ -135,11 +135,7 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   }
 
   return <section className="guild-screen">
-    <header className={"guild-screen__heading" + (isGuildHeading ? " guild-screen__heading--guild" : "") + (isRosterView ? " guild-screen__heading--roster" : "")} ref={heading}>
-      {view.kind !== "mine" ? <button className="guild-icon-button guild-back-button" aria-label={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} disabled={busy} onClick={() => navigate({ kind: view.kind === "profile" ? "directory" : "mine" })} type="button"><AppIcon name="chevron" size={18} /></button> : isGuildHeading ? null : <AppIcon name="guild" size={24} />}
-      {isGuildHeading ? <RibbonTitle as="h1" size="wide">{title}</RibbonTitle> : <h1>{title}</h1>}
-      {isGuildHeading ? null : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>}
-    </header>
+    {isRosterView ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
     {playerSummaryState.status === "loading" ? <GuildState>Завантаження гравця…</GuildState> : !player ? <GuildState error onRetry={onRetryPlayerSummary}>Не вдалося завантажити гравця. Увійдіть або повторіть спробу.</GuildState> : mineState.status === "loading" ? <GuildState>Завантаження гільдії…</GuildState> : mineState.status === "error" ? <GuildState error onRetry={retry}>{mineState.message}</GuildState> : mine ? <>
       {profile ? <GuildProfile key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
         onTabChange={setProfileTab}

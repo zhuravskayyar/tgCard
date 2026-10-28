@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -87,15 +88,7 @@ export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: strin
 
 function DuelHeading({ onBack }: { onBack: () => void }) {
   return (
-    <header className="duel-heading">
-      <button aria-label="Назад" onClick={onBack} type="button">
-        <AppIcon name="chevron" size={18} />
-      </button>
-      <div>
-        <span>Зала випробувань</span>
-        <h1>Дуель</h1>
-      </div>
-    </header>
+    <ScreenHeading eyebrow="Зала випробувань" onBack={onBack} title="Дуель" />
   );
 }
 

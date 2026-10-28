@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   CARD_ELEMENTS,
@@ -21,7 +22,6 @@ import {
   getEquipmentForgeRecipe,
   resolveEquipmentForgeResult,
 } from "@cardastika/game-core";
-import { AppIcon } from "../components/AppIcon";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { EquipmentArt } from "../components/EquipmentLoadout";
 import { EquipmentIcon } from "../components/EquipmentIcon";
@@ -158,10 +158,7 @@ export function ForgeScreen({ equipped, inventory, inventoryStatus, onBack }: Fo
 
   return (
     <section aria-labelledby="forge-screen-title" className="forge-screen forge-screen--cardastika">
-      <header className="equipment-heading equipment-heading--cardastika">
-        <button aria-label="Назад" className="screen-back equipment-heading__back" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-        <div><span>МАЙСТЕРНЯ СПОРЯДЖЕННЯ</span><h1 id="forge-screen-title">КУЗНЯ</h1></div>
-      </header>
+      <ScreenHeading eyebrow="МАЙСТЕРНЯ СПОРЯДЖЕННЯ" onBack={onBack} title="КУЗНЯ" titleId="forge-screen-title" />
 
       <section aria-labelledby="forge-recipe-title" className="forge-workshop">
         <div className="forge-workshop__heading">

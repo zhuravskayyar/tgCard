@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useState } from "react";
 import { getLeagueByRating, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardKind } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -52,16 +53,7 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
 
   return (
     <section className="leaderboard-screen">
-      <header className="leaderboard-screen__heading">
-        <button aria-label="Назад" className="leaderboard-screen__back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>ЗМАГАННЯ</span>
-          <h1>РЕЙТИНГ</h1>
-          <p>Топ гравців Cardastika</p>
-        </div>
-      </header>
+      <ScreenHeading description="Топ гравців Cardastika" eyebrow="ЗМАГАННЯ" onBack={onBack} title="РЕЙТИНГ" />
       <FirstVisitHint id="leaderboard" title="Рейтинг і ліги" items={["Перемоги підвищують твій рейтинг.", "Рейтинг визначає твою лігу.", "Чим вища ліга, тим більша базова нагорода за дуелі."]} />
 
       {playerSummaryState.status === "unavailable" || state.status === "unavailable" ? (

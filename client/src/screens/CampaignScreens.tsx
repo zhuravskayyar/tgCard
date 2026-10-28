@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -57,12 +58,7 @@ function CampaignHeading({ eyebrow, onBack, title, titleFirst = false }: {
   titleFirst?: boolean;
 }) {
   return (
-    <header className={`campaign-heading${titleFirst ? " campaign-heading--title-first" : ""}`}>
-      <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-      <div>
-        {titleFirst ? <><h1>{title}</h1><span>{eyebrow}</span></> : <><span>{eyebrow}</span><h1>{title}</h1></>}
-      </div>
-    </header>
+    <ScreenHeading eyebrow={eyebrow} onBack={onBack} title={title} titleFirst={titleFirst} />
   );
 }
 

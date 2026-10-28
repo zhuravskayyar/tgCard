@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useState } from "react";
 import type { BattlePassReward, BattlePassMilestoneView, PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -122,10 +123,7 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
 
   return (
     <div className="battle-pass-screen">
-      <header className="campaign-heading campaign-heading--title-first">
-        <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-        <div><h1>Алмазні нагороди</h1><span>Збирай діаманти за завдання й забирай нагороди</span></div>
-      </header>
+      <ScreenHeading eyebrow="Збирай діаманти за завдання й забирай нагороди" onBack={onBack} title="Алмазні нагороди" titleFirst />
       {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо прогрес…</div> : null}
       {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Батл пас недоступний</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
       {state.status === "ready" ? (

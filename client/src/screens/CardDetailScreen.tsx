@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
@@ -214,7 +215,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
   if (detail.status !== "ready") {
     return <section className="card-detail-screen">
-      <header className="card-detail-topbar"><button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button><div className="card-detail-heading"><h1>Карта</h1></div></header>
+      <ScreenHeading onBack={onBack} title="Карта" />
       <div className="deck-state">
         {detail.status === "loading" ? "Завантаження карти…" : null}
         {detail.status === "unavailable" ? "Карта доступна після запуску через Telegram." : null}
@@ -236,13 +237,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const hasAbsorptionAction = candidates.status === "ready" && candidates.data.totalCards > 0;
 
   return <section className="card-detail-screen" data-expanded-panel={weakCardsExpanded ? "weak" : "progress"}>
-    <header className="card-detail-topbar">
-      <button aria-label="Назад" data-tutorial-target="card-back" onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button>
-      <div className="card-detail-heading">
-        <h1>{card.displayName ?? "Карта"}</h1>
-        <p className="card-detail-meta"><span>{card.displayName ?? "Назва недоступна"}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-element">{elementLabels[card.element]}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></p>
-      </div>
-    </header>
+    <ScreenHeading backTutorialTarget="card-back" onBack={onBack} title={card.displayName ?? "Карта"} description={<span className="card-detail-meta"><span>{card.displayName ?? "Назва недоступна"}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-element">{elementLabels[card.element]}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></span>} />
 
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
@@ -306,7 +301,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
     <section className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>
       <button aria-controls="card-weak-cards-content" aria-expanded={weakCardsExpanded} className="weak-cards-heading" onClick={() => setWeakCardsExpanded((expanded) => !expanded)} type="button">
-        <img alt="" aria-hidden="true" className="weak-cards-heading__icon" src="/assets/ui/upgrade/icon-deck-v1.webp" />
+        <span aria-hidden="true" className="weak-cards-heading__icon"><AppIcon name="deck" size={23} /></span>
         <span className="weak-cards-heading__title">Карти для поглинання</span>
         <small><span className="ui-number">{candidates.status === "ready" ? candidates.data.totalCards : candidates.status === "loading" ? "…" : "—"}</span></small>
         <span aria-hidden="true" className="weak-cards-heading__chevron"><AppIcon name="chevron" size={19} /></span>
@@ -319,7 +314,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       </div>
     </section>
 
-    <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact chevron icon="deck" iconSrc="/assets/ui/upgrade/icon-deck-v1.webp" onClick={onOpenDeck} title="Колода" variant="book" /><MenuRow compact chevron icon="weak-cards" iconSrc="/assets/ui/upgrade/icon-weak-v1.webp" attention={hasAbsorptionAction} onClick={onOpenWeakCards} title="Слабкі карти" variant="book" /><MenuRow compact chevron icon="shop" iconSrc="/assets/ui/upgrade/icon-shop-v1.webp" onClick={onOpenShop} title="Магазин" variant="book" /></nav>
+    <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow compact chevron icon="deck" onClick={onOpenDeck} title="Колода" variant="book" /><MenuRow compact chevron icon="weak-cards" attention={hasAbsorptionAction} onClick={onOpenWeakCards} title="Слабкі карти" variant="book" /><MenuRow compact chevron icon="shop" onClick={onOpenShop} title="Магазин" variant="book" /></nav>
 
     {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
     {absorptionCandidate ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути карту" description={<p>Поглинути карту <strong>{absorptionCandidate.displayName ?? "без назви"}</strong>? Вона буде витрачена, щоб посилити цю карту.</p>} error={actionError} onCancel={() => setAbsorptionCandidate(null)} onConfirm={() => void performAbsorption([absorptionCandidate.instanceId])} restoreFocusTargetRef={absorptionPanelRef} title="Підтвердити поглинання?" /> : null}

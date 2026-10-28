@@ -1,5 +1,5 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useRef, useState } from "react";
-import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
 import { Pagination } from "../components/Pagination";
 import { useWeakCards } from "../hooks/useWeakCards";
@@ -21,13 +21,7 @@ export function WeakCardsScreen({ onBack, onOpenCard }: WeakCardsScreenProps) {
 
   return (
     <section className="weak-cards-screen" ref={screenRef}>
-      <header className="deck-heading weak-cards-heading">
-        <button aria-label="Назад" className="deck-back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div><h1>СЛАБКІ КАРТИ</h1></div>
-        <strong>{state.status === "ready" ? `${state.data.totalCards} карт` : "— карт"}</strong>
-      </header>
+      <ScreenHeading onBack={onBack} title="СЛАБКІ КАРТИ" action={<strong>{state.status === "ready" ? `${state.data.totalCards} карт` : "— карт"}</strong>} />
 
       {state.status === "loading" ? <div className="deck-state">Завантаження слабких карт…</div> : null}
       {state.status === "unavailable" ? <div className="deck-state">Карти доступні після запуску через Telegram.</div> : null}

@@ -2,54 +2,48 @@
 .app-shell .app-content .duel-page.duel-search-screen {
   gap: 12px;
   padding: 4px 0 18px;
-  background: linear-gradient(155deg, #d0ba8a 0%, #bea071 100%);
-  border: 2px solid #76532e;
-  box-shadow: inset 0 0 0 2px rgb(244 222 176 / 42%), inset 0 0 22px rgb(75 49 24 / 18%);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-search-state,
 .app-shell .app-content .duel-page.duel-search-screen .duel-opponent-preview {
   min-height: 280px;
   padding: 28px 24px;
-  color: #2a1a0d;
-  background-color: #c8ad7b;
-  background-image:
-    linear-gradient(rgb(116 78 38 / 14%), rgb(116 78 38 / 14%)),
-    url("/assets/ui/game/text-panel-plate-v1.webp");
-  background-position: center, center;
-  background-size: 100% 100%, 100% 100%;
-  background-repeat: no-repeat;
-  border: 0;
-  border-radius: 0;
-  box-shadow: 0 5px 12px rgb(40 25 12 / 28%);
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  box-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-search-state > strong {
-  color: #342211;
+  color: var(--home-ink);
   font-size: var(--font-lg);
   letter-spacing: .1em;
-  text-shadow: 0 1px #fff4d5;
+  text-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-search-state > span {
-  color: #705335;
+  color: var(--home-ink-muted);
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-search-state--error > strong {
-  color: #7e3427;
+  color: var(--state-danger);
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-opponent-preview__intro > span {
-  color: #72502c;
+  color: var(--home-ink-muted);
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-opponent-preview h2 {
-  color: #342211;
-  text-shadow: 0 1px #fff4d5;
+  color: var(--home-ink);
+  text-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-opponent-preview__intro p {
-  color: #705335;
+  color: var(--home-ink-muted);
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-power-comparison {
@@ -58,11 +52,11 @@
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-power-comparison strong {
-  color: #352211;
+  color: var(--home-ink);
 }
 
 .app-shell .app-content .duel-page.duel-search-screen .duel-power-comparison span {
-  color: #785b37;
+  color: var(--home-ink);
 }
 
 /* Matchmaking animation and found-opponent reveal from duel-search.html. */
@@ -72,47 +66,14 @@
   width: min(100%, 430px);
   min-height: clamp(420px, calc(100svh - 260px), 680px);
   justify-self: center;
-  padding: 13px;
   overflow: hidden;
-  color: #2a1a0e;
-  background-color: #c8ad7b;
-  background-image:
-    linear-gradient(rgb(116 78 38 / 13%), rgb(116 78 38 / 13%)),
-    url("/assets/ui/game/text-panel-plate-v1.webp");
-  background-position: center;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  border: 2px solid #5a3a18;
-  box-shadow:
-    0 0 0 3px #b3864a,
-    0 0 0 5px #3b240f,
-    inset 0 0 36px rgb(90 50 15 / 32%),
-    0 12px 26px rgb(40 25 12 / 35%);
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  box-shadow: none;
+  padding: 22px;
 }
-
-.app-shell .app-content .duel-search-experience::before {
-  position: absolute;
-  z-index: 3;
-  inset: 9px;
-  border: 1px solid rgb(110 70 30 / 54%);
-  content: "";
-  pointer-events: none;
-}
-
-.app-shell .app-content .duel-search-experience::after {
-  position: absolute;
-  z-index: 4;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 38%, transparent 36%, rgb(54 28 9 / 26%) 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' opacity='.11' filter='url(%23n)'/%3E%3C/svg%3E");
-  content: "";
-  mix-blend-mode: multiply;
-  opacity: .44;
-  pointer-events: none;
-}
-
-.app-shell .app-content .duel-search-experience.is-locking::after { opacity: .9; }
 
 .duel-search-cell {
   position: relative;
@@ -327,10 +288,10 @@
 .duel-search-title,
 .duel-search-opponent-name {
   margin: 3px 0 0;
-  color: #2a1a0e;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-weight: 700;
-  text-shadow: 0 1px rgb(255 242 210 / 70%);
+  text-shadow: none;
 }
 
 .duel-search-title { font-size: clamp(26px, 7vw, 34px); }
@@ -358,7 +319,7 @@
 .duel-search-hint {
   min-height: 24px;
   margin: 0;
-  color: #6b4a2c;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 600;
@@ -372,13 +333,13 @@
   min-height: 18px;
   align-items: center;
   margin: 7px 0 0;
-  color: #6b4a2c;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 13px;
   letter-spacing: .12em;
 }
 
-.duel-search-meta b { color: #2a1a0e; font-variant-numeric: tabular-nums; }
+.duel-search-meta b { color: var(--home-ink); font-variant-numeric: tabular-nums; }
 
 .duel-search-experience .duel-search-dots {
   display: flex;
@@ -397,7 +358,7 @@
 .duel-search-experience .duel-search-dots i:nth-child(2) { animation-delay: .2s; }
 .duel-search-experience .duel-search-dots i:nth-child(3) { animation-delay: .4s; }
 
-.duel-search-button {
+:root .app-shell .app-content .duel-search-button {
   position: relative;
   display: inline-flex;
   min-height: 50px;
@@ -405,18 +366,19 @@
   justify-content: center;
   gap: 9px;
   padding: 10px 18px;
-  color: #f6dcb0;
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 800;
   letter-spacing: .11em;
   text-align: center;
-  text-shadow: 0 1px 0 #2a0a04;
-  background: #4a1a0d url("/assets/ui/game/action-button-plate-v1.webp") center / 100% 100% no-repeat;
-  border: 0;
+  text-shadow: none;
   filter: drop-shadow(0 4px 5px rgb(40 20 5 / 30%));
   cursor: pointer;
   transition: filter .18s ease, transform .18s ease;
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-button-primary) 0 120 0 120 fill / 0 48px / 0 stretch;
+  color: var(--action-ink);
 }
 
 .duel-search-button:hover:not(:disabled) { filter: brightness(1.1) drop-shadow(0 4px 6px rgb(40 20 5 / 35%)); }
@@ -435,7 +397,7 @@
   align-items: center;
   gap: 10px;
   margin: 1px 0 5px;
-  color: #3a2614;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 800;
@@ -455,7 +417,7 @@
   position: relative;
   z-index: 1;
   padding: 0 4px;
-  background: #e3d0a9;
+  background: transparent;
 }
 
 .duel-search-medal {
@@ -504,7 +466,7 @@
   height: 100%;
   place-items: center;
   overflow: hidden;
-  color: #f1d9a1;
+  color: var(--action-ink);
   font-family: var(--font-display);
   font-size: 30px;
   font-weight: 700;
@@ -545,7 +507,7 @@
 
 .duel-search-level {
   margin: 4px 0;
-  color: #6b4a2c;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
@@ -555,18 +517,18 @@
 .duel-search-badge {
   margin: 5px 0 8px;
   padding: 6px 16px;
-  color: #2f5a22;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .1em;
-  background: rgb(240 228 198 / 82%);
-  border: 1px solid #8a6a3c;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
-  box-shadow: inset 0 0 10px rgb(120 80 30 / 20%);
+  box-shadow: none;
 }
 
-.duel-search-badge--stronger { color: #7e3427; }
+.duel-search-badge--stronger { color: var(--home-ink); }
 .duel-search-power {
   display: grid;
   width: 100%;
@@ -575,15 +537,15 @@
   gap: 5px;
   margin: 0 0 9px;
   padding: 7px 4px;
-  background: linear-gradient(90deg, transparent, rgb(255 240 205 / 48%), transparent);
-  border-block: 1px solid rgb(110 70 30 / 38%);
+  background: transparent;
+  border-block: 1px solid var(--border-subtle);
 }
 
 .duel-search-power > div { display: grid; gap: 1px; }
 .duel-search-power > div:first-child { text-align: center; }
 .duel-search-power > div:last-child { text-align: center; }
 .duel-search-power strong {
-  color: #2a1a0e;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: clamp(34px, 9vw, 46px);
   font-weight: 700;
@@ -592,7 +554,7 @@
 }
 
 .duel-search-power > div span {
-  color: #6b4a2c;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 800;
@@ -604,10 +566,11 @@
   width: 48px;
   height: 48px;
   place-items: center;
-  background: radial-gradient(circle at 40% 35%, #4a3020, #1c100a);
-  border: 3px solid #c39350;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px #3b240f, 0 0 16px rgb(255 160 60 / 45%);
+  background: var(--sprite-medallion) center / contain no-repeat;
+  border: 0;
+  box-shadow: none;
+  padding: 8px;
 }
 
 .duel-search-power__seal img { width: 100%; height: 100%; object-fit: contain; }
@@ -616,13 +579,13 @@
 .duel-search-button--attack,
 .duel-search-button--again { width: min(92%, 340px); }
 
-.duel-search-button--again {
+:root .app-shell .app-content .duel-search-button--again {
   min-height: 43px;
-  color: #2a1a0e;
-  text-shadow: 0 1px rgb(255 244 213 / 78%);
-  background-color: #d6bd8e;
-  background-image: url("/assets/ui/game/text-panel-plate-v1.webp");
+  text-shadow: none;
   filter: drop-shadow(0 3px 4px rgb(40 20 5 / 24%));
+  background: transparent;
+  border-image-source: var(--sprite-button-secondary);
+  color: var(--home-ink);
 }
 
 .duel-search-button__swords { width: 22px; height: 22px; flex: 0 0 auto; }
@@ -639,14 +602,14 @@
 }
 
 .duel-search-message > strong {
-  color: #7e3427;
+  color: var(--home-ink);
   font-family: var(--font-display);
   font-size: clamp(24px, 6vw, 30px);
 }
 
 .duel-search-message > span {
   max-width: 290px;
-  color: #6b4a2c;
+  color: var(--home-ink-muted);
   font-family: var(--font-display);
   font-size: 16px;
 }
@@ -674,7 +637,7 @@
 @media (max-height: 720px) {
   .app-shell .app-content .duel-search-experience {
     min-height: 388px;
-    padding: 8px;
+    padding: 22px;
   }
 
   .duel-search-cell { min-height: inherit; }
@@ -710,7 +673,7 @@
 @media (max-width: 360px) {
   .app-shell .app-content .duel-search-experience {
     min-height: 400px;
-    padding: 10px;
+    padding: 22px;
   }
 
   .duel-search-arena { width: min(68vw, 230px); }
@@ -729,19 +692,19 @@
   }
 }
 
-.app-shell .app-content .duel-page.duel-battle {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle {
   gap: 9px;
   padding: 10px 9px 14px;
-  color: #eadfc4;
+  color: var(--home-ink);
   background: #23190f;
   border: 3px solid #7a5a36;
   box-shadow: inset 0 0 0 1px rgb(255 228 183 / 18%), 0 5px 12px rgb(40 25 12 / 32%);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel {
   min-height: 56px;
   padding: 6px 9px;
-  color: #2a1a0d;
+  color: var(--home-ink);
   background: #e6d6ae;
   border: 2px solid #8b6c42;
   border-image: none;
@@ -749,37 +712,37 @@
   box-shadow: inset 0 0 0 1px #f4e5c1, 0 2px 5px rgb(0 0 0 / 26%);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel--enemy {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel--enemy {
   background: #dfc4a1;
   border-color: #89513c;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child strong,
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value strong {
-  color: #2d1b0e;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child strong,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value strong {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child span,
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value span {
-  color: #705335;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child span,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value span {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-bar {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-bar {
   height: 9px;
   background: #5a4027;
   border-color: #6b4b2e;
   border-radius: 1px;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-bar > span {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-bar > span {
   background: #668c46;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-hp-panel--enemy .duel-hp-bar > span {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel--enemy .duel-hp-bar > span {
   background: #a44737;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-board {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-board {
   padding: 13px 12px 11px;
   gap: 8px;
   background: radial-gradient(ellipse at 50% 40%, #d9c9a1 0%, #bfab80 100%);
@@ -788,81 +751,81 @@
   box-shadow: inset 0 0 0 3px rgb(77 52 25 / 14%), inset 0 0 24px rgb(69 46 23 / 20%);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-card-row,
-.app-shell .app-content .duel-page.duel-battle .duel-multiplier-row {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-card-row,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier-row {
   gap: 7px;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-card--enemy {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-card--enemy {
   filter: drop-shadow(0 5px 4px rgb(62 26 18 / 30%));
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-multiplier {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier {
   padding: 2px 0;
-  color: #604a2c;
+  color: var(--home-ink);
   font-family: var(--font-display);
-  text-shadow: 0 1px rgb(255 244 213 / 60%);
+  text-shadow: none;
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-multiplier--1-5 {
-  color: #8a5b13;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--1-5 {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-multiplier--0-5 {
-  color: #725f48;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--0-5 {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .duel-action-hint {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-action-hint {
   margin: 0;
-  color: #d5c09a;
+  color: var(--home-ink);
   letter-spacing: .08em;
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log {
   gap: 6px;
   padding: 8px;
-  color: #2d1b0e;
+  color: var(--home-ink);
   background: #e6d6ae;
   border: 1px solid #8b6c42;
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px rgb(255 245 217 / 66%);
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log h2,
-.app-shell .app-content .duel-page.duel-battle .battle-log > header,
-.app-shell .app-content .duel-page.duel-battle .battle-log > header span,
-.app-shell .app-content .duel-page.duel-battle .battle-log__header-actions {
-  color: #5b4125;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log h2,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log > header,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log > header span,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log__header-actions {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log > p {
-  color: #765b38;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log > p {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log-row {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row {
   background: rgb(103 75 43 / 8%);
   border-color: rgb(103 75 43 / 22%);
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log-damage {
-  color: #6f5739;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-damage {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-battle .battle-log-row--player_strong .battle-log-damage--player,
-.app-shell .app-content .duel-page.duel-battle .battle-log-row--enemy_strong .battle-log-damage--enemy {
-  color: #8a5b13;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row--player_strong .battle-log-damage--player,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row--enemy_strong .battle-log-damage--enemy {
+  color: var(--state-danger);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact {
   padding: 8px 9px 16px;
-  color: #eadfc4;
+  color: var(--home-ink);
   background: #23190f;
   border: 3px solid #7a5a36;
   border-radius: 0;
   box-shadow: inset 0 0 0 1px rgb(255 228 183 / 18%), 0 5px 12px rgb(40 25 12 / 32%);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-banner {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-banner {
   position: relative;
   isolation: isolate;
   display: grid;
@@ -872,7 +835,7 @@
   background: none;
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-banner::before {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-banner::before {
   position: absolute;
   z-index: -1;
   inset: -4px 0 -12px;
@@ -886,66 +849,66 @@
   background-image: url("/assets/ui/duel/duel-result-defeat.png");
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-banner h1 {
-  color: #ffe0a0;
-  text-shadow: 0 2px 4px #1c1108;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-banner h1 {
+  color: var(--home-ink);
+  text-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-result--loss .duel-result-banner h1 {
-  color: #ffc0a8;
+  color: var(--state-danger);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-banner p {
-  color: #eadfc4;
-  text-shadow: 0 1px 3px #1c1108;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-banner p {
+  color: var(--home-ink);
+  text-shadow: none;
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle {
   padding: 8px;
-  color: #2d1b0e;
+  color: var(--home-ink);
   background: #e6d6ae;
   border: 1px solid #8b6c42;
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle > header {
-  color: #5b4125;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle > header {
+  color: var(--home-ink);
   border-block-color: rgb(91 65 37 / 40%);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle h2,
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle > header span {
-  color: #5b4125;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle h2,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle > header span {
+  color: var(--home-ink);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-row {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-row {
   background: transparent;
   border: 0;
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-damage--player {
-  color: #4e7135;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-damage--player {
+  color: var(--state-success);
 }
 
-.app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-damage--enemy {
-  color: #9a4937;
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-result--compact .duel-result-battle .battle-log-damage--enemy {
+  color: var(--state-danger);
 }
 
 .app-shell .app-content .duel-page.duel-result--tutorial {
   padding: 12px;
-  color: #2d1b0e;
-  background: #e6d6ae url("/assets/ui/game/text-panel-plate-v1.webp") center / 100% 100% no-repeat;
-  border: 0;
-  border-radius: 0;
-  box-shadow: 0 5px 12px rgb(40 25 12 / 28%);
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  box-shadow: none;
 }
 
 .app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__received,
 .app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__wins {
-  color: #604a2c;
+  color: var(--home-ink);
 }
 
 .app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__dialogue p {
-  color: #352211;
+  color: var(--home-ink);
 }
 
 @media (max-width: 360px) {
@@ -955,12 +918,12 @@
     padding: 23px 18px;
   }
 
-  .app-shell .app-content .duel-page.duel-battle {
+  :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle {
     padding: 8px 7px 12px;
     gap: 7px;
   }
 
-  .app-shell .app-content .duel-page.duel-battle .duel-board {
+  :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-board {
     padding: 10px 8px;
   }
 }

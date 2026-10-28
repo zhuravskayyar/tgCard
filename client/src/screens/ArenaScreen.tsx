@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,11 +52,7 @@ function cooldownSeconds(until: string | null, now = Date.now()) {
 
 function ArenaHeading({ onBack }: { onBack: () => void }) {
   return (
-    <header className="arena-heading">
-      <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-      <div><h1>Арена</h1></div>
-      <span className="arena-heading__token"><ResourceIcon kind="arena-token" size={20} /> Арена</span>
-    </header>
+    <ScreenHeading onBack={onBack} title="Арена" action={<span className="arena-heading__token"><ResourceIcon kind="arena-token" size={20} /> Арена</span>} />
   );
 }
 

@@ -22,17 +22,16 @@ interface MenuRowProps {
   variant?: "default" | "book";
 }
 
-export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, metalTexture = true, onClick, title, variant = "default" }: MenuRowProps) {
-  const hasMetalTexture = metalTexture && variant !== "book";
+export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, onClick, title, variant = "default" }: MenuRowProps) {
   return (
     <button
-      className={`menu-row${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${hasMetalTexture ? " menu-row--metal-texture" : ""}${variant === "book" ? " menu-row--book" : ""}`}
+      className={`menu-row menu-row--metal-texture${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${variant === "book" ? " menu-row--book" : ""}`}
       disabled={disabled || !onClick}
       aria-label={locked ? `${title}: поки недоступно` : undefined}
       onClick={onClick}
       type="button"
     >
-      {hasMetalTexture ? <MenuTextureSlices /> : null}
+      <MenuTextureSlices />
       {illustrationSrc ? <img alt="" aria-hidden="true" className="menu-row__illustration" src={illustrationSrc} /> : null}
       <span className="menu-row__icon">
         {iconSrc ? <img alt="" aria-hidden="true" className="menu-row__icon-image" src={iconSrc} /> : <AppIcon name={icon} size={23} />}

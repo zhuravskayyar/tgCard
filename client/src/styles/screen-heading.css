@@ -1,0 +1,31 @@
+.app-shell .app-content .screen-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 58px;
+  margin: 0;
+  padding: 8px 22px;
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-heading-plaque) 0 160 0 160 fill / 0 60px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+  filter: var(--home-frame-shadow);
+}
+.app-shell .app-content .screen-heading--back { grid-template-columns: 44px minmax(0, 1fr); padding-left: 12px; }
+.app-shell .app-content .screen-heading--action { grid-template-columns: minmax(0, 1fr) auto; padding-right: 40px; }
+.app-shell .app-content .screen-heading--back.screen-heading--action { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.screen-heading__copy { display: grid; min-width: 0; gap: 2px; }
+.screen-heading:not(.screen-heading--back) .screen-heading__copy { text-align: center; }
+.app-shell .app-content .screen-heading h1 { margin: 0; color: var(--home-ink); font: 700 clamp(16px, 4.6vw, 21px)/1.1 var(--font-display); overflow-wrap: anywhere; text-shadow: none; }
+.app-shell .app-content .screen-heading__eyebrow,
+.app-shell .app-content .screen-heading p { margin: 0; color: var(--home-ink-muted); font: 500 11px/1.25 var(--font-label); overflow-wrap: anywhere; }
+.app-shell .app-content .screen-heading__back { display: grid; place-items: center; min-width: 44px; width: 44px; min-height: 44px; padding: 0; color: var(--home-ink); background: transparent; border: 0; box-shadow: none; cursor: pointer; }
+.screen-heading__back .app-icon { transform: rotate(180deg); }
+.screen-heading__back:disabled { opacity: .5; cursor: wait; }
+.screen-heading__action { display: flex; min-width: 0; max-width: 95px; align-items: center; justify-content: flex-end; color: var(--home-ink); font: 700 13px/1.2 var(--font-number); overflow-wrap: anywhere; }
+.screen-heading__action strong { color: inherit; }
+.app-shell .card-detail-screen > .screen-heading { min-height: 48px; }

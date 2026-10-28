@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useState } from "react";
 import type {
   PlayerCollectionCardResponse,
@@ -6,7 +7,6 @@ import type {
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardArtwork } from "../components/CardArtwork";
-import { CardNameBadge } from "../components/CardNameBadge";
 import { MenuTextureSlices } from "../components/MenuTextureSlices";
 import { RibbonTitle } from "../components/RibbonTitle";
 import { getTelegramInitData } from "../telegram";
@@ -18,10 +18,6 @@ const rarityLabels = { common: "Звичайна", uncommon: "Незвичайн
 type RemoteState<T> =
   | { status: "loading" | "unavailable" | "error" }
   | { status: "ready"; data: T };
-
-function CollectionBack({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button aria-label={label} className="collection-back" onClick={onClick} type="button"><AppIcon name="chevron" size={20} /></button>;
-}
 
 function CollectionCover({ code, coverArtKey, completed }: { code: string; coverArtKey: string | null; completed?: boolean }) {
   return (
@@ -64,7 +60,7 @@ export function CollectionsScreen({ onBack, onOpenCollection, onOpenLimitedCard,
 
   const limitedCards = state.status === "ready" ? state.data.limitedCards ?? [] : [];
   return <section className="collections-screen">
-    <header className="collections-heading"><CollectionBack label="Назад на головну" onClick={onBack} /><div><h1>КОЛЕКЦІЇ</h1><p>Нові колекції з’являтимуться разом із новими картами</p></div></header>
+    <ScreenHeading backLabel="Назад на головну" description="Нові колекції з’являтимуться разом із новими картами" onBack={onBack} title="КОЛЕКЦІЇ" />
     <div className="collection-filters" role="tablist" aria-label="Фільтр колекції">
       <button aria-selected={filter === "all"} className={filter === "all" ? "collection-filter collection-filter--active" : "collection-filter"} onClick={() => setFilter("all")} role="tab" type="button">Усі</button>
       <button aria-selected={filter === "limited"} className={filter === "limited" ? "collection-filter collection-filter--active" : "collection-filter"} onClick={() => setFilter("limited")} role="tab" type="button">Лімітовані</button>
@@ -117,12 +113,12 @@ export function CollectionDetailScreen({ collectionId, onBack, onOpenCard, onOpe
     });
     return () => controller.abort();
   }, [attempt, collectionId]);
-  if (state.status !== "ready") return <section className="collections-screen"><header className="collections-heading"><CollectionBack label="Назад до колекцій" onClick={onBack} /></header><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
+  if (state.status !== "ready") return <section className="collections-screen"><ScreenHeading backLabel="Назад до колекцій" onBack={onBack} title="Колекція" /><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
   const { collection, cards } = state.data;
   const highlightedCardId = tutorialCardId && cards.some((card) => card.id === tutorialCardId) ? tutorialCardId : null;
   const isRaidCollection = collection.source === "raid";
   return <section className={`collection-detail-screen${isRaidCollection ? " collection-detail-screen--raid" : ""}`}>
-    <header className="collection-detail-heading"><CollectionBack label="Назад до колекцій" onClick={onBack} /><CardNameBadge name={collection.displayName} /></header>
+    <ScreenHeading backLabel="Назад до колекцій" onBack={onBack} title={collection.displayName} />
     {isRaidCollection ? <div className="collection-source-badge" aria-label="Рейдова колекція">РЕЙДОВА КОЛЕКЦІЯ</div> : null}
     <div className="collection-hero" aria-hidden="true"><span /><CollectionCover code={collection.code} coverArtKey={collection.coverArtKey} completed={collection.completed} /><span /></div>
     <section className={`collection-bonus${collection.completed ? " collection-bonus--active" : ""}`}><span>{isRaidCollection ? "БОНУС ЗІБРАНОЇ КОЛЕКЦІЇ" : "БОНУС КОЛЕКЦІЇ"}</span><strong>{collection.bonusLabel}</strong><p>{collection.completed ? "Бонус активний" : "Бонус відкриється після збору всієї колекції"}</p></section>
@@ -156,10 +152,10 @@ export function CollectionCardScreen({ collectionId, cardId, onBack, onOpenInsta
     });
     return () => controller.abort();
   }, [attempt, cardId, collectionId]);
-  if (state.status !== "ready") return <section className="collections-screen"><header className="collections-heading"><CollectionBack label="Назад до колекції" onClick={onBack} /></header><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
+  if (state.status !== "ready") return <section className="collections-screen"><ScreenHeading backLabel="Назад до колекції" onBack={onBack} title="Карта колекції" /><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
   const { card, collection } = state.data;
   return <section className="collection-card-screen">
-    <header className="collection-detail-heading"><CollectionBack label="Назад до колекції" onClick={onBack} /><CardNameBadge name={card.displayName} /></header>
+    <ScreenHeading backLabel="Назад до колекції" onBack={onBack} title={card.displayName} />
     <p className="collection-card-meta">{elementLabels[card.element]} <span>•</span> Мінімум: {rarityLabels[card.minRarity]}</p>
     <div className={`collection-card-visual deck-card--${card.element} deck-card--${card.minRarity}${card.discovered ? "" : " collection-card-visual--unknown"}`}><CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} rarity={card.minRarity} /></div>
     <p className="collection-card-description" data-tutorial-target="collection-card-info">{card.description}</p>

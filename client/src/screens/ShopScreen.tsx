@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useState, type CSSProperties } from "react";
 import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type ShopPurchaseResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -288,15 +289,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
 
   return (
     <section className={`shop-screen shop-screen--${view} shop-screen--${section}`}>
-      <header className="shop-heading">
-        <button aria-label={view === "section" ? "До категорій" : "Назад"} className="shop-back" onClick={handleShopBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>{view === "categories" ? "ОБЕРИ СВОЮ КАТЕГОРІЮ" : activeCategoryData?.title ?? "Крамниця карт"}</span>
-          <h1>МАГАЗИН</h1>
-        </div>
-      </header>
+      <ScreenHeading backLabel={view === "section" ? "До категорій" : "Назад"} eyebrow={view === "categories" ? "ОБЕРИ СВОЮ КАТЕГОРІЮ" : activeCategoryData?.title ?? "Крамниця карт"} onBack={handleShopBack} title="МАГАЗИН" />
 
       {view === "categories" ? (
         <div aria-label="Категорії магазину" className="shop-category-list">

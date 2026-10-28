@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import type { EquippedEquipment } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -88,9 +89,7 @@ export function ProfileScreen({
 
   return (
     <section className="profile-screen">
-      <header className="profile-heading">
-        <h1>ВАШ ПРОФІЛЬ</h1>
-      </header>
+      <ScreenHeading title="ВАШ ПРОФІЛЬ" />
 
       {playerSummaryState.status === "loading" ? (
         <div className="profile-state" aria-live="polite">Завантаження профілю…</div>

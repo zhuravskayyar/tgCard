@@ -1,4 +1,4 @@
-import { AppIcon } from "../components/AppIcon";
+import { ScreenHeading } from "../components/ScreenHeading";
 import { DeckCard } from "../components/DeckCard";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
@@ -19,17 +19,11 @@ export function DeckScreen({ onBack, onOpenCard, showTutorialRule = false }: Dec
 
   return (
     <section className="deck-screen">
-      <header className="deck-heading">
-        <button aria-label="Назад на головну" className="deck-back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <h1>МОЯ КОЛОДА</h1>
-        </div>
-        <strong aria-label={state.status === "ready" ? `Загальна сила колоди: ${formatFullUiNumber(state.deck.totalPower)}` : "Загальна сила колоди недоступна"} className="deck-heading__power">
+      <ScreenHeading backLabel="Назад на головну" onBack={onBack} title="МОЯ КОЛОДА" action={
+        <strong aria-label={state.status === "ready" ? `Загальна сила колоди: ${formatFullUiNumber(state.deck.totalPower)}` : "Загальна сила колоди недоступна"}>
           {state.status === "ready" ? formatFullUiNumber(state.deck.totalPower) : "—"}
         </strong>
-      </header>
+      } />
 
       {state.status === "loading" ? <div className="deck-state" aria-live="polite">Завантаження колоди…</div> : null}
       {state.status === "unavailable" ? <div className="deck-state">Колода доступна після запуску через Telegram.</div> : null}

@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
@@ -195,13 +196,11 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
 
   return (
     <section className="equipment-screen" aria-labelledby="equipment-screen-title">
-      <header className="equipment-heading equipment-heading--cardastika" ref={headingRef} tabIndex={-1}>
-        <button aria-label="Назад" className="screen-back equipment-heading__back" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-        <div><span>МІФИЧНИЙ АРСЕНАЛ</span><h1 id="equipment-screen-title">СПОРЯДЖЕННЯ</h1></div>
+      <ScreenHeading eyebrow="МІФИЧНИЙ АРСЕНАЛ" onBack={onBack} ref={headingRef} tabIndex={-1} title="СПОРЯДЖЕННЯ" titleId="equipment-screen-title" action={
         <div aria-label={hasEquippedItems ? `Рейтинг спорядження ${summary.equipmentRating}` : "Спорядження не екіпіровано"} className={`equipment-rating${hasEquippedItems ? "" : " equipment-rating--empty"}`}>
           {hasEquippedItems ? <><small>Рейтинг</small><strong>{summary.equipmentRating}</strong></> : <small>Порожньо</small>}
         </div>
-      </header>
+      } />
 
       {hasEquippedItems ? (
         <section aria-label="Стан спорядження" className="equipment-summary">

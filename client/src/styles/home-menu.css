@@ -12,7 +12,7 @@
   inset: 0 0 calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px));
   z-index: 0;
   opacity: 1;
-  background: url("/assets/ui/home/menu-background-book-clean-v3.webp") center top / cover no-repeat;
+  background: var(--sprite-page) center top / cover no-repeat;
 }
 
 :root .app-shell::after { opacity: 0; }
@@ -21,7 +21,8 @@
   padding: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + var(--home-content-block-inset))
     var(--home-content-inset)
     calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + var(--home-content-block-inset));
-  overflow: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: transparent;
 }
 
@@ -45,7 +46,7 @@
   z-index: 0;
   content: "";
   pointer-events: none;
-  background: url("/assets/ui/home/hud-frame-parchment-v2.webp") center / var(--hud-frame-width) 100% no-repeat;
+  background: var(--sprite-hud) center / var(--hud-frame-width) 100% no-repeat;
   filter: var(--home-frame-shadow);
 }
 
@@ -92,7 +93,7 @@
   width: var(--hud-avatar-size);
   height: var(--hud-avatar-size);
   box-sizing: border-box;
-  color: #47331f;
+  color: var(--home-ink);
   background: linear-gradient(145deg, rgb(247 232 198 / 76%), rgb(190 159 111 / 74%));
   border: 1px solid rgb(89 62 34 / 78%);
   border-radius: 50%;
@@ -118,7 +119,7 @@
   display: block;
   max-width: 100%;
   overflow: hidden;
-  color: #3f2e1e;
+  color: var(--home-ink);
   font-family: "Lugatype", Georgia, "Times New Roman", serif;
   font-size: clamp(16px, calc(var(--hud-frame-width) * .04), 17px);
   font-weight: 700;
@@ -143,7 +144,7 @@
   max-width: 100%;
   gap: 4px;
   padding: 0;
-  color: #473522;
+  color: var(--home-ink);
   font: 800 16px/1 var(--font-display);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -157,14 +158,14 @@
   width: 15px;
   height: 15px;
   flex: 0 0 auto;
-  color: #76552f;
+  color: var(--home-ink);
   filter: none;
 }
 :root .app-shell .player-deck-power__value {
   display: inline-block;
   min-width: 0;
   padding: 0;
-  color: #382716;
+  color: var(--home-ink);
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -179,14 +180,14 @@
   align-items: center;
   gap: 4px;
   padding: 0;
-  color: #473522;
+  color: var(--home-ink);
   border: 0;
   border-radius: 0;
   background: transparent;
   font: 600 10px/1 var(--font-display);
   text-shadow: none;
 }
-:root .app-shell .player-deck-power__level strong { color: #382716; font: 800 16px/1 var(--font-display); font-variant-numeric: tabular-nums; text-shadow: none; }
+:root .app-shell .player-deck-power__level strong { color: var(--home-ink); font: 800 16px/1 var(--font-display); font-variant-numeric: tabular-nums; text-shadow: none; }
 
 :root .app-shell .currency-list {
   position: relative;
@@ -213,7 +214,7 @@
   grid-template-columns: none;
   gap: 5px;
   padding: 0;
-  color: #382716;
+  color: var(--home-ink);
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -224,12 +225,12 @@
   text-shadow: none;
 }
 :root .app-shell .currency-display--silver {
-  color: #382716;
+  color: var(--home-ink);
   border: 0;
   background: transparent;
 }
 :root .app-shell .currency-display--gold {
-  color: #382716;
+  color: var(--home-ink);
   border: 0;
   background: transparent;
 }
@@ -247,7 +248,7 @@
   overflow: visible;
   text-overflow: clip;
   padding: 0;
-  color: #382716;
+  color: var(--home-ink);
   font-family: var(--font-display) !important;
   font-size: 16px;
   font-weight: 800;
@@ -277,10 +278,9 @@
 /* Persistent navigation keeps a dark metal material, with a small active marker. */
 :root .app-shell .bottom-navigation {
   color: var(--home-nav-ink);
-  background: url("/assets/ui/home/navigation-parchment-v2.webp") center / 100% 100% no-repeat;
-  background-color: #2e2116;
+  background: var(--sprite-navigation) center / 100% 100% no-repeat;
   border-top: 0;
-  box-shadow: var(--home-nav-shadow);
+  box-shadow: none;
 }
 .app-shell .bottom-navigation__item {
   gap: var(--space-1);
@@ -309,7 +309,7 @@
   --home-mode-gap: 8px;
   --home-header-gap: 4px;
   --home-section-gap: 8px;
-  --home-link-height: 36px;
+  --home-link-height: 44px;
   --home-link-gap: 4px;
   --home-link-count: 6;
   --home-content-shift: 0px;
@@ -319,9 +319,9 @@
   --home-mode-padding-top: 6px;
   --home-mode-padding-bottom: 8px;
   --home-mode-padding-inline: 6px;
-  height: calc(100dvh - var(--hud-height) - var(--navigation-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--home-content-block-inset));
-  min-height: 0;
-  container-type: size;
+  height: auto;
+  min-height: calc(100dvh - var(--hud-height) - var(--navigation-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--home-content-block-inset));
+  container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) var(--home-control-size);
   grid-template-rows: var(--home-header-height) auto;
   grid-template-areas: "route tools" "content content";
@@ -343,36 +343,36 @@
 .home-screen .home-settings-button {
   position: relative;
   z-index: 2;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  min-width: 28px;
-  min-height: 28px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
   margin-top: -8px;
   padding: 0;
-  background: url("/assets/ui/home/hud-settings-hanger-v1.webp") center top / 28px 56px no-repeat;
+  background: var(--sprite-settings) center top / 28px 56px no-repeat;
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
 .home-screen .home-settings-button::after {
   position: absolute;
-  top: calc(100% - 1px);
+  top: 27px;
   left: 50%;
   width: 28px;
   height: 28px;
   content: "";
   transform: translateX(-50%);
-  background: url("/assets/ui/home/hud-settings-hanger-v1.webp") center bottom / 28px 56px no-repeat;
+  background: var(--sprite-settings) center bottom / 28px 56px no-repeat;
   pointer-events: none;
 }
 .home-screen .home-settings-button:hover { border-color: var(--home-nav-active); }
 
 .home-screen .mode-grid {
-  --home-mode-size: max(36px, min(112px, calc((min(100cqw, 400px) - 2 * var(--home-mode-gap)) / 3), calc((100cqh - var(--home-header-height) - var(--home-header-gap) - var(--home-section-gap) - var(--home-link-count) * var(--home-link-height) - (var(--home-link-count) - 1) * var(--home-link-gap) - var(--home-mode-gap)) / 2)));
+  --home-mode-size: min(112px, calc((min(100cqw, 400px) - 2 * var(--home-mode-gap)) / 3));
   --mode-icon-box: min(var(--home-mode-icon-box), calc(var(--home-mode-size) * var(--home-mode-icon-ratio)));
-  --mode-title-font: min(var(--home-mode-title-size), max(9px, calc(var(--home-mode-size) * .145)));
-  --mode-state-font: min(var(--home-mode-state-size), max(8px, calc(var(--home-mode-size) * .1)));
+  --mode-title-font: clamp(13px, calc(var(--home-mode-size) * .145), 16px);
+  --mode-state-font: 11px;
   grid-template-columns: repeat(3, var(--home-mode-size));
   grid-template-rows: repeat(2, var(--home-mode-size));
   width: calc(3 * var(--home-mode-size) + 2 * var(--home-mode-gap));
@@ -389,7 +389,7 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto 12px;
   align-content: center;
   justify-items: center;
   row-gap: 2px;
@@ -402,7 +402,7 @@
   padding: var(--home-mode-padding-top) var(--home-mode-padding-inline) var(--home-mode-padding-bottom);
   overflow: visible;
   color: var(--home-ink);
-  background: url("/assets/ui/home/mode-panel-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  background: var(--sprite-mode-panel) center / 100% 100% no-repeat;
   border: 0 solid transparent;
   border-image-source: none;
   border-image-width: 0;
@@ -492,7 +492,7 @@
   right: 3px;
   width: auto;
   padding: 2px 5px;
-  color: #ead6aa;
+  color: var(--action-ink);
   font-family: var(--font-display) !important;
   background: #332515;
   border: 1px solid #8b6839;
@@ -500,7 +500,7 @@
   text-transform: uppercase;
 }
 
-/* Reuse MenuRow caps, but remove the repeated crest between neighboring rows. */
+/* Artwork, text and state each own a column, including novice-only labels. */
 .home-screen .home-menu {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -515,32 +515,28 @@
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto 14px;
+  grid-template-columns: 26px minmax(0, 1fr) 44px auto 14px;
   grid-template-rows: minmax(0, 1fr);
   align-items: center;
   align-content: stretch;
   height: var(--home-link-height);
   min-height: 0;
-  column-gap: 8px;
+  column-gap: 6px;
   padding: 3px 14px 3px 20px;
-  background: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
   filter: var(--home-frame-shadow) saturate(var(--menu-saturation)) brightness(var(--menu-brightness));
+  background: transparent;
 }
-.home-screen .home-menu .menu-row__texture--center::before { display: none; }
-.home-screen .home-menu .menu-row > .menu-row__texture { display: none; }
-.home-screen .home-menu .menu-row__texture--center::after { background: linear-gradient(90deg, transparent, rgb(var(--home-paper-rgb) / 98%) 3% 97%, transparent); }
 .home-screen .home-menu .menu-row__illustration {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  top: 5%;
-  right: 28px;
+  grid-area: 1 / 3;
   display: block;
-  width: 38%;
-  height: 90%;
+  width: 44px;
+  height: 34px;
   object-fit: contain;
   opacity: .9;
   filter: brightness(.72) contrast(1.05);
@@ -555,7 +551,7 @@
   grid-row: 1;
   width: var(--home-link-icon-size);
   height: var(--home-link-icon-size);
-  display: none;
+  display: grid;
   place-items: center;
   color: var(--home-icon-ink);
   transform: none;
@@ -575,13 +571,13 @@
   line-height: 1.15;
   letter-spacing: 0;
   text-shadow: none;
-  overflow-wrap: normal;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .home-screen .home-menu .menu-row__action {
   position: relative;
   z-index: 2;
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
   margin: 0;
   justify-content: flex-end;
@@ -590,12 +586,12 @@
   line-height: 1.1;
 }
 .home-screen .home-menu .menu-row__action:empty { display: none; }
-.home-screen .home-menu .menu-row__detail { font-size: var(--home-link-state-size); line-height: 1.1; }
+.home-screen .home-menu .menu-row__detail { font-size: 12px; line-height: 1.1; }
 .home-screen .home-menu .badge { min-height: 0; padding: 0; color: var(--home-ink-muted); background: none; border: 0; font-size: var(--home-link-state-size); line-height: 1.1; }
 .home-screen .home-menu .menu-row__chevron {
   position: relative;
   z-index: 2;
-  grid-column: 4;
+  grid-column: 5;
   grid-row: 1;
   display: grid;
   place-items: center;
@@ -631,13 +627,6 @@
   .home-screen .guided-route__header { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 
-@media (max-height: 600px) {
-  .home-screen:not(:has(.guided-route)) {
-    --home-link-height: 30px;
-    --home-link-gap: 4px;
-  }
-}
-
 @media (max-width: 360px) {
   :root .app-shell:has(.home-screen) .currency-display__value:not(.currency-display__value--with-unit) { display: inline-flex; align-items: center; line-height: 1; }
   :root .app-shell:has(.home-screen) .currency-display__value--with-unit { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
@@ -646,7 +635,6 @@
 
 @media (max-width: 430px) and (min-height: 760px) {
   .home-screen:not(:has(.guided-route)) {
-    --home-link-height: 40px;
     --home-link-gap: 6px;
   }
 }

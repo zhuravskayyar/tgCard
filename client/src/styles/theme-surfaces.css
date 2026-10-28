@@ -1,0 +1,116 @@
+/* One material per surface. Content inside a framed panel uses ink separators. */
+:root .app-content :is(
+  .ui-panel, .profile-showcase, .profile-section, .profile-state, .profile-hero,
+  .player-profile-card, .player-profile-section, .inventory-section, .settings-section,
+  .arena-lobby, .arena-league-panel, .arena-shop-panel, .arena-queue-panel,
+  .arena-target-panel, .arena-player-panel, .duel-hp-panel, .dungeon-result__panel,
+  .guild-dashboard-card, .guild-level, .guild-lock, .guild-pending, .guild-state,
+  .guild-notice, .guild-forum-section, .guild-list, .tasks-screen__mascot,
+  .tasks-screen__marathon, .tasks-screen__account-protection, .shop-wallet,
+  .battle-pass-hero, .battle-pass-circle, .card-detail-reference-stats
+) {
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-content :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
+  .guild-forum-topic, .profile-record-grid article, .profile-rating-grid article,
+  .profile-empty-row, .profile-facts, .profile-gifts > p, .profile-guild-card,
+  .battle-pass-milestone__reward) {
+  background: transparent;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-content :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
+  .guild-forum-topic) + :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
+  .guild-forum-topic) { border-top: 1px solid var(--border-subtle); }
+:root .app-content :is(.profile-record-grid, .profile-rating-grid) article { border-bottom: 1px solid var(--border-subtle); }
+:root .app-content :is(.profile-section, .player-profile-section, .settings-section,
+  .arena-lobby, .guild-dashboard-card, .battle-pass-hero) :is(.ui-panel,
+  .profile-section, .guild-level, .guild-notice, .battle-pass-circle) {
+  background: transparent;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+}
+
+:root .app-shell .app-content .ui-button {
+  color: var(--home-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-button-secondary) 0 120 0 120 fill / 0 38px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+:root .app-shell .app-content .ui-button--primary {
+  color: var(--action-ink);
+  border-image-source: var(--sprite-button-primary);
+}
+:root .app-shell .app-content .ui-button--success { color: var(--state-success); }
+:root .app-shell .app-content .ui-button--danger { color: var(--state-danger); }
+
+/* The shell geometry is shared; its dark material has no parchment underneath. */
+:root:not([data-game-theme="light"]) .app-shell .top-hud::before,
+:root:not([data-game-theme="light"]) .app-shell .bottom-navigation {
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+  box-shadow: none;
+}
+:root:not([data-game-theme="light"]) .app-shell::before { background: none; }
+:root:not([data-game-theme="light"]) .home-screen .mode-tile {
+  background: transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+}
+:root:not([data-game-theme="light"]) .home-screen :is(.mode-tile__icon, .menu-row__illustration) { filter: invert(.78) sepia(.2); mix-blend-mode: screen; }
+
+:root .app-shell .card-detail-screen .card-detail-reference-stats { padding: 15px 12px; }
+:root .app-shell .card-detail-screen .weak-cards-content {
+  color: var(--home-ink);
+  background: var(--bg-inset);
+  border-color: var(--border-default);
+}
+:root .app-shell .card-detail-screen .weak-cards-content > .selector-state--empty {
+  justify-content: center;
+  background: transparent;
+}
+:root .app-shell .card-detail-screen .selector-state--empty > span { max-width: 100%; color: var(--home-ink-muted); }
+
+/* Section titles stay inside the frame; inner settings cards use separators. */
+:root .app-content .settings-section { grid-template-columns: minmax(0, 1fr); padding: 22px 18px; }
+:root .app-content .settings-section > .settings-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-content .settings-provider {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 8px;
+  padding: 12px 0;
+}
+:root .app-content .settings-provider .google-sign-in {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  transform: none;
+}
+:root .app-content .settings-provider__hint {
+  margin: 0;
+  color: var(--home-ink-muted);
+  font-size: var(--font-xs);
+  font-weight: 400;
+}
+:root .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot:disabled { filter: none; }
+:root .app-content .settings-theme-switch button { min-height: 44px; }
+:root .app-content .settings-theme-switch button[aria-pressed="true"] {
+  background: var(--bg-active);
+  box-shadow: none;
+}

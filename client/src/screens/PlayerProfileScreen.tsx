@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { getLeagueByRating } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardArtwork } from "../components/CardArtwork";
@@ -54,15 +55,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
 
   return (
     <section className="player-profile-screen">
-      <header className="player-profile-screen__heading">
-        <button aria-label="Назад" className="player-profile-screen__back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>РЕЙТИНГ</span>
-          <h1>ПРОФІЛЬ ГРАВЦЯ</h1>
-        </div>
-      </header>
+      <ScreenHeading eyebrow="РЕЙТИНГ" onBack={onBack} title="ПРОФІЛЬ ГРАВЦЯ" />
 
       {state.status === "loading" ? <div className="player-profile-state">Завантаження профілю…</div> : null}
       {state.status === "unavailable" ? <div className="player-profile-state">Профіль доступний після запуску через Telegram.</div> : null}

@@ -1,10 +1,10 @@
+import { ScreenHeading } from "../../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import { getCardLevelTableEntry, getUpgradeGoldPrice, getUpgradeProgress, MAX_CARD_LEVEL } from "@cardastika/game-core";
 import type { CardElement, GuildProfileResponse, PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
 import { CardHud } from "../../components/CardHud";
-import { CardNameBadge } from "../../components/CardNameBadge";
 import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import { DeckCard } from "../../components/DeckCard";
 import { MenuRow } from "../../components/MenuRow";
@@ -84,14 +84,11 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
 
   if (!active) {
     return <section className="card-detail-screen guild-card-screen" aria-labelledby="guild-card-screen-title">
-      <header className="card-detail-topbar">
-        <button aria-label="До складу гільдії" onClick={onCardBack} type="button"><AppIcon name="chevron" size={20} /></button>
-        <div className="card-detail-heading"><h1 className="card-detail-name-empty" id="guild-card-screen-title">Карта гільдії</h1></div>
-      </header>
+      <ScreenHeading backLabel="До складу гільдії" onBack={onCardBack} title="Карта гільдії" titleId="guild-card-screen-title" />
       <RibbonTitle size="medium">КАРТА ГІЛЬДІЇ</RibbonTitle>
       <div className="guild-card-screen__empty">
         <AppIcon name="card-reward" size={30} />
-        <strong id="guild-card-screen-title">Карту ще не обрано</strong>
+        <strong>Карту ще не обрано</strong>
         <p>Лідер гільдії може виставити одну карту зі своєї бойової колоди.</p>
         {profile.guildCard.canManage ? <button className="guild-primary-button" disabled={busy} onClick={openCardSelection} type="button">Обрати карту</button> : null}
       </div>
@@ -109,13 +106,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
   const progressionClass = atMaximum ? "progression-panel--maximum_level" : progression.percent >= 100 ? "progression-panel--ready" : "progression-panel--insufficient_elements";
 
   return <section className="card-detail-screen guild-card-screen" aria-labelledby="guild-card-screen-title">
-    <header className="card-detail-topbar">
-      <button aria-label="До складу гільдії" onClick={onCardBack} type="button"><AppIcon name="chevron" size={20} /></button>
-      <div className="card-detail-heading">
-        <CardNameBadge name={active.displayName ?? active.code} />
-        <p className="card-detail-meta"><span>{ELEMENT_LABELS[active.element]}</span> <span aria-hidden="true">•</span> <span>{RARITY_LABELS[active.rarity]}</span> <span aria-hidden="true">•</span> <span>Карта гільдії</span></p>
-      </div>
-    </header>
+    <ScreenHeading backLabel="До складу гільдії" onBack={onCardBack} title={active.displayName ?? active.code} titleId="guild-card-screen-title" />
     <RibbonTitle size="medium">КАРТА ГІЛЬДІЇ</RibbonTitle>
 
     <div className="card-detail-overview">
