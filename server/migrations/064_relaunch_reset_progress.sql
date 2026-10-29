@@ -1,7 +1,6 @@
 -- Cardastika release cutover. Keep identities, sessions, friendships,
 -- referrals and guild membership. Full pre-relaunch database backup exists.
 DO $$
-DECLARE t text;
 BEGIN
  IF (SELECT count(*) FROM cards) <> 9 OR (SELECT count(*) FROM collections) <> 0
     OR to_regclass('relaunch_archive.player_cards_20261029') IS NULL THEN
@@ -14,10 +13,46 @@ BEGIN
  UPDATE guilds SET active_guild_card_instance_id=NULL,level=1,experience=0,updated_at=now();
  UPDATE guild_members SET contributed_xp=0,updated_at=now();
  UPDATE guild_treasuries SET silver=0,gold=0,updated_at=now();
- FOREACH t IN ARRAY ARRAY['guild_witch_raid_result_participants','guild_witch_raid_results','guild_witch_raid_battles','guild_witch_raid_participants','guild_witch_raid_bosses','guild_witch_raids','guild_xp_contributions','guild_treasury_contributions','guild_cards','arena_match_players','arena_matches','arena_queue','arena_shop_purchases','duel_matchmaking_searches','duels','player_limited_card_redemptions','limited_card_events','player_mail','player_arena_cosmetics','player_battle_pass_claims','player_battle_pass_state','player_boosts','player_campaign_events','player_campaign_quest_progress','player_campaign_state','player_collection_completions','player_cosmetics','player_daily_task_claims','player_dungeon_runs','player_equipment_inventory','player_lariska_daily_claims','player_lariska_daily_options','player_lariska_daily_state','player_shop_chances','deck_slots','player_decks','player_card_discoveries','player_card_instances'] LOOP
-   EXECUTE format('DELETE FROM public.%I',t);
- END LOOP;
- UPDATE players SET
+END $$;
+DELETE FROM guild_witch_raid_result_participants;
+DELETE FROM guild_witch_raid_results;
+DELETE FROM guild_witch_raid_battles;
+DELETE FROM guild_witch_raid_participants;
+DELETE FROM guild_witch_raid_bosses;
+DELETE FROM guild_witch_raids;
+DELETE FROM guild_xp_contributions;
+DELETE FROM guild_treasury_contributions;
+DELETE FROM guild_cards;
+DELETE FROM arena_match_players;
+DELETE FROM arena_matches;
+DELETE FROM arena_queue;
+DELETE FROM arena_shop_purchases;
+DELETE FROM duel_matchmaking_searches;
+DELETE FROM duels;
+DELETE FROM player_limited_card_redemptions;
+DELETE FROM limited_card_events;
+DELETE FROM player_mail;
+DELETE FROM player_arena_cosmetics;
+DELETE FROM player_battle_pass_claims;
+DELETE FROM player_battle_pass_state;
+DELETE FROM player_boosts;
+DELETE FROM player_campaign_events;
+DELETE FROM player_campaign_quest_progress;
+DELETE FROM player_campaign_state;
+DELETE FROM player_collection_completions;
+DELETE FROM player_cosmetics;
+DELETE FROM player_daily_task_claims;
+DELETE FROM player_dungeon_runs;
+DELETE FROM player_equipment_inventory;
+DELETE FROM player_lariska_daily_claims;
+DELETE FROM player_lariska_daily_options;
+DELETE FROM player_lariska_daily_state;
+DELETE FROM player_shop_chances;
+DELETE FROM deck_slots;
+DELETE FROM player_decks;
+DELETE FROM player_card_discoveries;
+DELETE FROM player_card_instances;
+UPDATE players SET
   level=1,silver=0,gold=0,account_xp=0,duel_wins=0,duel_losses=0,
   duel_win_streak=0,duel_rating=0,duel_highest_league_index=0,
   card_shards=0,arena_rating=0,arena_league_index=0,arena_wins=0,
@@ -27,4 +62,3 @@ BEGIN
   equipped_nickname_skin=NULL,tutorial_eligible=TRUE,altar_level=1,
   equipment='{"equipped":{"head":null,"boots":null,"cloak":null,"relic":null,"amulet":null,"gloves":null,"shield":null,"voodoo":null,"weapon":null}}'::jsonb,
   updated_at=now();
-END $$;
