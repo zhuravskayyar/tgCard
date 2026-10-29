@@ -431,8 +431,27 @@ function drawInstance(instance: CardShaderInstance, time: number) {
   instance.onReady(true);
 }
 
+// Battle strikes hold the idle tilt so the shared main thread goes to the strike animation.
+let animationHolds = 0;
+
 function hasAnimatedVisibleCards() {
-  return !document.hidden && [...instances].some((instance) => instance.visible && !instance.reducedMotion && !instance.failed);
+  return animationHolds === 0 && !document.hidden && [...instances].some((instance) => instance.visible && !instance.reducedMotion && !instance.failed);
+}
+
+/** Pause the idle card motion until the returned release is called. */
+export function holdCardMaterialAnimation() {
+  animationHolds += 1;
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = 0;
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    animationHolds -= 1;
+    requestAnimationFrameIfNeeded();
+  };
 }
 
 function renderFrame(time: number) {

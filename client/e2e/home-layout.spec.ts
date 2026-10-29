@@ -12,13 +12,9 @@ async function getNoviceSession(request: APIRequestContext) {
   return noviceSession!;
 }
 
-for (const theme of ["light", "dark"] as const) {
-  test(`${theme} novice home keeps artwork separate from labels at short and narrow sizes`, async ({ page, request }) => {
+test("novice home keeps artwork separate from labels at short and narrow sizes", async ({ page, request }) => {
     const { sessionToken } = await getNoviceSession(request);
-    await page.addInitScript(({ token, theme }) => {
-      localStorage.setItem("cardastika.session.token", token);
-      localStorage.setItem("cardastika.game-theme", theme);
-    }, { token: sessionToken, theme });
+    await page.addInitScript((token) => localStorage.setItem("cardastika.session.token", token), sessionToken);
 
     for (const viewport of [{ width: 320, height: 568 }, { width: 375, height: 668 }, { width: 430, height: 932 }, { width: 668, height: 375 }]) {
       await page.setViewportSize(viewport);
@@ -44,7 +40,7 @@ for (const theme of ["light", "dark"] as const) {
         }
         return failures;
       });
-      expect(defects, `${theme} ${viewport.width}×${viewport.height}`).toEqual([]);
+      expect(defects, `${viewport.width}×${viewport.height}`).toEqual([]);
       const contrast = await page.locator('[data-mode="tournament"] .mode-tile__status').evaluate((element) => {
         const luminance = (color: string) => {
           const [r, g, b] = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((value) => value / 255).map((value) => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -69,7 +65,6 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.locator(".bottom-navigation button")).toHaveText(["Головна", "Профіль", "Гільдія"]);
     }
   });
-}
 
 test("settings fit provider widgets and section titles inside their frames after resizing", async ({ page, request }) => {
   const { sessionToken } = await getNoviceSession(request);

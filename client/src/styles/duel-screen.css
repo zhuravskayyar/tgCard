@@ -776,9 +776,12 @@
 }
 
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-action-hint {
+  /* Sits on the dark wooden frame between panels, so it uses the light parchment ink. */
   margin: 0;
-  color: var(--home-ink);
-  letter-spacing: .08em;
+  color: #f1e2bf;
+  font: 700 13px/1.2 var(--font-display);
+  letter-spacing: .06em;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
 }
 
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log {
@@ -933,3 +936,129 @@
     animation: none;
   }
 }
+
+/* Duel battle surfaces are painted sprites only; CSS here does layout and sprite slicing.
+   Nameplate sprite (1000x188): avatar socket x 50-168 / y 30-154, parchment field from x 231. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle {
+  gap: 8px;
+  padding: 4px 0 12px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel {
+  --plate-h: clamp(70px, 21vw, 84px);
+  height: var(--plate-h);
+  min-height: 0;
+  grid-template-columns: calc(var(--plate-h) * 118 / 188) minmax(0, 1fr);
+  column-gap: calc(var(--plate-h) * 80 / 188);
+  align-items: center;
+  padding: calc(var(--plate-h) * 30 / 188) calc(var(--plate-h) * 70 / 188) calc(var(--plate-h) * 34 / 188) calc(var(--plate-h) * 50 / 188);
+  background: none;
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/duel/nameplate-v1.webp") 0 70 0 231 fill / 0 calc(var(--plate-h) * 70 / 188) 0 calc(var(--plate-h) * 231 / 188) / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgb(40 25 12 / 30%));
+}
+/* The portrait fills the socket painted into the plate, which already frames it. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel .duel-avatar {
+  width: 100%;
+  height: calc(var(--plate-h) * 124 / 188);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel .duel-avatar > :is(img, span) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel .duel-avatar > span {
+  display: grid;
+  place-items: center;
+  color: var(--home-ink);
+  background: linear-gradient(145deg, rgb(247 232 198), rgb(190 159 111));
+  font: 700 15px/1 var(--font-display);
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body { row-gap: 4px; align-content: center; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child strong { font: 700 clamp(14px, 4vw, 16px)/1.1 var(--font-display); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child span { font: 600 11px/1.2 var(--font-body); color: var(--home-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value strong { font: 700 14px/1 var(--font-display); }
+
+/* HP trough sprite (1000x51): dark channel inset x 44, y 15-36; the fill strip sprite sits inside it. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-bar {
+  --bar-h: 16px;
+  height: var(--bar-h);
+  padding: calc(var(--bar-h) * 15 / 51) calc(var(--bar-h) * 44 / 51);
+  overflow: hidden;
+  background: none;
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/duel/hp-trough-v1.webp") 0 50 0 50 fill / 0 calc(var(--bar-h) * 50 / 51) / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-bar > span {
+  display: block;
+  height: 100%;
+  background: none;
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/duel/hp-fill-player-v1.webp") 0 28 0 28 fill / 0 4px / 0 stretch;
+  border-radius: 0;
+  transition: width 700ms ease;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel--enemy .duel-hp-bar > span {
+  border-image-source: url("/assets/ui/duel/hp-fill-enemy-v1.webp");
+}
+
+/* Battle mat sprite (900x1000): its gold frame sits about 8% in from each edge. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-board {
+  padding: 8.5% 9% 8%;
+  background: url("/assets/ui/duel/board-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Multipliers are pressed into wax seals: slate for weak, bronze for even, crimson for strong. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier-row { align-items: center; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier {
+  display: grid;
+  justify-self: center;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: #fbeccb;
+  background: url("/assets/ui/duel/seal-1-v1.webp") center / contain no-repeat;
+  font: 700 14px/1 var(--font-display);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 75%);
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--0-5 { color: #e6eef5; background-image: url("/assets/ui/duel/seal-0-5-v1.webp"); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--1-5 { color: #ffe7a6; background-image: url("/assets/ui/duel/seal-1-5-v1.webp"); }
+
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-action-hint {
+  color: var(--home-ink);
+  text-shadow: 0 1px 0 rgb(255 246 220 / 60%);
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log {
+  padding: 16px 18px 18px;
+  background: none;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log h2 { font: 700 17px/1.1 var(--font-display); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row + .battle-log-row {
+  /* An engraved ink rule instead of a box between rows. */
+  border-top: 1px dashed rgb(105 76 40 / 35%);
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-damage { font: 700 18px/1 var(--font-display); }

@@ -15,7 +15,8 @@
   box-shadow: none;
   filter: var(--home-frame-shadow);
 }
-.app-shell .app-content .screen-heading--back { grid-template-columns: 44px minmax(0, 1fr); padding-left: 12px; }
+/* The 44px back target must fit inside the plaque, otherwise it pushes the title below centre. */
+.app-shell .app-content .screen-heading--back { grid-template-columns: 44px minmax(0, 1fr); padding-block: 2px; padding-left: 14px; }
 .app-shell .app-content .screen-heading--action { grid-template-columns: minmax(0, 1fr) auto; padding-right: 40px; }
 .app-shell .app-content .screen-heading--back.screen-heading--action { grid-template-columns: 44px minmax(0, 1fr) auto; }
 .screen-heading__copy { display: grid; min-width: 0; gap: 2px; }
@@ -24,7 +25,8 @@
 .app-shell .app-content .screen-heading__eyebrow,
 .app-shell .app-content .screen-heading p { margin: 0; color: var(--home-ink-muted); font: 500 11px/1.25 var(--font-label); overflow-wrap: anywhere; }
 .app-shell .app-content .screen-heading__back { display: grid; place-items: center; min-width: 44px; width: 44px; min-height: 44px; padding: 0; color: var(--home-ink); background: transparent; border: 0; box-shadow: none; cursor: pointer; }
-.screen-heading__back .app-icon { transform: rotate(180deg); }
+.screen-heading__back .app-icon { width: 22px !important; height: 22px !important; stroke-width: 2.6; transform: rotate(180deg); }
+.app-shell .app-content .screen-heading__back:active .app-icon { transform: rotate(180deg) translateX(2px); }
 .screen-heading__back:disabled { opacity: .5; cursor: wait; }
 .screen-heading__action { display: flex; min-width: 0; max-width: 95px; align-items: center; justify-content: flex-end; color: var(--home-ink); font: 700 13px/1.2 var(--font-number); overflow-wrap: anywhere; }
 .screen-heading__action strong { color: inherit; }

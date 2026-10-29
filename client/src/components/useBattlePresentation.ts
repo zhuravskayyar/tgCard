@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import type { DuelExchange } from "@cardastika/shared";
-import { BATTLE_ATTACK_DURATION_MS } from "./BattleAttackAnimation";
+import { BATTLE_ATTACK_DURATION_MS, BATTLE_ATTACK_END_EVENT } from "./BattleAttackAnimation";
+
+// Safety net only: the strike normally ends on its own animation event, even when its first frames were delayed.
+const ATTACK_END_FALLBACK_MS = BATTLE_ATTACK_DURATION_MS + 900;
+
+function waitForAttackEnd(done: () => void) {
+  const timer = window.setTimeout(done, ATTACK_END_FALLBACK_MS);
+  const handle = () => done();
+  window.addEventListener(BATTLE_ATTACK_END_EVENT, handle, { once: true });
+  return () => {
+    window.clearTimeout(timer);
+    window.removeEventListener(BATTLE_ATTACK_END_EVENT, handle);
+  };
+}
 
 export function useBattleExchange(latest: DuelExchange | null, identity: string | number | undefined = latest?.turnNumber) {
   const lastTurn = useRef(identity);
@@ -12,8 +25,7 @@ export function useBattleExchange(latest: DuelExchange | null, identity: string 
   }, [latest, identity]);
   useEffect(() => {
     if (!exchange) return;
-    const timer = window.setTimeout(() => setExchange(null), BATTLE_ATTACK_DURATION_MS);
-    return () => window.clearTimeout(timer);
+    return waitForAttackEnd(() => setExchange(null));
   }, [exchange]);
   return exchange;
 }
@@ -28,8 +40,7 @@ export function useBattleResultReady(active: boolean, finished: boolean) {
     wasActive.current = active;
     if (!shouldWait) { setWaiting(false); return; }
     setWaiting(true);
-    const timer = window.setTimeout(() => setWaiting(false), BATTLE_ATTACK_DURATION_MS);
-    return () => window.clearTimeout(timer);
+    return waitForAttackEnd(() => setWaiting(false));
   }, [active, finished]);
   return finished && !justFinished && !waiting;
 }

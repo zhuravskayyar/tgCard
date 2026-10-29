@@ -106,10 +106,35 @@
   box-shadow: 0 1px 3px #000;
 }
 
-.card-hud__protection .app-icon,
-.card-hud__upgrade .app-icon { width: 58%; height: 58%; }
-.card-hud__upgrade { color: #b9e69a; }
-.card-hud__upgrade--gold { color: #f4d786; }
+.card-hud__protection .app-icon { width: 58%; height: 58%; }
+
+/* Upgrade arrow: no badge, just a bold bevelled arrow that bobs gently in the card's lower-left corner. */
+.card-hud__upgrade {
+  --arrow-fill-top: #b6f56a;
+  --arrow-fill-bottom: #2f8f1c;
+  --arrow-edge: #0f2a08;
+  --arrow-glow: rgb(120 230 70 / 70%);
+  bottom: 4%;
+  left: 4%;
+  width: 21%;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 0 3px var(--arrow-glow)) drop-shadow(0 1px 1px rgb(0 0 0 / 80%));
+}
+.card-hud__upgrade--gold {
+  --arrow-fill-top: #fff1a8;
+  --arrow-fill-bottom: #c08414;
+  --arrow-edge: #3a2104;
+  --arrow-glow: rgb(255 205 60 / 75%);
+}
+/* The span keeps the card's parallax transform; only the arrow inside bobs. */
+.card-hud__upgrade-arrow { display: block; width: 100%; height: 100%; overflow: visible; animation: card-upgrade-bob 1.6s ease-in-out infinite; }
+.card-hud__upgrade-body { fill: var(--arrow-fill-bottom); stroke: var(--arrow-edge); stroke-width: 2; stroke-linejoin: round; paint-order: stroke; }
+.card-hud__upgrade-light { fill: var(--arrow-fill-top); opacity: .9; }
+@keyframes card-upgrade-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12%); } }
+@media (prefers-reduced-motion: reduce) { .card-hud__upgrade-arrow { animation: none; } }
 
 .card-artwork,
 .collection-card-visual > .card-artwork,
@@ -239,4 +264,51 @@
 
 @media (prefers-reduced-motion: reduce) {
   .deck-card:hover:not(:disabled) { transform: none; }
+}
+
+/* Standalone element medallion: card emblem art with a periodic light sweep and a soft element glow. */
+.element-medallion {
+  --medallion-size: 30px;
+  --medallion-glow: #ffd84a;
+  --medallion-delay: 0s;
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: var(--medallion-size);
+  height: var(--medallion-size);
+  isolation: isolate;
+}
+.element-medallion--fire { --medallion-glow: #ff7a2a; --medallion-delay: 0s; }
+.element-medallion--water { --medallion-glow: #35b4ff; --medallion-delay: .7s; }
+.element-medallion--earth { --medallion-glow: #8fdc4e; --medallion-delay: 1.4s; }
+.element-medallion--air { --medallion-glow: #ffd84a; --medallion-delay: 2.1s; }
+.element-medallion__emblem,
+.element-medallion__emblem > svg { display: block; width: 100%; height: 100%; }
+.element-medallion__emblem { animation: element-medallion-lift 5.6s ease-in-out var(--medallion-delay) infinite; }
+.element-medallion__glow {
+  position: absolute;
+  inset: -38%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--medallion-glow) 70%, transparent) 0, transparent 64%);
+  opacity: .32;
+  animation: element-medallion-pulse 3.8s ease-in-out var(--medallion-delay) infinite;
+  pointer-events: none;
+}
+.element-medallion__shine {
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(118deg, transparent 38%, rgb(255 249 228 / 78%) 49%, rgb(255 249 228 / 0%) 60%) 160% 0 / 260% 100% no-repeat;
+  mix-blend-mode: screen;
+  animation: element-medallion-sweep 5.6s ease-in-out var(--medallion-delay) infinite;
+  pointer-events: none;
+}
+@keyframes element-medallion-pulse { 0%, 100% { opacity: .22; transform: scale(.92); } 50% { opacity: .5; transform: scale(1.04); } }
+@keyframes element-medallion-sweep { 0%, 62% { background-position: 160% 0; } 82%, 100% { background-position: -60% 0; } }
+@keyframes element-medallion-lift { 0%, 62%, 100% { filter: brightness(1); } 72% { filter: brightness(1.14) saturate(1.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .element-medallion__emblem, .element-medallion__glow, .element-medallion__shine { animation: none; }
+  .element-medallion__shine { opacity: 0; }
 }

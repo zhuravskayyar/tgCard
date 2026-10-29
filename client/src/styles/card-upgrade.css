@@ -173,40 +173,9 @@
   :root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon { transition: none; }
 }
 
-/* Card detail: compact HUD, a readable parchment plate, and natural scrolling. */
+/* Card detail: the shared TopHud stays unchanged; the screen keeps a readable plate and natural scrolling. */
 :root .app-shell:has(.card-detail-screen) {
   max-width: 425px;
-  --hud-frame-width: min(100vw, 425px);
-  --hud-height: clamp(60px, calc(var(--hud-frame-width) / 6.2), 69px);
-  --hud-avatar-size: clamp(31px, calc(var(--hud-frame-width) * .083), 36px);
-}
-:root .app-shell:has(.card-detail-screen) .top-hud__main {
-  grid-template-columns: minmax(0, 1fr) min(174px, 42%);
-  padding-block: 5px;
-}
-:root .app-shell:has(.card-detail-screen) .top-hud__player,
-:root .app-shell:has(.card-detail-screen) .player-identity,
-:root .app-shell:has(.card-detail-screen) .player-identity__headline,
-:root .app-shell:has(.card-detail-screen) .nickname-skin--compact {
-  min-width: 0;
-  max-width: 100%;
-}
-:root .app-shell:has(.card-detail-screen) .player-identity__headline,
-:root .app-shell:has(.card-detail-screen) .nickname-skin--compact,
-:root .app-shell:has(.card-detail-screen) .nickname-skin--compact .nickname { overflow: hidden; }
-:root .app-shell:has(.card-detail-screen) .nickname-skin--compact .nickname {
-  display: block;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:root .app-shell:has(.card-detail-screen) .currency-list { align-items: center; }
-:root .app-shell:has(.card-detail-screen) .currency-display__value {
-  color: var(--home-ink);
-  font-weight: 900;
-  text-shadow: none;
-  background-image: none;
-  -webkit-text-fill-color: currentColor;
-  -webkit-text-stroke: 0;
 }
 
 :root .app-shell .app-content:has(.card-detail-screen) {
@@ -249,8 +218,12 @@
 }
 :root .app-shell .card-detail-screen .card-detail-overview__side { gap: 5px; }
 :root .app-shell .card-detail-screen .card-detail-reference-stats {
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  aspect-ratio: 2079 / 756;
+  grid-template-rows: repeat(3, auto);
+  align-content: space-evenly;
+  /* Height follows the three rows, so narrow phones never squeeze them together. */
+  aspect-ratio: auto;
+  row-gap: 2px;
+  padding-block: 12px 14px;
   gap: 0;
   padding: 5px 8% 10px;
   background: transparent;
@@ -570,3 +543,188 @@
 @media (prefers-reduced-motion: reduce) {
   :root .card-detail-screen .fx-layer.protected .fx-outline { animation: none; opacity: .55; }
 }
+
+/* Absorption progress: the same hand-drawn vine as the HUD experience bar, growing with absorbed elements. */
+:root .app-shell .card-detail-screen .progression-panel .level-progress {
+  height: auto;
+  margin: 0 4px;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .progression-panel .level-progress .experience-vine { width: 100%; }
+
+/* The absorption expander wears the same clasp strip and engraved icon as the menu rows below it. */
+:root .app-shell .card-detail-screen .weak-cards-heading {
+  --upgrade-weak-height: 52px;
+  height: var(--upgrade-weak-height);
+  min-height: var(--upgrade-weak-height);
+  grid-template-columns: 38px minmax(0, 1fr) auto 18px;
+  column-gap: 10px;
+  margin-bottom: 4px;
+  padding: 4px 9% 4px 9%;
+  background: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-image: none;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 38px; height: 38px; object-fit: contain; }
+:root .app-shell .card-detail-screen .weak-cards-heading__title {
+  overflow: visible;
+  font-size: clamp(14px, 4.2vw, 17px);
+  line-height: 1.1;
+  text-overflow: clip;
+  text-transform: none;
+  white-space: normal;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading > small {
+  min-width: 40px;
+  min-height: 22px;
+  padding: 0 10px;
+  color: #f4e2b8;
+  background: url("/assets/ui/home/deck-counter-tag-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Upgrade plate: hint, vine, button and the one-line "Сила / Ціна" summary share one frame, as one action. */
+:root .app-shell .card-detail-screen .progression-panel--reference {
+  margin-top: 4px;
+  padding: 16px 18px 16px;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+}
+:root .app-shell .card-detail-screen .progression-panel__content { gap: 6px; }
+:root .app-shell .card-detail-screen .progression-panel--reference .progression-panel__external-hint {
+  margin: 0;
+  color: var(--home-ink-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  padding: 0;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div + div::before { display: none; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span {
+  color: var(--home-ink-muted);
+  font: 600 14px/1 var(--font-display);
+}
+
+/* With no weak cards of this element, one quiet line replaces the absorption expander. */
+:root .app-shell .card-detail-screen .absorption-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+  padding-inline: 12px;
+  color: var(--home-ink-muted);
+  font: 600 clamp(12.5px, 3.8vw, 14px)/1.3 var(--font-display);
+  text-align: center;
+}
+:root .app-shell .card-detail-screen .absorption-panel[hidden] { display: none; }
+
+/* Protection switch: readable label, a clear lock, and a thumb that stays clear of the frame's corner studs. */
+:root .app-shell .card-detail-screen .card-protection-toggle {
+  grid-template-columns: 20px minmax(0, 1fr) 42px;
+  gap: 8px;
+  height: 42px;
+  min-height: 42px;
+  padding: 3px 18px 3px 16px;
+}
+:root .app-shell .card-detail-screen .card-protection-toggle > .app-icon { width: 19px; height: 19px; }
+:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) {
+  font: 700 clamp(12.5px, 3.6vw, 14px)/1.1 var(--font-display);
+}
+:root .app-shell .card-detail-screen .card-protection-toggle__switch { width: 42px; height: 24px; padding: 2px; }
+:root .app-shell .card-detail-screen .card-protection-toggle__switch > span { width: 18px; height: 18px; transition: transform 160ms ease-out; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch > span { transform: translateX(18px); }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] > .app-icon { filter: drop-shadow(0 0 3px rgb(120 200 90 / 60%)); }
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__switch > span { transition: none; }
+}
+/* On narrow phones the switch itself shows the state; the label shortens instead of truncating. */
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-protection-toggle { gap: 6px; padding-inline: 14px 16px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle__state { display: none; }
+}
+
+/* The card is the hero of this screen: give it about 45% of the width, stats and switch stay beside it. */
+:root .app-shell .card-detail-screen .card-detail-overview__main {
+  grid-template-columns: minmax(128px, 45%) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+:root .app-shell .card-detail-screen .card-detail-overview__side { align-content: center; gap: 8px; }
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-detail-overview__main { grid-template-columns: minmax(118px, 43%) minmax(0, 1fr); gap: 8px; }
+}
+
+/* Weak cards shown inline, as in the reference: a ribbon title, cards, and "Поглинути +N%" under each. */
+:root .app-shell .card-detail-screen .absorption-panel {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .absorption-panel__title { justify-self: stretch; margin: 4px 0 0; }
+:root .app-shell .card-detail-screen .absorption-grid--inline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .absorption-card-slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: clamp(76px, 22vw, 92px);
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { width: 100%; height: auto; }
+:root .app-shell .card-detail-screen .absorption-card-slot__action {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 2px 4px;
+  color: var(--home-ink);
+  background: none;
+  border: 0;
+  font: 700 13px/1.15 var(--font-display);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:root .app-shell .card-detail-screen .absorption-card-slot__action > span { text-decoration: underline; text-decoration-color: rgb(109 62 16 / 55%); text-underline-offset: 3px; }
+:root .app-shell .card-detail-screen .absorption-card-slot__action > strong { color: var(--state-success); font: 800 14px/1 var(--font-display); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action:active { transform: translateY(1px); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action:disabled { opacity: .55; cursor: default; }
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { display: block; aspect-ratio: 240 / 312; min-height: 0; }
+:root .app-shell .card-detail-screen .absorption-grid--inline { min-height: 0; overflow: visible; }
+
+/* The screen is now a plain vertical flow; the old fixed rows sized the collapsed expander. */
+:root .app-shell .card-detail-screen[data-expanded-panel] { grid-template-rows: none; grid-auto-rows: auto; }
+:root .app-shell .card-detail-screen .absorption-panel { grid-template-rows: none; grid-auto-rows: auto; min-height: auto; overflow: visible; }
+:root .app-shell .card-detail-screen .absorption-grid--inline { grid-auto-flow: row; grid-template-rows: none; padding: 0; overflow: visible; }
+@media (max-width: 440px) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__state { display: none; }
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .absorption-card-slot { flex: 0 0 auto; max-width: none; aspect-ratio: auto; overflow: visible; }
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { height: auto; }

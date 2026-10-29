@@ -1,9 +1,9 @@
 /* Cardastika: shared warm stone, wood and bronze tokens. */
 :root {
-  --font-body: "Roboto Condensed", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Philosopher", "Segoe UI", serif;
+  --font-body: "Alegreya Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lugatype", "Alegreya Sans", Georgia, serif;
   --font-number: "Cardastika Numbers", Georgia, "Times New Roman", serif;
-  --font-label: "Roboto Condensed", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Alegreya Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --bg-page: #0d0b08;
   --bg-app: #14110d;
   --bg-panel: #1b1712;

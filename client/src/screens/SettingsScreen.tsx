@@ -5,7 +5,6 @@ import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { getRawTelegramInitData } from "../telegram";
-import { getGameTheme, setGameTheme, type GameTheme } from "../theme";
 import {
   AccountLinkError,
   linkGoogleAccount,
@@ -68,7 +67,6 @@ function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: Accou
 
 export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSummaryState, showTutorialReplay }: SettingsScreenProps) {
   const isLocalBrowser = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-  const [gameTheme, setSelectedGameTheme] = useState<GameTheme>(() => getGameTheme());
   const [identities, setIdentities] = useState<AuthIdentityView[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -182,16 +180,6 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-interface">
         <h2 id="settings-interface">ІНТЕРФЕЙС</h2>
         <div className="settings-card settings-options">
-          <div className="settings-theme-row">
-            <div className="settings-theme-copy">
-              <strong>Тема гри</strong>
-              <span>Змінює оформлення інтерфейсу</span>
-            </div>
-            <div aria-label="Тема гри" className="settings-theme-switch" role="group">
-              <button aria-pressed={gameTheme === "dark"} onClick={() => { setGameTheme("dark"); setSelectedGameTheme("dark"); }} type="button">Темна</button>
-              <button aria-pressed={gameTheme === "light"} onClick={() => { setGameTheme("light"); setSelectedGameTheme("light"); }} type="button">Світла</button>
-            </div>
-          </div>
           <MenuRow compact disabled icon="deck" metalTexture title="Анімації — незабаром" />
           <MenuRow compact disabled icon="card-strength" metalTexture title="Ефекти карт — незабаром" />
         </div>

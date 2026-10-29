@@ -85,6 +85,7 @@ export function HomeScreen({ onOpenBattlePass, onOpenCampaign, onResumeTutorial,
               key={action.title}
               chevron
               icon={action.icon}
+              iconSrc={homeSprite(`row-icon-${action.icon}`)}
               illustrationSrc={homeSprite(action.sprite)}
               metalTexture
               onClick={action.icon === "tasks" ? onOpenTasks : action.icon === "battle-pass" ? onOpenBattlePass : action.icon === "equipment" ? onOpenEquipment : action.icon === "shop" ? onOpenShop : action.icon === "collection" ? onOpenCollections : action.icon === "ranking" ? onOpenLeaderboard : undefined}

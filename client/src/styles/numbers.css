@@ -7,6 +7,15 @@
   unicode-range: U+0030-0039;
 }
 
+/* The full Lugatype face for display text; %, № and ʼ fall through to Alegreya Sans. */
+@font-face {
+  font-family: "Lugatype";
+  src: url("/fonts/lugatype.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 /* The same numeral outlines and engraved metal bands as the card trays. */
 :root .app-shell {
   --number-metal-top: #f4dfa5;

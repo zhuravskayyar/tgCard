@@ -10,16 +10,12 @@ async function openScreen(page: Page, path: string) {
   if (await intro.isVisible()) await intro.click();
 }
 
-for (const theme of ["dark", "light"] as const) {
-  test(`${theme} theme keeps screens, artwork and the player shell usable at mobile widths`, async ({ page, request }) => {
+test("parchment theme keeps screens, artwork and the player shell usable at mobile widths", async ({ page, request }) => {
     test.setTimeout(180_000);
     const login = await request.post("/api/dev/login", { data: { accountKey: "guild_leader" } });
     expect(login.ok()).toBe(true);
     const { sessionToken } = await login.json();
-    await page.addInitScript(({ token, theme }) => {
-      localStorage.setItem("cardastika.session.token", token);
-      localStorage.setItem("cardastika.game-theme", theme);
-    }, { token: sessionToken as string, theme });
+    await page.addInitScript((token) => localStorage.setItem("cardastika.session.token", token), sessionToken as string);
     const runtimeErrors: string[] = [];
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
     const paths = ["/", "/deck", "/shop", "/profile", "/settings", "/inventory", "/cards/weak", "/collections", "/equipment", "/forge", "/duel", "/arena", "/guild", "/tasks", "/battle-pass", "/mail", "/leagues"];
@@ -35,7 +31,7 @@ for (const theme of ["dark", "light"] as const) {
           viewport: document.documentElement.clientWidth,
           content: document.documentElement.scrollWidth,
         }));
-        expect(layout.content, `${theme} ${width}px ${path}`).toBeLessThanOrEqual(layout.viewport);
+        expect(layout.content, `${width}px ${path}`).toBeLessThanOrEqual(layout.viewport);
         if (path !== "/") await expect(page.locator(".screen-heading").first()).toBeVisible();
         if (path === "/duel") {
           const panel = page.locator(".duel-search-experience");
@@ -43,8 +39,7 @@ for (const theme of ["dark", "light"] as const) {
           await expect(panel).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
           await expect(panel).toHaveCSS("box-shadow", "none");
           await expect(panel).toHaveCSS("border-top-width", "0px");
-          const family = theme === "light" ? "theme-book" : "theme-dark";
-          expect(await panel.evaluate((element) => getComputedStyle(element).borderImageSource)).toContain(family);
+          expect(await panel.evaluate((element) => getComputedStyle(element).borderImageSource)).toContain("theme-book");
         }
       }
       await openScreen(page, "/deck");
@@ -56,21 +51,10 @@ for (const theme of ["dark", "light"] as const) {
     }
     expect(runtimeErrors).toEqual([]);
   });
-}
 
-test("switching the theme changes materials immediately and survives a reload", async ({ page, request }) => {
-  const login = await request.post("/api/dev/login", { data: { accountKey: "guild_leader" } });
-  const { sessionToken } = await login.json();
+test("the only parchment theme is applied on load", async ({ page }) => {
   await page.goto("/");
-  await page.evaluate((token) => localStorage.setItem("cardastika.session.token", token), sessionToken as string);
-  await openScreen(page, "/settings");
-  await page.getByRole("button", { name: "Світла", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-game-theme", "light");
-  await expect(page.locator(".screen-heading")).toHaveCSS("border-image-source", /theme-book/);
-  await page.getByRole("button", { name: "Темна", exact: true }).click();
-  await expect(page.locator(".screen-heading")).toHaveCSS("border-image-source", /theme-dark/);
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-game-theme", "dark");
 });
 
 test("shared heading back buttons preserve the deck and card return routes", async ({ page, request }) => {
@@ -85,7 +69,7 @@ test("shared heading back buttons preserve the deck and card return routes", asy
   await page.locator(".deck-grid button").first().click();
   await expect(page.locator(".card-detail-screen")).toBeVisible();
   const ink = await page.locator(".card-protection-toggle > span:not(.card-protection-toggle__switch)").evaluate((element) => getComputedStyle(element).color);
-  expect(ink).toBe("rgb(243, 232, 214)");
+  expect(ink).toBe("rgb(45, 27, 14)");
   const currencyInk = await page.locator(".currency-display__value").first().evaluate((element) => {
     const style = getComputedStyle(element);
     return { color: style.color, fill: style.webkitTextFillColor };

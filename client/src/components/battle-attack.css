@@ -1,3 +1,4 @@
+/* Layout only: motion, particles and the damage float are scripted in BattleAttackAnimation. */
 .battle-attack {
   position: absolute;
   z-index: 15;
@@ -14,18 +15,10 @@
   overflow: visible;
   pointer-events: none;
   transform-origin: center;
-  will-change: transform, filter;
+  will-change: transform;
 }
-
-.battle-attack__card--player {
-  z-index: 2;
-  animation: battle-player-strike var(--attack-duration) cubic-bezier(.2, .76, .28, 1) both;
-}
-
-.battle-attack__card--enemy {
-  z-index: 1;
-  animation: battle-enemy-impact var(--attack-duration) ease-out both;
-}
+.battle-attack__card--enemy { z-index: 1; }
+.battle-attack__card--player { z-index: 2; }
 
 .battle-attack__fx {
   position: absolute;
@@ -39,44 +32,30 @@
 .battle-attack__damage {
   position: absolute;
   z-index: 4;
-  color: #fff2cd;
+  display: grid;
+  justify-items: center;
   font-family: var(--font-display);
-  font-size: clamp(18px, 6vw, 25px);
-  font-weight: 900;
   line-height: 1;
-  text-shadow: 0 2px 3px #25170c, 0 0 10px #18100a;
-  transform: translate(-50%, -15%);
-  animation: battle-damage var(--attack-duration) ease-out both;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #000, 0 0 10px #000;
+  pointer-events: none;
+  animation: battle-damage-float 1200ms ease-out both;
 }
+.battle-attack__damage b { color: #fff; font-size: 30px; }
+.battle-attack__damage small { color: #eadfc4; font: 600 12px/1.2 var(--font-body); letter-spacing: .04em; }
+.battle-attack__damage--strong b { color: #ffe08a; font-size: 44px; text-shadow: 0 0 14px #ff9a1f, 0 3px 0 #5a2a00; }
+.battle-attack__damage--strong small { color: #ffd27a; }
+.battle-attack__damage--weak b { color: #cfe0ff; font-size: 22px; }
+.battle-attack__damage--weak small { color: #a9bad6; }
+.battle-attack__damage--counter b { color: #ffc0a8; font-size: 22px; }
 
-.battle-attack__damage--enemy { color: #ffc0a8; }
-.battle-attack--strong .battle-attack__damage { color: #ffe29b; }
-
-@keyframes battle-player-strike {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1) rotateZ(0); filter: drop-shadow(0 7px 6px #0008); }
-  11% { transform: translate3d(0, var(--attack-lift-y), 0) scale(1.06) rotateZ(-1deg); }
-  24% { transform: translate3d(0, var(--attack-lift-y), 0) scale(1.1) rotateZ(1deg); filter: drop-shadow(0 0 12px color-mix(in srgb, var(--element-glow) 66%, transparent)) drop-shadow(0 12px 8px #0008); }
-  50% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(1.18) rotateZ(0); filter: drop-shadow(0 0 18px var(--element-glow)) drop-shadow(0 12px 8px #0008); }
-  59% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(.98) rotateZ(-2deg); }
-  68% { transform: translate3d(var(--attack-x), var(--attack-y), 0) scale(1.04) rotateZ(1deg); }
-  100% { transform: translate3d(0, 0, 0) scale(1) rotateZ(0); }
-}
-
-@keyframes battle-enemy-impact {
-  0%, 42%, 76%, 100% { transform: translate3d(0, 0, 0) rotateZ(0); filter: none; }
-  47% { transform: translate3d(-2px, -3px, 0) rotateZ(-1.5deg); filter: brightness(1.65) saturate(.72); }
-  53% { transform: translate3d(3px, 2px, 0) rotateZ(1deg); filter: brightness(1.24); }
-  61% { transform: translate3d(-1px, 1px, 0) rotateZ(-.4deg); }
-}
-
-@keyframes battle-damage {
-  0%, 40% { opacity: 0; transform: translate(-50%, 3px) scale(.7); }
-  49% { opacity: 1; transform: translate(-50%, -9px) scale(1.12); }
-  60% { opacity: 1; transform: translate(-50%, -16px) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -32px) scale(.92); }
+@keyframes battle-damage-float {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
+  18% { opacity: 1; transform: translate(-50%, -100%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -210%) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .battle-attack__card { animation: none !important; transform: none; }
-  .battle-attack__damage { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+  .battle-attack__damage { animation: none; transform: translate(-50%, -100%); }
 }

@@ -82,7 +82,7 @@ export function App() {
   const initialShopReturnScreen = isOneOf(initialFrom, ["home", "deck", "collection", "campaign-stage", "tasks"] as const) ? initialFrom : "home";
   const initialMailReturnScreen = isOneOf(initialFrom, ["home", "profile"] as const) ? initialFrom : "home";
   const initialDuelReturnScreen = isOneOf(initialFrom, ["home", "campaign-stage", "tasks"] as const) ? initialFrom : "home";
-  const initialWeakReturnScreen = isOneOf(initialFrom, ["card", "campaign-stage", "home"] as const) ? initialFrom : "home";
+  const initialWeakReturnScreen = isOneOf(initialFrom, ["card", "campaign-stage", "deck", "home"] as const) ? initialFrom : "home";
   const initialCollectionsReturnScreen = isOneOf(initialFrom, ["home", "campaign-stage"] as const) ? initialFrom : "home";
   const initialCardReturnScreen = isOneOf(initialFrom, ["deck", "weak", "collection-card"] as const) ? initialFrom : "deck";
   const [screen, setScreen] = useState<Screen>(initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "campaign-stage" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/forge" ? "forge" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : "home");
@@ -90,7 +90,7 @@ export function App() {
   const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck" | "collection" | "campaign-stage" | "tasks">(initialShopReturnScreen);
   const [mailReturnScreen, setMailReturnScreen] = useState<"home" | "profile">(initialMailReturnScreen);
   const [duelReturnScreen, setDuelReturnScreen] = useState<"home" | "campaign-stage" | "tasks">(initialDuelReturnScreen);
-  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "campaign-stage" | "home">(initialWeakReturnScreen);
+  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "campaign-stage" | "deck" | "home">(initialWeakReturnScreen);
   const [collectionsReturnScreen, setCollectionsReturnScreen] = useState<"home" | "campaign-stage">(initialCollectionsReturnScreen);
   const [campaignStageId, setCampaignStageId] = useState(() => decodeURIComponent(initialCampaignStage?.[1] ?? "") || "stage_1");
   const [cardInstanceId, setCardInstanceId] = useState<string | null>(() => decodeURIComponent(initialCard?.[1] ?? "") || null);
@@ -313,6 +313,12 @@ export function App() {
 
   function openCardDeck() {
     openDeck(cardOpenedFromCampaign() ? "campaign-stage" : cardReturnScreen === "deck" ? deckReturnScreen : "home");
+  }
+
+  function openDeckWeakCards() {
+    setWeakReturnScreen("deck");
+    setScreen("weak");
+    updatePath(withReturnPath("/cards/weak", "deck"));
   }
 
   function openCardWeakCards() {
@@ -631,15 +637,23 @@ export function App() {
       {screen === "deck" ? (
         <DeckScreen
           onBack={() => deckReturnScreen === "tasks" ? openTasks() : deckReturnScreen === "profile" ? navigateFromBottom("profile") : deckReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
+          onOpenCampaign={openCampaign}
           onOpenCard={(id) => openCard(id, "deck")}
+          onOpenDuel={() => openDuel()}
           onOpenShop={() => openShop("deck")}
+          onOpenTasks={openTasks}
+          onOpenWeakCards={openDeckWeakCards}
           showTutorialRule={tutorialDeckTraining}
         />
       ) : null}
       {screen === "weak" ? (
         <WeakCardsScreen
-          onBack={() => weakReturnScreen === "card" && cardInstanceId ? openCard(cardInstanceId, "weak") : weakReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
+          onBack={() => weakReturnScreen === "card" && cardInstanceId ? openCard(cardInstanceId, "weak") : weakReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : weakReturnScreen === "deck" ? openDeck(deckReturnScreen) : goHome()}
+          onOpenCampaign={openCampaign}
           onOpenCard={(id) => openCard(id, "weak")}
+          onOpenDeck={() => openDeck("home")}
+          onOpenDuel={() => openDuel()}
+          onOpenShop={() => openShop("deck")}
         />
       ) : null}
       {screen === "card" && cardInstanceId ? (

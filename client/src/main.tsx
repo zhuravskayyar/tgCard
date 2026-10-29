@@ -1,6 +1,10 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { RussianLanguageProvider } from "./i18n";
+import "./theme";
+import "@fontsource/alegreya-sans/400.css";
+import "@fontsource/alegreya-sans/500.css";
+import "@fontsource/alegreya-sans/700.css";
 import "./styles/global.css";
 import "./styles/tokens.css";
 import "./styles/theme-sprites.css";

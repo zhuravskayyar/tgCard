@@ -1,414 +1,546 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { CardElement, DuelExchange } from "@cardastika/shared";
-import { getBrightCutMaterialId } from "../cards/brightCutModel";
+import type { CardElement, CardRarity, DuelExchange } from "@cardastika/shared";
+import { BRIGHT_CUT_MATERIALS, ELEMENT_FINISH, GLOW, getBrightCutMaterialId } from "../cards/brightCutModel";
+import { holdCardMaterialAnimation } from "../cards/cardMaterialShader";
 import { CardFxWrapper } from "./CardFxWrapper";
 import { CardHud } from "./CardHud";
 import "./battle-attack.css";
 
-export const BATTLE_ATTACK_DURATION_MS = 1050;
+/** Longest strike (weak tier: slow flight) including the flip to the next cards; screens also wait for the end event. */
+export const BATTLE_ATTACK_DURATION_MS = 1550;
+/** Fired once the strike has really finished, so screens never cut it short when the first frames were slow. */
+export const BATTLE_ATTACK_END_EVENT = "cardastika:battle-attack-end";
 
-type CardPosition = CSSProperties & {
-  "--attack-x": string;
-  "--attack-y": string;
-  "--attack-lift-y": string;
-};
+function announceAttackEnd() {
+  window.dispatchEvent(new Event(BATTLE_ATTACK_END_EVENT));
+}
 
-interface AttackGeometry {
-  player: CardPosition;
+type Tier = "weak" | "even" | "strong";
+type Point = { x: number; y: number };
+
+interface Geometry {
+  player: CSSProperties;
   enemy: CSSProperties;
-  impact: { x: number; y: number };
-  playerDamage: { x: number; y: number };
-  enemyDamage: { x: number; y: number };
+  from: DOMRect;
+  to: DOMRect;
+  origin: DOMRect;
 }
 
-type ImpactParticleShape = "spark" | "ember" | "drop" | "shard" | "leaf" | "dust" | "bolt";
+// Timings per tier: a weak hit flies slowly and lands softly, a strong one is fast and heavy.
+const FLIGHT_MS: Record<Tier, number> = { weak: 480, even: 380, strong: 320 };
+const HIT_MS: Record<Tier, number> = { weak: 70, even: 120, strong: 220 };
+const FORCE: Record<Tier, number> = { weak: 0.55, even: 1, strong: 1.8 };
+const SHAKE: Record<Tier, [number, number]> = { weak: [3, 240], even: [7, 360], strong: [15, 620] };
+const RECOIL_MS: Record<Tier, number> = { weak: 380, even: 520, strong: 760 };
+const TIER_LABEL: Record<Tier, string> = { weak: "Слабкий удар", even: "Рівний удар", strong: "Сильний удар!" };
+const RISE_MS = 260;
+const RETURN_MS = 520;
+const FLIP_OUT_MS = 200;
+const FLIP_IN_MS = 260;
+// Particles live at most this many 60fps frames so the burst fades while the card returns.
+const MAX_PARTICLE_FRAMES = 42;
 
-interface ImpactParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  gravity: number;
-  drag: number;
-  rotation: number;
-  spin: number;
-  size: number;
-  color: string;
-  shape: ImpactParticleShape;
-  life: number;
-  maximumLife: number;
-}
-
-const ELEMENT_COLORS: Record<CardElement, { core: string; glow: string; fragment: string }> = {
-  fire: { core: "#fff0b5", glow: "#ff742b", fragment: "#ffb34f" },
-  water: { core: "#e8fbff", glow: "#39bfff", fragment: "#a9e8ff" },
-  earth: { core: "#efffc5", glow: "#8fcb50", fragment: "#836847" },
-  air: { core: "#fffce0", glow: "#f3d14c", fragment: "#f9e38b" },
+const tierOf = (multiplier: number): Tier => multiplier < 1 ? "weak" : multiplier > 1 ? "strong" : "even";
+const rnd = (min: number, max: number) => min + Math.random() * (max - min);
+const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)]!;
+const rgba = (hex: string, alpha: number) => {
+  const value = parseInt(hex.slice(1), 16);
+  return `rgba(${value >> 16},${(value >> 8) & 255},${value & 255},${alpha})`;
 };
+const transform = (x: number, y: number, rotateY: number, rotateZ: number, scale: number) =>
+  `perspective(900px) translate(${x}px, ${y}px) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`;
+const materialFor = (rarity: CardRarity) => BRIGHT_CUT_MATERIALS.find((material) => material.id === getBrightCutMaterialId(rarity)) ?? BRIGHT_CUT_MATERIALS[0]!;
 
-function randomBetween(minimum: number, maximum: number) {
-  return minimum + Math.random() * (maximum - minimum);
+type ParticleKind = "glow" | "smoke" | "ember" | "spark" | "drop" | "ring" | "rock" | "leaf" | "shred" | "star" | "bolt" | "crack";
+interface Particle {
+  kind: ParticleKind;
+  x: number; y: number; vx: number; vy: number;
+  gravity: number; drag: number;
+  life: number; maxLife: number; delay: number;
+  size: number; grow: number; squash: number; width: number;
+  rotation: number; spin: number; color: string; alpha: number;
+  points?: Array<[number, number]>;
 }
 
-function createImpactParticles(element: CardElement, level: "weak" | "normal" | "strong", metallic: boolean, x: number, y: number) {
-  const palette = ELEMENT_COLORS[element];
-  const particles: ImpactParticle[] = [];
-  const strong = level === "strong";
-  const weak = level === "weak";
-  const count = (strong ? 36 : weak ? 14 : 24) + (metallic ? 10 : 0);
-  const speedScale = weak ? 0.62 : 1;
+/** One canvas of short-lived impact particles, ported from the Cardastika duel FX stand. */
+class ImpactCanvas {
+  private particles: Particle[] = [];
+  private frame = 0;
+  private last = 0;
+  constructor(private readonly context: CanvasRenderingContext2D, private readonly width: number, private readonly height: number) {}
 
-  for (let index = 0; index < count; index += 1) {
-    const angle = randomBetween(0, Math.PI * 2);
-    const speed = (element === "water" ? randomBetween(2.5, 8) : randomBetween(2, strong ? 10 : 7)) * speedScale;
-    const shape: ImpactParticleShape = metallic
-      ? index % 4 === 0 ? "spark" : element === "fire" ? "ember" : element === "water" ? "drop" : "shard"
-      : element === "fire" ? index % 5 === 0 ? "dust" : "ember"
-        : element === "water" ? "drop"
-          : element === "earth" ? index % 4 === 0 ? "leaf" : "shard"
-            : index % 3 === 0 ? "bolt" : "spark";
-    const color = metallic && index % 3 === 0
-      ? index % 2 === 0 ? "#fff2c2" : "#d8e7eb"
-      : shape === "dust" ? "#46372b"
-        : shape === "shard" && element === "earth" ? ["#584530", "#8e7148", "#b2a076"][index % 3]!
-          : shape === "leaf" ? ["#72a83f", "#b4d976", "#d9eaa0"][index % 3]!
-            : shape === "drop" ? ["#ffffff", "#a9e8ff", palette.glow][index % 3]!
-              : shape === "bolt" ? palette.glow
-                : shape === "spark" ? palette.core
-                  : [palette.glow, palette.fragment, "#fff0b5"][index % 3]!;
-    const lifetime = randomBetween(18, strong ? 36 : 30);
-    particles.push({
-      x: x + Math.cos(angle) * randomBetween(0, 7),
-      y: y + Math.sin(angle) * randomBetween(0, 7),
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed + (element === "water" ? -2 : element === "fire" ? -1.5 : 0),
-      gravity: element === "earth" || element === "water" ? 0.16 : element === "fire" ? -0.035 : 0,
-      drag: element === "earth" ? 0.975 : 0.96,
-      rotation: angle,
-      spin: randomBetween(-0.16, 0.16),
-      size: shape === "dust" ? randomBetween(8, 17) : shape === "shard" ? randomBetween(3.5, 8) : randomBetween(1.4, 3.5),
-      color,
-      shape,
-      life: lifetime,
-      maximumLife: lifetime,
-    });
-  }
-  return particles;
-}
-
-function drawParticle(context: CanvasRenderingContext2D, particle: ImpactParticle) {
-  const alpha = Math.max(0, particle.life / particle.maximumLife);
-  context.save();
-  context.globalAlpha = alpha;
-  context.translate(particle.x, particle.y);
-  context.rotate(particle.rotation);
-  context.fillStyle = particle.color;
-  context.strokeStyle = particle.color;
-
-  if (particle.shape === "spark" || particle.shape === "bolt") {
-    const length = particle.shape === "bolt" ? particle.size * 7 : particle.size * 3.5;
-    context.lineWidth = particle.shape === "bolt" ? 1.8 : 1.25;
-    context.beginPath();
-    context.moveTo(-length * 0.3, 0);
-    if (particle.shape === "bolt") {
-      context.lineTo(-length * 0.12, -particle.size * 0.8);
-      context.lineTo(length * 0.02, particle.size * 0.45);
-      context.lineTo(length * 0.18, -particle.size * 0.55);
+  add(partial: Partial<Particle> & { kind: ParticleKind }) {
+    const life = Math.min(MAX_PARTICLE_FRAMES, partial.life ?? 30);
+    const particle: Particle = {
+      x: 0, y: 0, vx: 0, vy: 0, gravity: 0, drag: 1, delay: 0, size: 3, grow: 0, squash: 1, width: 1,
+      rotation: 0, spin: 0, color: "#ffffff", alpha: 1, ...partial, life, maxLife: life,
+    };
+    if (particle.kind === "rock") {
+      particle.points = Array.from({ length: 5 }, (_, index) => {
+        const angle = index / 5 * Math.PI * 2 + rnd(-0.3, 0.3);
+        const radius = particle.size * rnd(0.6, 1.1);
+        return [Math.cos(angle) * radius, Math.sin(angle) * radius] as [number, number];
+      });
     }
-    context.lineTo(length * 0.7, 0);
-    context.stroke();
-  } else if (particle.shape === "drop") {
-    context.beginPath();
-    context.ellipse(0, 0, particle.size * 0.52, particle.size * 1.25, 0, 0, Math.PI * 2);
-    context.fill();
-  } else if (particle.shape === "shard" || particle.shape === "leaf") {
-    const size = particle.size;
-    context.beginPath();
-    context.moveTo(-size, -size * 0.45);
-    context.lineTo(size * 0.2, -size * 0.8);
-    context.lineTo(size, size * 0.35);
-    context.lineTo(-size * 0.45, size * 0.8);
-    context.closePath();
-    context.fill();
-  } else if (particle.shape === "dust") {
-    context.shadowColor = particle.color;
-    context.shadowBlur = particle.size * 1.7;
-    context.beginPath();
-    context.arc(0, 0, particle.size, 0, Math.PI * 2);
-    context.fill();
+    this.particles.push(particle);
+    if (!this.frame) {
+      this.last = performance.now();
+      this.frame = requestAnimationFrame(this.loop);
+    }
+  }
+
+  stop() {
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.particles = [];
+    this.context.clearRect(0, 0, this.width, this.height);
+  }
+
+  private loop = (now: number) => {
+    const step = Math.min(2.5, (now - this.last) / 16.67);
+    this.last = now;
+    const context = this.context;
+    context.clearRect(0, 0, this.width, this.height);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    this.particles = this.particles.filter((particle) => particle.life > 0);
+    for (const particle of this.particles) {
+      if (particle.delay > 0) { particle.delay -= step; continue; }
+      particle.life -= step;
+      const remaining = Math.max(0, particle.life / particle.maxLife);
+      particle.vx *= particle.drag ** step;
+      particle.vy = particle.vy * particle.drag ** step + particle.gravity * step;
+      particle.x += particle.vx * step;
+      particle.y += particle.vy * step;
+      particle.rotation += particle.spin * step;
+      this.draw(particle, remaining, Math.min(1, remaining * 1.5) * particle.alpha);
+    }
+    context.globalAlpha = 1;
+    context.globalCompositeOperation = "source-over";
+    if (this.particles.length) this.frame = requestAnimationFrame(this.loop);
+    else { this.frame = 0; context.clearRect(0, 0, this.width, this.height); }
+  };
+
+  private blob(x: number, y: number, radius: number, color: string, alpha: number) {
+    if (radius <= 0 || alpha <= 0) return;
+    const gradient = this.context.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, rgba(color, alpha));
+    gradient.addColorStop(0.45, rgba(color, alpha * 0.4));
+    gradient.addColorStop(1, rgba(color, 0));
+    this.context.fillStyle = gradient;
+    this.context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  private path(points: Array<[number, number]>) {
+    this.context.beginPath();
+    points.forEach(([x, y], index) => index ? this.context.lineTo(x, y) : this.context.moveTo(x, y));
+  }
+
+  private draw(p: Particle, remaining: number, alpha: number) {
+    const context = this.context;
+    context.globalCompositeOperation = ["smoke", "rock", "leaf", "shred"].includes(p.kind) ? "source-over" : "lighter";
+    switch (p.kind) {
+      case "glow": this.blob(p.x, p.y, p.size * (1 + p.grow * (1 - remaining)), p.color, alpha); break;
+      case "smoke": this.blob(p.x, p.y, p.size * (1 + p.grow * (1 - remaining)), p.color, alpha * 0.55); break;
+      case "ember": this.blob(p.x, p.y, p.size * 4 * remaining + 2, p.color, alpha * (0.6 + 0.4 * Math.random())); break;
+      case "spark":
+        context.strokeStyle = rgba(p.color, alpha);
+        context.lineWidth = p.size * (0.4 + remaining * 0.6);
+        context.beginPath();
+        context.moveTo(p.x, p.y);
+        context.lineTo(p.x - p.vx * 1.7, p.y - p.vy * 1.7);
+        context.stroke();
+        break;
+      case "drop":
+        context.fillStyle = rgba(p.color, alpha);
+        context.beginPath();
+        context.ellipse(p.x, p.y, p.size, p.size * 1.5, Math.atan2(p.vy, p.vx) + Math.PI / 2, 0, Math.PI * 2);
+        context.fill();
+        break;
+      case "ring": {
+        const radius = p.size + p.grow * Math.sqrt(1 - remaining);
+        context.strokeStyle = rgba(p.color, alpha);
+        context.lineWidth = p.width * remaining + 0.5;
+        context.beginPath();
+        context.ellipse(p.x, p.y, radius, radius * p.squash, 0, 0, Math.PI * 2);
+        context.stroke();
+        break;
+      }
+      case "rock":
+        context.save();
+        context.translate(p.x, p.y);
+        context.rotate(p.rotation);
+        context.globalAlpha = Math.min(1, remaining * 2);
+        context.fillStyle = p.color;
+        this.path(p.points!);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = "rgba(255,230,180,.35)";
+        context.lineWidth = 1;
+        context.stroke();
+        context.restore();
+        break;
+      case "leaf":
+        context.fillStyle = rgba(p.color, Math.min(1, remaining * 2));
+        context.beginPath();
+        context.ellipse(p.x, p.y, p.size, p.size * 0.4, p.rotation, 0, Math.PI * 2);
+        context.fill();
+        break;
+      case "shred":
+        context.save();
+        context.translate(p.x, p.y);
+        context.rotate(p.rotation);
+        context.scale(1, Math.cos(p.rotation * 1.7));
+        context.fillStyle = rgba(p.color, Math.min(1, remaining * 2));
+        context.fillRect(-p.size, -p.size * 0.45, p.size * 2, p.size * 0.9);
+        context.restore();
+        break;
+      case "star": {
+        const size = p.size * Math.sin(Math.PI * (1 - remaining));
+        context.fillStyle = rgba(p.color, p.alpha);
+        context.save();
+        context.translate(p.x, p.y);
+        context.rotate(0.35);
+        context.beginPath();
+        context.moveTo(0, -size);
+        context.quadraticCurveTo(0, 0, size, 0);
+        context.quadraticCurveTo(0, 0, 0, size);
+        context.quadraticCurveTo(0, 0, -size, 0);
+        context.quadraticCurveTo(0, 0, 0, -size);
+        context.fill();
+        context.restore();
+        this.blob(p.x, p.y, size * 0.9, p.color, p.alpha * 0.5 * Math.sin(Math.PI * (1 - remaining)));
+        break;
+      }
+      case "bolt": {
+        const flicker = Math.random() < 0.25 ? 0.35 : 1;
+        ([[p.width * 5, 0.25], [p.width * 2, 0.6], [p.width * 0.8, 1]] as const).forEach(([lineWidth, strength], layer) => {
+          context.strokeStyle = rgba(layer === 2 ? "#ffffff" : p.color, Math.min(1, alpha * strength * flicker));
+          context.lineWidth = lineWidth;
+          this.path(p.points!);
+          context.stroke();
+        });
+        break;
+      }
+      case "crack":
+        context.strokeStyle = rgba(p.color, alpha * 0.8);
+        context.lineWidth = p.width;
+        this.path(p.points!);
+        context.stroke();
+        break;
+    }
+  }
+}
+
+function boltPaths(x: number, y: number, angle: number, length: number, width: number): Array<{ points: Array<[number, number]>; width: number }> {
+  const branches: Array<{ points: Array<[number, number]>; width: number }> = [];
+  const points: Array<[number, number]> = [[x, y]];
+  let px = x;
+  let py = y;
+  let heading = angle;
+  const segments = Math.max(4, Math.floor(length / 14));
+  for (let index = 0; index < segments; index += 1) {
+    heading += rnd(-0.55, 0.55);
+    px += Math.cos(heading) * length / segments;
+    py += Math.sin(heading) * length / segments;
+    points.push([px, py]);
+    if (length > 45 && Math.random() < 0.2) branches.push(...boltPaths(px, py, heading + rnd(-1.1, 1.1), length * 0.4, width * 0.6));
+  }
+  branches.push({ points, width });
+  return branches;
+}
+
+/** Attacker's element shapes the burst; the target's material decides sparks (metal) or shreds (parchment). */
+function burst(fx: ImpactCanvas, at: Point, element: CardElement, targetRarity: CardRarity, tier: Tier, direction: Point) {
+  const force = FORCE[tier];
+  const soft = Math.sqrt(force);
+  const count = (value: number) => Math.round(value * force);
+  const finish = ELEMENT_FINISH[element];
+  const glow = GLOW[element];
+  const material = materialFor(targetRarity);
+  const pushX = direction.x * 3 * soft;
+  const pushY = direction.y * 3 * soft;
+  const { x, y } = at;
+
+  fx.add({ kind: "glow", x, y, size: 80 * force, grow: 1, life: 12, color: "#ffffff" });
+  fx.add({ kind: "glow", x, y, size: 120 * force, grow: 0.8, life: 28, color: glow, alpha: 0.9 });
+  fx.add({ kind: "ring", x, y, size: 8, grow: 80 * force, width: 6 * soft, life: 24, color: finish.core });
+  if (tier !== "weak") fx.add({ kind: "ring", x, y, size: 4, grow: 130 * force, width: 3, life: 36, color: glow, squash: element === "water" ? 0.35 : 1 });
+  if (tier === "strong") {
+    fx.add({ kind: "glow", x, y, size: 300, grow: 0.3, life: 10, color: "#ffffff", alpha: 0.6 });
+    for (let index = 0; index < 8; index += 1) {
+      let heading = rnd(0, Math.PI * 2);
+      let px = x;
+      let py = y;
+      const points: Array<[number, number]> = [[x, y]];
+      for (let segment = 0; segment < 8; segment += 1) {
+        heading += rnd(-0.4, 0.4);
+        px += Math.cos(heading) * rnd(10, 18);
+        py += Math.sin(heading) * rnd(10, 18);
+        points.push([px, py]);
+      }
+      fx.add({ kind: "crack", points, width: 1.6, color: finish.core, life: 55 });
+    }
+  }
+
+  if (element === "fire") {
+    for (let index = 0; index < count(28); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(2, 8) * soft;
+      fx.add({ kind: "ember", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed + pushY, gravity: -0.05, drag: 0.965, life: rnd(40, 85), size: rnd(1.5, 3.2), color: pick([glow, finish.spark, "#ff4a1a"]) });
+    }
+    for (let index = 0; index < count(8); index += 1) fx.add({ kind: "smoke", x: x + rnd(-24, 24), y: y + rnd(-24, 24), vy: -rnd(0.3, 1.1), life: rnd(55, 95), size: rnd(20, 34), grow: 1.3, color: "#241812" });
+    for (let index = 0; index < count(5); index += 1) fx.add({ kind: "glow", x: x + rnd(-20, 20), y: y + rnd(-20, 20), vx: rnd(-1, 1), vy: -rnd(0.5, 2), life: rnd(25, 45), size: rnd(26, 44), grow: -0.4, color: "#ff6a1a" });
+  } else if (element === "water") {
+    for (let index = 0; index < count(36); index += 1) {
+      const angle = -1.57 + rnd(-1.3, 1.3);
+      const speed = rnd(3, 10) * soft;
+      fx.add({ kind: "drop", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed, gravity: 0.28, life: rnd(40, 70), size: rnd(1.4, 3.4), color: pick(["#d8f2ff", "#6cc8ff", "#ffffff"]) });
+    }
+    for (let index = 0; index < count(6); index += 1) fx.add({ kind: "glow", x: x + rnd(-25, 25), y: y + rnd(-20, 20), vy: -rnd(0.2, 1), life: rnd(30, 50), size: rnd(26, 46), grow: 0.8, color: finish.rim, alpha: 0.5 });
+    fx.add({ kind: "ring", x, y, size: 6, grow: 100 * force, width: 3, life: 40, color: "#d8f2ff", squash: 0.35, delay: 4 });
+  } else if (element === "earth") {
+    for (let index = 0; index < count(16); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(2, 8) * soft;
+      fx.add({ kind: "rock", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed - 2, gravity: 0.3, drag: 0.985, life: rnd(45, 70), size: rnd(3, 7), spin: rnd(-0.3, 0.3), color: pick(["#5b4631", "#7a5f3d", "#3f3224"]) });
+    }
+    for (let index = 0; index < count(9); index += 1) fx.add({ kind: "smoke", x: x + rnd(-26, 26), y: y + rnd(-18, 18), vx: rnd(-1, 1), vy: -rnd(0.1, 0.6), life: rnd(50, 90), size: rnd(22, 38), grow: 1.1, color: "#9b845f" });
+    for (let index = 0; index < count(12); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(1.5, 5) * soft;
+      fx.add({ kind: "leaf", x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, gravity: 0.04, drag: 0.96, spin: rnd(-0.2, 0.2), life: rnd(55, 95), size: rnd(4, 8), color: pick(["#8fdc4e", "#5aa83a", "#c6f08a"]) });
+    }
   } else {
-    context.shadowColor = particle.color;
-    context.shadowBlur = particle.size * 2.2;
-    context.beginPath();
-    context.arc(0, 0, particle.size, 0, Math.PI * 2);
-    context.fill();
-  }
-  context.restore();
-}
-
-function drawImpactFrame(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  center: { x: number; y: number },
-  element: CardElement,
-  level: "weak" | "normal" | "strong",
-  particles: ImpactParticle[],
-  progress: number,
-  deltaFrames: number,
-) {
-  const palette = ELEMENT_COLORS[element];
-  const scale = level === "strong" ? 1.16 : level === "weak" ? 0.72 : 1;
-  const intensity = Math.sin(Math.min(1, progress) * Math.PI) * scale;
-  const radius = 8 + progress * 74 * scale;
-
-  if (intensity > 0) {
-    const flash = context.createRadialGradient(center.x, center.y, 0, center.x, center.y, 36 + intensity * 30);
-    flash.addColorStop(0, `${palette.core}${Math.round(intensity * 88).toString(16).padStart(2, "0")}`);
-    flash.addColorStop(0.35, `${palette.glow}${Math.round(intensity * 44).toString(16).padStart(2, "0")}`);
-    flash.addColorStop(1, `${palette.glow}00`);
-    context.fillStyle = flash;
-    context.fillRect(0, 0, width, height);
-  }
-
-  context.save();
-  context.globalAlpha = Math.max(0, 1 - progress);
-  context.strokeStyle = palette.core;
-  context.lineWidth = Math.max(1, 4 - progress * 3);
-  context.shadowColor = palette.glow;
-  context.shadowBlur = 14;
-  context.beginPath();
-  if (element === "water") context.ellipse(center.x, center.y, radius * 1.12, radius * 0.78, 0, 0, Math.PI * 2);
-  else context.arc(center.x, center.y, radius, 0, Math.PI * 2);
-  context.stroke();
-
-  if (element === "air") {
-    for (let ray = 0; ray < 7; ray += 1) {
-      const angle = Math.PI * 2 * ray / 7 + 0.2;
-      const length = (28 + progress * 42) * scale;
-      context.beginPath();
-      context.moveTo(center.x + Math.cos(angle) * 10, center.y + Math.sin(angle) * 10);
-      context.lineTo(center.x + Math.cos(angle + 0.05) * length * 0.48, center.y + Math.sin(angle + 0.05) * length * 0.48);
-      context.lineTo(center.x + Math.cos(angle - 0.04) * length, center.y + Math.sin(angle - 0.04) * length);
-      context.stroke();
+    const bolts = { weak: 2, even: 4, strong: 8 }[tier];
+    for (let index = 0; index < bolts; index += 1) boltPaths(x, y, rnd(0, Math.PI * 2), rnd(60, 140) * soft, 2.2).forEach((bolt) => fx.add({ kind: "bolt", points: bolt.points, width: bolt.width, color: glow, life: rnd(8, 16) }));
+    for (let index = 0; index < Math.ceil(bolts / 2); index += 1) boltPaths(x, y, rnd(0, Math.PI * 2), rnd(50, 100) * soft, 1.6).forEach((bolt) => fx.add({ kind: "bolt", points: bolt.points, width: bolt.width, color: glow, life: rnd(6, 12), delay: 6 }));
+    for (let index = 0; index < count(24); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(6, 15) * soft;
+      fx.add({ kind: "spark", x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, drag: 0.9, life: rnd(14, 28), size: 1.6, color: finish.core });
     }
   }
-  context.restore();
 
-  for (const particle of particles) {
-    if (particle.life <= 0) continue;
-    particle.x += particle.vx * deltaFrames;
-    particle.y += particle.vy * deltaFrames;
-    particle.vx *= particle.drag ** deltaFrames;
-    particle.vy = particle.vy * particle.drag ** deltaFrames + particle.gravity * deltaFrames;
-    particle.rotation += particle.spin * deltaFrames;
-    particle.life -= deltaFrames;
-    drawParticle(context, particle);
+  if (material.metal) {
+    for (let index = 0; index < count(22); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(3, 12) * soft;
+      fx.add({ kind: "spark", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed + pushY, gravity: 0.35, drag: 0.985, life: rnd(28, 55), size: 1.4, color: pick([material.light, material.stroke]) });
+    }
+    for (let index = 0; index < Math.ceil(count(3)); index += 1) fx.add({ kind: "star", x: x + rnd(-45, 45), y: y + rnd(-60, 60), life: rnd(24, 36), size: rnd(14, 28) * soft, color: material.stroke, delay: rnd(0, 10) });
+  } else {
+    for (let index = 0; index < count(16); index += 1) {
+      const angle = rnd(0, Math.PI * 2);
+      const speed = rnd(2, 8) * soft;
+      fx.add({ kind: "shred", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed + pushY, gravity: 0.12, drag: 0.97, spin: rnd(-0.4, 0.4), life: rnd(55, 90), size: rnd(3, 6), color: pick([material.base[2]!, material.base[3]!, material.base[4]!]) });
+    }
   }
 }
 
-function drawAttackTrail(
-  context: CanvasRenderingContext2D,
-  geometry: AttackGeometry,
-  element: CardElement,
-  level: "weak" | "normal" | "strong",
-  metallic: boolean,
-  progress: number,
-) {
-  const flightStart = 0.24;
-  const flightEnd = 0.5;
-  if (progress < flightStart || progress > flightEnd) return;
-
-  const flightProgress = Math.max(0, Math.min(1, (progress - flightStart) / (flightEnd - flightStart)));
-  const easedProgress = 1 - (1 - flightProgress) ** 3;
-  const fromX = Number(geometry.player.left ?? 0) + Number(geometry.player.width ?? 0) / 2;
-  const fromY = Number(geometry.player.top ?? 0) + Number(geometry.player.height ?? 0) * (0.5 - 0.055);
-  const tailProgress = Math.max(0, easedProgress - (level === "weak" ? 0.18 : 0.3));
-  const tailX = fromX + (geometry.impact.x - fromX) * tailProgress;
-  const tailY = fromY + (geometry.impact.y - fromY) * tailProgress;
-  const headX = fromX + (geometry.impact.x - fromX) * easedProgress;
-  const headY = fromY + (geometry.impact.y - fromY) * easedProgress;
-  const palette = ELEMENT_COLORS[element];
-  const alpha = Math.sin(flightProgress * Math.PI * 0.72) * 0.82;
-  const weight = level === "strong" ? 1.25 : level === "weak" ? 0.72 : 1;
-
-  context.save();
-  context.globalAlpha = alpha;
-  context.strokeStyle = palette.glow;
-  context.lineWidth = 6 * weight;
-  context.lineCap = "round";
-  context.shadowColor = palette.glow;
-  context.shadowBlur = 14 * weight;
-  context.beginPath();
-  context.moveTo(tailX, tailY);
-  context.lineTo(headX, headY);
-  context.stroke();
-
-  for (let index = 0; index < 7; index += 1) {
-    const sample = Math.max(0, easedProgress - index * 0.055);
-    const wobble = Math.sin(progress * 88 + index * 2.1) * (2 + index * 0.45);
-    const x = fromX + (geometry.impact.x - fromX) * sample + wobble;
-    const y = fromY + (geometry.impact.y - fromY) * sample - wobble * 0.6;
-    context.globalAlpha = alpha * (1 - index / 8);
-    context.fillStyle = metallic && index % 3 === 0 ? "#fff0bd" : palette.core;
-    context.beginPath();
-    context.arc(x, y, (level === "strong" ? 2.6 : 2) * (1 - index * 0.06), 0, Math.PI * 2);
-    context.fill();
-  }
-  context.restore();
-}
-
-function getEffectLevel(exchange: DuelExchange) {
-  return exchange.playerMultiplier < 1 ? "weak" : exchange.playerMultiplier > 1 ? "strong" : "normal";
+function shakeBoard(board: HTMLElement, tier: Tier) {
+  const [amplitude, duration] = SHAKE[tier];
+  const frames = Array.from({ length: 9 }, (_, index) => {
+    const decay = amplitude * (1 - index / 8) ** 2;
+    return { translate: index === 8 ? "0 0" : `${rnd(-decay, decay)}px ${rnd(-decay, decay)}px` };
+  });
+  board.animate(frames, { duration, easing: "linear" });
 }
 
 /** One measured attack motion shared by every battle mode. */
 export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) {
   const layer = useRef<HTMLDivElement>(null);
   const impactCanvas = useRef<HTMLCanvasElement>(null);
-  const [geometry, setGeometry] = useState<AttackGeometry | null>(null);
-  const level = getEffectLevel(exchange);
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
+  const slotCards = useRef<{ player: HTMLElement; enemy: HTMLElement } | null>(null);
+  const [geometry, setGeometry] = useState<Geometry | null>(null);
+  const [damage, setDamage] = useState<{ tier: Tier; at: Point; counterAt: Point } | null>(null);
+  const tier = tierOf(exchange.playerMultiplier);
+
+  // The strike gets the main thread: idle card shading pauses while it plays.
+  useLayoutEffect(() => holdCardMaterialAnimation(), []);
 
   useLayoutEffect(() => {
     const root = layer.current;
     const board = root?.parentElement;
     if (!root || !board) return;
-
-    const measure = () => {
-      const playerRow = board.querySelector(".duel-card-row--player, .arena-card-row:not(.arena-card-row--target)");
-      const enemyRow = board.querySelector(".duel-card-row--enemy, .arena-card-row--target");
-      const slotCard = (row: Element | null) => {
-        const slot = row?.children[exchange.slotIndex];
-        return (slot?.matches(".duel-card") ? slot : slot?.querySelector(".duel-card, .arena-hidden-card")) as HTMLElement | null;
-      };
-      const player = slotCard(playerRow);
-      const enemy = slotCard(enemyRow);
-      if (!player || !enemy) return;
-
-      const origin = root.getBoundingClientRect();
-      const from = player.getBoundingClientRect();
-      const to = enemy.getBoundingClientRect();
-      const position = (rect: DOMRect): CSSProperties => ({
-        left: rect.left - origin.left,
-        top: rect.top - origin.top,
-        width: rect.width,
-        height: rect.height,
-      });
-      const fromPosition = position(from);
-      const toPosition = position(to);
-      setGeometry({
-        player: {
-          ...fromPosition,
-          "--attack-x": `${to.left + to.width / 2 - from.left - from.width / 2}px`,
-          "--attack-y": `${to.top + to.height / 2 - from.top - from.height / 2}px`,
-          "--attack-lift-y": `${from.height * -0.055}px`,
-        } as CardPosition,
-        enemy: toPosition,
-        impact: { x: to.left - origin.left + to.width / 2, y: to.top - origin.top + to.height / 2 },
-        playerDamage: { x: from.left - origin.left + from.width / 2, y: from.top - origin.top + 8 },
-        enemyDamage: { x: to.left - origin.left + to.width / 2, y: to.top - origin.top + 8 },
-      });
-      player.dataset.attackCovered = "true";
-      enemy.dataset.attackCovered = "true";
+    const slotCard = (row: Element | null) => {
+      const slot = row?.children[exchange.slotIndex];
+      return (slot?.matches(".duel-card") ? slot : slot?.querySelector(".duel-card, .arena-hidden-card")) as HTMLElement | null;
     };
-
-    measure();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
-    observer?.observe(board);
-    window.addEventListener("resize", measure);
+    const player = slotCard(board.querySelector(".duel-card-row--player, .arena-card-row:not(.arena-card-row--target)"));
+    const enemy = slotCard(board.querySelector(".duel-card-row--enemy, .arena-card-row--target"));
+    if (!player || !enemy) {
+      announceAttackEnd();
+      return;
+    }
+    // Size comes from layout, centre from the screen box: a card caught mid-flip still measures at full size.
+    const settled = (card: HTMLElement) => {
+      const rect = card.getBoundingClientRect();
+      const width = card.offsetWidth;
+      const height = card.offsetHeight;
+      return new DOMRect(rect.left + rect.width / 2 - width / 2, rect.top + rect.height / 2 - height / 2, width, height);
+    };
+    const origin = root.getBoundingClientRect();
+    const from = settled(player);
+    const to = settled(enemy);
+    const box = (rect: DOMRect): CSSProperties => ({ left: rect.left - origin.left, top: rect.top - origin.top, width: rect.width, height: rect.height });
+    setGeometry({ player: box(from), enemy: box(to), from, to, origin });
+    slotCards.current = { player, enemy };
+    player.dataset.attackCovered = "true";
+    enemy.dataset.attackCovered = "true";
     return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", measure);
-      board.querySelectorAll('[data-attack-covered="true"]').forEach((card) => delete (card as HTMLElement).dataset.attackCovered);
+      slotCards.current = null;
+      delete player.dataset.attackCovered;
+      delete enemy.dataset.attackCovered;
     };
   }, [exchange]);
 
   useLayoutEffect(() => {
-    const canvas = impactCanvas.current;
     const root = layer.current;
-    if (!canvas || !root || !geometry) return;
-    const bounds = root.getBoundingClientRect();
-    const width = bounds.width;
-    const height = bounds.height;
-    const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = Math.max(1, Math.round(width * pixelRatio));
-    canvas.height = Math.max(1, Math.round(height * pixelRatio));
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    const canvas = impactCanvas.current;
+    const ghost = ghostRef.current;
+    const target = targetRef.current;
+    const board = root?.parentElement;
+    if (!geometry || !root || !canvas || !ghost || !target || !board) return;
+
+    const width = geometry.origin.width;
+    const height = geometry.origin.height;
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(width * ratio));
+    canvas.height = Math.max(1, Math.round(height * ratio));
     const context = canvas.getContext("2d");
     if (!context) return;
-    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const fx = new ImpactCanvas(context, width, height);
 
-    let frame = 0;
-    let impactTimer = 0;
-    let cleanupTimer = 0;
+    const { from, to, origin } = geometry;
+    const dx = to.left - from.left;
+    const dy = to.top - from.top;
+    const length = Math.hypot(dx, dy) || 1;
+    const direction = { x: dx / length, y: dy / length };
+    const impact = { x: to.left - origin.left + to.width / 2, y: to.top - origin.top + to.height / 2 };
+    const counterAt = { x: from.left - origin.left + from.width / 2, y: from.top - origin.top + from.height / 2 };
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const duration = 560;
-    const impactDelay = Math.round(BATTLE_ATTACK_DURATION_MS * 0.4);
-    const metallic = getBrightCutMaterialId(exchange.playerCard.rarity) !== "paper";
+    const glow = GLOW[exchange.playerCard.element];
+    let cancelled = false;
+    let trailFrame = 0;
+    const timers: number[] = [];
 
-    const makeImpactParticles = () => createImpactParticles(
-        exchange.playerCard.element,
-        level,
-        metallic,
-        geometry.impact.x,
-        geometry.impact.y,
-      );
-
-    if (reducedMotion) {
-      impactTimer = window.setTimeout(() => {
-        const particles = makeImpactParticles();
-        context.clearRect(0, 0, width, height);
-        drawImpactFrame(context, width, height, geometry.impact, exchange.playerCard.element, level, particles, 0.44, 0);
-        cleanupTimer = window.setTimeout(() => context.clearRect(0, 0, width, height), 220);
-      }, impactDelay);
-    } else {
-      const startedAt = performance.now();
-      let previousFrameAt = startedAt;
-      let particles: ImpactParticle[] | null = null;
-      const render = (time: number) => {
-        const elapsed = time - startedAt;
-        const progress = Math.min(1, elapsed / BATTLE_ATTACK_DURATION_MS);
-        const deltaFrames = Math.max(0.5, Math.min(2.5, (time - previousFrameAt) / (1000 / 60)));
-        previousFrameAt = time;
-        context.clearRect(0, 0, width, height);
-        drawAttackTrail(context, geometry, exchange.playerCard.element, level, metallic, progress);
-        if (elapsed >= impactDelay) {
-          particles ??= makeImpactParticles();
-          const impactProgress = Math.min(1, (elapsed - impactDelay) / duration);
-          drawImpactFrame(context, width, height, geometry.impact, exchange.playerCard.element, level, particles, impactProgress, deltaFrames);
-        }
-        if (elapsed < BATTLE_ATTACK_DURATION_MS) frame = window.requestAnimationFrame(render);
+    const strike = async () => {
+      const options = { fill: "forwards" as const };
+      if (reducedMotion) {
+        burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, "weak", direction);
+        setDamage({ tier, at: impact, counterAt });
+        await new Promise<void>((resolve) => { timers.push(window.setTimeout(resolve, 700)); });
+        return;
+      }
+      const spin = 360;
+      await ghost.animate([{ transform: transform(0, 0, 0, 0, 1) }, { transform: transform(0, 20, 0, 7, 1.12) }], { ...options, duration: RISE_MS, easing: "ease-out" }).finished;
+      if (cancelled) return;
+      ghost.style.filter = `drop-shadow(0 0 14px ${glow}) drop-shadow(0 18px 14px #000a)`;
+      const trail = () => {
+        const rect = ghost.getBoundingClientRect();
+        const x = rect.left - origin.left + rect.width / 2;
+        const y = rect.top - origin.top + rect.height / 2;
+        fx.add({ kind: "glow", x, y, size: 34, grow: -0.4, life: 16, color: glow, alpha: 0.55 });
+        for (let index = 0; index < 2; index += 1) fx.add({ kind: "spark", x: x + rnd(-26, 26), y: y + rnd(-34, 34), vx: rnd(-1.2, 1.2), vy: rnd(-1.2, 1.2), drag: 0.95, life: rnd(14, 24), size: 1.4, color: glow });
+        trailFrame = requestAnimationFrame(trail);
       };
-      frame = window.requestAnimationFrame(render);
-    }
+      trailFrame = requestAnimationFrame(trail);
+      await ghost.animate([
+        { transform: transform(0, 20, 0, 7, 1.12) },
+        { transform: transform(dx / 2, dy / 2, spin / 2, 0, 1.22), offset: 0.5 },
+        { transform: transform(dx, dy, spin, 0, 0.94) },
+      ], { ...options, duration: FLIGHT_MS[tier], easing: "cubic-bezier(.55,0,.9,.5)" }).finished;
+      cancelAnimationFrame(trailFrame);
+      if (cancelled) return;
+
+      burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, tier, direction);
+      shakeBoard(board, tier);
+      setDamage({ tier, at: impact, counterAt });
+      const force = FORCE[tier];
+      target.animate([
+        { transform: "none", filter: "brightness(3) saturate(.4)" },
+        { transform: `translate(${direction.x * 16 * force}px, ${direction.y * 16 * force}px) rotate(${direction.x * 5 * force}deg) scale(.95)`, filter: "brightness(1.6)", offset: 0.25 },
+        { transform: `translate(${-direction.x * 5 * force}px, ${-direction.y * 5 * force}px) rotate(${-direction.x * 2 * force}deg)`, offset: 0.6 },
+        { transform: "none", filter: "none" },
+      ], { duration: RECOIL_MS[tier], easing: "ease-out" });
+      if (tier === "strong") board.animate([{ scale: "1" }, { scale: "1.02" }, { scale: "1" }], { duration: 300, easing: "ease-out" });
+
+      await ghost.animate([
+        { transform: transform(dx, dy, spin, 0, 0.94) },
+        { transform: transform(dx, dy, spin, 8, 0.8), offset: 0.3 },
+        { transform: transform(dx - direction.x * 12, dy - direction.y * 12, spin, 6, 0.97) },
+      ], { ...options, duration: HIT_MS[tier], easing: "ease-out" }).finished;
+      if (cancelled) return;
+      ghost.style.filter = "";
+      await ghost.animate([
+        { transform: transform(dx - direction.x * 12, dy - direction.y * 12, spin, 6, 0.97) },
+        { transform: transform(dx / 2, dy / 2 + 30, spin / 2, 0, 1.1), offset: 0.5 },
+        { transform: transform(0, 0, 0, 0, 1) },
+      ], { ...options, duration: RETURN_MS, easing: "ease-in-out" }).finished;
+      if (cancelled) return;
+      const flipOut = [{ transform: "perspective(900px) rotateY(0deg)" }, { transform: "perspective(900px) rotateY(90deg)" }];
+      await Promise.all([
+        ghost.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "ease-in" }).finished,
+        target.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "ease-in" }).finished,
+      ]);
+      if (cancelled) return;
+      // Edge-on now: reveal the fresh cards that replaced the used pair and turn them face up.
+      const cards = slotCards.current;
+      if (cards) {
+        const flipIn = [{ transform: "perspective(900px) rotateY(-90deg)" }, { transform: "perspective(900px) rotateY(0deg)" }];
+        for (const card of [cards.player, cards.enemy]) {
+          delete card.dataset.attackCovered;
+          card.animate(flipIn, { duration: FLIP_IN_MS, easing: "ease-out" });
+        }
+        ghost.style.visibility = "hidden";
+        target.style.visibility = "hidden";
+      }
+    };
+
+    strike().then(() => { if (!cancelled) announceAttackEnd(); }).catch(() => { if (!cancelled) announceAttackEnd(); });
 
     return () => {
-      window.clearTimeout(impactTimer);
-      window.clearTimeout(cleanupTimer);
-      window.cancelAnimationFrame(frame);
-      context.clearRect(0, 0, width, height);
+      cancelled = true;
+      cancelAnimationFrame(trailFrame);
+      timers.forEach((timer) => window.clearTimeout(timer));
+      fx.stop();
     };
-  }, [exchange, geometry, level]);
+  }, [exchange, geometry, tier]);
 
   return (
-    <div ref={layer} className={`battle-attack battle-attack--${level}`} aria-hidden="true" style={{ "--attack-duration": `${BATTLE_ATTACK_DURATION_MS}ms` } as CSSProperties}>
+    <div ref={layer} className="battle-attack" aria-hidden="true">
       <canvas ref={impactCanvas} className="battle-attack__fx" />
-      {geometry ? (["enemy", "player"] as const).map((side) => {
-        const card = side === "player" ? exchange.playerCard : exchange.enemyCard;
-        return (
-          <div key={side} className={`duel-card battle-attack__card battle-attack__card--${side} deck-card--${card.element} deck-card--${card.rarity}`} style={geometry[side]}>
-            <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact element={card.element} rarity={card.rarity}>
-              <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
-              {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
+      {geometry ? (
+        <>
+          <div ref={targetRef} className={`duel-card battle-attack__card battle-attack__card--enemy deck-card--${exchange.enemyCard.element} deck-card--${exchange.enemyCard.rarity}`} style={geometry.enemy}>
+            <CardFxWrapper artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} compact element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity}>
+              <CardHud element={exchange.enemyCard.element} power={exchange.enemyCard.finalPower} rarity={exchange.enemyCard.rarity} staticMaterial />
             </CardFxWrapper>
           </div>
-        );
-      }) : null}
-      {geometry ? <>
-        <span className="battle-attack__damage battle-attack__damage--player" style={{ left: geometry.enemyDamage.x, top: geometry.enemyDamage.y }}>−{exchange.playerDamage}</span>
-        <span className="battle-attack__damage battle-attack__damage--enemy" style={{ left: geometry.playerDamage.x, top: geometry.playerDamage.y }}>−{exchange.enemyDamage}</span>
-      </> : null}
+          <div ref={ghostRef} className={`duel-card battle-attack__card battle-attack__card--player deck-card--${exchange.playerCard.element} deck-card--${exchange.playerCard.rarity}`} style={geometry.player}>
+            <CardFxWrapper artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} compact element={exchange.playerCard.element} rarity={exchange.playerCard.rarity}>
+              <CardHud element={exchange.playerCard.element} power={exchange.playerCard.finalPower} rarity={exchange.playerCard.rarity} staticMaterial />
+            </CardFxWrapper>
+          </div>
+        </>
+      ) : null}
+      {damage ? (
+        <>
+          <span className={`battle-attack__damage battle-attack__damage--${damage.tier}`} style={{ left: damage.at.x, top: damage.at.y }}>
+            <b>−{exchange.playerDamage}</b>
+            <small>{TIER_LABEL[damage.tier]} ×{exchange.playerMultiplier}</small>
+          </span>
+          {exchange.enemyDamage > 0 ? (
+            <span className="battle-attack__damage battle-attack__damage--counter" style={{ left: damage.counterAt.x, top: damage.counterAt.y }}>
+              <b>−{exchange.enemyDamage}</b>
+            </span>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { PlayerSummaryState } from "../types/player";
 import { getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CurrencyDisplay } from "./CurrencyDisplay";
+import { ExperienceVine } from "./ExperienceVine";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { NicknameSkinPreview } from "./NicknameSkinPreview";
 
@@ -52,6 +53,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
               <span>{displayName ? getInitials(displayName) : <AppIcon name="profile" />}</span>
             ) : null}
             {!isLoading && !player ? <AppIcon name="profile" size={21} /> : null}
+            <span aria-hidden="true" className="player-avatar__frame" />
           </div>
 
           <div className="player-identity">
@@ -97,7 +99,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
           className="top-hud__xp-track"
           role="progressbar"
         >
-          <span className="top-hud__xp-fill" style={{ width: `${experiencePercent}%` }} />
+          {player ? <ExperienceVine level={player.level} progress={experiencePercent / 100} /> : null}
         </div>
       </div>
     </header>

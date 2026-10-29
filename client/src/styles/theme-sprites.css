@@ -1,47 +1,18 @@
-/* Keep geometry in components; theme selection only changes materials and ink. */
+/* The single parchment theme: shared materials and ink for every screen. */
 :root {
-  --sprite-panel-frame: url("/assets/ui/theme-dark/panel-frame.webp");
-  --sprite-heading-plaque: url("/assets/ui/theme-dark/heading-plaque.webp");
-  --sprite-menu-row: url("/assets/ui/theme-dark/menu-row.webp");
-  --sprite-button-primary: url("/assets/ui/theme-dark/button-primary.webp");
-  --sprite-button-secondary: url("/assets/ui/theme-dark/button-secondary.webp");
-  --sprite-medallion: url("/assets/ui/game/nav-medallion-v1.webp");
-  --sprite-progress-rail: url("/assets/ui/upgrade/progress-rail-v1.webp");
-  --sprite-hud: var(--sprite-panel-frame);
-  --sprite-navigation: var(--sprite-panel-frame);
-  --sprite-mode-panel: var(--sprite-panel-frame);
-  --sprite-settings: url("/assets/ui/home/hud-settings-hanger-v1.webp");
-  --sprite-page: none;
-  --action-ink: #f6dcb0;
-  --home-paper: var(--bg-app);
-  --home-paper-rgb: 20 17 13;
-  --home-ink: var(--text-primary);
-  --home-ink-muted: var(--text-secondary);
-  --home-icon-ink: var(--text-secondary);
-  --home-disabled-ink: var(--text-disabled);
-  --home-metal: var(--accent-bronze);
-  --home-nav-ink: var(--text-secondary);
-  --home-nav-active: var(--accent-gold);
-  --home-frame-shadow: drop-shadow(0 2px 3px rgb(0 0 0 / 24%));
-  --home-nav-surface-top: var(--bg-elevated);
-  --home-nav-surface-bottom: var(--bg-panel);
-  --surface-button: var(--sprite-button-secondary) center / 100% 100% no-repeat;
-  --surface-button-primary: var(--sprite-button-primary) center / 100% 100% no-repeat;
-  --surface-button-danger: var(--surface-button-primary);
-  --surface-button-success: var(--surface-button-secondary);
-  --state-success: #a9c88f;
-}
-
-:root[data-game-theme="light"] {
   --sprite-panel-frame: url("/assets/ui/theme-book/panel-frame.webp");
   --sprite-heading-plaque: url("/assets/ui/theme-book/heading-plaque.webp");
   --sprite-menu-row: url("/assets/ui/theme-book/menu-row.webp");
   --sprite-button-primary: url("/assets/ui/theme-book/button-primary.webp");
   --sprite-button-secondary: url("/assets/ui/theme-book/button-secondary.webp");
+  --sprite-medallion: url("/assets/ui/game/nav-medallion-v1.webp");
+  --sprite-progress-rail: url("/assets/ui/upgrade/progress-rail-v1.webp");
   --sprite-hud: url("/assets/ui/home/hud-frame-parchment-v2.webp");
   --sprite-navigation: url("/assets/ui/home/navigation-parchment-v2.webp");
   --sprite-mode-panel: url("/assets/ui/home/mode-panel-parchment-ink-v2.webp");
+  --sprite-settings: url("/assets/ui/home/hud-settings-hanger-v1.webp");
   --sprite-page: url("/assets/ui/home/menu-background-book-clean-v3.webp");
+  --action-ink: #f6dcb0;
   --home-paper: #ead9ba;
   --home-paper-rgb: 234 217 186;
   --home-ink: #2d1b0e;
@@ -52,5 +23,11 @@
   --home-nav-ink: #30200f;
   --home-nav-active: #6d3e10;
   --home-frame-shadow: drop-shadow(0 2px 3px rgb(68 52 38 / 16%));
+  --home-nav-surface-top: var(--bg-elevated);
+  --home-nav-surface-bottom: var(--bg-panel);
+  --surface-button: var(--sprite-button-secondary) center / 100% 100% no-repeat;
+  --surface-button-primary: var(--sprite-button-primary) center / 100% 100% no-repeat;
+  --surface-button-danger: var(--surface-button-primary);
+  --surface-button-success: var(--surface-button-secondary);
   --state-success: #3e612f;
 }

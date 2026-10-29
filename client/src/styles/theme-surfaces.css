@@ -55,21 +55,6 @@
 :root .app-shell .app-content .ui-button--success { color: var(--state-success); }
 :root .app-shell .app-content .ui-button--danger { color: var(--state-danger); }
 
-/* The shell geometry is shared; its dark material has no parchment underneath. */
-:root:not([data-game-theme="light"]) .app-shell .top-hud::before,
-:root:not([data-game-theme="light"]) .app-shell .bottom-navigation {
-  background: transparent;
-  border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
-  box-shadow: none;
-}
-:root:not([data-game-theme="light"]) .app-shell::before { background: none; }
-:root:not([data-game-theme="light"]) .home-screen .mode-tile {
-  background: transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
-}
-:root:not([data-game-theme="light"]) .home-screen :is(.mode-tile__icon, .menu-row__illustration) { filter: invert(.78) sepia(.2); mix-blend-mode: screen; }
-
 :root .app-shell .card-detail-screen .card-detail-reference-stats { padding: 15px 12px; }
 :root .app-shell .card-detail-screen .weak-cards-content {
   color: var(--home-ink);
@@ -109,8 +94,3 @@
   font-weight: 400;
 }
 :root .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot:disabled { filter: none; }
-:root .app-content .settings-theme-switch button { min-height: 44px; }
-:root .app-content .settings-theme-switch button[aria-pressed="true"] {
-  background: var(--bg-active);
-  box-shadow: none;
-}

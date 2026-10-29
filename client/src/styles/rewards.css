@@ -178,9 +178,6 @@
 .daily-login-modal__tasks-link { min-height: 44px; padding: 4px 0; background: none; border: 0; color: var(--text-primary); text-align: left; font: inherit; font-size: var(--font-sm); line-height: 1.4; text-decoration: underline; text-decoration-color: var(--border-accent); text-underline-offset: 3px; cursor: pointer; }
 .daily-login-modal__tasks-link:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
 .daily-login-modal__series-rule { margin: 0; color: var(--text-muted); font-size: var(--font-xs); line-height: 1.45; }
-.card-hud__upgrade { width: 24px; height: 26px; bottom: 5px; left: 5px; color: #a5f179; background: linear-gradient(180deg, #294021, #10200c); border: 1px solid #8ec36a; border-radius: 4px; box-shadow: 0 1px 4px #000, inset 0 1px rgb(255 255 255 / 18%); }
-.card-hud__upgrade--gold { color: #ffe294; background: linear-gradient(180deg, #70511d, #382508); border-color: #dfba74; }
-.card-hud__upgrade .app-icon { width: 20px; height: 20px; stroke-width: 3; filter: drop-shadow(0 1px 1px #000); }
 @media (max-width: 360px) {
   .tasks-screen__mascot { grid-template-columns: 50px minmax(0, 1fr) auto; padding-right: 5px; }
   .tasks-screen__mascot-art { width: 50px; height: 56px; }

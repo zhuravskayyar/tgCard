@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Philosopher:wght@700&family=Roboto+Condensed:wght@400;500;600;700&display=swap");
 
 :root {
   font-family: var(--font-body);
@@ -3884,217 +3883,25 @@ button:focus-visible {
 .duel-intro strong { color: var(--accent-gold); font-family: var(--font-display); font-size: var(--font-lg); }
 .duel-intro b { grid-column: 1 / -1; color: var(--accent-gold); font-size: var(--font-xs); letter-spacing: .22em; text-align: center; }
 
-@keyframes duel-clash-trail {
-  0% { opacity: 0; transform: scaleX(.05); }
-  30% { opacity: .8; }
-  72% { opacity: .75; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(.2); }
-}
 
-@keyframes duel-clash-flash {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.35); }
-  28% { opacity: var(--flash-opacity); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(var(--flash-scale)); }
-}
 
-@keyframes duel-clash-sword {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-22deg) scale(.55); }
-  30% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1.2); }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(12deg) scale(1); }
-}
 
-@keyframes duel-clash-damage-player {
-  0% { opacity: 0; transform: translateY(8px) scale(.82); }
-  22% { opacity: 1; transform: translateY(0) scale(1.05); }
-  100% { opacity: 0; transform: translateY(-23px) scale(1); }
-}
 
-@keyframes duel-clash-damage-enemy {
-  0% { opacity: 0; transform: translateY(8px) scale(.82); }
-  22% { opacity: 1; transform: translateY(0) scale(1.05); }
-  100% { opacity: 0; transform: translateY(-23px) scale(1); }
-}
 
-@keyframes duel-clash-advantage {
-  0%, 32% { opacity: 0; transform: translate(-50%, 4px) scale(.88); }
-  55% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -3px) scale(1); }
-}
 
-@keyframes duel-clash-particle {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.45); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(.1); }
-}
 
-.duel-clash {
-  --clash-x: 50%;
-  --clash-trail-width: clamp(52px, 16%, 82px);
-  position: absolute;
-  z-index: 12;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
 
-.duel-clash--slot-0 { --clash-x: 16.6667%; }
-.duel-clash--slot-1 { --clash-x: 50%; }
-.duel-clash--slot-2 { --clash-x: 83.3333%; }
 
-.duel-clash__trail {
-  --trail-color: #9aa1aa;
-  position: absolute;
-  top: 50%;
-  width: var(--clash-trail-width);
-  height: 2px;
-  margin-top: -1px;
-  opacity: 0;
-  box-shadow: 0 0 8px var(--trail-color);
-}
 
-.duel-clash__trail--player {
-  right: auto;
-  left: calc(var(--clash-x) - var(--clash-trail-width));
-  background: linear-gradient(90deg, transparent, var(--trail-color));
-  transform-origin: right center;
-  animation: duel-clash-trail 380ms ease-out 50ms both;
-}
 
-.duel-clash__trail--enemy {
-  left: var(--clash-x);
-  background: linear-gradient(90deg, var(--trail-color), transparent);
-  transform-origin: left center;
-  animation: duel-clash-trail 380ms ease-out 50ms both;
-}
 
-.duel-clash__trail--fire { --trail-color: #e58a58; }
-.duel-clash__trail--water { --trail-color: #73bad1; }
-.duel-clash__trail--earth { --trail-color: #b59a6b; }
-.duel-clash__trail--air { --trail-color: #c9d9dc; }
 
-.duel-clash__flash {
-  --flash-opacity: .9;
-  --flash-scale: 1.55;
-  position: absolute;
-  top: 50%;
-  left: var(--clash-x);
-  width: 36%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 255 255 / 92%) 0 5%, rgb(234 196 111 / 55%) 20%, transparent 70%);
-  opacity: 0;
-  animation: duel-clash-flash 460ms ease-out 125ms both;
-  transform: translate(-50%, -50%);
-}
 
-.duel-clash--impact-weak .duel-clash__flash {
-  --flash-opacity: .48;
-  --flash-scale: 1.08;
-  width: 27%;
-}
 
-.duel-clash--impact-normal .duel-clash__flash {
-  --flash-opacity: .72;
-  --flash-scale: 1.42;
-}
 
-.duel-clash--impact-strong .duel-clash__flash {
-  --flash-opacity: 1;
-  --flash-scale: 1.82;
-  width: 43%;
-}
 
-.duel-clash > .battle-sword {
-  position: absolute;
-  top: 50%;
-  left: var(--clash-x);
-  z-index: 2;
-  width: 30px;
-  height: 30px;
-  opacity: 0;
-  filter: drop-shadow(0 0 5px currentColor);
-  animation: duel-clash-sword 500ms cubic-bezier(.2, .8, .25, 1) 125ms both;
-  transform: translate(-50%, -50%);
-}
 
-.duel-clash__damage {
-  position: absolute;
-  top: 43%;
-  z-index: 3;
-  display: grid;
-  justify-items: center;
-  min-width: 42px;
-  gap: 1px;
-  opacity: 0;
-  text-shadow: 0 2px 5px rgb(0 0 0 / 85%);
-}
 
-.duel-clash__damage--player {
-  left: calc(var(--clash-x) - 11%);
-  color: #8fbd7b;
-  animation: duel-clash-damage-player 620ms ease-out 135ms both;
-}
-
-.duel-clash__damage--enemy {
-  right: auto;
-  left: calc(var(--clash-x) + 5%);
-  color: #d18479;
-  animation: duel-clash-damage-enemy 620ms ease-out 135ms both;
-}
-
-.duel-clash__damage.is-strong { color: var(--accent-gold); }
-.duel-clash__damage--weak strong { font-size: var(--font-sm); }
-.duel-clash__damage--weak { opacity: .82; }
-.duel-clash__damage--strong strong { font-size: clamp(1.1rem, 5.5vw, 1.5rem); }
-.duel-clash__damage--strong { text-shadow: 0 2px 7px rgb(0 0 0 / 90%), 0 0 10px rgb(224 189 121 / 35%); }
-.duel-clash__damage strong { font-size: clamp(.95rem, 5vw, 1.35rem); font-variant-numeric: tabular-nums; }
-.duel-clash__damage small { color: currentColor; font-size: var(--font-micro); font-weight: 800; }
-
-.duel-clash__advantage {
-  position: absolute;
-  top: 28%;
-  left: var(--clash-x);
-  z-index: 3;
-  color: var(--accent-gold);
-  font-size: var(--font-micro);
-  letter-spacing: .14em;
-  opacity: 0;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 90%);
-  animation: duel-clash-advantage 560ms ease-out 165ms both;
-  transform: translateX(-50%);
-}
-
-.duel-clash__particles { position: absolute; inset: 0; }
-.duel-clash__particles i {
-  --particle-x: 0px;
-  --particle-y: 0px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e2c37b;
-  box-shadow: 0 0 5px currentColor;
-  opacity: 0;
-  animation: duel-clash-particle 600ms ease-out 155ms both;
-}
-
-.duel-clash__particles i:nth-child(1) { --particle-x: -34px; --particle-y: -23px; }
-.duel-clash__particles i:nth-child(2) { --particle-x: 35px; --particle-y: -20px; animation-delay: 165ms; }
-.duel-clash__particles i:nth-child(3) { --particle-x: -42px; --particle-y: 18px; animation-delay: 185ms; }
-.duel-clash__particles i:nth-child(4) { --particle-x: 41px; --particle-y: 23px; animation-delay: 155ms; }
-.duel-clash__particles i:nth-child(5) { --particle-x: -14px; --particle-y: -35px; animation-delay: 175ms; }
-.duel-clash__particles i:nth-child(6) { --particle-x: 13px; --particle-y: 34px; animation-delay: 195ms; }
-.duel-clash__particles i:nth-child(7) { --particle-x: 48px; --particle-y: -2px; animation-delay: 205ms; }
-
-.duel-clash--impact-weak .duel-clash__particles i { width: 3px; height: 3px; }
-.duel-clash--impact-strong .duel-clash__particles i { width: 5px; height: 5px; }
-
-.duel-clash--fire .duel-clash__particles i { background: #e58a58; }
-.duel-clash--water .duel-clash__particles i { background: #73bad1; }
-.duel-clash--earth .duel-clash__particles i { background: #b59a6b; }
-.duel-clash--air .duel-clash__particles i { background: #c9d9dc; }
 
 @media (prefers-reduced-motion: reduce) {
   .duel-hp-panel--hit { animation: none !important; }
@@ -4145,15 +3952,6 @@ button:focus-visible {
   .duel-opponent-preview__actions { opacity: 1; transform: none; }
   .duel-battle--intro .duel-card { opacity: 1; transform: none; }
   .duel-card--selected { box-shadow: inset 0 0 0 3px var(--bg-inset), 0 0 12px color-mix(in srgb, var(--card-element) 52%, transparent); }
-  .duel-clash__trail { opacity: .35; transform: none; }
-  .duel-clash__flash { opacity: .62; transform: translate(-50%, -50%) scale(1); }
-  .duel-clash > .battle-sword,
-  .duel-clash__damage,
-  .duel-clash__advantage { opacity: 1; transform: translate(-50%, -50%); }
-  .duel-clash__damage--player,
-  .duel-clash__damage--enemy { transform: none; }
-  .duel-clash__advantage { transform: translateX(-50%); }
-  .duel-clash__particles i { opacity: .8; }
   .duel-hp-impact__core { opacity: .55; transform: translate(-50%, -50%) scale(1); }
   .duel-hp-impact i { opacity: .55; transform: translate(-50%, -50%); }
 }
@@ -8130,14 +7928,6 @@ button.mode-tile::before,
 .settings-provider > strong { color: #83ad78; font-size: var(--font-xs); }
 .settings-provider .google-sign-in { min-height: 0; transform: scale(.82); transform-origin: right center; }
 .settings-provider .telegram-login { min-height: 0; }
-.settings-theme-row { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); }
-.settings-theme-copy { display: grid; gap: 3px; min-width: 0; }
-.settings-theme-copy strong { color: var(--text-primary); font-size: var(--font-sm); }
-.settings-theme-copy span { color: var(--text-muted); font-size: var(--font-xs); }
-.settings-theme-switch { display: grid; flex: 0 0 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
-.settings-theme-switch button { min-height: 34px; padding: 5px 9px; color: var(--text-secondary); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); font: 600 var(--font-xs)/1.2 var(--font-label); cursor: pointer; }
-.settings-theme-switch button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-button-primary); border-color: var(--border-active); box-shadow: var(--shadow-button); }
-.settings-theme-switch button:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
 .settings-hint, .settings-error, .settings-success { margin: 0 5px; color: var(--text-muted); font-size: var(--font-xs); }
 .settings-error { color: #d8877a; }
 .settings-success { color: #83ad78; }
