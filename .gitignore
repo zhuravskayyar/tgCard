@@ -10,3 +10,4 @@ token.env
 .runtime/
 playwright-report/
 test-results/
+.codex-remote-attachments/
