@@ -196,10 +196,10 @@ test("account protection appears after the tutorial and awards gold once", async
   });
 
   await page.goto("/tasks");
-  await expect(page.locator(".tasks-screen")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Підказка бою" })).toBeVisible();
   await expect(page.getByText("Захисти свій прогрес")).toHaveCount(0);
   tutorialComplete = true;
-  await page.goto("/tasks");
+  await page.goto("/trials/save");
   await expect(page.getByText("Захисти свій прогрес")).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: "reduce" });

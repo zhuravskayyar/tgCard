@@ -15,7 +15,9 @@ test("parchment theme keeps screens, artwork and the player shell usable at mobi
     const login = await request.post("/api/dev/login", { data: { accountKey: "guild_leader" } });
     expect(login.ok()).toBe(true);
     const { sessionToken } = await login.json();
-    await page.addInitScript((token) => localStorage.setItem("cardastika.session.token", token), sessionToken as string);
+    await page.addInitScript((token) => {
+      if (window.top === window) localStorage.setItem("cardastika.session.token", token);
+    }, sessionToken as string);
     const runtimeErrors: string[] = [];
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
     const paths = ["/", "/deck", "/shop", "/profile", "/settings", "/inventory", "/cards/weak", "/collections", "/equipment", "/forge", "/duel", "/arena", "/guild", "/tasks", "/battle-pass", "/mail", "/leagues"];

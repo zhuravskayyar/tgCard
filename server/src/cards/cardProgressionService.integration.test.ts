@@ -58,7 +58,7 @@ test("absorption validates ownership, weak membership and element while preservi
     );
     const byCode = new Map(starterRows.rows.map((row) => [row.code, row.id]));
     const targetId = randomUUID();
-    const activeFireId = byCode.get("starter_v5_04")!;
+    const activeEarthId = byCode.get("starter_v5_01")!;
     const retainedStarterId = byCode.get("starter_v5_02")!;
     await pool.query(
       `UPDATE player_card_instances SET level = 15
@@ -128,7 +128,7 @@ test("absorption validates ownership, weak membership and element while preservi
 
     await expectCode(progression.absorb(owner.id, targetId, [targetId]), "target_is_fodder");
     await expectCode(progression.absorb(owner.id, targetId, [differentElementId]), "different_element");
-    await expectCode(progression.absorb(owner.id, targetId, [activeFireId]), "fodder_in_deck");
+    await expectCode(progression.absorb(owner.id, targetId, [activeEarthId]), "fodder_in_deck");
     await expectCode(progression.absorb(owner.id, targetId, [otherFireId]), "fodder_not_owned");
     await expectCode(progression.absorb(owner.id, targetId, [secondValidId, differentElementId]), "different_element");
     assert.equal(Number((await pool.query<{ count: string }>(

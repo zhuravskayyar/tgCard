@@ -41,6 +41,12 @@ export async function grantStarterCards(client: PoolClient, playerId: string) {
           WHERE existing.player_id = $1::uuid
             AND existing.card_id = cards.id
         )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM player_card_discoveries discovered
+          WHERE discovered.player_id = $1::uuid
+            AND discovered.card_id = cards.id
+        )
       ON CONFLICT (id) DO NOTHING
     `,
     [playerId, STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],

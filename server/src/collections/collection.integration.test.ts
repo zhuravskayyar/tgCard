@@ -53,7 +53,7 @@ test("completed progress and bonus survive consuming four current instances", {
 
     const repository = new CollectionRepository(pool);
     const before = await repository.detail(player.id, predators.id);
-    assert.equal(before.collection.discoveredCards, 6);
+    assert.equal(before.collection.discoveredCards, 10);
     assert.equal(before.collection.completed, true);
     const collectionWithoutCover = COLLECTIONS.find(({ coverArtKey }) => coverArtKey === null);
     assert.ok(collectionWithoutCover);
@@ -69,9 +69,9 @@ test("completed progress and bonus survive consuming four current instances", {
     const after = await repository.detail(player.id, predators.id);
     const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(pool, player.id));
     const bonuses = await getCompletedCollectionBonuses(pool, player.id);
-    assert.equal(after.collection.discoveredCards, 6);
+    assert.equal(after.collection.discoveredCards, 10);
     assert.equal(after.collection.completed, true);
-    assert.equal(modifiers.battleDamagePct, 3);
+    assert.equal(modifiers.silverRewardPct, 3);
     assert.deepEqual(bonuses, [{
       bonus: predators.bonus,
       bonusLabel: predators.bonusLabel,
@@ -105,8 +105,17 @@ test("a four-card collection completes after its fourth discovery", {
     lastName: null,
     photoUrl: null,
   };
-  const elementalSpirits = COLLECTIONS.find(({ code }) => code === "element_spirits");
-  assert.ok(elementalSpirits);
+  // This small collection is a fixture: active collections now all contain ten cards.
+  const fixtureCode = `test_four_${Date.now()}`;
+  const elementalSpirits = { id: `collection_${fixtureCode}`, cards: Array.from({ length: 4 }, (_, index) => ({ id: `${fixtureCode}_${index}` })) };
+  await pool.query(
+    "INSERT INTO collections (id, code, display_name, buff_type, buff_value, buff_scope, bonus_label, position) VALUES ($1, $2, 'Test collection', 'none', 0, 'all_battles', '', 999)",
+    [elementalSpirits.id, fixtureCode],
+  );
+  for (const card of elementalSpirits.cards) await pool.query(
+    "INSERT INTO cards (id, code, display_name, element, collection_id) VALUES ($1, $1, 'Test collection card', 'fire', $2)",
+    [card.id, elementalSpirits.id],
+  );
 
   try {
     const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
@@ -143,6 +152,8 @@ test("a four-card collection completes after its fourth discovery", {
     });
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.query("DELETE FROM cards WHERE collection_id = $1", [elementalSpirits.id]);
+    await pool.query("DELETE FROM collections WHERE id = $1", [elementalSpirits.id]);
     await pool.end();
   }
 });
