@@ -805,17 +805,17 @@
   color: var(--home-ink);
 }
 
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row {
   background: rgb(103 75 43 / 8%);
   border-color: rgb(103 75 43 / 22%);
 }
 
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-damage {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-damage {
   color: var(--home-ink);
 }
 
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row--player_strong .battle-log-damage--player,
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row--enemy_strong .battle-log-damage--enemy {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--player_strong .battle-log-damage--player,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--enemy_strong .battle-log-damage--enemy {
   color: var(--state-danger);
 }
 
@@ -1039,6 +1039,22 @@
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--0-5 { color: #e6eef5; background-image: url("/assets/ui/duel/seal-0-5-v1.webp"); }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--1-5 { color: #ffe7a6; background-image: url("/assets/ui/duel/seal-1-5-v1.webp"); }
 
+/* A changed seal turns over onto its new value once the fresh cards are in place. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--changed {
+  animation: duel-multiplier-turn 620ms cubic-bezier(.2, .7, .3, 1) both;
+}
+
+@keyframes duel-multiplier-turn {
+  0% { opacity: 0; transform: perspective(240px) rotateY(-90deg) scale(.7); filter: brightness(1.8); }
+  45% { opacity: 1; transform: perspective(240px) rotateY(12deg) scale(1.22); filter: brightness(1.5) drop-shadow(0 0 8px rgb(255 214 140 / 85%)); }
+  75% { transform: perspective(240px) rotateY(-4deg) scale(.96); filter: brightness(1.1) drop-shadow(0 0 4px rgb(255 214 140 / 50%)); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-multiplier--changed { animation: none; }
+}
+
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-action-hint {
   color: var(--home-ink);
   text-shadow: 0 1px 0 rgb(255 246 220 / 60%);
@@ -1052,13 +1068,298 @@
   box-shadow: none;
 }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log h2 { font: 700 17px/1.1 var(--font-display); }
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row {
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row {
   background: none;
   border: 0;
   box-shadow: none;
 }
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-row + .battle-log-row {
-  /* An engraved ink rule instead of a box between rows. */
-  border-top: 1px dashed rgb(105 76 40 / 35%);
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log ol { gap: 2px; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row {
+  min-height: 48px;
+  padding: 2px 0;
+  grid-template-columns: 44px minmax(0, 1fr) 40px minmax(0, 1fr) 44px;
+  gap: 4px;
 }
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .battle-log-damage { font: 700 18px/1 var(--font-display); }
+/* Card thumbnails sit in the same carved frame as the HUD portrait. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art {
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+}
+/* Only the creature shows through the frame: the full card plate is enlarged so its title strip falls outside. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art .card-artwork {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 62px;
+  height: 80px;
+  transform: translate(-50%, -46%);
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art::after {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  content: "";
+  background: url("/assets/ui/home/hud-avatar-frame-v2.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-damage { font: 700 19px/1 var(--font-display); }
+/* Damage sits against its own card; the centre column belongs to the single seal. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-damage--player { justify-content: flex-start; padding-left: 4px; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-damage--enemy { justify-content: flex-end; padding-right: 4px; }
+/* The side that won the exchange reads first: larger, inked in its own colour; the other side recedes. */
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--player_strong .battle-log-damage--player,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--enemy_strong .battle-log-damage--enemy { font-size: 23px; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--player_strong .battle-log-damage--player { color: #2f6b2a; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--enemy_strong .battle-log-damage--enemy { color: #9b2b1e; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--player_strong .battle-log-damage--enemy,
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--enemy_strong .battle-log-damage--player { color: rgb(74 52 30 / 55%); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--neutral .battle-log-damage { color: var(--home-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-advantage {
+  display: grid;
+  width: 40px;
+  height: auto;
+  place-items: center;
+}
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-seal { width: 36px; height: 36px; font-size: 10px; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--latest .battle-log-seal {
+  animation: battle-log-seal-stamp 480ms cubic-bezier(.3, 1.6, .4, 1) 120ms both;
+}
+@keyframes battle-log-seal-stamp {
+  0% { opacity: 0; transform: scale(1.9) rotate(-20deg); }
+  60% { opacity: 1; transform: scale(.92) rotate(3deg); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--latest .battle-log-seal { animation: none; }
+}
+
+/* Painted search sprites: the medal, seal and badge sit on artwork instead of CSS fills. */
+/* The frame's opening sits below the sprite's centre (measured: centre at 55% height, 75% of the medal wide). */
+.duel-search-medal.has-sprite-frame { margin-top: 6%; }
+.duel-search-medal.has-sprite-frame .duel-search-medal__frame { padding: 17.5% 12.5% 6.5%; }
+.duel-search-medal.has-sprite-frame .duel-search-medal__runes { display: none; }
+.duel-search-medal.has-sprite-frame .duel-search-medal__portrait { border: 0; box-shadow: inset 0 0 18px rgb(40 20 5 / 55%); }
+.duel-search-medal__sprite-frame { object-fit: contain; filter: drop-shadow(0 6px 8px rgb(40 20 5 / 40%)); }
+
+:root .app-shell .app-content .duel-search-badge {
+  padding: 7px 22px 8px;
+  color: #f1e2bf;
+  background: none;
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/home/deck-counter-tag-v1.webp") 0 36 fill / 0 18px / 0 stretch;
+  border-radius: 0;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+:root .app-shell .app-content .duel-search-badge--stronger { color: #ffc9a8; }
+:root .app-shell .app-content .duel-search-badge--weaker { color: #d9ecc4; }
+
+.duel-search-power { border-block: 0; }
+.duel-search-power__seal {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  background: none;
+  filter: drop-shadow(0 3px 4px rgb(40 20 5 / 40%));
+}
+
+/* Found view: each part lands in turn instead of the whole panel fading at once. */
+.duel-search-experience--preview.is-revealed :is(.duel-search-eyebrow, .duel-search-level, .duel-search-badge, .duel-search-power > div, .duel-search-actions) {
+  animation: duel-search-rise .5s cubic-bezier(.2, .8, .3, 1) both;
+}
+.duel-search-experience--preview.is-revealed .duel-search-eyebrow { animation-delay: 0ms; }
+.duel-search-experience--preview.is-revealed .duel-search-level { animation-delay: 380ms; }
+.duel-search-experience--preview.is-revealed .duel-search-badge { animation-delay: 480ms; }
+.duel-search-experience--preview.is-revealed .duel-search-power > div:first-child { animation-delay: 560ms; }
+.duel-search-experience--preview.is-revealed .duel-search-power > div:last-child { animation-delay: 620ms; }
+.duel-search-experience--preview.is-revealed .duel-search-actions { animation-delay: 820ms; }
+.duel-search-experience--preview.is-revealed .duel-search-power__seal {
+  animation: duel-search-stamp .55s cubic-bezier(.3, 1.6, .4, 1) 700ms both;
+}
+
+/* Lock-on: the cards turn edge-on as they meet and the swords slam together at the clash. */
+.duel-search-arena.is-clashing .duel-search-card { opacity: 0; transition: transform .35s ease-in, opacity .3s ease-in .05s; }
+.duel-search-arena.is-clashing .duel-search-card--sun { transform: translate(60%, 0) rotateY(80deg) scale(.7); }
+.duel-search-arena.is-clashing .duel-search-card--moon { transform: translate(-60%, 0) rotateY(-80deg) scale(.7); }
+.duel-search-arena.is-locking .duel-search-crossed-swords { animation: duel-search-swords-draw .8s cubic-bezier(.5, 0, .3, 1) both; }
+.duel-search-arena.is-clashing .duel-search-crossed-swords { animation: duel-search-swords-clash .45s cubic-bezier(.2, 1.6, .4, 1) both; }
+
+@keyframes duel-search-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes duel-search-stamp {
+  0% { opacity: 0; transform: scale(2.2) rotate(-25deg); }
+  60% { opacity: 1; transform: scale(.9) rotate(4deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes duel-search-swords-draw {
+  0% { transform: scale(1) rotate(0); }
+  100% { transform: scale(.82) rotate(-12deg); }
+}
+@keyframes duel-search-swords-clash {
+  0% { transform: scale(.82) rotate(-12deg); }
+  55% { transform: scale(1.3) rotate(4deg); }
+  100% { transform: scale(1.12) rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-search-experience--preview.is-revealed :is(.duel-search-eyebrow, .duel-search-level, .duel-search-badge, .duel-search-power > div, .duel-search-actions, .duel-search-power__seal),
+  .duel-search-arena .duel-search-crossed-swords { animation: none; }
+}
+
+/* Duel outcome: a painted crest stamps onto the parchment page, the title ribbon unrolls over its banner. */
+.app-shell .app-content .duel-page.duel-outcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 16px 20px;
+  color: var(--home-ink);
+  text-align: center;
+  background: none;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.duel-outcome__crest {
+  position: relative;
+  isolation: isolate;
+  width: min(80%, 300px);
+  margin: 0 0 4px;
+}
+.duel-outcome__crest-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 10px rgb(40 20 5 / 35%));
+  animation: duel-outcome-stamp .7s cubic-bezier(.3, 1.5, .45, 1) both;
+}
+.duel-outcome--loss .duel-outcome__crest-art { animation: duel-outcome-fall .9s cubic-bezier(.4, 0, .3, 1) both; }
+
+.duel-outcome__rays {
+  position: absolute;
+  z-index: -1;
+  inset: -18% -10% -6%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgb(255 214 140 / 55%) 0deg 4deg, transparent 4deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 66%);
+  mask: radial-gradient(circle, #000 18%, transparent 66%);
+  opacity: 0;
+  animation: duel-search-rays .9s ease-out .35s forwards, duel-search-spin 40s linear infinite;
+}
+
+/* The ribbon covers the crest's own empty banner scroll. */
+.duel-outcome__title {
+  position: absolute;
+  left: 50%;
+  bottom: 5%;
+  width: 104%;
+  margin: 0;
+  padding: 9px 0 11px;
+  color: var(--home-ink);
+  background: url("/assets/ui/ribbon-title-v3.webp") center / 100% 100% no-repeat;
+  font: 700 clamp(22px, 6.4vw, 28px)/1 var(--font-display);
+  letter-spacing: .12em;
+  text-shadow: 0 1px 0 rgb(255 246 220 / 70%);
+  transform: translateX(-50%);
+  clip-path: inset(0 50% 0 50%);
+  animation: duel-outcome-unroll .6s cubic-bezier(.3, .8, .3, 1) .45s forwards;
+}
+:root .app-shell .app-content .duel-outcome--loss .duel-outcome__title { color: #7a2418; }
+
+.duel-outcome__received {
+  margin: 2px 0 0;
+  font: 700 15px/1.2 var(--font-display);
+  animation: duel-search-rise .45s ease-out .6s both;
+}
+.duel-outcome__loot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+/* Rewards sit on the HUD currency plate: the icon fills its round socket. */
+.duel-outcome__reward {
+  display: inline-flex;
+  min-width: 104px;
+  height: 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px 0 9px;
+  color: #f4e6c4;
+  font: 700 18px/1 var(--font-number, var(--font-display));
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/home/hud-currency-pill-v2.webp") 0 40 0 140 fill / 0 11px 0 40px / 0 stretch;
+  animation: duel-search-rise .45s ease-out both;
+}
+.duel-outcome__reward:nth-child(1) { animation-delay: .65s; }
+.duel-outcome__reward:nth-child(2) { animation-delay: .75s; }
+.duel-outcome__reward:nth-child(3) { animation-delay: .85s; }
+
+.duel-outcome__wins,
+.duel-outcome__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--home-ink);
+  font: 600 13px/1.3 var(--font-body);
+  animation: duel-search-rise .45s ease-out .95s both;
+}
+.duel-outcome__note strong { font-family: var(--font-display); }
+
+.app-shell .app-content .duel-outcome__next {
+  width: min(88%, 320px);
+  margin: 6px 0 4px;
+  animation: duel-search-rise .5s cubic-bezier(.2, .8, .3, 1) 1.05s both;
+}
+
+.app-shell .app-content .duel-page.duel-outcome .duel-outcome__battle {
+  width: 100%;
+  padding: 4px 0 0;
+  background: none;
+  border: 0;
+}
+.app-shell .app-content .duel-page.duel-outcome .duel-outcome__battle > header {
+  padding: 6px 4px;
+  color: var(--home-ink);
+  border: 0;
+  font: 700 14px/1 var(--font-display);
+}
+.app-shell .app-content .duel-page.duel-outcome .duel-outcome__battle h2 { color: var(--home-ink); font: 700 17px/1.1 var(--font-display); }
+.app-shell .app-content .duel-page.duel-outcome .duel-outcome__battle ol { width: 100%; }
+/* Exchanges replay in order down the page. */
+.duel-outcome__battle .battle-log-row { animation: duel-search-rise .4s ease-out both; }
+.duel-outcome__battle .battle-log-row:nth-child(1) { animation-delay: 1.15s; }
+.duel-outcome__battle .battle-log-row:nth-child(2) { animation-delay: 1.22s; }
+.duel-outcome__battle .battle-log-row:nth-child(3) { animation-delay: 1.29s; }
+.duel-outcome__battle .battle-log-row:nth-child(4) { animation-delay: 1.36s; }
+.duel-outcome__battle .battle-log-row:nth-child(5) { animation-delay: 1.43s; }
+.duel-outcome__battle .battle-log-row:nth-child(n + 6) { animation-delay: 1.5s; }
+.duel-outcome__menu { width: 100%; }
+
+@keyframes duel-outcome-stamp {
+  0% { opacity: 0; transform: scale(1.7) rotate(-8deg); }
+  55% { opacity: 1; transform: scale(.94) rotate(1deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes duel-outcome-fall {
+  0% { opacity: 0; transform: translateY(-28px) rotate(4deg); filter: grayscale(.6) drop-shadow(0 8px 10px rgb(40 20 5 / 35%)); }
+  60% { opacity: 1; transform: translateY(4px) rotate(-1.5deg); }
+  78% { transform: translateY(-2px) rotate(.6deg); }
+  100% { opacity: 1; transform: none; filter: grayscale(.15) drop-shadow(0 8px 10px rgb(40 20 5 / 35%)); }
+}
+@keyframes duel-outcome-unroll { to { clip-path: inset(0 0 0 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-outcome :is(.duel-outcome__crest-art, .duel-outcome__rays, .duel-outcome__received, .duel-outcome__reward, .duel-outcome__wins, .duel-outcome__note, .duel-outcome__next, .battle-log-row) { animation: none; }
+  .duel-outcome__rays { opacity: .8; }
+  .duel-outcome__title { animation: none; clip-path: none; }
+}

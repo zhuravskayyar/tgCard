@@ -7,7 +7,7 @@ import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { useBattlePass } from "../hooks/useBattlePass";
 
-const DIAMOND_ASSET = "/assets/ui/world-tree/game-icons/diamond.svg";
+const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
 
 function formatRemaining(endsAt: string, now: number) {
   const remaining = Math.max(0, new Date(endsAt).getTime() - now);

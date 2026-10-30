@@ -7,7 +7,7 @@ import { CardHud } from "./CardHud";
 import "./battle-attack.css";
 
 /** Longest strike (weak tier: slow flight) including the flip to the next cards; screens also wait for the end event. */
-export const BATTLE_ATTACK_DURATION_MS = 1550;
+export const BATTLE_ATTACK_DURATION_MS = 1900;
 /** Fired once the strike has really finished, so screens never cut it short when the first frames were slow. */
 export const BATTLE_ATTACK_END_EVENT = "cardastika:battle-attack-end";
 
@@ -35,8 +35,8 @@ const RECOIL_MS: Record<Tier, number> = { weak: 380, even: 520, strong: 760 };
 const TIER_LABEL: Record<Tier, string> = { weak: "Слабкий удар", even: "Рівний удар", strong: "Сильний удар!" };
 const RISE_MS = 260;
 const RETURN_MS = 520;
-const FLIP_OUT_MS = 200;
-const FLIP_IN_MS = 260;
+const FLIP_OUT_MS = 220;
+const FLIP_IN_MS = 340;
 // Particles live at most this many 60fps frames so the burst fades while the card returns.
 const MAX_PARTICLE_FRAMES = 42;
 
@@ -484,20 +484,25 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       if (cancelled) return;
       const flipOut = [{ transform: "perspective(900px) rotateY(0deg)" }, { transform: "perspective(900px) rotateY(90deg)" }];
       await Promise.all([
-        ghost.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "ease-in" }).finished,
-        target.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "ease-in" }).finished,
+        ghost.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "cubic-bezier(.5,0,.75,0)" }).finished,
+        target.animate(flipOut, { ...options, duration: FLIP_OUT_MS, easing: "cubic-bezier(.5,0,.75,0)" }).finished,
       ]);
       if (cancelled) return;
       // Edge-on now: reveal the fresh cards that replaced the used pair and turn them face up.
       const cards = slotCards.current;
       if (cards) {
-        const flipIn = [{ transform: "perspective(900px) rotateY(-90deg)" }, { transform: "perspective(900px) rotateY(0deg)" }];
-        for (const card of [cards.player, cards.enemy]) {
-          delete card.dataset.attackCovered;
-          card.animate(flipIn, { duration: FLIP_IN_MS, easing: "ease-out" });
-        }
+        const flipIn = [
+          { transform: "perspective(900px) rotateY(-90deg) scale(.96)" },
+          { transform: "perspective(900px) rotateY(8deg) scale(1.02)", offset: 0.7 },
+          { transform: "perspective(900px) rotateY(0deg) scale(1)" },
+        ];
         ghost.style.visibility = "hidden";
         target.style.visibility = "hidden";
+        // The strike ends only once the fresh cards have settled, so the screen never cuts the flip short.
+        await Promise.all([cards.player, cards.enemy].map((card) => {
+          delete card.dataset.attackCovered;
+          return card.animate(flipIn, { duration: FLIP_IN_MS, easing: "cubic-bezier(.2,.7,.3,1)" }).finished;
+        }));
       }
     };
 

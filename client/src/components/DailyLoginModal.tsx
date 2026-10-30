@@ -24,7 +24,7 @@ function CurrencyRewards({ reward }: { reward: LariskaDailyRewardSummary }) {
         <CurrencyIcon kind="gold" size={32} /><strong>{reward.gold === undefined ? "—" : formatUiNumber(reward.gold)}</strong><small>Золото</small>
       </div>
       <div className="daily-login-modal__currency-slot">
-        <img alt="" src="/assets/ui/world-tree/game-icons/diamond.svg" width={32} height={32} /><strong>{reward.diamonds === undefined ? "—" : formatUiNumber(reward.diamonds)}</strong><small>Алмази</small>
+        <img alt="" src="/assets/ui/icons/icon-diamond-v1.webp" width={32} height={32} /><strong>{reward.diamonds === undefined ? "—" : formatUiNumber(reward.diamonds)}</strong><small>Алмази</small>
       </div>
     </div>
   );

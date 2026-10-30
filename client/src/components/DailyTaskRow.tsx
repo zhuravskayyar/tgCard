@@ -1,7 +1,7 @@
 import type { DailyTaskView } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "./AppIcon";
 
-const DIAMOND_ASSET = "/assets/ui/world-tree/game-icons/diamond.svg";
+const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
 
 const taskActions: Record<string, { icon: AppIconName; label: string }> = {
   "absorb-cards": { icon: "card-absorb", label: "До колоди" },

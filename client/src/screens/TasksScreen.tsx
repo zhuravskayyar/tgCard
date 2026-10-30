@@ -5,7 +5,7 @@ import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
 import { AccountProtectionTask } from "../components/AccountProtectionTask";
 
-const DIAMOND_ASSET = "/assets/ui/world-tree/game-icons/diamond.svg";
+const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
 
 function getDailyReset(taskDate: string) {
   const [year, month, day] = taskDate.split("-").map(Number);

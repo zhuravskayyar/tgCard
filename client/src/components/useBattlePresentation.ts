@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DuelExchange } from "@cardastika/shared";
 import { BATTLE_ATTACK_DURATION_MS, BATTLE_ATTACK_END_EVENT } from "./BattleAttackAnimation";
 
@@ -18,7 +18,8 @@ function waitForAttackEnd(done: () => void) {
 export function useBattleExchange(latest: DuelExchange | null, identity: string | number | undefined = latest?.turnNumber) {
   const lastTurn = useRef(identity);
   const [exchange, setExchange] = useState<DuelExchange | null>(null);
-  useEffect(() => {
+  // Layout timing: the strike mounts before the browser paints the board with the replacement cards.
+  useLayoutEffect(() => {
     if (!latest || identity === lastTurn.current) return;
     lastTurn.current = identity;
     setExchange(latest);

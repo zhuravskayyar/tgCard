@@ -171,16 +171,16 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-game">
         <h2 id="settings-game">ГРА</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="guild" metalTexture title="Звуки — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Музика — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Вібрація — незабаром" />
+          <MenuRow compact disabled icon="sound" metalTexture title="Звуки — незабаром" />
+          <MenuRow compact disabled icon="music" metalTexture title="Музика — незабаром" />
+          <MenuRow compact disabled icon="vibration" metalTexture title="Вібрація — незабаром" />
         </div>
       </section>
 
       <section className="settings-section" aria-labelledby="settings-interface">
         <h2 id="settings-interface">ІНТЕРФЕЙС</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="deck" metalTexture title="Анімації — незабаром" />
+          <MenuRow compact disabled icon="animation" metalTexture title="Анімації — незабаром" />
           <MenuRow compact disabled icon="card-strength" metalTexture title="Ефекти карт — незабаром" />
         </div>
       </section>
@@ -188,9 +188,9 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-other">
         <h2 id="settings-other">ІНШЕ</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="guild" metalTexture title="Мова — незабаром" />
+          <MenuRow compact disabled icon="language" metalTexture title="Мова — незабаром" />
           <MenuRow compact disabled icon="mail" metalTexture title="Сповіщення — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Підтримка — незабаром" />
+          <MenuRow compact disabled icon="support" metalTexture title="Підтримка — незабаром" />
           {showTutorialReplay ? <MenuRow compact icon="record" metalTexture onClick={onReplayTutorial} title="Як грати · пройти навчання ще раз" /> : null}
           <MenuRow compact disabled icon="lock" metalTexture title="Політика конфіденційності — незабаром" />
         </div>

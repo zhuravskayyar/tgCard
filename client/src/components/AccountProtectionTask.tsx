@@ -105,7 +105,7 @@ export function AccountProtectionTask({ onRewardGranted }: { onRewardGranted?: (
             : "Прив’яжи Google або Telegram, щоб відновити прогрес на іншому пристрої."}</p>
         </div>
         <div aria-label={`Нагорода: ${state.task.rewardDiamonds} діамантів`} className="tasks-screen__account-protection-reward">
-          <img alt="" src="/assets/ui/world-tree/game-icons/diamond.svg" />
+          <img alt="" src="/assets/ui/icons/icon-diamond-v1.webp" />
           <strong>+{state.task.rewardDiamonds}</strong>
         </div>
       </div>

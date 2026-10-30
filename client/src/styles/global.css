@@ -4130,6 +4130,31 @@ button:focus-visible {
 .battle-log-row--enemy_strong .battle-log-damage--enemy { color: var(--accent-gold); }
 .battle-log-row--neutral .battle-log-damage--player { color: #78a972; }
 .battle-log-row--neutral .battle-log-damage--enemy { color: #bc6861; }
+.battle-log-damage { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+/* Multiplier of each side, pressed into the same wax seals as the board. */
+.battle-log-seal {
+  display: grid;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #fbeccb;
+  background: url("/assets/ui/duel/seal-1-v1.webp") center / contain no-repeat;
+  font: 700 7px/1 var(--font-display);
+  letter-spacing: -.02em;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 80%);
+}
+.battle-log-seal--0-5 { color: #e6eef5; background-image: url("/assets/ui/duel/seal-0-5-v1.webp"); }
+.battle-log-seal--1-5 { color: #ffe7a6; background-image: url("/assets/ui/duel/seal-1-5-v1.webp"); }
+
+/* Bot portraits are transparent cut-outs; these painted-light backdrops sit behind them. */
+.duel-avatar__card-art { background-color: #d9c49a; }
+.duel-avatar__card-art--0 { background: radial-gradient(circle at 50% 42%, #fff1cf 0%, #e3c993 45%, #9c7748 100%); }
+.duel-avatar__card-art--1 { background: radial-gradient(circle at 50% 40%, #ffd9a0 0%, #d98a4a 48%, #6e3320 100%); }
+.duel-avatar__card-art--2 { background: radial-gradient(circle at 50% 42%, #e9f0cf 0%, #a9b97f 48%, #4c5a32 100%); }
+.duel-avatar__card-art--3 { background: radial-gradient(circle at 50% 40%, #e3f1f2 0%, #8fb5bb 48%, #34525c 100%); }
+.duel-avatar__card-art--4 { background: radial-gradient(circle at 50% 40%, #ece6f5 0%, #a79bc0 48%, #463c5c 100%); }
+.duel-avatar__card-art--5 { background: radial-gradient(circle at 50% 42%, #f6ead6 0%, #c9b294 46%, #5e4a36 100%); }
 .battle-sword { width: 18px; height: 18px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .battle-sword--left { transform: scaleX(-1); }
 .battle-sword--right { transform: none; }
@@ -4932,6 +4957,9 @@ body {
 .mode-tile__icon .app-icon--game {
   color: #d7bd78;
 }
+
+/* Painted icons keep their own proportions inside the square icon box. */
+.app-icon--raster { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .mode-tile__title {
   font-size: clamp(.95rem, 4.2vw, var(--font-lg));
@@ -14133,3 +14161,9 @@ body {
   .ribbon-title--wide { --ribbon-width: min(100%, 360px); }
   .ribbon-title__text { padding-inline: 24px; letter-spacing: .06em; }
 }
+
+/* Painted equipment icons keep their own colours instead of the silhouette tint. */
+.equipment-icon--painted { background: none; mask-image: none; -webkit-mask-image: none; object-fit: contain; }
+.equipment-art--empty > .equipment-icon--painted { opacity: .8; }
+.equipment-slot--empty:has(.equipment-icon--painted) { filter: grayscale(.2); }
+.equipment-art--filled > .equipment-icon--painted { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--equipment-rarity) 45%, transparent)); }

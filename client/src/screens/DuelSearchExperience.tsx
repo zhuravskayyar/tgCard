@@ -1,23 +1,24 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { DuelSearchResponse } from "@cardastika/shared";
 import { BattleSwordIcon } from "../components/BattleSwordIcon";
+import { cardArtAvatarClassName } from "../components/avatarBackdrop";
 
 export type DuelSearchExperiencePhase = "loading" | "searching" | "preview" | "no-opponent" | "error" | "cancelled";
 
-// Optional artwork slots from duel-search.html. The SVG versions below remain
-// active until a corresponding PNG is added here.
+// Painted artwork slots; a null slot falls back to the SVG drawing below.
+const DUEL_SEARCH_ART = "/assets/ui/duel-search/";
 const DUEL_SEARCH_SPRITES = {
-  dialOuter: null as string | null,
-  dialMid: null as string | null,
-  dialInner: null as string | null,
-  cardSun: null as string | null,
-  cardMoon: null as string | null,
-  sword: null as string | null,
+  dialOuter: DUEL_SEARCH_ART + "dial-outer-v1.webp" as string | null,
+  dialMid: DUEL_SEARCH_ART + "dial-mid-v1.webp" as string | null,
+  dialInner: DUEL_SEARCH_ART + "dial-inner-v1.webp" as string | null,
+  cardSun: DUEL_SEARCH_ART + "card-sun-v1.webp" as string | null,
+  cardMoon: DUEL_SEARCH_ART + "card-moon-v1.webp" as string | null,
+  sword: DUEL_SEARCH_ART + "sword-v1.webp" as string | null,
   spark: null as string | null,
   impact: null as string | null,
   impactFrames: 8,
-  medalFrame: null as string | null,
-  seal: null as string | null,
+  medalFrame: DUEL_SEARCH_ART + "medal-frame-v1.webp" as string | null,
+  seal: DUEL_SEARCH_ART + "power-seal-v1.webp" as string | null,
   panelBg: null as string | null,
 };
 
@@ -50,7 +51,7 @@ function DuelOpponentPortrait({ name, photoUrl }: { name: string; photoUrl: stri
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [photoUrl]);
   if (photoUrl && !failed) {
-    return <img alt="" onError={() => setFailed(true)} src={photoUrl} />;
+    return <img alt="" className={cardArtAvatarClassName(photoUrl)} onError={() => setFailed(true)} src={photoUrl} />;
   }
   return <span>{name.slice(0, 2).toUpperCase()}</span>;
 }
@@ -201,12 +202,12 @@ function DuelSearchSword({ className = "" }: { className?: string }) {
     <svg aria-hidden="true" className={className} viewBox="0 0 200 200">
       <g transform="rotate(45 100 100)">
         {DUEL_SEARCH_SPRITES.sword
-          ? <image href={DUEL_SEARCH_SPRITES.sword} x="75" y="22" width="50" height="180" preserveAspectRatio="xMidYMid meet" />
+          ? <image href={DUEL_SEARCH_SPRITES.sword} x="70" y="14" width="60" height="190" preserveAspectRatio="xMidYMid meet" />
           : <use href="#duel-search-sword" x="0" y="22" />}
       </g>
       <g transform="rotate(-45 100 100)">
         {DUEL_SEARCH_SPRITES.sword
-          ? <image href={DUEL_SEARCH_SPRITES.sword} x="75" y="22" width="50" height="180" preserveAspectRatio="xMidYMid meet" />
+          ? <image href={DUEL_SEARCH_SPRITES.sword} x="70" y="14" width="60" height="190" preserveAspectRatio="xMidYMid meet" />
           : <use href="#duel-search-sword" x="0" y="22" />}
       </g>
       <circle cx="100" cy="100" r="28" fill="url(#duel-search-glow)" />
@@ -312,7 +313,7 @@ function DuelSearchArena({ searching, locking, clashing, burstKey }: { searching
             </defs>
             <circle cx="150" cy="150" r="140" fill="rgba(255,236,190,.25)" stroke="#8a5a26" strokeWidth="1.2" />
             <g className="duel-search-ring duel-search-ring--outer">
-              {DUEL_SEARCH_SPRITES.dialOuter ? <image href={DUEL_SEARCH_SPRITES.dialOuter} height="300" width="300" /> : (
+              {DUEL_SEARCH_SPRITES.dialOuter ? <image href={DUEL_SEARCH_SPRITES.dialOuter} height="290" width="290" x="5" y="5" /> : (
                 <>
                   <circle cx="150" cy="150" r="134" fill="none" stroke="#8a5a26" strokeWidth="2.5" />
                   <circle cx="150" cy="150" r="110" fill="none" stroke="#8a5a26" />
@@ -324,7 +325,7 @@ function DuelSearchArena({ searching, locking, clashing, burstKey }: { searching
               )}
             </g>
             <g className="duel-search-ring duel-search-ring--mid">
-              {DUEL_SEARCH_SPRITES.dialMid ? <image href={DUEL_SEARCH_SPRITES.dialMid} height="300" width="300" /> : (
+              {DUEL_SEARCH_SPRITES.dialMid ? <image href={DUEL_SEARCH_SPRITES.dialMid} height="206" width="206" x="47" y="47" /> : (
                 <>
                   <circle cx="150" cy="150" r="86" fill="none" stroke="#9a6a2f" strokeDasharray="2 6" strokeWidth="1.5" />
                   <circle cx="150" cy="150" r="78" fill="none" stroke="#9a6a2f" />
@@ -333,7 +334,7 @@ function DuelSearchArena({ searching, locking, clashing, burstKey }: { searching
               )}
             </g>
             <g className="duel-search-ring duel-search-ring--inner">
-              {DUEL_SEARCH_SPRITES.dialInner ? <image href={DUEL_SEARCH_SPRITES.dialInner} height="300" width="300" /> : (
+              {DUEL_SEARCH_SPRITES.dialInner ? <image href={DUEL_SEARCH_SPRITES.dialInner} height="128" width="128" x="86" y="86" /> : (
                 <>
                   <circle cx="150" cy="150" r="54" fill="none" stroke="#c48a3c" strokeDasharray="14 8" strokeWidth="1.2" />
                   <path d="M150 100 L158 142 L200 150 L158 158 L150 200 L142 158 L100 150 L142 142 Z" fill="none" stroke="#b07a30" strokeWidth="1.4" />

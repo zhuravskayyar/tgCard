@@ -72,7 +72,8 @@
   overflow: visible;
 }
 
-.card-model--shader-ready > svg { visibility: hidden; }
+/* The flat SVG stays underneath until the shaded canvas has fully faded in, so the swap never blinks. */
+.card-model--shader-ready > svg { visibility: hidden; transition: visibility 0s linear 220ms; }
 
 .card-material-shader {
   position: absolute;
@@ -83,9 +84,11 @@
   height: 100%;
   opacity: 0;
   pointer-events: none;
+  transition: opacity 200ms ease-out;
 }
 
 .card-material-shader--ready { opacity: 1; }
+.card-material-shader--snapshot { opacity: 1; transition: none; }
 
 .card-hud__protection,
 .card-hud__upgrade {

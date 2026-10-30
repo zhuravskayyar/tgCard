@@ -21,7 +21,7 @@ export function ScreenHeading({ action, backDisabled = false, backLabel = "На�
 
   return (
     <header className={`screen-heading${onBack ? " screen-heading--back" : ""}${action ? " screen-heading--action" : ""}`} ref={ref} tabIndex={tabIndex}>
-      {onBack ? <button aria-label={backLabel} className="screen-heading__back" data-tutorial-target={backTutorialTarget} disabled={backDisabled} onClick={onBack} type="button"><AppIcon name="chevron" size={20} /></button> : null}
+      {onBack ? <button aria-label={backLabel} className="screen-heading__back" data-tutorial-target={backTutorialTarget} disabled={backDisabled} onClick={onBack} type="button"><AppIcon name="back" size={20} /></button> : null}
       <div className="screen-heading__copy">
         {titleFirst ? null : subtitle}
         <h1 id={titleId}>{title}</h1>
