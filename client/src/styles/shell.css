@@ -106,3 +106,28 @@
   background: linear-gradient(180deg, #f7efdf, #e6dac5);
   box-shadow: 0 -4px 12px rgb(73 52 26 / 14%);
 }
+
+/* Mobile book canvas: force the artwork edge to edge and never expose pale gutters. */
+@media (max-width: 767px) {
+  /* On some Android WebViews the Telegram root marker is missing or late.
+     Override the actual canvas and fixed bars, not only their width token. */
+  :root[data-game-theme="light"] body {
+    background: #24170f;
+  }
+
+  :root[data-game-theme="light"] .app-shell {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    border-inline: 0;
+    box-shadow: none;
+  }
+
+  :root[data-game-theme="light"] .app-shell .top-hud,
+  :root[data-game-theme="light"] .app-shell .bottom-navigation {
+    left: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+  }
+}
