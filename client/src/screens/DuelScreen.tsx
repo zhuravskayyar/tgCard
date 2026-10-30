@@ -72,6 +72,7 @@ interface DuelScreenProps extends DuelResultNavigation {
   onBack: () => void;
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "duelHighestLeagueIndex" | "duelRating" | "level" | "silver" | "gold">>) => void;
   onTutorialResult?: () => void | Promise<void>;
+  tutorialResultError?: string | null;
   onTutorialDuelState?: (duel: DuelView) => void;
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
@@ -388,6 +389,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   );
 }
 
+const REWARD_SHOWCASE_MS = 1_500;
 const DUEL_RESULT_CREST_WIN = "/assets/ui/duel/result-victory-crest-v1.webp";
 const DUEL_RESULT_CREST_LOSS = "/assets/ui/duel/result-defeat-crest-v1.webp";
 
@@ -409,23 +411,24 @@ function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; d
   return <>{formatUiNumber(shown)}</>;
 }
 
-function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean }) {
+function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
   if (tutorialMode) {
     return (
       <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
-        <div className="tutorial-result__banner" aria-hidden="true"><span>ПЕРЕМОГА</span></div>
+        <img alt="" aria-hidden="true" className="tutorial-result__crest" src={DUEL_RESULT_CREST_WIN} />
+        <h1 className="tutorial-result__title">ПЕРЕМОГА</h1>
         <p className="tutorial-result__received">Ти отримав:</p>
         <div aria-label="Нагороди за перемогу" className="tutorial-result__rewards">
-          <span><CurrencyIcon kind="silver" size={18} />{result.silver}</span>
-          <span><ResourceIcon kind="xp" size={18} />{result.xp}</span>
+          <span data-reward-source="silver"><CurrencyIcon kind="silver" size={18} />{result.silver}</span>
+          <span data-reward-source="xp"><ResourceIcon kind="xp" size={18} />{result.xp}</span>
         </div>
         <p className="tutorial-result__wins">Перемог у дуелях: {result.player.duelWins}</p>
         <div className="tutorial-result__dialogue">
           <div aria-hidden="true"><Lariska emotion="happy" /></div>
-          <p>Вперед за нагородою. І не загуби колоду дорогою!</p>
+          <p>Вперед за нагородою та новими пригодами!</p>
         </div>
         <button
           className="tutorial-result__button"
@@ -440,8 +443,9 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
           }}
           type="button"
         >
-          {tutorialResultPending ? "Завантаження…" : "Переглянути колоду"}
+          {tutorialResultPending ? "Завантаження…" : "За нагородою"}
         </button>
+        {tutorialResultError ? <p className="campaign-claim-error" role="alert">{tutorialResultError}</p> : null}
       </section>
     );
   }
@@ -459,9 +463,9 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
       </header>
       <p className="duel-outcome__received">Ти отримав:</p>
       <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
-        <span aria-label={`Срібло: ${silverReward}`} className="duel-outcome__reward"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={silverReward} /></span>
-        <span aria-label={`Досвід: ${result.xp}`} className="duel-outcome__reward"><ResourceIcon kind="xp" size={20} /><CountUpValue value={result.xp} /></span>
-        {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`} className="duel-outcome__reward"><CurrencyIcon kind="gold" size={20} /><CountUpValue value={goldReward} /></span> : null}
+        <span aria-label={`Срібло: ${silverReward}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={silverReward} /></span>
+        <span aria-label={`Досвід: ${result.xp}`} className="duel-outcome__reward" data-reward-source="xp"><ResourceIcon kind="xp" size={20} /><CountUpValue value={result.xp} /></span>
+        {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`} className="duel-outcome__reward" data-reward-source="gold"><CurrencyIcon kind="gold" size={20} /><CountUpValue value={goldReward} /></span> : null}
       </div>
       {result.player.duelWins !== undefined ? <p className="duel-outcome__wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatNumber(result.player.duelWins)}</p> : null}
       {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
@@ -484,13 +488,17 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
   );
 }
 
-export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false }: DuelScreenProps) {
+export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false, tutorialResultError = null }: DuelScreenProps) {
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
   const requestInFlightRef = useRef(false);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const searchSequenceRef = useRef(0);
+
+  const pendingResultPlayerRef = useRef<PlayerSummary | null>(null);
+  const applyResultPlayerRef = useRef(onPlayerSummaryChange);
+  applyResultPlayerRef.current = onPlayerSummaryChange;
 
   const showDuel = useCallback((duel: DuelView) => {
     if (duel.status === "active") {
@@ -499,10 +507,10 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
       window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
     }
     preloadDuelArtwork(duel);
-    if (duel.result) onPlayerSummaryChange(duel.result.player);
+    pendingResultPlayerRef.current = duel.result?.player ?? null;
     if (tutorialMode) onTutorialDuelState?.(duel);
     setState({ status: "duel", duel });
-  }, [onPlayerSummaryChange, onTutorialDuelState, tutorialMode]);
+  }, [onTutorialDuelState, tutorialMode]);
 
   const search = useCallback(async (initData: string, signal?: AbortSignal) => {
     if (requestInFlightRef.current && !searchAbortControllerRef.current?.signal.aborted) return;
@@ -663,6 +671,24 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     }
   }
 
+  // The result screen shows the rewards first, then they fly from it into the HUD.
+  useEffect(() => {
+    if (!resultReady || !pendingResultPlayerRef.current) return undefined;
+    const applyPending = () => {
+      if (pendingResultPlayerRef.current) applyResultPlayerRef.current(pendingResultPlayerRef.current);
+      pendingResultPlayerRef.current = null;
+    };
+    const timer = window.setTimeout(applyPending, REWARD_SHOWCASE_MS);
+    return () => {
+      window.clearTimeout(timer);
+      applyPending();
+    };
+  }, [resultReady, state]);
+
+  useEffect(() => () => {
+    if (pendingResultPlayerRef.current) applyResultPlayerRef.current(pendingResultPlayerRef.current);
+  }, []);
+
   function returnToDuels() {
     window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
     void handleSearchAgain();
@@ -671,7 +697,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   if (state.status === "duel") {
     return !resultReady
       ? <DuelBattle duel={state.duel} onAction={handleAction} pendingSlot={pendingSlot} tutorialAllowedSlot={tutorialAllowedSlot} tutorialMode={tutorialMode} />
-      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} />;
+      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
   }
 
   return (

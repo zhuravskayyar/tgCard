@@ -30,8 +30,19 @@ function defineOffer(
   });
 }
 
-// Card offers return when shop-eligible cards are added to the new catalog.
-export const SHOP_OFFERS: readonly Readonly<ShopOfferDefinition>[] = Object.freeze([]);
+export const SHOP_OFFERS: readonly Readonly<ShopOfferDefinition>[] = Object.freeze([
+  defineOffer("card_uncommon", "silver", 500, "uncommon", [
+    { rarity: "rare", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+    { rarity: "epic", initialChanceBasisPoints: 0, incrementBasisPoints: 25 },
+  ]),
+  defineOffer("card_epic", "gold", 50, "epic", [
+    { rarity: "legendary", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+    { rarity: "mythic", initialChanceBasisPoints: 0, incrementBasisPoints: 25 },
+  ]),
+  defineOffer("card_legendary", "gold", 150, "legendary", [
+    { rarity: "mythic", initialChanceBasisPoints: 0, incrementBasisPoints: 350 },
+  ]),
+]);
 
 const offersById = new Map(SHOP_OFFERS.map((offer) => [offer.id, offer]));
 

@@ -3,6 +3,9 @@ import { useState } from "react";
 import { DailyTaskRow } from "../components/DailyTaskRow";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
+import type { PlayerSummary } from "@cardastika/shared";
+import { getTelegramInitData } from "../telegram";
+import { claimStoryTrial, SAVE_PROFILE_TRIAL_ID } from "../telegram/storyTrials";
 import { AccountProtectionTask } from "../components/AccountProtectionTask";
 
 const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
@@ -20,7 +23,7 @@ function getDailyReset(taskDate: string) {
   };
 }
 
-export function TasksScreen({ onBack, onOpenTask }: { onBack: () => void; onOpenTask: (id: string) => void }) {
+export function TasksScreen({ onBack, onOpenTask, onPlayerSummaryChange }: { onBack: () => void; onOpenTask: (id: string) => void; onPlayerSummaryChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void }) {
   const { claimDailyTask, retry, state } = useBattlePass();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -52,10 +55,14 @@ export function TasksScreen({ onBack, onOpenTask }: { onBack: () => void; onOpen
     : 1;
 
   return (
-    <div className="tasks-screen">
+    <div className="notice-board-screen tasks-screen">
       <ScreenHeading eyebrow="Щоденні цілі та нагороди за виконання" onBack={onBack} title="Завдання" titleFirst />
 
-      <AccountProtectionTask onRewardGranted={retry} />
+      <AccountProtectionTask onRewardGranted={() => {
+        retry();
+        const initData = getTelegramInitData();
+        if (initData) void claimStoryTrial(initData, SAVE_PROFILE_TRIAL_ID).then((response) => onPlayerSummaryChange(response.player)).catch(() => undefined);
+      }} />
 
       {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо завдання…</div> : null}
       {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Завдання недоступні</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
@@ -95,7 +102,7 @@ export function TasksScreen({ onBack, onOpenTask }: { onBack: () => void; onOpen
             </div>
             <p className="tasks-screen__daily-note">Завтра множник: ×{nextRewardMultiplier}</p>
           </div>
-          <div className="tasks-screen__list">{state.data.daily.tasks.map((task) => <DailyTaskRow key={task.id} onClaim={handleClaim} onOpen={onOpenTask} pending={pendingId === task.id} task={task} />)}</div>
+          <div className="tasks-screen__list notice-board"><p className="notice-board__plaque">Щоденні завдання</p>{state.data.daily.tasks.map((task) => <DailyTaskRow key={task.id} onClaim={handleClaim} onOpen={onOpenTask} pending={pendingId === task.id} task={task} />)}</div>
           {feedback ? <p className="battle-pass-feedback" role="status">{feedback}</p> : null}
           </section>
       ) : null}

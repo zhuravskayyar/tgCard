@@ -134,6 +134,25 @@ function useCampaign(): CampaignLoadState {
   return state;
 }
 
+export function CampaignLockedHub({ caveName, onBack, onOpenTrials }: {
+  caveName: string | null;
+  onBack: () => void;
+  onOpenTrials: () => void;
+}) {
+  return (
+    <div className="campaign-screen">
+      <CampaignHeading eyebrow="Шлях гравця" onBack={onBack} title="Кампанія" titleFirst />
+      <section className="campaign-stage-list" aria-label={caveName ?? "Кампанія"}>
+        <div className="campaign-locked-hub__map">
+          {caveName ? <h2 className="campaign-locked-hub__name">{caveName}</h2> : null}
+        </div>
+        <p className="campaign-locked-hub__hint">Пройди випробування!</p>
+        <MenuRow attention compact icon="campaign" metalTexture onClick={onOpenTrials} title="Випробування" />
+      </section>
+    </div>
+  );
+}
+
 export function CampaignScreen({ onBack, onCampaignCompleted, onOpenBoss, onOpenStage }: {
   onBack: () => void;
   onCampaignCompleted: () => void;

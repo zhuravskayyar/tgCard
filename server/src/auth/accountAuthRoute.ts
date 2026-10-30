@@ -13,6 +13,7 @@ import { PlayerSessionError, PlayerAuthService } from "./playerAuth.js";
 import { resolveTelegramBotUsername, validateTelegramLoginWidget, TelegramWidgetAuthError } from "./telegramLoginWidget.js";
 import { validateTelegramInitDataPayload, TelegramInitDataError } from "./telegramInitData.js";
 import type { VerifiedIdentity } from "./identity.js";
+import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { getGuestClientIp, GuestCreationRateLimiter, GuestCreationRateLimiterUnavailableError } from "./guestCreationRateLimiter.js";
 
 interface AuthRouteDependencies {
@@ -240,7 +241,7 @@ export async function handleAuthMe(
       identities: await dependencies.players.listAuthIdentities(authenticated.player.id),
       sessionProvider: authenticated.provider,
       accountProtection: {
-        rewardDiamonds: 5,
+        rewardGold: SAVE_PROFILE_GOLD_REWARD,
         status: authenticated.provider !== "guest"
           ? "not_applicable"
           : hasReward

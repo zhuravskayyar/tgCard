@@ -1,13 +1,19 @@
 import { ScreenHeading } from "../components/ScreenHeading";
-import { useEffect, useState } from "react";
-import type { BattlePassReward, BattlePassMilestoneView, PlayerCardInstance } from "@cardastika/shared";
-import { AppIcon } from "../components/AppIcon";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { BattlePassCircleView, BattlePassMilestoneView, PlayerCardInstance } from "@cardastika/shared";
+import { STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { CardFxWrapper } from "../components/CardFxWrapper";
+import { EquipmentItemCard } from "../components/EquipmentBook";
 import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
+import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
+import { buildTrail, getMapStops, MAP_HEIGHT, toSvgPoints, walkTrail, type MapPoint } from "./battlePassMapPath";
 
 const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
+const MAP_ASSETS = "/assets/ui/battle-pass-map";
+const WALK_DELAY_MS = 500;
+const WALK_MS = 1_500;
 
 function formatRemaining(endsAt: string, now: number) {
   const remaining = Math.max(0, new Date(endsAt).getTime() - now);
@@ -16,89 +22,169 @@ function formatRemaining(endsAt: string, now: number) {
   return `${days} д ${hours} год`;
 }
 
-function rewardLabel(reward: BattlePassReward) {
-  return reward.label;
+/** Counts diamonds up from the last shown value, so the pin walks the trail on the map. */
+function useWalkingDiamonds(diamonds: number) {
+  const [shown, setShown] = useState(0);
+  const shownRef = useRef(0);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      shownRef.current = diamonds;
+      setShown(diamonds);
+      return undefined;
+    }
+    const from = shownRef.current;
+    let frame = 0;
+    let startedAt = 0;
+    const tick = (now: number) => {
+      startedAt ||= now;
+      const progress = Math.min(1, Math.max(0, (now - startedAt - WALK_DELAY_MS) / WALK_MS));
+      const value = from + (diamonds - from) * (1 - (1 - progress) ** 3);
+      shownRef.current = value;
+      setShown(value);
+      if (progress < 1) frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [diamonds]);
+  return shown;
 }
 
-function rewardIcon(reward: BattlePassReward) {
-  if (reward.kind === "boost") return <span className="battle-pass-boost-icon"><CurrencyIcon kind="silver" size={17} /><CurrencyIcon kind="gold" size={17} /></span>;
-  if (reward.kind === "silver") return <CurrencyIcon kind="silver" size={18} />;
-  if (reward.kind === "gold") return <CurrencyIcon kind="gold" size={18} />;
-  return <AppIcon name="card-reward" size={22} />;
-}
-
-function romanCircle(circle: number) {
-  return ["", "I", "II", "III", "IV", "V"][circle] ?? String(circle);
-}
-
-function CardRewardPreview({ card, compact = false }: { card: PlayerCardInstance; compact?: boolean }) {
-  const plate = <div className={`${compact ? "battle-pass-card-thumbnail" : "campaign-boss-reward-card"} deck-card--${card.element} deck-card--${card.rarity}`}>
-    <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity}>
-      <CardHud element={card.element} level={card.level} power={card.finalPower} rarity={card.rarity} showLevel={!compact} />
-    </CardFxWrapper>
-  </div>;
-  if (compact) return plate;
-  return <div className="battle-pass-card-reveal__card">
-    {plate}
-    <strong>{card.displayName ?? card.code}</strong>
-    <small>Рівень {card.level} · {card.rarity}</small>
-  </div>;
-}
-
-function Milestone({
-  milestone,
-  onClaim,
-  pending,
-  rewardCard,
-  isFinal,
-  isNext,
-  isReached,
-  nextReached,
-}: {
-  milestone: BattlePassMilestoneView;
-  onClaim: (id: string) => void;
-  pending: boolean;
-  rewardCard?: PlayerCardInstance;
-  isFinal: boolean;
-  isNext: boolean;
-  isReached: boolean;
-  nextReached: boolean;
-}) {
-  const isCheckpoint = !milestone.reward;
-  const label = milestone.reward?.label;
+function Particles({ className, count }: { className: string; count: number }) {
   return (
-    <article className={`battle-pass-milestone${isCheckpoint ? " battle-pass-milestone--checkpoint" : ""}${isFinal ? " battle-pass-milestone--final" : ""}${isNext ? " battle-pass-milestone--next" : ""}${isReached ? " battle-pass-milestone--reached" : ""}${nextReached ? " battle-pass-milestone--next-reached" : ""}${milestone.claimed ? " battle-pass-milestone--claimed" : ""}${milestone.claimable ? " battle-pass-milestone--claimable" : !milestone.claimed ? " battle-pass-milestone--locked" : ""}`}>
-      <div className="battle-pass-milestone__axis" aria-hidden="true">
-        <span className="battle-pass-milestone__node"><b>{milestone.threshold}</b></span>
-      </div>
-      <div className="battle-pass-milestone__reward">
-        {milestone.reward ? (
-          <>
-            <div className={`battle-pass-milestone__reward-icon${rewardCard ? " battle-pass-milestone__reward-icon--card" : ""}`}>
-              {rewardCard ? <CardRewardPreview card={rewardCard} compact /> : rewardIcon(milestone.reward)}
-            </div>
-            <div className="battle-pass-milestone__reward-copy">
-              <small>НАГОРОДА</small>
-              <strong>{label ?? rewardLabel(milestone.reward)}</strong>
-            </div>
-            {milestone.claimed ? <span className="battle-pass-milestone__status battle-pass-milestone__status--claimed"><b aria-hidden="true">✓</b> Отримано</span> : milestone.claimable ? <button disabled={pending} onClick={() => onClaim(milestone.id)} type="button">Забрати</button> : <span className="battle-pass-milestone__status battle-pass-milestone__status--locked"><AppIcon name="lock" size={13} /> Закрито</span>}
-          </>
-        ) : (
-          <div className="battle-pass-checkpoint">
-            <span className="battle-pass-checkpoint__seal"><AppIcon name="card-reward" size={16} /></span>
-            <span><strong>Контрольна точка</strong><small>{milestone.threshold} діамантів</small></span>
-          </div>
-        )}
-      </div>
-    </article>
+    <span aria-hidden="true" className={className}>
+      {Array.from({ length: count }, (_, index) => <i key={index} style={{ "--fx-index": index, "--fx-x": `${Math.round((index + 1) * 61.8 % 100)}%`, "--fx-y": `${Math.round((index + 4) * 38.2 % 100)}%` } as CSSProperties} />)}
+    </span>
   );
 }
 
-export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: () => void; onPlayerSummaryChange: (balance: { gold: number; silver: number }) => void }) {
+function chestSprite(milestone: BattlePassMilestoneView, isFinal: boolean) {
+  if (milestone.claimed) return `${MAP_ASSETS}/chest-open-v1.webp`;
+  if (isFinal) return `${MAP_ASSETS}/chest-final-v1.webp`;
+  return `${MAP_ASSETS}/chest-${milestone.claimable ? "ready" : "locked"}-v1.webp`;
+}
+
+function MapStop({ burst, index, isFinal, milestone, onClaim, pending, point, side }: {
+  burst: boolean;
+  index: number;
+  isFinal: boolean;
+  milestone: BattlePassMilestoneView;
+  onClaim: (id: string) => void;
+  pending: boolean;
+  point: MapPoint;
+  side: "left" | "right";
+}) {
+  const position = { left: `${point.x}%`, top: `${point.y / MAP_HEIGHT * 100}%`, "--stop-index": index } as CSSProperties;
+  if (!milestone.reward) {
+    return (
+      <div className="treasure-map__checkpoint" style={position}>
+        <img alt="" aria-hidden="true" src="/assets/ui/trials/board/nail-v1.webp" />
+        <span>{milestone.threshold}</span>
+      </div>
+    );
+  }
+  const state = milestone.claimed ? "claimed" : milestone.claimable ? "ready" : "locked";
+  const label = milestone.reward.label;
+  return (
+    <div className={`treasure-map__stop treasure-map__stop--${state} treasure-map__stop--${side}${isFinal ? " treasure-map__stop--final" : ""}${pending ? " treasure-map__stop--opening" : ""}`} style={position}>
+      {state === "ready" || isFinal ? <Particles className="treasure-map__rays" count={8} /> : null}
+      <button
+        aria-label={milestone.claimable ? `Забрати: ${label}` : `${label}, ${milestone.threshold} діамантів${milestone.claimed ? ", отримано" : ""}`}
+        className="treasure-map__chest"
+        disabled={!milestone.claimable || pending}
+        onClick={() => onClaim(milestone.id)}
+        type="button"
+      >
+        <img alt="" aria-hidden="true" src={chestSprite(milestone, isFinal)} />
+        {milestone.claimed ? <img alt="" aria-hidden="true" className="treasure-map__seal" src="/assets/ui/trials/board/seal-v1.webp" /> : null}
+      </button>
+      {burst ? (
+        <span aria-hidden="true" className="treasure-map__burst">
+          {Array.from({ length: 12 }, (_, item) => <img alt="" key={item} src={DIAMOND_ASSET} style={{ "--fx-index": item } as CSSProperties} />)}
+        </span>
+      ) : null}
+      <span className="treasure-map__tag">
+        <strong>{label}</strong>
+        <small>{milestone.claimable ? "Натисни на скриню" : <>{milestone.threshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></>}</small>
+      </span>
+    </div>
+  );
+}
+
+function TreasureMap({ burstId, circle, diamonds, onClaim, pendingId }: {
+  burstId: string | null;
+  circle: BattlePassCircleView;
+  diamonds: number;
+  onClaim: (id: string) => void;
+  pendingId: string | null;
+}) {
+  const { milestones } = circle;
+  const { pin, stops, trail, walked } = useMemo(() => {
+    const mapStops = getMapStops(milestones.length);
+    const fullTrail = buildTrail(mapStops);
+    const walkedTrail = walkTrail(fullTrail, milestones.map(({ threshold }) => threshold), diamonds);
+    return { pin: walkedTrail[walkedTrail.length - 1]!, stops: mapStops, trail: fullTrail, walked: walkedTrail };
+  }, [diamonds, milestones]);
+
+  return (
+    <section className="treasure-map" aria-label="Скарбова мапа нагород">
+      <div aria-hidden="true" className="treasure-map__life">
+        <i className="treasure-map__cloud treasure-map__cloud--a" />
+        <i className="treasure-map__cloud treasure-map__cloud--b" />
+        <i className="treasure-map__cloud treasure-map__cloud--c" />
+        <Particles className="treasure-map__water" count={9} />
+        <Particles className="treasure-map__fireflies" count={7} />
+        <svg className="treasure-map__birds" viewBox="0 0 60 20"><path d="M2 10 Q7 3 12 9 Q17 3 22 10 M34 15 Q38 9 42 14 Q46 9 50 15" /></svg>
+      </div>
+      <svg aria-hidden="true" className="treasure-map__trail" preserveAspectRatio="none" viewBox={`0 0 100 ${MAP_HEIGHT}`}>
+        <polyline className="treasure-map__trail-rest" points={toSvgPoints(trail)} />
+        <polyline className="treasure-map__trail-walked" points={toSvgPoints(walked)} />
+      </svg>
+      {milestones.map((milestone, index) => (
+        <MapStop
+          burst={burstId === milestone.id}
+          index={index}
+          isFinal={index === milestones.length - 1}
+          key={milestone.id}
+          milestone={milestone}
+          onClaim={onClaim}
+          pending={pendingId === milestone.id}
+          point={stops[index]!}
+          side={stops[index]!.x >= 52 ? "left" : "right"}
+        />
+      ))}
+      <img alt="" aria-hidden="true" className="treasure-map__pin" src={`${MAP_ASSETS}/pin-v1.webp`} style={{ left: `${pin.x}%`, top: `${pin.y / MAP_HEIGHT * 100}%` }} />
+    </section>
+  );
+}
+
+function CardRewardReveal({ card, onClose }: { card: PlayerCardInstance; onClose: () => void }) {
+  return (
+    <div className="treasure-card-reveal" role="dialog" aria-modal="true" aria-labelledby="treasure-card-title">
+      <button aria-label="Закрити" className="treasure-card-reveal__backdrop" onClick={onClose} type="button" />
+      <section className="treasure-card-reveal__letter">
+        <h2 id="treasure-card-title">Скарб знайдено!</h2>
+        <div className={`campaign-boss-reward-card deck-card--${card.element} deck-card--${card.rarity}`}>
+          <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity}>
+            <CardHud element={card.element} level={card.level} power={card.finalPower} rarity={card.rarity} showLevel />
+          </CardFxWrapper>
+        </div>
+        <strong>{card.displayName ?? card.code}</strong>
+        <small>Рівень {card.level}. Карта додана до колекції.</small>
+        <button className="treasure-card-reveal__close" onClick={onClose} type="button">Забрати</button>
+      </section>
+    </div>
+  );
+}
+
+export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryChange }: { onBack: () => void; onEquipmentGranted: () => void; onPlayerSummaryChange: (balance: { gold: number; silver: number }) => void }) {
   const { claimMilestone, retry, state } = useBattlePass();
+  const [claimedItemId, setClaimedItemId] = useState<string | null>(null);
+  const claimedItem = claimedItemId ? STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === claimedItemId) : undefined;
+  const walkingDiamonds = useWalkingDiamonds(state.status === "ready" ? state.data.battlePass.diamonds : 0);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [claimedCard, setClaimedCard] = useState<PlayerCardInstance | null>(null);
+  const [burstId, setBurstId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -111,8 +197,14 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
     setFeedback(null);
     try {
       const response = await claimMilestone(id);
+      setBurstId(id);
+      window.setTimeout(() => setBurstId((current) => current === id ? null : current), 1_100);
       if (response.updatedBalance) onPlayerSummaryChange(response.updatedBalance);
-      if (response.card) setClaimedCard(response.card);
+      if (response.card) window.setTimeout(() => setClaimedCard(response.card!), 700);
+      if (response.equipmentItemId) {
+        onEquipmentGranted();
+        window.setTimeout(() => setClaimedItemId(response.equipmentItemId!), 700);
+      }
       setFeedback(`Нагороду отримано: ${response.reward.label}`);
     } catch {
       setFeedback("Нагороду ще не можна забрати");
@@ -122,48 +214,29 @@ export function BattlePassScreen({ onBack, onPlayerSummaryChange }: { onBack: ()
   }
 
   return (
-    <div className="battle-pass-screen">
-      <ScreenHeading eyebrow="Збирай діаманти за завдання й забирай нагороди" onBack={onBack} title="Алмазні нагороди" titleFirst />
-      {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо прогрес…</div> : null}
-      {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Батл пас недоступний</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
+    <div className="battle-pass-screen treasure-screen">
+      <ScreenHeading onBack={onBack} title="Алмазні нагороди" titleFirst />
+      {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо мапу…</div> : null}
+      {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Мапа недоступна</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
       {state.status === "ready" ? (
         <>
-          {state.data.battlePass.circles.map((circle) => {
-            const seasonThreshold = circle.threshold;
-            const seasonProgress = seasonThreshold ? Math.min(100, state.data.battlePass.diamonds / seasonThreshold * 100) : 100;
-            const nextReward = circle.milestones.find(({ reward, claimed }) => reward && !claimed);
-            return (
-              <section className="battle-pass-hero" key={circle.circle}>
-                <div className="battle-pass-hero__summary">
-                  <div className="battle-pass-hero__diamond-count"><img alt="" aria-hidden="true" src={DIAMOND_ASSET} /><div><strong>{state.data.battlePass.diamonds}</strong><span>зібрано діамантів</span></div></div>
-                  <div className="battle-pass-hero__season-meta"><strong>КОЛО {romanCircle(circle.circle)}</strong><time>До завершення: {formatRemaining(state.data.battlePass.endsAt, now)}</time></div>
-                </div>
-                <div className="battle-pass-hero__progress-meta"><span>Прогрес сезону</span><strong>{state.data.battlePass.diamonds} / {seasonThreshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></strong></div>
-              <div className="battle-pass-hero__track" role="progressbar" aria-label="Прогрес сезону" aria-valuemin={0} aria-valuemax={seasonThreshold} aria-valuenow={Math.min(seasonThreshold, state.data.battlePass.diamonds)}><span style={{ width: `${seasonProgress}%` }} /></div>
-                {nextReward ? <div className="battle-pass-hero__next"><span>Наступна нагорода</span><strong>на {nextReward.threshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></strong></div> : null}
-                {state.data.battlePass.currencyBoost.active ? <div className="battle-pass-hero__boost"><CurrencyIcon kind="silver" size={17} /><CurrencyIcon kind="gold" size={17} /><strong>×2 срібла та золота</strong><time>ще {formatRemaining(state.data.battlePass.currencyBoost.expiresAt!, now)}</time></div> : null}
-                <p>Щоденні завдання відкривають сезонні нагороди.</p>
-              </section>
-            );
-          })}
-
-          <section className="battle-pass-track" aria-label="Безкоштовна доріжка нагород">
-            {state.data.battlePass.circles.map((circle) => (
-              <section className={`battle-pass-circle${circle.completed ? " battle-pass-circle--completed" : ""}`} key={circle.circle}>
-                <header>
-                  <div className="battle-pass-circle__chapter"><strong>КОЛО {romanCircle(circle.circle)}</strong><small>{circle.completed ? "Сезон завершено" : "Сезонна доріжка нагород"}</small></div>
-                  <div className="battle-pass-circle__total"><strong>{state.data.battlePass.diamonds} / {circle.threshold}</strong><img alt="" aria-hidden="true" height={18} src={DIAMOND_ASSET} width={18} /></div>
-                </header>
-                <div className="battle-pass-circle__progress" role="progressbar" aria-label={`Прогрес кола ${romanCircle(circle.circle)}`} aria-valuemin={0} aria-valuemax={circle.threshold} aria-valuenow={Math.min(circle.threshold, state.data.battlePass.diamonds)}><span style={{ width: `${Math.min(100, state.data.battlePass.diamonds / circle.threshold * 100)}%` }} /></div>
-                <div className="battle-pass-milestones">
-                  {circle.milestones.map((milestone, index) => <Milestone key={milestone.id} milestone={milestone} onClaim={handleMilestoneClaim} pending={pendingId === milestone.id} rewardCard={milestone.reward?.kind === "card" && milestone.claimed ? claimedCard ?? undefined : undefined} isFinal={milestone.threshold === circle.threshold} isNext={milestone.id === (circle.milestones.find(({ threshold }) => threshold > state.data.battlePass.diamonds)?.id ?? null)} isReached={milestone.threshold <= state.data.battlePass.diamonds} nextReached={(circle.milestones[index + 1]?.threshold ?? Number.POSITIVE_INFINITY) <= state.data.battlePass.diamonds} />)}
-                </div>
-              </section>
-            ))}
+          <section className="treasure-screen__header">
+            <div aria-hidden="true" className="treasure-screen__portrait"><Lariska emotion="happy" /></div>
+            <div className="treasure-screen__copy">
+              <strong className="treasure-screen__diamonds"><img alt="" aria-hidden="true" src={DIAMOND_ASSET} />{Math.round(walkingDiamonds)}</strong>
+              <span>Збирай алмази за щоденні завдання й відкривай скрині.</span>
+              <time>До кінця сезону: {formatRemaining(state.data.battlePass.endsAt, now)}</time>
+            </div>
           </section>
-
-          {claimedCard ? <section className="battle-pass-card-reveal" aria-label="Карткова нагорода"><div><span>Карткова нагорода</span><strong>Карта додана до колекції</strong></div><CardRewardPreview card={claimedCard} /></section> : null}
-          {feedback ? <p className="battle-pass-feedback" role="status">{feedback}</p> : null}
+          {state.data.battlePass.currencyBoost.active ? (
+            <div className="treasure-screen__boost"><CurrencyIcon kind="silver" size={17} /><CurrencyIcon kind="gold" size={17} /><strong>×2 срібла та золота</strong><time>ще {formatRemaining(state.data.battlePass.currencyBoost.expiresAt!, now)}</time></div>
+          ) : null}
+          {feedback ? <p className="treasure-screen__feedback" role="status">{feedback}</p> : null}
+          {state.data.battlePass.circles.map((circle) => (
+            <TreasureMap burstId={burstId} circle={circle} diamonds={walkingDiamonds} key={circle.circle} onClaim={handleMilestoneClaim} pendingId={pendingId} />
+          ))}
+          {claimedCard ? <CardRewardReveal card={claimedCard} onClose={() => setClaimedCard(null)} /> : null}
+          {claimedItem ? <EquipmentItemCard celebrate definition={claimedItem} eyebrow="Зі скрині" onClose={() => setClaimedItemId(null)}><button className="eq-button eq-button--leather" onClick={() => setClaimedItemId(null)} type="button">Забрати</button></EquipmentItemCard> : null}
         </>
       ) : null}
     </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { AuthProviderIcon } from "../components/AuthProviderIcon";
+import { ElementAmbientFx } from "../components/ElementAmbientFx";
 import { setSessionToken } from "../auth/session";
 
 interface AuthScreenProps {
@@ -118,11 +119,7 @@ export function AuthScreen({
 
   return (
     <main className="auth-screen auth-screen--guest">
-      <div className="auth-screen__element-glow auth-screen__element-glow--fire" aria-hidden="true" />
-      <div className="auth-screen__element-glow auth-screen__element-glow--water" aria-hidden="true" />
-      <div className="auth-screen__element-glow auth-screen__element-glow--air" aria-hidden="true" />
-      <div className="auth-screen__element-glow auth-screen__element-glow--earth" aria-hidden="true" />
-      <div className="auth-screen__roots" aria-hidden="true" />
+      <ElementAmbientFx />
       <div className="auth-screen__layout">
         <section className="auth-screen__hero" aria-labelledby="auth-screen-title">
           <div className="auth-screen__crest" aria-hidden="true">

@@ -1,18 +1,19 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { getPlayerCollectionModifiers, getRequiredAccountXp } from "@cardastika/game-core";
+import { getEquipmentForgeRecipe, getPlayerCollectionModifiers, getRequiredAccountXp, resolveEquipmentForgeResult, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { VerifiedIdentity } from "../auth/identity.js";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
-import { getSeasonWindow } from "../battlePassConfig.js";
+import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { getCompletedCollectionBonuses } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { grantStarterCards } from "../inventory/starterCardGrant.js";
 import { NEW_PLAYER_DEFAULTS } from "./playerDefaults.js";
-import { EquipmentValidationError, parseStoredEquipment, serializeEquipment, toPublicPlayerEquipment, validateEquipmentUpdate } from "../equipment/equipmentState.js";
+import { EquipmentForgeError, EquipmentValidationError, parseStoredEquipment, serializeEquipment, toPublicPlayerEquipment, validateEquipmentUpdate } from "../equipment/equipmentState.js";
 
 interface PlayerRow {
+  created_at?: Date | string;
   arena_league_index: number;
   arena_rating: number;
   arena_tokens: string | number;
@@ -96,7 +97,7 @@ function playerColumns() {
     players.duel_rating, players.duel_highest_league_index, players.arena_rating,
     players.arena_league_index, players.arena_wins, players.arena_top3_count,
     players.arena_tokens, players.equipped_nickname_skin, players.tutorial_eligible,
-    players.equipment, players.nickname`;
+    players.equipment, players.nickname, players.created_at`;
 }
 
 function playerReturningColumns() {
@@ -105,7 +106,7 @@ function playerReturningColumns() {
     rating, account_xp, card_shards, duel_wins, duel_rating,
     duel_highest_league_index, arena_rating, arena_league_index, arena_wins,
     arena_top3_count, arena_tokens, equipped_nickname_skin, tutorial_eligible,
-    equipment, nickname`;
+    equipment, nickname, created_at`;
 }
 
 function toEquippedNicknameSkin(value: string | null | undefined): NicknameSkinId | null {
@@ -128,6 +129,7 @@ function toPlayerSummary(
     arenaWins: toSafeNumber(row.arena_wins, "arenaWins"),
     cardShards: toSafeNumber(row.card_shards, "cardShards"),
     collectionBonuses: [...collectionBonuses],
+    ...(row.created_at ? { daysInGame: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86_400_000)) } : {}),
     duelHighestLeagueIndex: toSafeNumber(row.duel_highest_league_index, "duelHighestLeagueIndex"),
     duelRating: toSafeNumber(row.duel_rating, "duelRating"),
     duelWins: toSafeNumber(row.duel_wins, "duelWins"),
@@ -482,6 +484,73 @@ export class PlayerRepository {
     }
   }
 
+  /** Spends materials and gold, then adds one item of the next rarity. Equipped copies stay untouched. */
+  async forgeEquipment(playerId: string, itemIds: readonly string[]) {
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const row = await client.query<{ equipment: unknown; gold: string | number }>("SELECT equipment, gold FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      if (!row.rows[0]) throw new Error("Player does not exist");
+      const inventory = await client.query<{ item_id: string; quantity: number }>(
+        "SELECT item_id, quantity FROM player_equipment_inventory WHERE player_id = $1 FOR UPDATE",
+        [playerId],
+      );
+      const quantities = new Map(inventory.rows.map(({ item_id, quantity }) => [item_id, quantity]));
+      const equippedItemIds = new Set(Object.values(parseStoredEquipment(playerId, row.rows[0].equipment).equipped));
+      const needed = new Map<string, number>();
+      for (const itemId of itemIds) needed.set(itemId, (needed.get(itemId) ?? 0) + 1);
+      for (const [itemId, count] of needed) {
+        const free = (quantities.get(itemId) ?? 0) - (equippedItemIds.has(itemId) ? 1 : 0);
+        if (count > free) throw new EquipmentForgeError("invalid_forge", "Forge materials are not available");
+      }
+      const definitions = itemIds.map((itemId) => {
+        const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === itemId);
+        if (!definition) throw new EquipmentForgeError("invalid_forge", "Unknown forge material");
+        return definition;
+      });
+      const recipe = definitions[0] ? getEquipmentForgeRecipe(definitions[0].rarity) : null;
+      if (!recipe) throw new EquipmentForgeError("invalid_forge", "This rarity cannot be forged");
+      let result;
+      try {
+        result = resolveEquipmentForgeResult(definitions);
+      } catch (error) {
+        if (error instanceof RangeError) throw new EquipmentForgeError("invalid_forge", error.message);
+        throw error;
+      }
+      const updated = await client.query<{ gold: string | number }>(
+        "UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1 AND gold >= $2 RETURNING gold",
+        [playerId, recipe.goldCost],
+      );
+      if (!updated.rows[0]) throw new EquipmentForgeError("not_enough_gold", "Not enough gold");
+      for (const [itemId, count] of needed) {
+        await client.query(
+          "UPDATE player_equipment_inventory SET quantity = quantity - $3, updated_at = NOW() WHERE player_id = $1 AND item_id = $2 AND quantity > $3",
+          [playerId, itemId, count],
+        );
+        await client.query(
+          "DELETE FROM player_equipment_inventory WHERE player_id = $1 AND item_id = $2 AND quantity = $3",
+          [playerId, itemId, count],
+        );
+      }
+      await client.query(
+        `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
+         VALUES ($1, $2, 1)
+         ON CONFLICT (player_id, item_id)
+         DO UPDATE SET quantity = player_equipment_inventory.quantity + 1, updated_at = NOW()`,
+        [playerId, result.id],
+      );
+      await client.query("COMMIT");
+      return { gold: Number(updated.rows[0].gold), resultItemId: result.id };
+    } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
+      if (error instanceof EquipmentForgeError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
+    }
+  }
+
   async getEquipmentInventory(playerId: string): Promise<PlayerEquipmentInventory[]> {
     try {
       const result = await this.pool.query<{ item_id: string; quantity: number }>(
@@ -571,26 +640,19 @@ export class PlayerRepository {
         const rewardInsert = await client.query(
           `
             INSERT INTO player_account_link_rewards (
-              player_id, diamonds_awarded, linked_provider, linked_provider_user_id
+              player_id, diamonds_awarded, gold_awarded, linked_provider, linked_provider_user_id
             )
-            VALUES ($1, 5, $2, $3)
+            VALUES ($1, 0, $4, $2, $3)
             ON CONFLICT DO NOTHING
             RETURNING player_id
           `,
-          [playerId, identity.provider, identity.providerUserId],
+          [playerId, identity.provider, identity.providerUserId, SAVE_PROFILE_GOLD_REWARD],
         );
         rewardGranted = rewardInsert.rowCount === 1;
         if (rewardGranted) {
-          const { seasonId } = getSeasonWindow(new Date());
           await client.query(
-            `
-              INSERT INTO player_battle_pass_state (player_id, season_id, diamonds)
-              VALUES ($1, $2, 5)
-              ON CONFLICT (player_id, season_id) DO UPDATE
-                SET diamonds = player_battle_pass_state.diamonds + EXCLUDED.diamonds,
-                    updated_at = NOW()
-            `,
-            [playerId, seasonId],
+            "UPDATE players SET gold = gold + $2, updated_at = NOW() WHERE id = $1",
+            [playerId, SAVE_PROFILE_GOLD_REWARD],
           );
         }
       }

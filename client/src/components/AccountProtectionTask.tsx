@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AccountProtectionTaskView, LinkIdentityRequest } from "@cardastika/shared";
+import { CurrencyIcon } from "./CurrencyDisplay";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import { TelegramLoginButton } from "./TelegramLoginButton";
 import { getRawTelegramInitData } from "../telegram";
@@ -51,7 +52,7 @@ export function AccountProtectionTask({ onRewardGranted }: { onRewardGranted?: (
         : "initData" in request
           ? await linkTelegramMiniAppAccount(request.initData, signal)
           : await linkTelegramAccount(request.authData, signal);
-      setNotice(result.rewardGranted ? "Акаунт прив’язано. Отримано 5 діамантів." : "Акаунт прив’язано. Нагороду вже отримано раніше.");
+      setNotice(result.rewardGranted ? "Акаунт прив’язано. Золото нараховано." : "Акаунт прив’язано. Нагороду вже отримано раніше.");
       if (result.rewardGranted) {
         setRewardJustGranted(true);
         setState((current) => current.status === "ready"
@@ -104,9 +105,9 @@ export function AccountProtectionTask({ onRewardGranted }: { onRewardGranted?: (
             ? "Профіль захищено. Твої карти та прогрес прив’язані до акаунта."
             : "Прив’яжи Google або Telegram, щоб відновити прогрес на іншому пристрої."}</p>
         </div>
-        <div aria-label={`Нагорода: ${state.task.rewardDiamonds} діамантів`} className="tasks-screen__account-protection-reward">
-          <img alt="" src="/assets/ui/icons/icon-diamond-v1.webp" />
-          <strong>+{state.task.rewardDiamonds}</strong>
+        <div aria-label={`Нагорода: ${state.task.rewardGold} золота`} className="tasks-screen__account-protection-reward">
+          <CurrencyIcon kind="gold" size={22} />
+          <strong>+{state.task.rewardGold}</strong>
         </div>
       </div>
       {!completed ? (

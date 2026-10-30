@@ -18,6 +18,8 @@ import { GuestCreationRateLimiter } from "./auth/guestCreationRateLimiter.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
 import { handleCampaignRequest } from "./campaign/campaignRoute.js";
+import { handleStoryTrialsRequest } from "./trials/storyTrialsRoute.js";
+import { StoryTrialsService } from "./trials/storyTrialsService.js";
 import { CampaignService } from "./campaign/campaignService.js";
 import { CampaignBossService } from "./campaign/campaignBossService.js";
 import { handleCampaignBossRequest } from "./campaign/campaignBossRoute.js";
@@ -60,7 +62,8 @@ import {
   handlePlayerInventory,
 } from "./cosmetics/nicknameSkinRoute.js";
 import { NicknameSkinService } from "./cosmetics/nicknameSkinService.js";
-import { handlePlayerEquipment } from "./equipment/equipmentRoute.js";
+import { handleEquipmentChests, handlePlayerEquipment, handlePlayerEquipmentForge } from "./equipment/equipmentRoute.js";
+import { EquipmentChestService } from "./equipment/equipmentChestService.js";
 import { handleEquipmentManual } from "./equipment/equipmentManualRoute.js";
 import { EquipmentManualService } from "./equipment/equipmentManualService.js";
 import { handleGuildForumReference } from "./reference/guildForumReferenceRoute.js";
@@ -90,9 +93,11 @@ const guildRaids = new GuildRaidService(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const campaign = new CampaignService(pool);
+const storyTrials = new StoryTrialsService(pool);
 const campaignBoss = new CampaignBossService(pool, campaign, Math.random, undefined, guilds);
 const referrals = new ReferralService(pool, campaign);
 const limitedCards = new LimitedCardService(pool);
+const equipmentChests = new EquipmentChestService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
@@ -101,7 +106,7 @@ const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
 const duels = new DuelService(pool, Math.random, campaign, guilds);
 const dungeon = new DungeonService(pool, guilds);
-const cardWorkshop = new CardWorkshopService(pool);
+const cardWorkshop = new CardWorkshopService(pool, undefined, campaign);
 const arena = new ArenaService(pool, guilds);
 const equipmentManual = new EquipmentManualService();
 const guildForumReference = new GuildForumReferenceService();
@@ -249,6 +254,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
   const isArenaRoute = url.pathname.startsWith("/api/arena/");
   const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
+  const isStoryTrialsRoute = url.pathname.startsWith("/api/player/trials");
   const isCampaignBossRoute = url.pathname.startsWith("/api/player/campaign/boss");
   const isBattlePassRoute = url.pathname.startsWith("/api/player/battle-pass");
   const cardProgressionMatch = url.pathname.match(
@@ -260,7 +266,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -428,6 +434,27 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       players,
       responseHeaders: cors.headers,
       skins: nicknameSkins,
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/shop/equipment-chests") {
+    await handleEquipmentChests(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      chests: equipmentChests,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/player/equipment/forge") {
+    await handlePlayerEquipmentForge(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
     });
     return;
   }
@@ -736,6 +763,18 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       campaign,
       players,
       responseHeaders: cors.headers,
+      trials: storyTrials,
+    });
+    return;
+  }
+
+  if (isStoryTrialsRoute) {
+    await handleStoryTrialsRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
+      trials: storyTrials,
     });
     return;
   }

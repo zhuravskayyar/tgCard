@@ -169,6 +169,14 @@ export type {
   CampaignView,
   HiddenBossCardSlot,
 } from "./campaign.js";
+export type {
+  StoryTrialClaimResponse,
+  StoryTrialNavigationTarget,
+  StoryTrialReward,
+  StoryTrialState,
+  StoryTrialView,
+  StoryTrialsView,
+} from "./storyTrials.js";
 export {
   SHOP_CURRENCIES,
   type LimitedCardRedeemRequest,
@@ -246,6 +254,10 @@ export {
   type PlayerEquipment,
   type PlayerEquipmentInventory,
   type PublicPlayerEquipment,
+  type EquipmentChestOffer,
+  type EquipmentChestOpenResponse,
+  type PlayerEquipmentForgeRequest,
+  type PlayerEquipmentForgeResponse,
   type PlayerEquipmentResponse,
   type PlayerEquipmentUpdateRequest,
 } from "./equipment.js";

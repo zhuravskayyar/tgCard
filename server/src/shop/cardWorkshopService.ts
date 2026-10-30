@@ -1,5 +1,7 @@
 import { CryptoCardRandomSource, createStandardCardInstance } from "../cards/cardInstanceCreator.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
+import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
+import type { CampaignService } from "../campaign/campaignService.js";
 import type { CardWorkshopCard, CardWorkshopCraftResponse, CardWorkshopResponse, CardRarity } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { getRarityLevelRange, selectGeneratedLevelForRarity } from "@cardastika/game-core";
@@ -103,6 +105,7 @@ export class CardWorkshopService {
   constructor(
     private readonly pool: Pick<Pool, "connect" | "query">,
     private readonly now = () => new Date(),
+    private readonly campaign?: Pick<CampaignService, "recordEvent">,
   ) {}
 
   async getCatalog(playerId: string): Promise<CardWorkshopResponse> {
@@ -190,7 +193,7 @@ export class CardWorkshopService {
         const range = getRarityLevelRange(rarity);
         return range.minimumLevel + random.nextInt(range.maximumLevel - range.minimumLevel + 1);
       });
-      await createStandardCardInstance(client, playerId, {
+      const reward = await createStandardCardInstance(client, playerId, {
         id: definition.id,
         code: definition.code,
         displayName: definition.display_name,
@@ -201,7 +204,10 @@ export class CardWorkshopService {
         minRarity: definition.min_rarity,
         shopEligible: true,
       }, level, rng);
-      await recordCardDiscovery(client, playerId, definition.id);
+      const discovery = await recordCardDiscovery(client, playerId, definition.id);
+      const deckResult = await recalculateAutomaticDeck(client, playerId);
+      await this.campaign?.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: reward.rarity });
+      if (discovery.newDiscovery) await this.campaign?.recordEvent(client, playerId, "CARD_DISCOVERED");
       const quantityResult = await client.query<{ quantity: string | number }>(
         "SELECT COUNT(*) AS quantity FROM player_card_instances WHERE player_id = $1 AND card_id = $2",
         [playerId, cardId],
@@ -213,7 +219,12 @@ export class CardWorkshopService {
         quantity,
         shardsSpent: cost,
         cardShards: toNonNegativeInteger(updatedPlayer.card_shards, "card shards"),
+        deckChanged: deckResult.status === "updated",
+        newDiscovery: discovery.newDiscovery,
+        reward,
       };
+      if (discovery.collectionCompleted) response.collectionCompleted = discovery.collectionCompleted;
+      if (deckResult.status !== "insufficient_valid_cards") response.deckPower = deckResult.totalPower;
       await client.query("COMMIT");
       return response;
     } catch (error) {

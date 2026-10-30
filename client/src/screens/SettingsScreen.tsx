@@ -101,7 +101,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
           : await linkTelegramAccount(request.authData, controller.signal);
       setIdentities(result.identities);
       setTransferRequest(null);
-      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Отримано 5 діамантів." : ""}`);
+      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Отримано 500 золота." : ""}`);
     } catch (error) {
       if (
         request.provider === "google"

@@ -25,7 +25,7 @@ const guestAuthState = {
   player: guestPlayer,
   sessionProvider: "guest",
   identities: [],
-  accountProtection: { status: "locked", rewardDiamonds: 5 },
+  accountProtection: { status: "locked", rewardGold: 500 },
 };
 
 test("guest start creates a protected session and ignores rapid repeat clicks", async ({ page }) => {
@@ -144,7 +144,7 @@ test("Telegram Mini App waits for an explicit return-account choice", async ({ p
       ...guestAuthState,
       player: { ...guestPlayer, firstName: "Мандрівник", tutorialEligible: false },
       sessionProvider: "telegram",
-      accountProtection: { status: "not_applicable", rewardDiamonds: 5 },
+      accountProtection: { status: "not_applicable", rewardGold: 500 },
       identities: [{ provider: "telegram", email: null, createdAt: "2026-10-24T00:00:00.000Z" }],
     }),
   }));
@@ -159,7 +159,7 @@ test("Telegram Mini App waits for an explicit return-account choice", async ({ p
   expect(telegramLogins).toBe(1);
 });
 
-test("account protection appears after the tutorial and awards diamonds once", async ({ page }) => {
+test("account protection appears after the tutorial and awards gold once", async ({ page }) => {
   await page.route("https://telegram.org/js/telegram-web-app.js", (route) => route.abort());
   await page.addInitScript(() => {
     localStorage.setItem("cardastika.session.token", "playwright-guest-session");
@@ -179,7 +179,7 @@ test("account protection appears after the tutorial and awards diamonds once", a
     body: JSON.stringify({
       ...guestAuthState,
       player: { ...guestPlayer, tutorialEligible: !tutorialComplete },
-      accountProtection: { status: tutorialComplete ? "available" : "locked", rewardDiamonds: 5 },
+      accountProtection: { status: tutorialComplete ? "available" : "locked", rewardGold: 500 },
     }),
   }));
   let linkRequests = 0;
@@ -208,7 +208,7 @@ test("account protection appears after the tutorial and awards diamonds once", a
   const pendingButton = page.getByRole("button", { name: "Прив’язуємо…" });
   await expect(pendingButton).toBeDisabled();
   await pendingButton.evaluate((button: HTMLButtonElement) => button.click());
-  await expect(page.getByRole("status")).toContainText("Отримано 5 діамантів");
+  await expect(page.getByRole("status")).toContainText("Золото нараховано");
   expect(linkRequests).toBe(1);
   expect(linkBody).toEqual({ provider: "telegram", initData: "signed-mini-app-init-data" });
   await expect(page.getByText("Профіль захищено.")).toBeVisible();

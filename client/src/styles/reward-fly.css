@@ -1,0 +1,24 @@
+/* Rewards flying into the HUD. Created on document.body, above every modal. */
+.reward-fly__icon {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgb(255 225 140 / 95%)) drop-shadow(0 3px 3px rgb(30 15 5 / 55%));
+  will-change: transform, opacity;
+}
+.reward-fly__gain {
+  position: fixed;
+  z-index: 10000;
+  color: #fff3d6;
+  font-family: var(--font-number);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #24140a, 0 0 4px #24140a, 0 0 8px #24140a;
+}
+.reward-fly__gain--gold { color: #ffd95a; }
+.reward-fly__gain--xp { color: #bff08a; }

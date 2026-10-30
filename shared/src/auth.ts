@@ -4,7 +4,7 @@ export type AuthSessionProvider = AuthProvider | "guest";
 export type AccountProtectionStatus = "locked" | "available" | "completed" | "not_applicable";
 
 export interface AccountProtectionTaskView {
-  rewardDiamonds: 5;
+  rewardGold: 500;
   status: AccountProtectionStatus;
 }
 

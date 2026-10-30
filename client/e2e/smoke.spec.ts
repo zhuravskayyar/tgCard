@@ -151,19 +151,19 @@ test("equipment saves on the server, survives reload, and can be restored", asyn
   await page.getByRole("button", { name: "Спорядження", exact: true }).click();
   await expect(page.getByRole("heading", { name: "СПОРЯДЖЕННЯ" })).toBeVisible();
   await page.getByRole("tab", { name: /Артефакти/ }).click();
-  const item = page.locator(".equipment-item-card").first();
+  const item = page.locator(".eq-rack__item").first();
   await item.waitFor();
-  const amuletSlot = page.getByRole("button", { name: "Амулет життя: Порожній слот" });
+  const amuletSlot = page.getByRole("button", { name: "Оберіг другого подиху: порожньо" });
   if (await amuletSlot.count() === 0) {
     await item.click();
-    const existingSheet = page.locator(".equipment-item-sheet");
+    const existingSheet = page.locator(".eq-card");
     if (await existingSheet.getByRole("button", { name: "Зняти" }).count()) {
       await existingSheet.getByRole("button", { name: "Зняти" }).click();
       await existingSheet.waitFor({ state: "hidden" });
     }
   }
   await item.click();
-  const sheet = page.locator(".equipment-item-sheet");
+  const sheet = page.locator(".eq-card");
   await expect(sheet).toBeVisible();
 
   await page.route((url) => url.pathname === "/api/player/equipment", async (route) => {
@@ -180,22 +180,21 @@ test("equipment saves on the server, survives reload, and can be restored", asyn
 
   await sheet.getByRole("button", { name: "Одягнути" }).click();
   await expect(sheet).toBeHidden();
-  await expect(page.getByRole("button", { name: "Амулет життя: Амулет життя · Міфічна" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Оберіг другого подиху: Оберіг другого подиху · Міфічна" })).toBeVisible();
 
   await page.reload();
   await closeDailyRewardIfOpen(page, 1_000);
   await expect(page.getByRole("heading", { name: "СПОРЯДЖЕННЯ" })).toBeVisible();
-  await expect(page.locator(".equipment-summary")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Оберіг другого подиху: Оберіг другого подиху · Міфічна" })).toBeVisible();
   await page.getByRole("tab", { name: /Артефакти/ }).click();
-  await page.locator(".equipment-item-card").first().click();
-  const equippedSheet = page.locator(".equipment-item-sheet");
-  await expect(equippedSheet).toContainText("Одягнено");
+  await page.locator(".eq-rack__item").first().click();
+  const equippedSheet = page.locator(".eq-card");
   await equippedSheet.getByRole("button", { name: "Зняти" }).click();
   await expect(equippedSheet).toBeHidden();
-  await expect(page.locator(".equipment-empty-summary")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Оберіг другого подиху: порожньо" })).toBeVisible();
 });
 
-test("shop explains insufficient funds and forge keeps unavailable crafting disabled", async ({ page }) => {
+test("shop explains insufficient funds and forge waits for materials", async ({ page }) => {
   await signInAsDevPlayer(page, "player_locked");
   await page.getByRole("button", { name: "Магазин", exact: true }).click();
   await expect(page.getByRole("heading", { name: "МАГАЗИН" })).toBeVisible();
@@ -213,9 +212,9 @@ test("shop explains insufficient funds and forge keeps unavailable crafting disa
   await page.getByRole("button", { name: "До категорій" }).click();
   await page.getByRole("navigation", { name: "Головна навігація" }).getByRole("button", { name: "Головна" }).click();
   await page.getByRole("button", { name: "Спорядження", exact: true }).click();
-  await page.getByRole("button", { name: /Кузня/ }).click();
+  await page.getByRole("button", { name: "До кузні" }).click();
   await expect(page.getByRole("heading", { name: "КУЗНЯ" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Кування поки недоступне" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Кувати" })).toBeDisabled();
 });
 
 test("guild edits preserve drafts when requests fail", async ({ page }) => {

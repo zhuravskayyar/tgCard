@@ -69,6 +69,29 @@ export interface PlayerEquipmentResponse {
   inventory: PlayerEquipmentInventory[];
 }
 
+export interface PlayerEquipmentForgeRequest {
+  itemIds: string[];
+}
+
+export interface PlayerEquipmentForgeResponse {
+  gold: number;
+  inventory: PlayerEquipmentInventory[];
+  resultItemId: string;
+}
+
+export interface EquipmentChestOffer {
+  id: string;
+  name: string;
+  price: number;
+  rarity: CardRarity;
+}
+
+export interface EquipmentChestOpenResponse {
+  inventory: PlayerEquipmentInventory[];
+  resultItemId: string;
+  silver: number;
+}
+
 export interface EquipmentBattleModifiers {
   damageReflectionPct: number;
   incomingDamageReductionPct: number;

@@ -1,8 +1,9 @@
 # Collections v1
 
-Cardastika has 17 permanent collections containing 133 canonical card species.
-The 9 starter species remain outside collections (`collection_id = NULL`), so
-the active canonical catalog contains 142 cards.
+Cardastika has 15 permanent collections of 10 cards each, 150 species in total,
+in `server/src/collections/collectionCatalog.ts`. The 9 starter species stay outside
+collections and out of the shop. Each card keeps its art list ID as `artKey`; a card
+without a file shows the placeholder until the art is added.
 
 Collection progress comes only from `player_card_discoveries`, never from the
 current inventory. Acquiring a species inserts one idempotent discovery row.

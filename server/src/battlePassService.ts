@@ -1,3 +1,4 @@
+import { grantRandomEquipment } from "./equipment/equipmentChestService.js";
 import { randomUUID } from "node:crypto";
 import { createStandardCardInstance, CryptoCardRandomSource } from "./cards/cardInstanceCreator.js";
 import { recordCardDiscovery } from "./collections/discoveryService.js";
@@ -236,7 +237,7 @@ async function grantReward(
   reward: BattlePassReward,
   seasonId: string,
   now: Date,
-): Promise<{ balance: PlayerBalance; card?: PlayerCardInstance }> {
+): Promise<{ balance: PlayerBalance; card?: PlayerCardInstance; equipmentItemId?: string }> {
   let card: PlayerCardInstance | undefined;
   if (reward.kind === "boost") {
     const startsAt = now;
@@ -258,6 +259,11 @@ async function grantReward(
     const row = result.rows[0];
     if (!row) throw new Error("Battle pass player is missing");
     return { balance: toBalance(row) };
+  }
+
+  if (reward.kind === "equipment") {
+    const item = await grantRandomEquipment(database, playerId, reward.rarity);
+    return { balance: await loadBalance(database, playerId), equipmentItemId: item.id };
   }
 
   const level = await loadLowestDeckCardLevel(database, playerId);
@@ -395,6 +401,7 @@ export class BattlePassService {
       return {
         ...(await this.getPage(playerId, now)),
         ...(granted.card ? { card: granted.card } : {}),
+        ...(granted.equipmentItemId ? { equipmentItemId: granted.equipmentItemId } : {}),
         reward: milestone.reward,
         updatedBalance: granted.balance,
       };

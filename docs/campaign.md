@@ -1,5 +1,7 @@
 # Campaign 1
 
+Campaign 1 opens after the five story trials (see `docs/reference-tutorial.md`).
+
 Campaign 1 is a server-authoritative path of 6 sequential stages with exactly 6
 quests each. The 36 quest definitions and Ukrainian copy live in
 `server/src/campaign/campaignConfig.ts`. Quests inside the active stage can be

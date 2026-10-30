@@ -21,6 +21,15 @@ import "./styles/card-upgrade.css";
 import "./styles/theme-surfaces.css";
 import "./styles/screen-heading.css";
 import "./styles/numbers.css";
+import "./styles/auth-parchment.css";
+import "./styles/element-fx.css";
+import "./styles/daily-login.css";
+import "./styles/sprite-proportions.css";
+import "./styles/reward-fly.css";
+import "./styles/treasure-map.css";
+import "./styles/shop-stall.css";
+import "./styles/equipment-book.css";
+import "./styles/profile-book.css";
 
 const rootElement = document.getElementById("root");
 const isAdminPath = window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/");

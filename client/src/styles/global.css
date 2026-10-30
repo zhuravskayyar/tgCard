@@ -562,8 +562,8 @@ body {
 @media (min-width: 800px) {
   body {
     background:
-      linear-gradient(90deg, rgb(7 9 12 / 54%), rgb(7 9 12 / 10%) 50%, rgb(7 9 12 / 54%)),
-      url("/assets/ui/desktop-dragons-background.png") center center / cover fixed no-repeat,
+      linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
+      url("/assets/ui/auth/parchment/desktop-world-v1.webp") center center / cover fixed no-repeat,
       var(--bg-page);
   }
 
@@ -13707,13 +13707,13 @@ body {
   padding-top: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 10px);
 }
 
-/* Every desktop screen shares the supplied dragon artwork around the centered
+/* Every desktop screen shares the World Tree artwork around the centered
    game canvas. */
 @media (min-width: 800px) {
   body {
     background:
-      linear-gradient(90deg, rgb(7 9 12 / 38%), rgb(7 9 12 / 8%) 50%, rgb(7 9 12 / 38%)),
-      url("/assets/ui/desktop-dragons-background.png") center center / 100% 100% fixed no-repeat,
+      linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
+      url("/assets/ui/auth/parchment/desktop-world-v1.webp") center center / cover fixed no-repeat,
       var(--bg-page);
   }
 }

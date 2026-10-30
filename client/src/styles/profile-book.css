@@ -1,0 +1,94 @@
+/* Profile: same painted plates and mage sheet as the equipment screen, one 12px rhythm. */
+:root[data-game-theme="light"] body .app-shell .app-content .pf-screen {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  background: none;
+}
+
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity {
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+.pf-portrait { width: 72px; overflow: hidden; }
+.pf-portrait img { position: absolute; inset: 12%; width: 76%; height: 76%; object-fit: cover; }
+.pf-portrait > span { color: #e8cf9f; font-family: var(--font-number); font-size: 24px; font-weight: 800; }
+.pf-identity__copy { display: grid; gap: 3px; min-width: 0; }
+.pf-identity__copy .nickname-skin { justify-self: start; max-width: 100%; color: #24140a; font-size: 20px; font-weight: 800; }
+.pf-identity__level { color: #3a2412; font-size: 14px; font-weight: 700; }
+.pf-bar { display: block; height: 7px; overflow: hidden; background: rgb(60 35 15 / 28%); }
+.pf-bar > span { display: block; height: 100%; background: #8f1d12; }
+.pf-identity__guild { grid-column: 1 / -1; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  color: #24140a;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+}
+.pf-identity__guild .profile-guild-card::before, .pf-identity__guild .profile-guild-card::after { content: none !important; }
+.pf-identity__guild .profile-guild-card > :first-child { justify-self: center; width: 44px; height: 44px; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy { display: grid; gap: 1px; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy strong { color: #24140a; font-size: 15px; font-weight: 800; text-decoration: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy span { color: #3a2412; font-size: 13px; font-weight: 600; }
+
+:root[data-game-theme="light"] body .app-shell .app-content .pf-power {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  justify-self: center;
+  width: min(100%, 320px);
+  aspect-ratio: 800 / 117;
+  color: #fff3d6;
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
+  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+}
+.pf-power strong { color: #fff3d6; font-family: var(--font-number); font-size: 19px; }
+
+.pf-menu { display: grid; gap: 8px; }
+
+.pf-section { display: grid; gap: 6px; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-section h2 {
+  margin: 0;
+  color: #24140a;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 1px 0 rgb(255 245 220 / 75%);
+}
+:root[data-game-theme="light"] body .app-shell .app-content .pf-plate { gap: 8px; }
+
+.pf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pf-grid article { display: grid; grid-template-rows: 32px 48px auto auto; justify-items: center; align-items: center; gap: 2px; min-width: 0; text-align: center; }
+.pf-grid__title { align-self: start; color: #3a2412; font-size: 12px; font-weight: 800; line-height: 1.15; }
+.pf-grid__icon { display: grid; place-items: center; width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(40 20 5 / 45%)); }
+.pf-grid strong { color: #24140a; font-family: var(--font-number); font-size: 15px; line-height: 1.1; }
+.pf-grid small { color: #3a2412; font-size: 12px; font-weight: 600; line-height: 1.15; }
+
+.pf-elements { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.pf-elements span { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.pf-elements b { color: #24140a; font-family: var(--font-number); font-size: 15px; }
+.pf-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 8px; color: #24140a; font-size: 13px; }
+.pf-empty { margin: 0; color: #24140a; font-size: 14px; font-weight: 600; text-align: center; }
+
+.pf-facts { display: grid; gap: 6px; margin: 0; }
+.pf-facts div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pf-facts dt { color: #3a2412; font-size: 13px; font-weight: 700; }
+.pf-facts dd { margin: 0; color: #24140a; font-family: var(--font-number); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.pf-retry { display: grid; gap: 8px; justify-items: center; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity__copy .nickname-skin--standard, :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__copy .nickname-skin--standard * { color: #24140a; -webkit-text-fill-color: #24140a; text-shadow: none; }

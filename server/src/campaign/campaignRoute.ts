@@ -3,6 +3,7 @@ import type {
   CampaignQuestClaimResponse,
   CampaignStageView,
   CampaignView,
+  StoryTrialsView,
 } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
@@ -22,6 +23,7 @@ interface CampaignOperations {
 interface CampaignRouteDependencies extends RouteAuthDependencies {
   campaign: CampaignOperations;
   responseHeaders?: OutgoingHttpHeaders;
+  trials?: { getTrials(playerId: string): Promise<Pick<StoryTrialsView, "campaignUnlocked">> };
 }
 
 export async function handleCampaignRequest(
@@ -44,6 +46,10 @@ export async function handleCampaignRequest(
       return;
     }
     if (request.method === "POST" && claimMatch) {
+      if (dependencies.trials && !(await dependencies.trials.getTrials(player.id)).campaignUnlocked) {
+        sendJson(response, 409, { error: { code: "campaign_locked", message: "Complete the story trials first" } }, headers);
+        return;
+      }
       sendJson(response, 200, await dependencies.campaign.claim(player.id, decodeURIComponent(claimMatch[1]!)), headers);
       return;
     }

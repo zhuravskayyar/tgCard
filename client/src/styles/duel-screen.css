@@ -1363,3 +1363,132 @@
   .duel-outcome__rays { opacity: .8; }
   .duel-outcome__title { animation: none; clip-path: none; }
 }
+
+/* Tutorial duel hint and victory: same painted plate, medallion and leather button as the task board. */
+.app-shell .tutorial-dialog.tutorial-dialog--reference-duel {
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: 14px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 14px stretch;
+  border-radius: 0;
+  box-shadow: 0 6px 14px rgb(30 15 5 / 45%);
+}
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__body { padding: 0 4px; overflow: visible; }
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__body p { color: #24140a; font-size: 15px; font-weight: 700; line-height: 1.3; text-shadow: none; }
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__art,
+.app-shell .duel-result--tutorial .tutorial-result__dialogue > div {
+  position: relative;
+  align-self: center;
+  width: 76px;
+  height: 76px;
+  overflow: visible;
+  background: none;
+  border: 0;
+}
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__art .lariska-image,
+.app-shell .duel-result--tutorial .tutorial-result__dialogue .lariska-image {
+  position: absolute;
+  inset: 11%;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 300% 300%;
+  animation: none;
+}
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__art .lariska-image > img,
+.app-shell .duel-result--tutorial .tutorial-result__dialogue .lariska-image > img {
+  position: absolute;
+  top: 2%;
+  left: -55%;
+  width: 210%;
+  max-width: none;
+  height: auto;
+  filter: none;
+  animation: none;
+}
+.app-shell .tutorial-dialog--reference-duel .tutorial-dialog__art::after,
+.app-shell .duel-result--tutorial .tutorial-result__dialogue > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.app-shell .tutorial-overlay__arrow {
+  margin-left: -26px;
+  filter: drop-shadow(0 0 6px #fff1b0) drop-shadow(0 2px 2px rgb(30 15 5 / 70%));
+  transform: none;
+  animation: tutorial-arrow-bob 1s ease-in-out infinite;
+}
+.app-shell .tutorial-overlay__spotlight {
+  border: 3px solid #ffd45e;
+  box-shadow: 0 0 0 3px rgb(255 212 94 / 45%), 0 0 26px 6px rgb(255 190 50 / 85%);
+}
+@keyframes tutorial-arrow-bob {
+  0%, 100% { transform: translateY(6px); }
+  50% { transform: translateY(-6px); }
+}
+
+.app-shell .app-content .duel-page.duel-result--tutorial {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: calc(100dvh - 190px);
+  padding: 8px 12px;
+  background: none;
+  border: 0;
+  border-image: none;
+}
+.tutorial-result__crest { width: 150px; height: auto; }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__title {
+  margin: -6px 0 0;
+  color: #24140a;
+  font-size: 30px;
+  letter-spacing: .08em;
+  text-shadow: 0 1px 0 rgb(255 245 220 / 70%);
+}
+.app-shell .app-content .duel-result--tutorial .tutorial-result__received,
+.app-shell .app-content .duel-result--tutorial .tutorial-result__wins { color: #24140a; font-size: 15px; font-weight: 700; text-shadow: 0 1px 0 rgb(255 245 220 / 70%); }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__rewards { gap: 22px; margin: 0; }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__rewards span { color: #24140a; font-size: 22px; text-shadow: none; }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue {
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  width: min(100%, 360px);
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+  background: none;
+  border: 14px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 14px stretch;
+  border-radius: 0;
+}
+.app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue p { padding: 0 4px; color: #24140a; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__button {
+  width: min(100%, 290px);
+  min-height: 58px;
+  padding: 6px 34px;
+  color: #fbeed0;
+  font-size: 17px;
+  font-weight: 800;
+  text-shadow: none;
+  background: url("/assets/ui/trials/button-leather-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.app-shell .app-content .duel-result--tutorial .tutorial-result__button::before,
+.app-shell .app-content .duel-result--tutorial .tutorial-result__button::after { content: none; }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .tutorial-overlay__arrow { animation: none; }
+}
+.app-shell:has(.tutorial-dialog--reference-duel) .duel-action-hint { display: none; }

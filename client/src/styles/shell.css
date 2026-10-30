@@ -78,6 +78,15 @@
   background: linear-gradient(180deg, #eee5d5, #d9ccb5);
 }
 
+@media (min-width: 800px) {
+  :root[data-game-theme="light"] body {
+    background:
+      linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
+      url("/assets/ui/auth/parchment/desktop-world-v1.webp") center center / cover fixed no-repeat,
+      #d9ccb5;
+  }
+}
+
 :root[data-game-theme="light"] .app-shell {
   background-color: var(--bg-app);
   background-image: linear-gradient(180deg, #f5eddf, #e7dcc8);

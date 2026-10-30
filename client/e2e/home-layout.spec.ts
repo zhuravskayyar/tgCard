@@ -103,10 +103,9 @@ test("empty equipment slots explain their type without pretending an item is equ
   const { sessionToken } = await getNoviceSession(request);
   await page.addInitScript((token) => localStorage.setItem("cardastika.session.token", token), sessionToken);
   await page.goto("/profile");
-  const emptySlots = page.locator(".profile-equipment .equipment-slot--empty");
+  const emptySlots = page.locator('.eq-doll__slot[aria-label$="порожньо"]');
   await expect(emptySlots.first()).toBeVisible();
   expect(await emptySlots.count()).toBeGreaterThan(0);
-  expect(await emptySlots.locator(".equipment-icon").count()).toBe(await emptySlots.count());
-  await expect(emptySlots.locator(".equippedMark")).toHaveCount(0);
-  expect(await emptySlots.first().getAttribute("aria-label")).toContain("Порожній слот");
+  expect(await emptySlots.locator(".eq-frame__empty").count()).toBe(await emptySlots.count());
+  expect(await emptySlots.first().getAttribute("aria-label")).toContain("порожньо");
 });

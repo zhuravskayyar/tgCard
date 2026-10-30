@@ -118,7 +118,7 @@ function isAuthSessionProvider(value: unknown): value is AuthSessionProvider {
 function isAccountProtectionTask(value: unknown): value is AccountProtectionTaskView {
   if (!value || typeof value !== "object") return false;
   const task = value as Record<string, unknown>;
-  return task.rewardDiamonds === 5
+  return task.rewardGold === 500
     && (task.status === "locked" || task.status === "available" || task.status === "completed" || task.status === "not_applicable");
 }
 

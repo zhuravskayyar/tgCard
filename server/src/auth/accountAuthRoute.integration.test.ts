@@ -21,7 +21,6 @@ import { SessionRepository } from "./sessionRepository.js";
 import { GuestCreationRateLimiter } from "./guestCreationRateLimiter.js";
 import { getGuestClientIp } from "./guestCreationRateLimiter.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { getSeasonWindow } from "../battlePassConfig.js";
 import type { IncomingMessage } from "node:http";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -474,7 +473,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
     assert.equal(guestBody.sessionProvider, "guest");
     assert.match(guestBody.player.firstName, /^Сірий маг #\d{5}$/u);
     assert.equal(guestBody.player.level, 1);
-    assert.equal(guestBody.player.silver, 1_500);
+    assert.equal(guestBody.player.silver, 0);
     assert.equal(guestBody.player.gold, 0);
     assert.equal(guestBody.player.tutorialEligible, true);
     assert.deepEqual(guestBody.identities, []);
@@ -545,12 +544,12 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
     assert.equal((successfulTelegramLink.body as { rewardGranted: boolean }).rewardGranted, true);
     assert.equal((rejectedTelegramLink.body as { error: { code: string } }).error.code, "identity_already_linked");
 
-    const { seasonId } = getSeasonWindow(new Date());
-    const rewardBalance = async () => Number((await pool.query<{ diamonds: string | number }>(
-      "SELECT diamonds FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2",
-      [guestBody.player.id, seasonId],
-    )).rows[0]?.diamonds ?? 0);
-    assert.equal(await rewardBalance(), 5);
+    const goldBeforeLink = Number(progressBeforeLink.rows[0]?.gold);
+    const rewardBalance = async () => Number((await pool.query<{ gold: string | number }>(
+      "SELECT gold FROM players WHERE id = $1",
+      [guestBody.player.id],
+    )).rows[0]?.gold) - goldBeforeLink;
+    assert.equal(await rewardBalance(), 500);
 
     const rewardedIdentity = await pool.query<{ linked_provider: string; linked_provider_user_id: string }>(
       "SELECT linked_provider, linked_provider_user_id FROM player_account_link_rewards WHERE player_id = $1",
@@ -578,7 +577,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
     });
     assert.equal(googleLink.status, 200);
     assert.equal((googleLink.body as { rewardGranted: boolean }).rewardGranted, false);
-    assert.equal(await rewardBalance(), 5);
+    assert.equal(await rewardBalance(), 500);
 
     const completed = await requestJson(origin, "/api/auth/me", {
       headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
@@ -601,7 +600,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
       "SELECT slots.slot, slots.card_instance_id FROM player_decks AS decks JOIN deck_slots AS slots ON slots.deck_id = decks.id WHERE decks.player_id = $1 ORDER BY slots.slot",
       [guestBody.player.id],
     );
-    assert.deepEqual(progressAfterLink.rows, progressBeforeLink.rows);
+    assert.deepEqual(progressAfterLink.rows, [{ ...progressBeforeLink.rows[0]!, gold: String(goldBeforeLink + 500) }]);
     assert.deepEqual(cardsAfterLink.rows, cardsBeforeLink.rows);
     assert.deepEqual(deckAfterLink.rows, deckBeforeLink.rows);
   } finally {
