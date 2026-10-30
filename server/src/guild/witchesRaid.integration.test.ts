@@ -4,11 +4,10 @@ import { Pool } from "pg";
 import test from "node:test";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { hasCompletedCollection, recordCardDiscovery } from "../collections/discoveryService.js";
-import { COLLECTION_CARDS } from "../collections/collectionCatalog.js";
+import { STARTER_CARDS } from "../inventory/starterCards.js";
 import { GuildAltarService } from "./altarService.js";
 import { GuildRaidDomainError, GuildRaidService } from "./guildRaidService.js";
-import { RaidCardService } from "./raidCardService.js";
+import { RaidCardService, RaidCardUnavailableError } from "./raidCardService.js";
 import { recalculateAutomaticDeckForPlayer } from "../decks/automaticDeckService.js";
 import { MailService } from "../mail/mailService.js";
 
@@ -26,91 +25,29 @@ function telegramUser() {
   } satisfies ValidatedTelegramUser;
 }
 
-test("Witches collection gates the gold altar bonus and raid rewards stay isolated", { skip: !databaseUrl }, async () => {
+test("active raids use current starters and reject retired raid-only cards", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  const altar = new GuildAltarService(pool);
-  const guildRaids = new GuildRaidService(pool);
-  const raids = new RaidCardService(pool);
-  const player = await players.findOrCreateFromTelegram(telegramUser());
+  const player = await new PlayerRepository(pool).findOrCreateFromTelegram(telegramUser());
   const guildId = randomUUID();
-  const witchCards = COLLECTION_CARDS.filter(({ collectionId }) => collectionId === "collection_witches");
-  assert.equal(witchCards.length, 4);
-
   try {
-    await pool.query(
-      `INSERT INTO guilds (id, name, name_key, created_by) VALUES ($1, $2, $3, $4)`,
-      [guildId, "Рейд тест", `witches_test_${guildId}`, player.id],
-    );
+    await pool.query("INSERT INTO guilds (id, name, name_key, created_by) VALUES ($1, 'Raid test', $2, $3)", [guildId, `raid_test_${guildId}`, player.id]);
     await pool.query("INSERT INTO guild_members (guild_id, player_id, role) VALUES ($1, $2, 'leader')", [guildId, player.id]);
-    await pool.query("UPDATE players SET altar_level = 10, gold = 100000, silver = 100000 WHERE id = $1", [player.id]);
-
-    const raid = await guildRaids.getActiveRaid(guildId);
+    await pool.query("UPDATE players SET altar_level = 10, gold = 100000 WHERE id = $1", [player.id]);
+    const raids = new GuildRaidService(pool);
+    const raid = await raids.getActiveRaid(guildId);
     assert.equal(raid.level, 1);
-    assert.equal(raid.status, "open");
     assert.equal(raid.bosses.length, 2);
-    assert.ok(raid.bosses.every((boss) => boss.health === 450_000));
-    assert.equal(new Set(raid.bosses.map((boss) => boss.cardId)).size, 2);
-    assert.ok(raid.bosses.every((boss) => witchCards.some((card) => card.id === boss.cardId)));
-    const sameRaid = await guildRaids.getActiveRaid(guildId);
-    assert.equal(sameRaid.id, raid.id, "a guild must keep one persisted raid");
-    assert.deepEqual(sameRaid.bosses.map((boss) => boss.cardId), raid.bosses.map((boss) => boss.cardId));
-
-    let result = await altar.purchase(player.id, guildId, "gold");
-    assert.deepEqual(
-      { previousLevel: result.previousLevel, baseIncrease: result.baseIncrease, collectionBonus: result.collectionBonus, newLevel: result.newLevel, totalIncrease: result.totalIncrease },
-      { previousLevel: 10, baseIncrease: 1, collectionBonus: 0, newLevel: 11, totalIncrease: 1 },
-      "ordinary gold altar upgrades must remain unchanged",
-    );
-
-    const discoveryClient = await pool.connect();
-    try {
-      for (const card of witchCards.slice(0, 3)) await recordCardDiscovery(discoveryClient, player.id, card.id);
-    } finally {
-      discoveryClient.release();
-    }
-    assert.equal(await hasCompletedCollection(pool, player.id, "collection_witches"), false);
-
-    await pool.query("UPDATE players SET altar_level = 10, gold = 100000 WHERE id = $1", [player.id]);
-    result = await altar.purchase(player.id, guildId, "gold");
-    assert.equal(result.collectionBonus, 0, "3/4 cards must not activate the bonus");
-    assert.equal(result.newLevel, 11);
-
-    const raidReward = await raids.grantCard(player.id, witchCards[3]!.id, 10);
-    assert.equal(raidReward.reward.cardId, witchCards[3]!.id);
-    assert.equal(raidReward.reward.collectionId, "collection_witches");
-    assert.equal(raidReward.newDiscovery, true);
-    assert.equal(raidReward.collectionCompleted?.id, "collection_witches");
-    assert.equal(await hasCompletedCollection(pool, player.id, "collection_witches"), true);
-
-    const duplicate = await raids.grantCard(player.id, witchCards[3]!.id, 10);
-    assert.equal(duplicate.newDiscovery, false, "duplicate raid cards must keep discovery idempotent");
-    assert.equal((await pool.query("SELECT COUNT(*) FROM player_card_instances WHERE player_id = $1 AND card_id = $2", [player.id, witchCards[3]!.id])).rows[0]?.count, "2");
-
-    await pool.query("UPDATE players SET altar_level = 10, gold = 100000 WHERE id = $1", [player.id]);
-    result = await altar.purchase(player.id, guildId, "gold");
-    assert.deepEqual(
-      { baseIncrease: result.baseIncrease, collectionBonus: result.collectionBonus, newLevel: result.newLevel, totalIncrease: result.totalIncrease },
-      { baseIncrease: 1, collectionBonus: 2, newLevel: 13, totalIncrease: 3 },
-      "a complete Witch collection adds exactly two levels to gold purchases",
-    );
-
-    await pool.query("UPDATE players SET altar_level = 10, silver = 100000 WHERE id = $1", [player.id]);
-    result = await altar.purchase(player.id, guildId, "silver");
-    assert.equal(result.collectionBonus, 0, "the Witch bonus must not apply to silver purchases");
-    assert.equal(result.newLevel, 11);
-
-    const sourceCounts = await pool.query<{ raid_not_in_shop: string; raid_shop_eligible: string }>(
-      `
-        SELECT
-          COUNT(*) FILTER (WHERE cards.source = 'raid' AND cards.id IN (SELECT card_id FROM shop_card_pools)) AS raid_not_in_shop,
-          COUNT(*) FILTER (WHERE cards.source = 'raid' AND cards.shop_eligible = TRUE) AS raid_shop_eligible
-        FROM cards
-      `,
-    );
-    assert.equal(sourceCounts.rows[0]?.raid_not_in_shop, "0");
-    assert.equal(sourceCounts.rows[0]?.raid_shop_eligible, "0");
+    assert.ok(raid.bosses.every(({ cardId, health }) => health === 450_000 && STARTER_CARDS.some(({ id }) => id === cardId)));
+    assert.equal((await raids.getActiveRaid(guildId)).id, raid.id);
+    const upgrade = await new GuildAltarService(pool).purchase(player.id, guildId, "gold");
+    assert.equal(upgrade.collectionBonus, 0);
+    assert.equal(upgrade.newLevel, 11);
+    const cards = new RaidCardService(pool);
+    const reward = await cards.grantCard(player.id, STARTER_CARDS[0]!.id, 10);
+    assert.equal(reward.reward.cardId, STARTER_CARDS[0]!.id);
+    assert.equal(reward.newDiscovery, false);
+    await assert.rejects(cards.grantCard(player.id, "witches_01", 10), RaidCardUnavailableError);
   } finally {
     await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
@@ -330,11 +267,11 @@ test("a ten-player raid records damage and pays cards or equal currency by place
       [playerIds],
     );
     assert.deepEqual(balances.rows.slice(0, 3).map(({ gold, silver }) => ({ gold, silver })), [
-      { gold: "0", silver: "1500" },
-      { gold: "0", silver: "1500" },
-      { gold: "0", silver: "1500" },
+      { gold: "0", silver: "0" },
+      { gold: "0", silver: "0" },
+      { gold: "0", silver: "0" },
     ]);
-    assert.deepEqual(balances.rows.map(({ gold, silver }) => ({ gold, silver })), Array.from({ length: 10 }, () => ({ gold: "0", silver: "1500" })));
+    assert.deepEqual(balances.rows.map(({ gold, silver }) => ({ gold, silver })), Array.from({ length: 10 }, () => ({ gold: "0", silver: "0" })));
 
     const raidMail = await pool.query<{ id: string; player_id: string; card_id: string | null; silver: string; gold: string; claimed_at: string | null }>(
       "SELECT id, player_id, card_id, silver, gold, claimed_at FROM player_mail WHERE subject = 'Нагорода за рейд' AND player_id = ANY($1::uuid[]) ORDER BY player_id, id",
@@ -370,7 +307,7 @@ test("a ten-player raid records damage and pays cards or equal currency by place
 
     const currencyReward = view.lastResult!.participants[3]!.reward;
     const currencyClaim = await mail.claim(testPlayers[3]!.id, currencyReward.mailId!);
-    assert.deepEqual(currencyClaim.updatedBalance, { gold: 50, silver: 51_500 });
+    assert.deepEqual(currencyClaim.updatedBalance, { gold: 50, silver: 50_000 });
   } finally {
     await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);

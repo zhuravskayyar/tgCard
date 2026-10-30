@@ -1,7 +1,7 @@
 import type { DailyTaskView } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "./AppIcon";
 
-const DIAMOND_ASSET = "/assets/ui/world-tree/game-icons/diamond.svg";
+const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
 
 const taskActions: Record<string, { icon: AppIconName; label: string }> = {
   "absorb-cards": { icon: "card-absorb", label: "До колоди" },
@@ -17,12 +17,12 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
   const action = taskActions[task.id] ?? { icon: "tasks" as const, label: "До завдання" };
 
   return (
-    <article className={`quest-paper${task.claimed ? " quest-paper--claimed" : task.completed ? " quest-paper--completed" : ""}`}>
+    <article className={`quest-paper story-notice${task.claimed ? " quest-paper--claimed" : task.completed ? " quest-paper--completed" : ""}`}>
+      <span aria-hidden="true" className="story-notice__nail" />
       <div className="quest-paper__content">
         <header className="quest-paper__header">
           <span className="quest-paper__icon"><AppIcon name={task.claimed || task.completed ? "card-reward" : action.icon} size={22} /></span>
           <div className="quest-paper__title">
-            <span>Щоденне завдання</span>
             <strong>{task.title}</strong>
           </div>
           <span aria-label={`Нагорода: ${task.rewardDiamonds} діамантів`} className="quest-paper__reward">+{task.rewardDiamonds}<img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></span>
@@ -41,11 +41,11 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
         </div>
 
         <footer className="quest-paper__footer">
-          <span className="quest-paper__status">
-            {task.claimed ? "Нагороду забрано" : task.completed ? "Завдання виконано" : "Виконайте завдання"}
-          </span>
+          {task.claimed || task.completed
+            ? <img alt={task.claimed ? "Нагороду забрано" : "Завдання виконано"} className="story-notice__seal" src="/assets/ui/trials/board/seal-v1.webp" />
+            : null}
           {task.claimed ? (
-            <span aria-label="Нагороду забрано" className="quest-paper__done">✓</span>
+            <span className="quest-paper__status quest-paper__status--done">Нагороду забрано</span>
           ) : task.completed ? (
             <button className="quest-paper__button quest-paper__button--claim" disabled={pending} onClick={() => onClaim(task.id)} type="button">
               {pending ? "Забираємо…" : "Забрати нагороду"}

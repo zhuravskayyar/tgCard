@@ -1,0 +1,146 @@
+/* Decorative elemental particles. Zones follow the painted fire, water, wind
+   and earth in the background art; only transform and opacity are animated. */
+.element-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.element-fx--desktop-only { display: none; }
+.element-fx__zone { position: absolute; }
+.element-fx__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  animation: element-fx-breathe 4.5s ease-in-out infinite;
+}
+.element-fx__particle {
+  position: absolute;
+  left: var(--fx-x);
+  bottom: var(--fx-y);
+  width: calc(6px * var(--fx-size));
+  height: calc(6px * var(--fx-size));
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-delay: var(--fx-delay);
+  animation-duration: var(--fx-duration);
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+/* Phone art: fire in the left roots, stream at the bottom, wind on the right, crystal lower right. */
+.element-fx__zone--fire { left: 0; top: 46%; width: 34%; height: 24%; }
+.element-fx__zone--water { left: 10%; top: 72%; width: 50%; height: 20%; }
+.element-fx__zone--air { right: 0; top: 34%; width: 34%; height: 32%; }
+.element-fx__zone--earth { right: 2%; top: 74%; width: 24%; height: 16%; }
+
+.element-fx__zone--fire .element-fx__glow { background: radial-gradient(circle, rgb(255 140 40 / 42%), transparent 68%); }
+.element-fx__zone--fire .element-fx__particle {
+  background: radial-gradient(circle, #fff1b0 0 25%, #ff9a2e 55%, transparent 75%);
+  box-shadow: 0 0 8px 2px rgb(255 130 30 / 70%);
+  animation-name: element-fx-ember;
+}
+.element-fx__zone--water .element-fx__glow { background: radial-gradient(ellipse, rgb(110 200 235 / 30%), transparent 70%); animation-delay: -1.2s; }
+.element-fx__zone--water .element-fx__particle {
+  background: radial-gradient(circle, #fff 0 22%, #8fdcf5 55%, transparent 75%);
+  box-shadow: 0 0 7px 1px rgb(120 215 245 / 75%);
+  animation-name: element-fx-spark;
+}
+.element-fx__zone--air .element-fx__glow { background: radial-gradient(ellipse, rgb(255 250 225 / 24%), transparent 70%); animation-delay: -2.4s; }
+.element-fx__zone--air .element-fx__particle {
+  width: calc(11px * var(--fx-size));
+  height: calc(6px * var(--fx-size));
+  border-radius: 80% 10%;
+  background: linear-gradient(135deg, #d9c25a, #8a9a35);
+  animation-name: element-fx-leaf;
+  animation-timing-function: ease-in-out;
+}
+.element-fx__zone--earth .element-fx__glow { background: radial-gradient(circle, rgb(235 215 80 / 36%), transparent 68%); animation-delay: -3.3s; }
+.element-fx__zone--earth .element-fx__particle {
+  background: radial-gradient(circle, #fffbd0 0 25%, #e8cf45 55%, transparent 75%);
+  box-shadow: 0 0 8px 2px rgb(235 210 70 / 70%);
+  animation-name: element-fx-spark;
+}
+
+@keyframes element-fx-breathe {
+  0%, 100% { opacity: .45; transform: scale(.94); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes element-fx-ember {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(1); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--fx-drift), -130px, 0) scale(.35); }
+}
+@keyframes element-fx-spark {
+  0%, 100% { opacity: 0; transform: translate3d(0, 0, 0) scale(.4); }
+  50% { opacity: 1; transform: translate3d(calc(var(--fx-drift) * .25), -10px, 0) scale(1.15); }
+}
+@keyframes element-fx-leaf {
+  0% { opacity: 0; transform: translate3d(50px, -20px, 0) rotate(0deg); }
+  20% { opacity: .95; }
+  80% { opacity: .95; }
+  100% { opacity: 0; transform: translate3d(-120px, 70px, 0) rotate(300deg); }
+}
+
+/* Landing content stays above the effects. */
+.auth-screen .auth-screen__layout { position: relative; z-index: 1; }
+.auth-screen__crest { position: relative; }
+.auth-screen__crest img { animation: element-fx-logo 4.5s ease-in-out infinite; }
+@keyframes element-fx-logo {
+  0%, 100% { filter: drop-shadow(0 0 4px rgb(255 200 90 / 45%)); }
+  50% { filter: drop-shadow(0 0 16px rgb(255 190 70 / 95%)); }
+}
+:root .auth-screen--guest .auth-screen__start-button { position: relative; overflow: hidden; animation: element-fx-button 3.2s ease-in-out infinite; }
+:root .auth-screen--guest .auth-screen__start-button:disabled { animation: none; }
+@keyframes element-fx-button {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 2px rgb(255 120 60 / 30%)); }
+  50% { filter: brightness(1.14) drop-shadow(0 0 10px rgb(255 120 60 / 80%)); }
+}
+
+@media (min-width: 800px) {
+  .element-fx--desktop-only { display: block; }
+  /* Wide art: burning ruins on the left, waterfalls on the right, leaves up top, moss below. */
+  .element-fx__zone--fire { left: 1%; top: 42%; width: 24%; height: 42%; }
+  .element-fx__zone--water { left: auto; right: 2%; top: 54%; width: 21%; height: 34%; }
+  .element-fx__zone--air { right: 1%; top: 2%; width: 24%; height: 34%; }
+  .element-fx__zone--earth { left: 3%; right: auto; top: 84%; width: 20%; height: 14%; }
+  .element-fx__particle { width: calc(8px * var(--fx-size)); height: calc(8px * var(--fx-size)); }
+  .element-fx__zone--air .element-fx__particle { width: calc(16px * var(--fx-size)); height: calc(9px * var(--fx-size)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .element-fx__particle { display: none; }
+  .element-fx__glow,
+  .auth-screen__crest img,
+  :root .auth-screen--guest .auth-screen__start-button { animation: none; }
+}
+
+/* Brighter pass: the parchment art is light, so particles need more size and glow. */
+.element-fx__particle { width: calc(9px * var(--fx-size)); height: calc(9px * var(--fx-size)); }
+.element-fx__glow { mix-blend-mode: normal; }
+.element-fx__zone--fire .element-fx__glow { background: radial-gradient(circle, rgb(255 110 20 / 55%), transparent 68%); }
+.element-fx__zone--water .element-fx__glow { background: radial-gradient(ellipse, rgb(70 190 240 / 45%), transparent 70%); }
+.element-fx__zone--air .element-fx__glow { background: radial-gradient(ellipse, rgb(255 255 240 / 45%), transparent 70%); }
+.element-fx__zone--earth .element-fx__glow { background: radial-gradient(circle, rgb(240 210 40 / 50%), transparent 68%); }
+.element-fx__zone--fire .element-fx__particle { box-shadow: 0 0 12px 4px rgb(255 100 10 / 90%); }
+.element-fx__zone--water .element-fx__particle { box-shadow: 0 0 12px 4px rgb(60 195 250 / 90%); }
+.element-fx__zone--earth .element-fx__particle { box-shadow: 0 0 12px 4px rgb(245 205 30 / 90%); }
+.element-fx__zone--air .element-fx__particle { width: calc(15px * var(--fx-size)); height: calc(8px * var(--fx-size)); }
+@media (min-width: 800px) {
+  .element-fx__particle { width: calc(11px * var(--fx-size)); height: calc(11px * var(--fx-size)); }
+  .element-fx__zone--air .element-fx__particle { width: calc(20px * var(--fx-size)); height: calc(11px * var(--fx-size)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .element-fx__particle { display: none; }
+}
+
+/* Phone: the panel covers the lower art, so effects live in the visible margins. */
+@media (max-width: 799px) {
+  .element-fx__zone--fire { left: 0; top: 30%; width: 26%; height: 24%; }
+  .element-fx__zone--air { right: 0; top: 6%; width: 40%; height: 26%; }
+  .element-fx__zone--water { left: 8%; top: 90%; width: 62%; height: 9%; }
+  .element-fx__zone--earth { right: 2%; top: 89%; width: 28%; height: 10%; }
+}

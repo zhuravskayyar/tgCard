@@ -151,7 +151,9 @@ export interface PlayerCardDetailResponse {
   progression: CardProgressionView;
 }
 
-export interface AbsorptionCandidatesResponse extends WeakPlayerCardsResponse {}
+export interface AbsorptionCandidatesResponse extends Omit<WeakPlayerCardsResponse, "pageSize"> {
+  pageSize: 5;
+}
 
 export interface AbsorbCardsRequest {
   fodderInstanceIds: string[];

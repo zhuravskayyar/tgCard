@@ -1,0 +1,479 @@
+/* Equipment and forge: every surface is a painted sprite, CSS only places and slices them. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  background: none;
+}
+
+/* Bronze frame with leather floor. */
+.eq-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  background: url("/assets/ui/equipment/slot-v1.webp") center / 100% 100% no-repeat;
+}
+.eq-frame > .eq-sprite { position: absolute; inset: 12%; width: 76%; height: 76%; }
+.eq-frame__empty { display: grid; place-items: center; color: #e8cf9f; opacity: .9; }
+.eq-sprite { display: block; width: 82%; height: 82%; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 65%)); pointer-events: none; }
+
+/* A small enamel stud names the rarity without dyeing the art. */
+.eq-gem {
+  position: absolute;
+  top: 7%;
+  left: 7%;
+  width: 22%;
+  max-width: 13px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8e6 0 12%, var(--eq-rarity, #a7a39b) 42%, #2a1608 118%);
+  box-shadow: 0 0 0 1px #2a1608, 0 1px 2px rgb(0 0 0 / 70%);
+}
+.eq-gem--inline { position: static; display: inline-block; width: 11px; }
+.eq-gem--center { top: 16%; left: 50%; translate: -50% 0; }
+
+/* Paper doll: the mage's sheet carries both columns of slots. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-doll {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 900 / 1234;
+  margin: 0 auto;
+  background: url("/assets/ui/equipment/mage-v1.webp") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 3px 5px rgb(40 20 5 / 40%));
+}
+.eq-doll__column {
+  position: absolute;
+  top: 7%;
+  bottom: 7%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 19%;
+}
+.eq-doll__column--left { left: 6%; }
+.eq-doll__column--right { right: 6%; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-doll__slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  color: #24140a;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+.eq-doll__slot::before, .eq-doll__slot::after { content: none !important; }
+.eq-doll__slot small { color: #24140a; font-size: 12px; font-weight: 800; line-height: 1.1; text-align: center; text-shadow: 0 1px 0 rgb(255 245 220 / 75%); white-space: nowrap; }
+
+/* Parchment plate from the quest board. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-plate {
+  display: grid;
+  gap: 4px;
+  padding: 0 2px;
+  color: #24140a;
+  font-size: 13px;
+  font-weight: 700;
+  background: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: calc(20 * var(--u));
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-radius: 0;
+  box-shadow: none;
+}
+.eq-plate p { margin: 0; line-height: 1.25; }
+.eq-summary__elements { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.eq-summary__elements span { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.eq-summary__elements strong { color: #24140a; font-family: var(--font-number); font-size: 15px; }
+.eq-summary__effects { color: #7c1c10; font-weight: 800; text-align: center; }
+.eq-set { color: #3a2412; opacity: .68; }
+.eq-set b { font-weight: 800; }
+.eq-set--active { color: #7c1c10; opacity: 1; }
+.eq-set--active::before { content: "✓ "; font-weight: 900; }
+.eq-summary__hint { color: #3a2412; text-align: center; }
+
+/* Painted buttons. */
+:root[data-game-theme="light"] .eq-button,
+:root[data-game-theme="light"] body .app-shell .app-content .eq-button {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: min(100%, 270px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 800 / 172;
+  padding: 0 34px;
+  color: #fbeed0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: none;
+  text-transform: none;
+  background: url("/assets/ui/trials/button-leather-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+  filter: none;
+  cursor: pointer;
+}
+:root[data-game-theme="light"] .eq-button::before, :root[data-game-theme="light"] .eq-button::after { content: none; }
+:root[data-game-theme="light"] .eq-button--parchment,
+:root[data-game-theme="light"] body .app-shell .app-content .eq-button--parchment {
+  color: #24140a;
+  background-image: url("/assets/ui/auth/parchment/button-parchment-v1.webp");
+}
+:root[data-game-theme="light"] body .app-shell .app-content .eq-button:disabled { opacity: .55; cursor: default; }
+
+/* Storage. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-storage { display: grid; gap: 10px; scroll-margin-top: 8px; padding: 0; background: none; border: 0; }
+.eq-filters { display: grid; grid-auto-flow: column; grid-auto-columns: 46px; justify-content: center; gap: 6px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-filter {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  color: #e8cf9f;
+  font-size: 12px;
+  font-weight: 800;
+  background: url("/assets/ui/equipment/slot-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+  filter: brightness(.82);
+  cursor: pointer;
+}
+.eq-filter::before, .eq-filter::after { content: none !important; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-filter--active { color: #fff3d6; filter: brightness(1.2) drop-shadow(0 0 4px rgb(190 110 20 / 95%)); }
+
+.eq-racks { display: grid; gap: 6px; }
+.eq-rack {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 10.1% 4.3%;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 1000 / 454;
+  padding: 4.7% 5.7% 5.7% 5.7%;
+  background: url("/assets/ui/equipment/rack-v1.webp") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 3px 4px rgb(40 20 5 / 45%));
+}
+:root[data-game-theme="light"] body .app-shell .app-content .eq-rack__item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.eq-rack__item::before, .eq-rack__item::after { content: none !important; }
+.eq-rack__item .eq-sprite { position: absolute; inset: 3%; width: 94%; height: 94%; }
+.eq-rack__item .eq-gem { top: 3%; left: 3%; width: 20%; }
+.eq-rack__quantity, .eq-rack__picked, .eq-rack__worn {
+  position: absolute;
+  color: #fff3d6;
+  font-family: var(--font-number);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.eq-rack__quantity { right: 3%; bottom: 3%; }
+.eq-rack__worn { top: 3%; right: 5%; color: #bfe08a; font-size: 14px; }
+.eq-rack__picked { top: 3%; right: 5%; color: #ffc765; font-size: 15px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-rack__item--selected { filter: drop-shadow(0 0 5px rgb(255 180 70 / 95%)); }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-note { margin: 0; color: #24140a; font-size: 13px; font-weight: 700; text-align: center; text-shadow: 0 1px 0 rgb(255 245 220 / 70%); }
+
+/* Item card. */
+.eq-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgb(20 10 3 / 72%);
+}
+.eq-card {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 350px, calc((100dvh - 24px) * 800 / 1075));
+  aspect-ratio: 800 / 1075;
+  color: #24140a;
+  background: url("/assets/ui/equipment/item-card-v1.webp") center / 100% 100% no-repeat;
+  animation: eq-card-in 260ms ease-out both;
+}
+.eq-card__art {
+  position: absolute;
+  left: 32.6%;
+  top: 9.6%;
+  width: 34.2%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.eq-card__art .eq-sprite { position: absolute; inset: 4%; width: 92%; height: 92%; }
+:root[data-game-theme="light"] .eq-card__close {
+  position: absolute;
+  top: 9.6%;
+  right: 15%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  color: #fff3d6;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.eq-card__close::before, .eq-card__close::after { content: none !important; }
+.eq-card__body {
+  position: absolute;
+  left: 11%;
+  right: 11%;
+  top: 39%;
+  bottom: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  text-align: center;
+}
+.eq-card__eyebrow { color: #5a3a1c; font-size: 12px; font-weight: 800; }
+.eq-card h2 { margin: 0; color: #24140a; font-size: 21px; line-height: 1.1; text-shadow: none; }
+.eq-card__meta { display: inline-flex; align-items: center; justify-content: center; gap: 4px; color: #3a2412; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.eq-card__bonus { color: #7c1c10; font-size: 17px; font-weight: 800; }
+.eq-card p { margin: 0; color: #24140a; font-size: 13px; font-weight: 600; line-height: 1.25; }
+.eq-card__actions { display: grid; gap: 4px; justify-items: center; width: 100%; margin-top: auto; }
+.eq-card__current { color: #3a2412; font-size: 12px; font-weight: 700; }
+.eq-card__error { color: #7c1c10; font-size: 12px; font-weight: 800; }
+@keyframes eq-card-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+
+/* Forge. */
+.eq-forge-scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: url("/assets/ui/equipment/forge-v1.webp") center / 100% 100% no-repeat;
+}
+.eq-forge-scene--striking { animation: eq-forge-shake 375ms ease-in-out 4; }
+.eq-forge-scene__flash {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 60%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 248 220 / 95%), rgb(255 160 50 / 70%) 34%, transparent 68%);
+  mix-blend-mode: screen;
+  animation: eq-forge-flash 375ms ease-out 4;
+}
+.eq-forge-scene__sparks { position: absolute; left: 50%; top: 56%; }
+.eq-forge-scene__sparks i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff6d8;
+  box-shadow: 0 0 8px 3px rgb(255 150 40 / 100%);
+  opacity: 0;
+  animation: eq-forge-spark 375ms ease-out 4;
+  animation-delay: calc(var(--spark) * 10ms);
+}
+@keyframes eq-forge-shake { 0%, 100% { transform: none; } 25% { transform: translateY(3px); } }
+@keyframes eq-forge-flash { 0% { opacity: 1; scale: .5; } 100% { opacity: 0; scale: 1.15; } }
+@keyframes eq-forge-spark {
+  0% { opacity: 0; transform: rotate(calc(var(--spark) * 26deg - 180deg)) translateY(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--spark) * 26deg - 180deg)) translateY(-95px); }
+}
+
+.eq-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 62px)); justify-content: center; gap: 6px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-step {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  color: #24140a;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+.eq-step .eq-frame { filter: brightness(.8); }
+.eq-step::before, .eq-step::after { content: none !important; }
+.eq-step--active .eq-frame { filter: brightness(1.2) drop-shadow(0 0 6px rgb(200 110 15 / 100%)); }
+.eq-step--active small { color: #7c1c10; }
+.eq-step .eq-frame b { margin-top: 26%; color: #fff3d6; font-family: var(--font-number); font-size: 15px; font-weight: 800; }
+.eq-step small { color: #24140a; font-size: 12px; font-weight: 800; text-align: center; text-shadow: 0 1px 0 rgb(255 245 220 / 75%); }
+
+.eq-recipe { text-align: center; justify-items: center; }
+.eq-recipe strong { color: #24140a; font-size: 15px; }
+.eq-recipe span { display: inline-flex; align-items: center; gap: 4px; }
+.eq-recipe b { color: #24140a; font-family: var(--font-number); }
+.eq-chances { display: grid; gap: 2px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.eq-chances li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 6px; text-align: left; }
+.eq-chances .eq-sprite { width: 26px; height: 26px; }
+
+.eq-materials { display: grid; grid-template-columns: repeat(var(--eq-columns, 4), minmax(0, 54px)); justify-content: center; gap: 6px; }
+.eq-materials--5 { --eq-columns: 5; }
+.eq-materials--6 { --eq-columns: 6; }
+.eq-materials--7 { grid-template-columns: repeat(8, minmax(0, 27px)); }
+.eq-materials--7 .eq-material { grid-column: span 2; }
+.eq-materials--7 .eq-material:nth-child(5) { grid-column: 2 / span 2; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-material {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  cursor: pointer;
+}
+.eq-material::before, .eq-material::after { content: none !important; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-material:disabled { filter: none; opacity: 1; cursor: default; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-material:disabled .eq-frame { filter: none; }
+
+.eq-forge-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-forge-actions .eq-button { width: 100%; padding: 0 14px; font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-card, .eq-forge-scene--striking, .eq-forge-scene__flash, .eq-forge-scene__sparks i { animation: none; }
+}
+
+/* Chests stand on the shelf: the box takes the chest's own height, so its base meets the plank. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-chest { aspect-ratio: auto; display: block; }
+.eq-chest > img { display: block; width: 100%; height: 86px; object-fit: contain; object-position: center bottom; }
+.eq-chest + .workshop-card__copy { margin-bottom: -3px; }
+.eq-chest-stage .eq-sparks i { width: 7px; height: 7px; margin: -3.5px; background: #fff3c4; box-shadow: 0 0 10px 4px rgb(255 175 60 / 95%); }
+.eq-chest-stage .eq-sparks i { --reach-scale: 1.9; }
+.eq-chest__motes { position: absolute; left: 12%; right: 12%; bottom: 40%; height: 0; pointer-events: none; }
+.eq-chest__motes i {
+  position: absolute;
+  left: calc(var(--i) * 22%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff3c4;
+  box-shadow: 0 0 5px 2px var(--eq-rarity, #d4a65e);
+  opacity: 0;
+  animation: eq-mote 2.6s ease-out infinite;
+  animation-delay: calc(var(--i) * 520ms);
+}
+@keyframes eq-mote { 0% { opacity: 0; transform: none; } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-46px); } }
+
+/* Opening: the chest shakes in the dark, bursts open, then the item card takes over. */
+.eq-chest-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgb(20 10 3 / 78%);
+  animation: eq-stage-in 180ms ease-out both;
+}
+.eq-chest-stage__chest { position: relative; display: grid; place-items: center; width: min(58vw, 220px); animation: eq-chest-shake 200ms ease-in-out infinite; }
+.eq-chest-stage__chest img { display: block; width: 100%; height: auto; filter: drop-shadow(0 8px 10px rgb(0 0 0 / 70%)); }
+.eq-chest-stage__rays {
+  position: absolute;
+  width: 170vmax;
+  aspect-ratio: 1;
+  opacity: 0;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--eq-rarity) 55%, #fff0c0 45%) 0 7deg, transparent 7deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0, transparent 34%);
+  mask-image: radial-gradient(circle, #000 0, transparent 34%);
+}
+.eq-chest-stage--burst .eq-chest-stage__chest { animation: eq-chest-burst 750ms cubic-bezier(.2, 1.4, .4, 1) both; }
+.eq-chest-stage--burst .eq-chest-stage__rays { opacity: .75; animation: eq-rays 750ms linear both; }
+@keyframes eq-stage-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes eq-chest-burst { 0% { transform: scale(.9); } 35% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes eq-rays { from { rotate: 0deg; scale: .6; } to { rotate: 40deg; scale: 1; } }
+
+/* Shared sparks. */
+.eq-sparks { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.eq-sparks i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 50%;
+  background: #fff6d8;
+  box-shadow: 0 0 8px 3px var(--eq-rarity, #d4a65e);
+  opacity: 0;
+  animation: eq-spark 800ms ease-out both;
+  animation-delay: calc(var(--i) * 14ms);
+}
+@keyframes eq-spark {
+  0% { opacity: 0; transform: rotate(var(--turn)) translateY(0) scale(1); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--turn)) translateY(calc(var(--reach) * var(--reach-scale, 1) * -1)) scale(.3); }
+}
+.eq-card__glow {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--eq-rarity) 70%, #fff0c0 30%), transparent 68%);
+  animation: eq-glow 2.4s ease-in-out infinite;
+}
+@keyframes eq-glow { 0%, 100% { opacity: .35; scale: .92; } 50% { opacity: .85; scale: 1.05; } }
+
+/* The forge is never still: embers rise from the coals. */
+.eq-forge-scene__embers { position: absolute; left: 56%; top: 40%; width: 26%; height: 0; pointer-events: none; }
+.eq-forge-scene__embers i {
+  position: absolute;
+  left: calc(var(--i) * 11%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffd98a;
+  box-shadow: 0 0 6px 2px rgb(255 130 30 / 95%);
+  opacity: 0;
+  animation: eq-ember 2.8s ease-out infinite;
+  animation-delay: calc(var(--i) * 310ms);
+}
+@keyframes eq-ember {
+  0% { opacity: 0; transform: none; }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc((var(--i) - 4) * 3px), -70px); }
+}
+@keyframes eq-chest-shake { 0%, 100% { transform: none; } 25% { transform: rotate(-4deg) translateY(-2px); } 75% { transform: rotate(4deg) translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .eq-chest__motes, .eq-sparks, .eq-forge-scene__embers { display: none; }
+  .eq-chest-stage, .eq-chest-stage__chest, .eq-chest-stage__rays, .eq-card__glow { animation: none; }
+}

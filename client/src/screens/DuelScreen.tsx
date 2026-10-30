@@ -1,6 +1,10 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
+import { cardArtAvatarClassName } from "../components/avatarBackdrop";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import "../styles/duel-screen.css";
+import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
 import type {
   CardElement,
   DuelCardSnapshot,
@@ -11,8 +15,7 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { BattleSwordIcon } from "../components/BattleSwordIcon";
-import { CardArtwork, preloadCardArtwork } from "../components/CardArtwork";
+import { CardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
@@ -32,8 +35,6 @@ import {
 
 const LAST_DUEL_STORAGE_KEY = "cardastika:last-duel-id";
 const DUEL_SEARCH_MIN_DISPLAY_MS = 620;
-const DUEL_LOG_SWORDS_NEUTRAL = "/assets/ui/world-tree/game-icons/swords-neutral.svg";
-const DUEL_LOG_SWORDS_ADVANTAGE = "/assets/ui/world-tree/game-icons/swords-gold-gray.svg";
 export type DuelEffectLevel = "weak" | "normal" | "strong";
 
 export function getEffectLevel(multiplier: DuelExchange["playerMultiplier"]): DuelEffectLevel {
@@ -51,12 +52,11 @@ function preloadDuelArtwork(duel: DuelView) {
     const cacheKey = `${card.artKey ?? ""}:${card.cardId}`;
     if (seen.has(cacheKey)) return;
     seen.add(cacheKey);
-    preloadCardArtwork(card.artKey, card.cardId);
   });
 }
 
 type DuelScreenState =
-  | { status: "loading" | "searching" }
+  | { status: "loading" | "searching" | "cancelled" }
   | { status: "preview"; search: DuelSearchResponse }
   | { status: "duel"; duel: DuelView }
   | { status: "no-opponent" }
@@ -72,64 +72,23 @@ interface DuelScreenProps extends DuelResultNavigation {
   onBack: () => void;
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "duelHighestLeagueIndex" | "duelRating" | "level" | "silver" | "gold">>) => void;
   onTutorialResult?: () => void | Promise<void>;
+  tutorialResultError?: string | null;
   onTutorialDuelState?: (duel: DuelView) => void;
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
 }
 
-type DuelSearchRunePhase = "searching" | "found";
-type DuelSearchRuneVariant = "outer" | "inner" | "core";
-
-const DUEL_SEARCH_RUNE_VARIANTS: DuelSearchRuneVariant[] = ["outer", "inner", "core"];
-const DUEL_SEARCH_RUNE_SOURCES: Record<DuelSearchRuneVariant, string> = {
-  outer: "/assets/ui/duel-search/magic-swirl.svg",
-  inner: "/assets/ui/duel-search/rune-stone.svg",
-  core: "/assets/ui/duel-search/vortex.svg",
-};
-
-function DuelSearchRune({ phase, variant }: { phase: DuelSearchRunePhase; variant: DuelSearchRuneVariant }) {
-  return (
-    <div aria-hidden="true" className={`duel-search-rune duel-search-rune--${phase} duel-search-rune--${variant}`}>
-      <img alt="" className={`duel-search-rune__${variant}`} src={DUEL_SEARCH_RUNE_SOURCES[variant]} />
-      <span className="duel-search-rune__particles">
-        {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
-      </span>
-    </div>
-  );
-}
-
-function getOpponentStrengthCategory(powerDifferencePct: number) {
-  if (powerDifferencePct <= -20) return { label: "ЗНАЧНО СЛАБШИЙ", tone: "much-weaker" };
-  if (powerDifferencePct < -8) return { label: "СЛАБШИЙ", tone: "weaker" };
-  if (powerDifferencePct <= 8) return { label: "ДОСТОЙНИЙ СУПЕРНИК", tone: "worthy" };
-  if (powerDifferencePct < 20) return { label: "СИЛЬНІШИЙ", tone: "stronger" };
-  return { label: "НЕБЕЗПЕЧНИЙ СУПЕРНИК", tone: "dangerous" };
-}
-
-function estimatePlayerDeckPower(opponentPower: number, powerDifferencePct: number) {
-  const ratio = 1 + powerDifferencePct / 100;
-  return ratio > 0 ? Math.max(0, Math.round(opponentPower / ratio)) : opponentPower;
-}
-
 export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
   return (
     <span className="duel-avatar" aria-hidden="true">
-      {photoUrl ? <img alt="" src={photoUrl} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
+      {photoUrl ? <img alt="" className={cardArtAvatarClassName(photoUrl)} src={photoUrl} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
     </span>
   );
 }
 
 function DuelHeading({ onBack }: { onBack: () => void }) {
   return (
-    <header className="duel-heading">
-      <button aria-label="Назад" onClick={onBack} type="button">
-        <AppIcon name="chevron" size={18} />
-      </button>
-      <div>
-        <span>Зала випробувань</span>
-        <h1>Дуель</h1>
-      </div>
-    </header>
+    <ScreenHeading eyebrow="Зала випробувань" onBack={onBack} title="Дуель" />
   );
 }
 
@@ -230,7 +189,6 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
   const contents = (
     <CardFxWrapper artKey={card.artKey} cardId={card.cardId} compact depthAssets={depthAssets} element={card.element} rarity={card.rarity}>
       <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
-      {card.source === "guild" ? <span className="duel-card__guild-mark">Гільдія</span> : null}
     </CardFxWrapper>
   );
   if (enemy) return <div className={className}>{contents}</div>;
@@ -259,27 +217,26 @@ function DuelIntroOverlay() {
   );
 }
 
+function BattleLogSeal({ multiplier }: { multiplier: number }) {
+  return <span className={`battle-log-seal battle-log-seal--${String(multiplier).replace(".", "-")}`}>×{multiplier}</span>;
+}
+
 function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; latest?: boolean }) {
   const playerStrong = exchange.visualState === "player_strong";
   const enemyStrong = exchange.visualState === "enemy_strong";
-  const swordSource = playerStrong || enemyStrong ? DUEL_LOG_SWORDS_ADVANTAGE : DUEL_LOG_SWORDS_NEUTRAL;
   return (
     <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}`}>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} /></span>
+      <span className="battle-log-art"><CardArtwork artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
       <strong className="battle-log-damage battle-log-damage--player">{exchange.playerDamage}</strong>
+      {/* One seal per exchange: the multiplier of the player's own strike. */}
       <span
-        aria-label={playerStrong ? "Перевага вашої стихії" : enemyStrong ? "Перевага стихії суперника" : "Стихії рівноцінні"}
+        aria-label={`${playerStrong ? "Перевага вашої стихії" : enemyStrong ? "Перевага стихії суперника" : "Стихії рівноцінні"}, ваш множник ×${exchange.playerMultiplier}`}
         className={`battle-log-advantage battle-log-advantage--${exchange.visualState}`}
       >
-        <img
-          alt=""
-          aria-hidden="true"
-          className={`battle-log-advantage__icon${playerStrong ? " battle-log-advantage__icon--mirrored" : ""}`}
-          src={swordSource}
-        />
+        <BattleLogSeal multiplier={exchange.playerMultiplier} />
       </span>
       <strong className="battle-log-damage battle-log-damage--enemy">{exchange.enemyDamage}</strong>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} /></span>
+      <span className="battle-log-art"><CardArtwork artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} /></span>
     </li>
   );
 }
@@ -309,6 +266,19 @@ export function BattleLog({ entries, animateLatest = false, emptyMessage = "Об
   );
 }
 
+/** Multipliers keep their old seals while the strike plays and switch only after the fresh cards have flipped in. */
+function useSettledMultipliers(multipliers: readonly number[], latestTurn: number | undefined, clash: DuelExchange | null) {
+  const settled = useRef({ turn: latestTurn, multipliers, changed: multipliers.map(() => false) });
+  const struckTurn = useRef(latestTurn);
+  if (clash?.turnNumber === latestTurn) struckTurn.current = latestTurn;
+  const strikeDone = clash === null && struckTurn.current === latestTurn;
+  if (strikeDone && settled.current.multipliers !== multipliers) {
+    const previous = settled.current.multipliers;
+    settled.current = { turn: latestTurn, multipliers, changed: multipliers.map((value, index) => value !== previous[index]) };
+  }
+  return settled.current;
+}
+
 function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, tutorialMode }: {
   duel: DuelView;
   pendingSlot: 0 | 1 | 2 | null;
@@ -318,6 +288,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
 }) {
   const [introActive, setIntroActive] = useState(() => duel.battleLog.length === 0);
   const clash = useBattleExchange(duel.battleLog[0] ?? null);
+  const shownMultipliers = useSettledMultipliers(duel.pairMultipliers, duel.battleLog[0]?.turnNumber, clash);
 
   useEffect(() => {
     if (!introActive) return;
@@ -327,6 +298,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
 
   const clashSlot = clash?.slotIndex ?? null;
   const battleClassName = [
+    "duel-page",
     "duel-battle",
     introActive ? "duel-battle--intro" : "",
     clash ? "duel-battle--clash" : "",
@@ -365,11 +337,17 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
           ))}
         </div>
         <div className="duel-multiplier-row" aria-label="Множники атаки гравця" data-tutorial-target={tutorialMode ? "duel-multiplier" : undefined}>
-          {duel.pairMultipliers.map((multiplier, index) => (
-            <span className={`duel-multiplier duel-multiplier--${String(multiplier).replace(".", "-")}`} key={index}>
-              ×{multiplier}
-            </span>
-          ))}
+          {shownMultipliers.multipliers.map((multiplier, index) => {
+            const changed = shownMultipliers.changed[index];
+            return (
+              <span
+                className={`duel-multiplier duel-multiplier--${String(multiplier).replace(".", "-")}${changed ? " duel-multiplier--changed" : ""}`}
+                key={changed ? `${index}:${shownMultipliers.turn}` : index}
+              >
+                ×{multiplier}
+              </span>
+            );
+          })}
         </div>
         <div className="duel-card-row duel-card-row--player">
           {duel.playerActiveCards.map((card, index) => (
@@ -411,23 +389,46 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
   );
 }
 
-function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean }) {
+const REWARD_SHOWCASE_MS = 1_500;
+const DUEL_RESULT_CREST_WIN = "/assets/ui/duel/result-victory-crest-v1.webp";
+const DUEL_RESULT_CREST_LOSS = "/assets/ui/duel/result-defeat-crest-v1.webp";
+
+/** Rewards tick up from zero once the crest has landed. */
+function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; delay?: number; duration?: number }) {
+  const [shown, setShown] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches ? value : 0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setShown(value); return; }
+    let frame = 0;
+    const startAt = performance.now() + delay;
+    const tick = (now: number) => {
+      const progress = Math.max(0, Math.min(1, (now - startAt) / duration));
+      setShown(Math.round(value * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [delay, duration, value]);
+  return <>{formatUiNumber(shown)}</>;
+}
+
+function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
   if (tutorialMode) {
     return (
-      <section className="duel-result duel-result--tutorial" data-tutorial-target="duel-result">
-        <div className="tutorial-result__banner" aria-hidden="true"><span>ПЕРЕМОГА</span></div>
+      <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
+        <img alt="" aria-hidden="true" className="tutorial-result__crest" src={DUEL_RESULT_CREST_WIN} />
+        <h1 className="tutorial-result__title">ПЕРЕМОГА</h1>
         <p className="tutorial-result__received">Ти отримав:</p>
         <div aria-label="Нагороди за перемогу" className="tutorial-result__rewards">
-          <span><CurrencyIcon kind="silver" size={18} />{result.silver}</span>
-          <span><ResourceIcon kind="xp" size={18} />{result.xp}</span>
+          <span data-reward-source="silver"><CurrencyIcon kind="silver" size={18} />{result.silver}</span>
+          <span data-reward-source="xp"><ResourceIcon kind="xp" size={18} />{result.xp}</span>
         </div>
         <p className="tutorial-result__wins">Перемог у дуелях: {result.player.duelWins}</p>
         <div className="tutorial-result__dialogue">
           <div aria-hidden="true"><Lariska emotion="happy" /></div>
-          <p>Вперед за нагородою. І не загуби колоду дорогою!</p>
+          <p>Вперед за нагородою та новими пригодами!</p>
         </div>
         <button
           className="tutorial-result__button"
@@ -442,30 +443,35 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
           }}
           type="button"
         >
-          {tutorialResultPending ? "Завантаження…" : "Переглянути колоду"}
+          {tutorialResultPending ? "Завантаження…" : "За нагородою"}
         </button>
+        {tutorialResultError ? <p className="campaign-claim-error" role="alert">{tutorialResultError}</p> : null}
       </section>
     );
   }
   const latestLevel = result.reachedLevels.at(-1);
   const formatNumber = formatUiNumber;
   const goldReward = (result.duelGoldReward ?? 0) + (result.levelUpGoldReward ?? result.gold);
+  const won = result.outcome === "win";
+  const silverReward = result.totalSilverEarned ?? result.silver;
   return (
-    <section className={`duel-result duel-result--compact duel-result--${result.outcome}`}>
-      <header className="duel-result-banner">
-        <h1>{result.outcome === "win" ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
-        <p>Ти отримав:</p>
-        <div aria-label="Нагороди за дуель" className="duel-result-loot">
-          <span aria-label={`Срібло: ${result.totalSilverEarned ?? result.silver}`}><CurrencyIcon kind="silver" size={17} />{formatNumber(result.totalSilverEarned ?? result.silver)}</span>
-          <span aria-label={`Досвід: ${result.xp}`}><ResourceIcon kind="xp" size={17} />{formatNumber(result.xp)}</span>
-          {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`}><CurrencyIcon kind="gold" size={17} />{formatNumber(goldReward)}</span> : null}
-        </div>
-        {result.player.duelWins !== undefined ? <p className="duel-result-wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatNumber(result.player.duelWins)}</p> : null}
+    <section className={`duel-page duel-result duel-outcome duel-outcome--${won ? "win" : "loss"}`}>
+      <header className="duel-outcome__crest">
+        {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}
+        <img alt="" className="duel-outcome__crest-art" src={won ? DUEL_RESULT_CREST_WIN : DUEL_RESULT_CREST_LOSS} />
+        <h1 className="duel-outcome__title">{won ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
       </header>
-      {latestLevel ? <p className="duel-result-note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
-      {result.accountBoostMultiplier === 2 ? <p className="duel-result-note">Буст ×2 активний</p> : null}
-      <button className="duel-primary-button duel-result-next" onClick={onReturn} type="button">Ще дуель</button>
-      <section className="duel-result-battle" aria-label="Підсумки бою">
+      <p className="duel-outcome__received">Ти отримав:</p>
+      <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
+        <span aria-label={`Срібло: ${silverReward}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={silverReward} /></span>
+        <span aria-label={`Досвід: ${result.xp}`} className="duel-outcome__reward" data-reward-source="xp"><ResourceIcon kind="xp" size={20} /><CountUpValue value={result.xp} /></span>
+        {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`} className="duel-outcome__reward" data-reward-source="gold"><CurrencyIcon kind="gold" size={20} /><CountUpValue value={goldReward} /></span> : null}
+      </div>
+      {result.player.duelWins !== undefined ? <p className="duel-outcome__wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatNumber(result.player.duelWins)}</p> : null}
+      {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
+      {result.accountBoostMultiplier === 2 ? <p className="duel-outcome__note">Буст ×2 активний</p> : null}
+      <button className="duel-search-button duel-search-button--attack duel-outcome__next" onClick={onReturn} type="button">Ще дуель</button>
+      <section className="duel-result-battle duel-outcome__battle" aria-label="Підсумки бою">
         <header>
           <span aria-label={`Залишок вашого здоров’я: ${duel.playerHp}`}>♥ {formatNumber(duel.playerHp)}</span>
           <h2>Підсумки бою</h2>
@@ -473,7 +479,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
         </header>
         <ol>{[...duel.battleLog].sort((a, b) => a.turnNumber - b.turnNumber).map(exchange => <BattleLogRow exchange={exchange} key={exchange.turnNumber} />)}</ol>
       </section>
-      <nav className="duel-result-menu" aria-label="Розділи після дуелі">
+      <nav className="duel-result-menu duel-outcome__menu" aria-label="Розділи після дуелі">
         <MenuRow icon="tournament" title="Рейтинг дуелей" onClick={onOpenLeagues} />
         <MenuRow icon="tasks" title="Завдання" onClick={onOpenTasks} />
         <MenuRow icon="shop" title="Магазин" onClick={onOpenShop} />
@@ -482,12 +488,17 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, onOpen
   );
 }
 
-export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false }: DuelScreenProps) {
+export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false, tutorialResultError = null }: DuelScreenProps) {
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
-  const searchRuneIndexRef = useRef(0);
-  const [searchRuneVariant, setSearchRuneVariant] = useState<DuelSearchRuneVariant>(DUEL_SEARCH_RUNE_VARIANTS[0]!);
+  const requestInFlightRef = useRef(false);
+  const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const searchSequenceRef = useRef(0);
+
+  const pendingResultPlayerRef = useRef<PlayerSummary | null>(null);
+  const applyResultPlayerRef = useRef(onPlayerSummaryChange);
+  applyResultPlayerRef.current = onPlayerSummaryChange;
 
   const showDuel = useCallback((duel: DuelView) => {
     if (duel.status === "active") {
@@ -496,41 +507,56 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
       window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
     }
     preloadDuelArtwork(duel);
-    if (duel.result) onPlayerSummaryChange(duel.result.player);
+    pendingResultPlayerRef.current = duel.result?.player ?? null;
     if (tutorialMode) onTutorialDuelState?.(duel);
     setState({ status: "duel", duel });
-  }, [onPlayerSummaryChange, onTutorialDuelState, tutorialMode]);
+  }, [onTutorialDuelState, tutorialMode]);
 
   const search = useCallback(async (initData: string, signal?: AbortSignal) => {
+    if (requestInFlightRef.current && !searchAbortControllerRef.current?.signal.aborted) return;
+    requestInFlightRef.current = true;
+    const controller = signal ? null : new AbortController();
+    const searchSignal = signal ?? controller!.signal;
+    if (controller) searchAbortControllerRef.current = controller;
+    const searchSequence = ++searchSequenceRef.current;
     const searchStartedAt = typeof performance === "undefined" ? Date.now() : performance.now();
-    const nextRuneVariant = DUEL_SEARCH_RUNE_VARIANTS[searchRuneIndexRef.current % DUEL_SEARCH_RUNE_VARIANTS.length]!;
-    searchRuneIndexRef.current += 1;
-    setSearchRuneVariant(nextRuneVariant);
+    const waitForMinimumDisplay = async (elapsed: number) => {
+      const remaining = DUEL_SEARCH_MIN_DISPLAY_MS - elapsed;
+      if (remaining <= 0) return;
+      await new Promise<void>((resolve) => {
+        const timer = window.setTimeout(resolve, remaining);
+        searchSignal.addEventListener("abort", () => {
+          window.clearTimeout(timer);
+          resolve();
+        }, { once: true });
+      });
+    };
     setState({ status: "searching" });
     try {
-      const searchResult = await searchDuelOpponent(initData, signal);
+      const searchResult = await searchDuelOpponent(initData, searchSignal);
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
-      if (elapsed < DUEL_SEARCH_MIN_DISPLAY_MS) {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, DUEL_SEARCH_MIN_DISPLAY_MS - elapsed));
-      }
-      if (signal?.aborted) return;
+      await waitForMinimumDisplay(elapsed);
+      if (searchSignal.aborted) return;
       if (tutorialMode) {
-        showDuel(await startDuel(initData, searchResult.searchId, tutorialMode, signal));
+        showDuel(await startDuel(initData, searchResult.searchId, tutorialMode, searchSignal));
       } else {
         setState({ status: "preview", search: searchResult });
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
-      if (elapsed < DUEL_SEARCH_MIN_DISPLAY_MS) {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, DUEL_SEARCH_MIN_DISPLAY_MS - elapsed));
-      }
-      if (signal?.aborted) return;
+      await waitForMinimumDisplay(elapsed);
+      if (searchSignal.aborted) return;
       if (error instanceof DuelApiError && error.code === "no_opponent_found") {
         setState({ status: "no-opponent" });
         return;
       }
       setState({ status: "error", message: "Не вдалося виконати пошук суперника" });
+    } finally {
+      if (searchSequence === searchSequenceRef.current) {
+        requestInFlightRef.current = false;
+        if (searchAbortControllerRef.current?.signal === searchSignal) searchAbortControllerRef.current = null;
+      }
     }
   }, [showDuel, tutorialMode]);
 
@@ -549,12 +575,14 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
       return;
     }
     const controller = new AbortController();
+    searchAbortControllerRef.current = controller;
     const presentDuel = showDuelRef.current;
     const searchOpponent = searchRef.current;
     void (async () => {
       try {
         const active = await loadActiveDuel(initData, controller.signal);
         if (active.duel) {
+          searchAbortControllerRef.current = null;
           presentDuel(active.duel);
           return;
         }
@@ -563,6 +591,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
           try {
             const remembered = await loadDuel(initData, rememberedId, controller.signal);
             if (remembered.status === "active") {
+              searchAbortControllerRef.current = null;
               presentDuel(remembered);
               return;
             }
@@ -578,7 +607,10 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         setState({ status: "error", message: "Не вдалося відновити стан Дуелі" });
       }
     })();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (searchAbortControllerRef.current === controller) searchAbortControllerRef.current = null;
+    };
   }, []);
 
   async function handleSearchAgain() {
@@ -586,9 +618,18 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     if (initData) await search(initData);
   }
 
+  function handleCancelSearch() {
+    searchSequenceRef.current += 1;
+    searchAbortControllerRef.current?.abort();
+    searchAbortControllerRef.current = null;
+    requestInFlightRef.current = false;
+    setState({ status: "cancelled" });
+  }
+
   async function handleStart(searchId: string) {
     const initData = getTelegramInitData();
-    if (!initData) return;
+    if (!initData || requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     setState({ status: "loading" });
     try {
       showDuel(await startDuel(initData, searchId));
@@ -598,13 +639,16 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         return;
       }
       setState({ status: "error", message: "Не вдалося розпочати Дуель" });
+    } finally {
+      requestInFlightRef.current = false;
     }
   }
 
   async function handleAction(slotIndex: 0 | 1 | 2) {
-    if (state.status !== "duel" || state.duel.status !== "active" || pendingSlot !== null) return;
+    if (state.status !== "duel" || state.duel.status !== "active" || pendingSlot !== null || requestInFlightRef.current) return;
     const initData = getTelegramInitData();
     if (!initData) return;
+    requestInFlightRef.current = true;
     setPendingSlot(slotIndex);
     try {
       showDuel(await submitDuelAction(initData, state.duel.duelId, {
@@ -622,9 +666,28 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
         setState({ status: "error", message: "Хід не виконано. Спробуйте ще раз" });
       }
     } finally {
+      requestInFlightRef.current = false;
       setPendingSlot(null);
     }
   }
+
+  // The result screen shows the rewards first, then they fly from it into the HUD.
+  useEffect(() => {
+    if (!resultReady || !pendingResultPlayerRef.current) return undefined;
+    const applyPending = () => {
+      if (pendingResultPlayerRef.current) applyResultPlayerRef.current(pendingResultPlayerRef.current);
+      pendingResultPlayerRef.current = null;
+    };
+    const timer = window.setTimeout(applyPending, REWARD_SHOWCASE_MS);
+    return () => {
+      window.clearTimeout(timer);
+      applyPending();
+    };
+  }, [resultReady, state]);
+
+  useEffect(() => () => {
+    if (pendingResultPlayerRef.current) applyResultPlayerRef.current(pendingResultPlayerRef.current);
+  }, []);
 
   function returnToDuels() {
     window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
@@ -634,64 +697,20 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   if (state.status === "duel") {
     return !resultReady
       ? <DuelBattle duel={state.duel} onAction={handleAction} pendingSlot={pendingSlot} tutorialAllowedSlot={tutorialAllowedSlot} tutorialMode={tutorialMode} />
-      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} />;
+      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
   }
 
   return (
-    <div className="duel-search-screen">
+    <div className="duel-page duel-search-screen">
       <DuelHeading onBack={onBack} />
-      {state.status === "loading" || state.status === "searching" ? (
-        <div aria-live="polite" className="duel-search-state" role="status">
-          <DuelSearchRune phase="searching" variant={searchRuneVariant} />
-          <strong>{state.status === "searching" ? "ШУКАЄМО СУПЕРНИКА" : "ЗАВАНТАЖУЄМО ДУЕЛЬ"}</strong>
-          <span>Підбір за силою колоди</span>
-          {state.status === "searching" ? <span aria-label="Пошук триває" className="duel-search-dots"><i /><i /><i /></span> : null}
-        </div>
-      ) : null}
-      {state.status === "preview" ? (
-        <section aria-live="polite" className="duel-opponent-preview duel-opponent-preview--found">
-          <div className="duel-opponent-preview__mark">
-            <span className="duel-opponent-preview__avatar"><PlayerAvatar name={state.search.opponent.name} photoUrl={state.search.opponent.photoUrl} /></span>
-          </div>
-          <div className="duel-opponent-preview__intro">
-            <span>ЗНАЙДЕНО СУПЕРНИКА</span>
-            <h2>{state.search.opponent.name}</h2>
-            <p>Рівень {state.search.opponent.level}</p>
-          </div>
-          {(() => {
-            const category = getOpponentStrengthCategory(state.search.opponent.powerDifferencePct);
-            return <>
-              <p className={`duel-opponent-category duel-opponent-category--${category.tone}`}>{category.label}</p>
-              <div
-                aria-label={`Сила колоди: ви ${estimatePlayerDeckPower(state.search.opponent.effectiveDeckPower, state.search.opponent.powerDifferencePct)}, суперник ${state.search.opponent.effectiveDeckPower}`}
-                className="duel-power-comparison"
-              >
-                <div><strong>{estimatePlayerDeckPower(state.search.opponent.effectiveDeckPower, state.search.opponent.powerDifferencePct)}</strong><span>ВИ</span></div>
-                <BattleSwordIcon tone="gold" />
-                <div><strong>{state.search.opponent.effectiveDeckPower}</strong><span>СУПЕРНИК</span></div>
-              </div>
-            </>;
-          })()}
-          <div className="duel-opponent-preview__actions">
-            <button className="duel-primary-button" onClick={() => void handleStart(state.search.searchId)} type="button">НАПАСТИ</button>
-            <button className="duel-secondary-button" onClick={() => void handleSearchAgain()} type="button">ШУКАТИ ІНШОГО</button>
-          </div>
-        </section>
-      ) : null}
-      {state.status === "no-opponent" ? (
-        <div aria-live="polite" className="duel-search-state duel-search-state--empty" role="status">
-          <strong>Суперника не знайдено</strong>
-          <span>Зараз немає реального гравця з відповідною силою колоди.</span>
-          <button className="duel-primary-button" onClick={() => void handleSearchAgain()} type="button">ШУКАТИ ІНШОГО</button>
-        </div>
-      ) : null}
-      {state.status === "error" ? (
-        <div aria-live="assertive" className="duel-search-state duel-search-state--error" role="alert">
-          <strong>Дуель недоступна</strong>
-          <span>{state.message}</span>
-          <button className="duel-secondary-button" onClick={() => void handleSearchAgain()} type="button">СПРОБУВАТИ ЩЕ</button>
-        </div>
-      ) : null}
+      <DuelSearchExperience
+        message={state.status === "error" ? state.message : undefined}
+        onAttack={(searchId) => void handleStart(searchId)}
+        onCancel={handleCancelSearch}
+        onSearchAgain={() => void handleSearchAgain()}
+        phase={state.status as DuelSearchExperiencePhase}
+        search={state.status === "preview" ? state.search : undefined}
+      />
     </div>
   );
 }

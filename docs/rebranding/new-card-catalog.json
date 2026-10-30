@@ -1,0 +1,14 @@
+{
+  "collection": "Стартові",
+  "cards": [
+    { "id": "starter_v5_01", "name": "Борсук", "element": "Земля", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_01" },
+    { "id": "starter_v5_02", "name": "Рогач", "element": "Земля", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_02" },
+    { "id": "starter_v5_03", "name": "Корона коренів", "element": "Земля", "type": "Артефакт", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_03" },
+    { "id": "starter_v5_04", "name": "Вогняний кабан", "element": "Вогонь", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_04" },
+    { "id": "starter_v5_05", "name": "Вугільна ропуха", "element": "Вогонь", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_05" },
+    { "id": "starter_v5_06", "name": "Морський коник", "element": "Вода", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_06" },
+    { "id": "starter_v5_07", "name": "Чаша хвиль", "element": "Вода", "type": "Артефакт", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_07" },
+    { "id": "starter_v5_08", "name": "Ластівка", "element": "Повітря", "type": "Істота", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_08" },
+    { "id": "starter_v5_09", "name": "Вихор", "element": "Повітря", "type": "Явище", "rarity": "common", "power": 12, "artType": "engraving", "artFile": "new-cards/starter_v2_09" }
+  ]
+}

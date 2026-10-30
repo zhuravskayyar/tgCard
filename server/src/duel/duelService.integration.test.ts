@@ -120,7 +120,7 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
       gold: duel.result.gold,
       duelGoldReward: duel.result.duelGoldReward,
       levelUpGoldReward: duel.result.levelUpGoldReward,
-    }, { outcome: "win", xp: 108, silver: 100, gold: 2, duelGoldReward: 1, levelUpGoldReward: 2 });
+    }, { outcome: "win", xp: 102, silver: 100, gold: 2, duelGoldReward: 1, levelUpGoldReward: 2 });
     await assert.rejects(
       service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: finalRequestVersion }),
       DuelStateConflictError,
@@ -143,7 +143,7 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
       duelGoldLevel: persisted.rows[0]?.duel_gold_level,
       silver: Number(persisted.rows[0]?.silver),
       gold: Number(persisted.rows[0]?.gold),
-    }, { xp: 107, wins: 1, duelGoldEarnedToday: 1, duelGoldLevel: 2, silver: 1_600, gold: 3 });
+    }, { xp: 101, wins: 1, duelGoldEarnedToday: 1, duelGoldLevel: 2, silver: 100, gold: 3 });
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();
@@ -299,7 +299,7 @@ test("a loss grants its reward once and resets the Duel win streak", { skip: !da
       losses: persisted.rows[0]?.duel_losses,
       streak: persisted.rows[0]?.duel_win_streak,
       silver: Number(persisted.rows[0]?.silver),
-    }, { xp: 12, losses: 1, streak: 0, silver: 1_550 });
+    }, { xp: 12, losses: 1, streak: 0, silver: 50 });
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();

@@ -13,6 +13,7 @@ import {
   InsufficientShopFundsError,
   ShopPersistenceError,
   ShopService,
+  ShopBundleMissingError,
 } from "./shopService.js";
 import { ShopRewardUnavailableError } from "./shopRewardSelector.js";
 
@@ -139,7 +140,7 @@ test("prices, miss increments, independent instances, and persisted pity are aut
   try {
     await insertCards(pool, cards);
     const player = await players.findOrCreateFromTelegram(user);
-    await pool.query("UPDATE players SET gold = 250 WHERE id = $1", [player.id]);
+    await pool.query("UPDATE players SET gold = 250, silver = 1500 WHERE id = $1", [player.id]);
     const shop = new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
       selectReward: selectInsertedReward(cards),
@@ -181,42 +182,17 @@ test("prices, miss increments, independent instances, and persisted pity are aut
   }
 });
 
-test("ready bundles cost 60 gold and grant their four canonical epic cards", {
-  skip: !databaseUrl,
-}, async () => {
+test("retired bundles stay hidden and cannot spend player gold", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  const inventory = new InventoryRepository(pool);
-  const user = createTelegramUser("ready-bundle");
-
+  const user = createTelegramUser("retired-bundle");
   try {
-    const player = await players.findOrCreateFromTelegram(user);
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
     await pool.query("UPDATE players SET gold = 60 WHERE id = $1", [player.id]);
     const shop = new ShopService(pool);
-    const catalog = await shop.getCardsCatalog(player.id);
-    assert.deepEqual(catalog.bundles, [
-      { id: "elemental-spirits", currency: "gold", price: 60, cardCount: 4, canAfford: true },
-      { id: "goblin-brotherhood", currency: "gold", price: 60, cardCount: 4, canAfford: true },
-    ]);
-
-    const result = await shop.purchaseBundle(player.id, "elemental-spirits");
-    const expectedCardIds = [
-      "element_spirits_01",
-      "element_spirits_02",
-      "element_spirits_03",
-      "element_spirits_04",
-    ];
-    assert.deepEqual(result.updatedBalance.gold, 0);
-    assert.deepEqual(result.rewards.map(({ cardId }) => cardId), expectedCardIds);
-    assert.ok(result.rewards.every(({ rarity }) => rarity === "epic"));
-    assert.equal(new Set(result.rewards.map(({ instanceId }) => instanceId)).size, 4);
-    const ownedCards = await inventory.findByPlayerId(player.id);
-    assert.equal(ownedCards.filter(({ cardId }) => expectedCardIds.includes(cardId)).length, 4);
-    await assert.rejects(
-      shop.purchaseBundle(player.id, "goblin-brotherhood"),
-      (error) => error instanceof InsufficientShopFundsError,
-    );
+    assert.deepEqual((await shop.getCardsCatalog(player.id)).bundles, []);
+    await assert.rejects(shop.purchaseBundle(player.id, "elemental-spirits"), ShopBundleMissingError);
+    assert.equal((await pool.query("SELECT gold FROM players WHERE id = $1", [player.id])).rows[0]?.gold, "60");
   } finally {
     await cleanup(pool, [user.id], []);
     await pool.end();
@@ -234,6 +210,7 @@ test("pity belongs to one player and survives a new service/session", { skip: !d
   try {
     await insertCards(pool, [reward]);
     const first = await players.findOrCreateFromTelegram(firstUser);
+    await pool.query("UPDATE players SET silver = 1500 WHERE id = $1", [first.id]);
     const second = await players.findOrCreateFromTelegram(secondUser);
     await new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
@@ -261,6 +238,7 @@ test("a higher rarity hit halves only its meter and increments lower pity", { sk
   try {
     await insertCards(pool, [reward]);
     const player = await players.findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET silver = 1500 WHERE id = $1", [player.id]);
     await pool.query(
       `
         INSERT INTO player_shop_chances (player_id, offer_id, target_rarity, chance_basis_points)
@@ -296,6 +274,7 @@ test("downstream Shop failures roll back balance, pity, discovery, and inventory
   try {
     await insertCards(pool, [reward]);
     const player = await players.findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET silver = 1500 WHERE id = $1", [player.id]);
     const unavailableShop = new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
       levelPolicy: levelPolicyFor([reward]),
@@ -391,6 +370,7 @@ test("shop instance enters inventory, strongest deck, and weak cards remain its 
   try {
     await insertCards(pool, [reward, ineligible]);
     const player = await players.findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET silver = 1500 WHERE id = $1", [player.id]);
     const before = await decks.findByPlayerId(player.id);
     const result = await new ShopService(pool, {
       rng: new AlwaysMissRandomSource(),
@@ -408,7 +388,7 @@ test("shop instance enters inventory, strongest deck, and weak cards remain its 
     assert.equal(result.deckPower, after.totalPower);
     assert.equal(after.totalPower, before.totalPower + 88);
     assert.ok(after.cards.some(({ instanceId }) => instanceId === result.reward.instanceId));
-    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.deepEqual(countDeckElements(after.cards), { fire: 2, water: 2, air: 2, earth: 3 });
     assert.equal(ownedCards.length, 10);
     assert.equal(weakCards.length, 1);
     const deckIds = new Set(after.cards.map(({ instanceId }) => instanceId));

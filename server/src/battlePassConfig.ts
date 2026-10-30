@@ -7,11 +7,11 @@ export const BATTLE_PASS_CIRCLES = [
 const FREE_REWARDS_BY_CIRCLE: readonly (readonly (BattlePassReward | null)[])[] = [
   [
     { durationHours: 24, kind: "boost", label: "×2 срібла та золота · 24 години", multiplier: 2 },
-    null,
+    { kind: "equipment", label: "Звичайне спорядження", rarity: "common" },
     { kind: "silver", amount: 3_500_000, label: "3,5 млн срібла" },
-    null,
+    { kind: "equipment", label: "Незвичайне спорядження", rarity: "uncommon" },
     { kind: "gold", amount: 350, label: "350 золота" },
-    null,
+    { kind: "equipment", label: "Рідкісне спорядження", rarity: "rare" },
     { kind: "card", label: "Випадкова карта", levelSource: "lowest_deck" },
   ],
 ];

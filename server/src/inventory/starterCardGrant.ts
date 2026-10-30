@@ -87,12 +87,6 @@ export async function backfillStarterCards(pool: Pool) {
             WHERE existing.player_id = players.id
               AND existing.card_id = cards.id
           )
-          AND NOT EXISTS (
-            SELECT 1
-            FROM player_card_discoveries discovered
-            WHERE discovered.player_id = players.id
-              AND discovered.card_id = cards.id
-          )
         ON CONFLICT (id) DO NOTHING
       `,
       [STARTER_CARD_CODES, STARTER_INSTANCE_DEFAULTS.level, STARTER_INSTANCE_DEFAULTS.bonusPower],

@@ -1,0 +1,88 @@
+@font-face {
+  font-family: "Cardastika Numbers";
+  src: url("/fonts/lugatype.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
+/* The full Lugatype face for display text; %, № and ʼ fall through to Alegreya Sans. */
+@font-face {
+  font-family: "Lugatype";
+  src: url("/fonts/lugatype.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* The same numeral outlines and engraved metal bands as the card trays. */
+:root .app-shell {
+  --number-metal-top: #f4dfa5;
+  --number-metal-highlight: #fff5d3;
+  --number-metal-mid: #cbb89e;
+  --number-metal-low: #b98b4b;
+  --number-metal-outline: #14110d;
+}
+
+:root[data-game-theme="light"] .app-shell {
+  --number-metal-top: #6b4012;
+  --number-metal-highlight: #b58942;
+  --number-metal-mid: #38200a;
+  --number-metal-low: #261205;
+  --number-metal-outline: #38200a;
+}
+
+:root .app-shell :is(
+  .ui-number,
+  .currency-display__value:not(:has(> span)),
+  .currency-display__value > span,
+  .player-deck-power__value,
+  .player-deck-power__level strong,
+  .card-detail-reference-stat > strong,
+  .progression-panel__facts strong:not(:has(> span)),
+  .deck-heading > strong,
+  .duel-power-comparison strong,
+  .duel-hp-panel__value strong,
+  .dungeon-stats strong,
+  .arena-queue-panel__timer,
+  .arena-result__damage,
+  .arena-participant__damage,
+  .arena-target-hp strong,
+  .league-progress-card__header > strong,
+  .league-progress-card__next strong,
+  .inventory-section__heading > strong,
+  .guild-stats dd
+) {
+  font-family: var(--font-number) !important;
+  font-weight: 400;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--number-metal-low);
+  background-image: linear-gradient(180deg, var(--number-metal-top) 0%, var(--number-metal-mid) 34%, var(--number-metal-highlight) 50%, var(--number-metal-low) 77%, var(--number-metal-top) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .2px var(--number-metal-outline);
+  text-shadow: none;
+}
+
+:root .app-shell .weak-cards-heading > small {
+  --number-metal-top: #fff5d3;
+  --number-metal-highlight: #f4dfa5;
+  --number-metal-mid: #e0bd7b;
+  --number-metal-low: #b98b4b;
+  --number-metal-outline: #34210e;
+}
+
+:root .app-shell .progression-panel__facts strong {
+  color: var(--home-ink);
+  font-family: var(--font-number) !important;
+  font-weight: 400;
+}
+
+:root .app-shell .progression-panel__facts .progression-panel__next-power {
+  color: var(--state-success);
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  -webkit-text-stroke: 0;
+}

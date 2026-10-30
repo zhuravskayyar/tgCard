@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Philosopher:wght@700&family=Roboto+Condensed:wght@400;500;600;700&display=swap");
 
 :root {
   font-family: var(--font-body);
@@ -563,8 +562,8 @@ body {
 @media (min-width: 800px) {
   body {
     background:
-      linear-gradient(90deg, rgb(7 9 12 / 54%), rgb(7 9 12 / 10%) 50%, rgb(7 9 12 / 54%)),
-      url("/assets/ui/desktop-dragons-background.png") center center / cover fixed no-repeat,
+      linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
+      url("/assets/ui/auth/parchment/desktop-world-v1.webp") center center / cover fixed no-repeat,
       var(--bg-page);
   }
 
@@ -3884,217 +3883,25 @@ button:focus-visible {
 .duel-intro strong { color: var(--accent-gold); font-family: var(--font-display); font-size: var(--font-lg); }
 .duel-intro b { grid-column: 1 / -1; color: var(--accent-gold); font-size: var(--font-xs); letter-spacing: .22em; text-align: center; }
 
-@keyframes duel-clash-trail {
-  0% { opacity: 0; transform: scaleX(.05); }
-  30% { opacity: .8; }
-  72% { opacity: .75; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(.2); }
-}
 
-@keyframes duel-clash-flash {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.35); }
-  28% { opacity: var(--flash-opacity); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(var(--flash-scale)); }
-}
 
-@keyframes duel-clash-sword {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-22deg) scale(.55); }
-  30% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1.2); }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(12deg) scale(1); }
-}
 
-@keyframes duel-clash-damage-player {
-  0% { opacity: 0; transform: translateY(8px) scale(.82); }
-  22% { opacity: 1; transform: translateY(0) scale(1.05); }
-  100% { opacity: 0; transform: translateY(-23px) scale(1); }
-}
 
-@keyframes duel-clash-damage-enemy {
-  0% { opacity: 0; transform: translateY(8px) scale(.82); }
-  22% { opacity: 1; transform: translateY(0) scale(1.05); }
-  100% { opacity: 0; transform: translateY(-23px) scale(1); }
-}
 
-@keyframes duel-clash-advantage {
-  0%, 32% { opacity: 0; transform: translate(-50%, 4px) scale(.88); }
-  55% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -3px) scale(1); }
-}
 
-@keyframes duel-clash-particle {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.45); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(.1); }
-}
 
-.duel-clash {
-  --clash-x: 50%;
-  --clash-trail-width: clamp(52px, 16%, 82px);
-  position: absolute;
-  z-index: 12;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
 
-.duel-clash--slot-0 { --clash-x: 16.6667%; }
-.duel-clash--slot-1 { --clash-x: 50%; }
-.duel-clash--slot-2 { --clash-x: 83.3333%; }
 
-.duel-clash__trail {
-  --trail-color: #9aa1aa;
-  position: absolute;
-  top: 50%;
-  width: var(--clash-trail-width);
-  height: 2px;
-  margin-top: -1px;
-  opacity: 0;
-  box-shadow: 0 0 8px var(--trail-color);
-}
 
-.duel-clash__trail--player {
-  right: auto;
-  left: calc(var(--clash-x) - var(--clash-trail-width));
-  background: linear-gradient(90deg, transparent, var(--trail-color));
-  transform-origin: right center;
-  animation: duel-clash-trail 380ms ease-out 50ms both;
-}
 
-.duel-clash__trail--enemy {
-  left: var(--clash-x);
-  background: linear-gradient(90deg, var(--trail-color), transparent);
-  transform-origin: left center;
-  animation: duel-clash-trail 380ms ease-out 50ms both;
-}
 
-.duel-clash__trail--fire { --trail-color: #e58a58; }
-.duel-clash__trail--water { --trail-color: #73bad1; }
-.duel-clash__trail--earth { --trail-color: #b59a6b; }
-.duel-clash__trail--air { --trail-color: #c9d9dc; }
 
-.duel-clash__flash {
-  --flash-opacity: .9;
-  --flash-scale: 1.55;
-  position: absolute;
-  top: 50%;
-  left: var(--clash-x);
-  width: 36%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 255 255 / 92%) 0 5%, rgb(234 196 111 / 55%) 20%, transparent 70%);
-  opacity: 0;
-  animation: duel-clash-flash 460ms ease-out 125ms both;
-  transform: translate(-50%, -50%);
-}
 
-.duel-clash--impact-weak .duel-clash__flash {
-  --flash-opacity: .48;
-  --flash-scale: 1.08;
-  width: 27%;
-}
 
-.duel-clash--impact-normal .duel-clash__flash {
-  --flash-opacity: .72;
-  --flash-scale: 1.42;
-}
 
-.duel-clash--impact-strong .duel-clash__flash {
-  --flash-opacity: 1;
-  --flash-scale: 1.82;
-  width: 43%;
-}
 
-.duel-clash > .battle-sword {
-  position: absolute;
-  top: 50%;
-  left: var(--clash-x);
-  z-index: 2;
-  width: 30px;
-  height: 30px;
-  opacity: 0;
-  filter: drop-shadow(0 0 5px currentColor);
-  animation: duel-clash-sword 500ms cubic-bezier(.2, .8, .25, 1) 125ms both;
-  transform: translate(-50%, -50%);
-}
 
-.duel-clash__damage {
-  position: absolute;
-  top: 43%;
-  z-index: 3;
-  display: grid;
-  justify-items: center;
-  min-width: 42px;
-  gap: 1px;
-  opacity: 0;
-  text-shadow: 0 2px 5px rgb(0 0 0 / 85%);
-}
 
-.duel-clash__damage--player {
-  left: calc(var(--clash-x) - 11%);
-  color: #8fbd7b;
-  animation: duel-clash-damage-player 620ms ease-out 135ms both;
-}
-
-.duel-clash__damage--enemy {
-  right: auto;
-  left: calc(var(--clash-x) + 5%);
-  color: #d18479;
-  animation: duel-clash-damage-enemy 620ms ease-out 135ms both;
-}
-
-.duel-clash__damage.is-strong { color: var(--accent-gold); }
-.duel-clash__damage--weak strong { font-size: var(--font-sm); }
-.duel-clash__damage--weak { opacity: .82; }
-.duel-clash__damage--strong strong { font-size: clamp(1.1rem, 5.5vw, 1.5rem); }
-.duel-clash__damage--strong { text-shadow: 0 2px 7px rgb(0 0 0 / 90%), 0 0 10px rgb(224 189 121 / 35%); }
-.duel-clash__damage strong { font-size: clamp(.95rem, 5vw, 1.35rem); font-variant-numeric: tabular-nums; }
-.duel-clash__damage small { color: currentColor; font-size: var(--font-micro); font-weight: 800; }
-
-.duel-clash__advantage {
-  position: absolute;
-  top: 28%;
-  left: var(--clash-x);
-  z-index: 3;
-  color: var(--accent-gold);
-  font-size: var(--font-micro);
-  letter-spacing: .14em;
-  opacity: 0;
-  text-shadow: 0 1px 4px rgb(0 0 0 / 90%);
-  animation: duel-clash-advantage 560ms ease-out 165ms both;
-  transform: translateX(-50%);
-}
-
-.duel-clash__particles { position: absolute; inset: 0; }
-.duel-clash__particles i {
-  --particle-x: 0px;
-  --particle-y: 0px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e2c37b;
-  box-shadow: 0 0 5px currentColor;
-  opacity: 0;
-  animation: duel-clash-particle 600ms ease-out 155ms both;
-}
-
-.duel-clash__particles i:nth-child(1) { --particle-x: -34px; --particle-y: -23px; }
-.duel-clash__particles i:nth-child(2) { --particle-x: 35px; --particle-y: -20px; animation-delay: 165ms; }
-.duel-clash__particles i:nth-child(3) { --particle-x: -42px; --particle-y: 18px; animation-delay: 185ms; }
-.duel-clash__particles i:nth-child(4) { --particle-x: 41px; --particle-y: 23px; animation-delay: 155ms; }
-.duel-clash__particles i:nth-child(5) { --particle-x: -14px; --particle-y: -35px; animation-delay: 175ms; }
-.duel-clash__particles i:nth-child(6) { --particle-x: 13px; --particle-y: 34px; animation-delay: 195ms; }
-.duel-clash__particles i:nth-child(7) { --particle-x: 48px; --particle-y: -2px; animation-delay: 205ms; }
-
-.duel-clash--impact-weak .duel-clash__particles i { width: 3px; height: 3px; }
-.duel-clash--impact-strong .duel-clash__particles i { width: 5px; height: 5px; }
-
-.duel-clash--fire .duel-clash__particles i { background: #e58a58; }
-.duel-clash--water .duel-clash__particles i { background: #73bad1; }
-.duel-clash--earth .duel-clash__particles i { background: #b59a6b; }
-.duel-clash--air .duel-clash__particles i { background: #c9d9dc; }
 
 @media (prefers-reduced-motion: reduce) {
   .duel-hp-panel--hit { animation: none !important; }
@@ -4145,15 +3952,6 @@ button:focus-visible {
   .duel-opponent-preview__actions { opacity: 1; transform: none; }
   .duel-battle--intro .duel-card { opacity: 1; transform: none; }
   .duel-card--selected { box-shadow: inset 0 0 0 3px var(--bg-inset), 0 0 12px color-mix(in srgb, var(--card-element) 52%, transparent); }
-  .duel-clash__trail { opacity: .35; transform: none; }
-  .duel-clash__flash { opacity: .62; transform: translate(-50%, -50%) scale(1); }
-  .duel-clash > .battle-sword,
-  .duel-clash__damage,
-  .duel-clash__advantage { opacity: 1; transform: translate(-50%, -50%); }
-  .duel-clash__damage--player,
-  .duel-clash__damage--enemy { transform: none; }
-  .duel-clash__advantage { transform: translateX(-50%); }
-  .duel-clash__particles i { opacity: .8; }
   .duel-hp-impact__core { opacity: .55; transform: translate(-50%, -50%) scale(1); }
   .duel-hp-impact i { opacity: .55; transform: translate(-50%, -50%); }
 }
@@ -4332,6 +4130,31 @@ button:focus-visible {
 .battle-log-row--enemy_strong .battle-log-damage--enemy { color: var(--accent-gold); }
 .battle-log-row--neutral .battle-log-damage--player { color: #78a972; }
 .battle-log-row--neutral .battle-log-damage--enemy { color: #bc6861; }
+.battle-log-damage { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+/* Multiplier of each side, pressed into the same wax seals as the board. */
+.battle-log-seal {
+  display: grid;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #fbeccb;
+  background: url("/assets/ui/duel/seal-1-v1.webp") center / contain no-repeat;
+  font: 700 7px/1 var(--font-display);
+  letter-spacing: -.02em;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 80%);
+}
+.battle-log-seal--0-5 { color: #e6eef5; background-image: url("/assets/ui/duel/seal-0-5-v1.webp"); }
+.battle-log-seal--1-5 { color: #ffe7a6; background-image: url("/assets/ui/duel/seal-1-5-v1.webp"); }
+
+/* Bot portraits are transparent cut-outs; these painted-light backdrops sit behind them. */
+.duel-avatar__card-art { background-color: #d9c49a; }
+.duel-avatar__card-art--0 { background: radial-gradient(circle at 50% 42%, #fff1cf 0%, #e3c993 45%, #9c7748 100%); }
+.duel-avatar__card-art--1 { background: radial-gradient(circle at 50% 40%, #ffd9a0 0%, #d98a4a 48%, #6e3320 100%); }
+.duel-avatar__card-art--2 { background: radial-gradient(circle at 50% 42%, #e9f0cf 0%, #a9b97f 48%, #4c5a32 100%); }
+.duel-avatar__card-art--3 { background: radial-gradient(circle at 50% 40%, #e3f1f2 0%, #8fb5bb 48%, #34525c 100%); }
+.duel-avatar__card-art--4 { background: radial-gradient(circle at 50% 40%, #ece6f5 0%, #a79bc0 48%, #463c5c 100%); }
+.duel-avatar__card-art--5 { background: radial-gradient(circle at 50% 42%, #f6ead6 0%, #c9b294 46%, #5e4a36 100%); }
 .battle-sword { width: 18px; height: 18px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .battle-sword--left { transform: scaleX(-1); }
 .battle-sword--right { transform: none; }
@@ -5134,6 +4957,9 @@ body {
 .mode-tile__icon .app-icon--game {
   color: #d7bd78;
 }
+
+/* Painted icons keep their own proportions inside the square icon box. */
+.app-icon--raster { display: block; flex: 0 0 auto; object-fit: contain; }
 
 .mode-tile__title {
   font-size: clamp(.95rem, 4.2vw, var(--font-lg));
@@ -13685,6 +13511,194 @@ body {
 .auth-screen__dev-login { display: grid; gap: 5px; margin-top: 18px; color: #a8895b; font-size: var(--font-micro); font-weight: 800; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
 .auth-screen__dev-login select { min-height: 36px; padding: 0 9px; color: #ddcdb2; background: #151516; border: 1px solid #4d3e30; border-radius: var(--radius-md); font: inherit; font-size: var(--font-micro); letter-spacing: 0; text-transform: none; }
 
+/* Guest-first landing: retain the World Tree artwork and existing wood CTA texture. */
+.auth-screen--guest {
+  justify-items: center;
+  align-content: center;
+  min-height: 100dvh;
+  max-height: none;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(22px, env(safe-area-inset-bottom));
+}
+.auth-screen--guest .auth-screen__layout {
+  display: grid;
+  width: min(100%, 480px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(18px, 3vh, 28px);
+}
+.auth-screen--guest .auth-screen__hero {
+  display: grid;
+  justify-items: center;
+}
+.auth-screen--guest .auth-screen__crest {
+  width: clamp(92px, 25vw, 124px);
+  height: clamp(92px, 25vw, 124px);
+  margin-bottom: 16px;
+}
+.auth-screen--guest .auth-screen__eyebrow {
+  margin-bottom: 7px;
+  letter-spacing: .27em;
+}
+.auth-screen--guest .auth-screen__hero h1 {
+  font-size: clamp(1.75rem, 8vw, 2.35rem);
+  letter-spacing: .08em;
+}
+.auth-screen--guest .auth-screen__subtitle {
+  max-width: 340px;
+  margin: 12px 0 0;
+  font-size: var(--font-sm);
+}
+.auth-screen--guest .auth-screen__login-panel {
+  display: grid;
+  width: min(100%, 360px);
+  justify-items: center;
+  gap: 12px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.auth-screen__start-button {
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  padding: 0 18px;
+  place-items: center;
+  color: #f5e2b6;
+  background-color: transparent;
+  background-image: url("/assets/ui/world-tree/menu-button-wood-action-v2.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: 0;
+  border-radius: 0;
+  filter: drop-shadow(0 7px 10px rgb(0 0 0 / 40%));
+  font: 800 var(--font-md) var(--font-display);
+  letter-spacing: .04em;
+  text-shadow: 0 1px 3px #170c06, 0 0 10px rgb(226 181 94 / 22%);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+.auth-screen__start-button:hover:not(:disabled) { filter: brightness(1.12) drop-shadow(0 8px 12px rgb(0 0 0 / 42%)); }
+.auth-screen__start-button:active:not(:disabled) { transform: scale(.985); filter: brightness(.94); }
+.auth-screen__start-button:focus-visible,
+.auth-screen__return-button:focus-visible,
+.auth-screen__dialog-cancel:focus-visible,
+.auth-screen__dialog-close:focus-visible { outline: 2px solid #e1c17c; outline-offset: 3px; }
+.auth-screen__start-button:disabled { cursor: progress; filter: saturate(.65) brightness(.8); }
+.auth-screen__return-button {
+  min-height: 42px;
+  padding: 5px 12px;
+  color: #d8c7a5;
+  background: transparent;
+  border: 0;
+  font: 650 var(--font-sm) var(--font-display);
+  text-decoration: underline;
+  text-decoration-color: rgb(216 199 165 / 42%);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.auth-screen__return-button:hover:not(:disabled) { color: #fff0cf; }
+.auth-screen__return-button:disabled { cursor: progress; opacity: .6; }
+.auth-screen--guest .auth-screen__note { max-width: 330px; margin: 4px 0 0; }
+.auth-screen--guest .auth-screen__footer { margin-top: clamp(16px, 3vh, 28px); }
+.auth-screen__dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  padding: 16px;
+  place-items: center;
+  background: rgb(2 4 6 / 78%);
+  backdrop-filter: blur(5px);
+}
+.auth-screen__account-dialog {
+  position: relative;
+  display: grid;
+  width: min(100%, 380px);
+  max-height: min(90dvh, 680px);
+  overflow: auto;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 20px 20px;
+  color: var(--text-primary);
+  background:
+    radial-gradient(ellipse at 50% 0, rgb(81 105 81 / 17%), transparent 54%),
+    linear-gradient(160deg, #1b1b19, #101212 66%, #0b0e10);
+  border: 1px solid rgb(190 154 91 / 54%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 66%), inset 0 0 28px rgb(190 154 91 / 6%);
+  text-align: center;
+}
+.auth-screen__account-dialog h2 { margin: 0; font-family: var(--font-display); font-size: clamp(1.2rem, 5vw, 1.55rem); }
+.auth-screen__account-dialog .auth-screen__eyebrow { margin: 0; font-size: var(--font-micro); }
+.auth-screen__dialog-copy { max-width: 300px; margin: 0; color: var(--text-secondary); font-size: var(--font-xs); line-height: 1.5; }
+.auth-screen__account-dialog .auth-screen__providers { gap: 10px; margin-top: 4px; }
+.auth-screen__account-dialog .auth-provider-shell,
+.auth-screen__account-dialog .auth-provider-button--landing,
+.auth-screen__account-dialog .auth-provider-shell > .google-sign-in--landing,
+.auth-screen__account-dialog .auth-provider-shell > .telegram-login--landing { min-height: 56px; border-radius: var(--radius-md); }
+.auth-screen__account-dialog .auth-provider-shell--google .auth-provider-visual { background-image: url("/assets/ui/auth/google-login-button.png"), linear-gradient(135deg, rgb(22 28 34 / 95%), rgb(11 16 21 / 97%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__account-dialog .auth-provider-shell--telegram .auth-provider-visual { background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__account-dialog .auth-provider-button--telegram { gap: 10px; background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.auth-screen__dialog-close { position: absolute; top: 8px; right: 10px; display: grid; width: 32px; height: 32px; place-items: center; color: var(--text-secondary); background: transparent; border: 0; font-size: 1.45rem; cursor: pointer; }
+.auth-screen__dialog-cancel { min-height: 38px; padding: 4px 14px; color: var(--text-secondary); background: transparent; border: 0; font: inherit; font-size: var(--font-xs); cursor: pointer; }
+.auth-screen__account-dialog .auth-screen__status,
+.auth-screen__account-dialog .auth-screen__error { margin: 0; }
+.tasks-screen__account-protection {
+  display: grid;
+  min-width: 0;
+  gap: 11px;
+  padding: 13px;
+  background:
+    radial-gradient(ellipse at 90% 0, rgb(180 143 78 / 10%), transparent 55%),
+    linear-gradient(145deg, rgb(35 31 25 / 96%), rgb(17 18 18 / 98%) 70%);
+  border: 1px solid rgb(166 129 70 / 44%);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 20px rgb(213 175 103 / 4%), 0 8px 24px rgb(0 0 0 / 18%);
+}
+.tasks-screen__account-protection--error { grid-template-columns: minmax(0, 1fr) auto; align-items: center; color: var(--text-secondary); font-size: var(--font-xs); }
+.tasks-screen__account-protection--error button { min-height: 36px; padding: 0 10px; color: var(--accent-gold); background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: var(--radius-md); font: inherit; cursor: pointer; }
+.tasks-screen__account-protection-heading { display: grid; min-width: 0; grid-template-columns: 27px minmax(0, 1fr) auto; align-items: center; gap: 9px; }
+.tasks-screen__account-protection-heading > span { color: var(--accent-gold); font-size: 1.25rem; text-align: center; text-shadow: 0 0 12px rgb(226 180 89 / 35%); }
+.tasks-screen__account-protection-heading > div:nth-child(2) { display: grid; min-width: 0; gap: 4px; }
+.tasks-screen__account-protection-heading strong { color: #e8d2a3; font-family: var(--font-display); font-size: var(--font-sm); }
+.tasks-screen__account-protection-heading p { margin: 0; color: var(--text-secondary); font-size: var(--font-micro); line-height: 1.4; }
+.tasks-screen__account-protection-reward { display: grid; grid-template-columns: 20px auto; align-items: center; gap: 4px; color: var(--accent-gold); font-size: var(--font-xs); white-space: nowrap; }
+.tasks-screen__account-protection-reward img { width: 20px; height: 20px; }
+.tasks-screen__account-protection-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tasks-screen__account-protection-actions .auth-provider-shell,
+.tasks-screen__account-protection-actions .auth-provider-button--landing,
+.tasks-screen__account-protection-actions .auth-provider-shell > .google-sign-in--landing,
+.tasks-screen__account-protection-actions .auth-provider-shell > .telegram-login--landing { min-height: 48px; border-radius: var(--radius-md); }
+.tasks-screen__account-protection-actions .auth-provider-visual { gap: 6px; padding-inline: 8px; font-size: var(--font-micro); }
+.tasks-screen__account-protection-actions .auth-provider-shell--google .auth-provider-visual { background-image: url("/assets/ui/auth/google-login-button.png"), linear-gradient(135deg, rgb(22 28 34 / 95%), rgb(11 16 21 / 97%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.tasks-screen__account-protection-actions .auth-provider-shell--telegram .auth-provider-visual { background-image: url("/assets/ui/auth/telegram-login-button.png"), linear-gradient(135deg, rgb(17 40 48 / 94%), rgb(10 23 28 / 96%)); background-position: center; background-repeat: no-repeat; background-size: 100% auto; }
+.tasks-screen__account-protection-actions .auth-provider-button--landing { min-width: 0; padding-inline: 5px; font-size: var(--font-micro); }
+.tasks-screen__account-protection-error,
+.tasks-screen__account-protection-success { margin: 0; font-size: var(--font-micro); line-height: 1.4; }
+.tasks-screen__account-protection-error { color: #dc968b; }
+.tasks-screen__account-protection-success { color: #a8d0a7; }
+.tasks-screen__account-protection--rewarded { animation: account-protection-complete 340ms ease both; }
+@keyframes account-protection-complete {
+  from { filter: brightness(1.22); transform: translateY(2px); }
+  to { filter: brightness(1); transform: translateY(0); }
+}
+@media (max-width: 370px) {
+  .auth-screen--guest { padding-inline: 12px; }
+  .auth-screen--guest .auth-screen__layout { gap: 16px; }
+  .auth-screen__start-button { min-height: 62px; font-size: var(--font-sm); }
+  .auth-screen__account-dialog { padding-inline: 15px; }
+  .tasks-screen__account-protection { padding: 11px; }
+  .tasks-screen__account-protection-heading { grid-template-columns: 21px minmax(0, 1fr) auto; gap: 6px; }
+  .tasks-screen__account-protection-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-screen__start-button { transition: none; }
+  .tasks-screen__account-protection--rewarded { animation: none; }
+}
+
 .duel-card--guild { box-shadow: inset 0 0 0 2px #bc8a43, 0 0 13px rgb(190 143 69 / 22%); }
 .duel-card__guild-mark { position: absolute; right: 6px; bottom: 6px; z-index: 4; display: inline-flex; min-height: 13px; align-items: center; padding: 1px 4px; color: #24170a; background: #d1a45a; border: 1px solid #f0d18d; border-radius: var(--radius-sm); font: 800 .47rem var(--font-display); letter-spacing: .03em; line-height: 1; text-transform: uppercase; }
 .duel-card--guild > .card-fx .duel-card__guild-mark { right: 6px; bottom: 6px; }
@@ -13693,13 +13707,13 @@ body {
   padding-top: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 10px);
 }
 
-/* Every desktop screen shares the supplied dragon artwork around the centered
+/* Every desktop screen shares the World Tree artwork around the centered
    game canvas. */
 @media (min-width: 800px) {
   body {
     background:
-      linear-gradient(90deg, rgb(7 9 12 / 38%), rgb(7 9 12 / 8%) 50%, rgb(7 9 12 / 38%)),
-      url("/assets/ui/desktop-dragons-background.png") center center / 100% 100% fixed no-repeat,
+      linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
+      url("/assets/ui/auth/parchment/desktop-world-v1.webp") center center / cover fixed no-repeat,
       var(--bg-page);
   }
 }
@@ -14147,3 +14161,9 @@ body {
   .ribbon-title--wide { --ribbon-width: min(100%, 360px); }
   .ribbon-title__text { padding-inline: 24px; letter-spacing: .06em; }
 }
+
+/* Painted equipment icons keep their own colours instead of the silhouette tint. */
+.equipment-icon--painted { background: none; mask-image: none; -webkit-mask-image: none; object-fit: contain; }
+.equipment-art--empty > .equipment-icon--painted { opacity: .8; }
+.equipment-slot--empty:has(.equipment-icon--painted) { filter: grayscale(.2); }
+.equipment-art--filled > .equipment-icon--painted { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--equipment-rarity) 45%, transparent)); }

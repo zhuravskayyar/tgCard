@@ -38,7 +38,7 @@ export function EquipmentArt({ className = "", definition, showElement = false, 
       style={definition ? { "--equipment-rarity": EQUIPMENT_RARITY_CONFIG[definition.rarity].color } as CSSProperties : undefined}
     >
       <span className="equipment-art__background" />
-      {definition && showSprite ? <img alt="" className="equipment-art__sprite" onError={() => setFailedSpritePath(spritePath)} src={spritePath ?? ""} /> : definition && showFallbackIcon ? <EquipmentIcon name={slot} size={30} /> : null}
+      {definition && showSprite ? <img alt="" className="equipment-art__sprite" onError={() => setFailedSpritePath(spritePath)} src={spritePath ?? ""} /> : showFallbackIcon ? <EquipmentIcon name={slot} size={30} /> : null}
       {definition ? <span className="equipment-art__rarity" /> : null}
       {definition ? <span className="equipment-art__vfx" /> : null}
       {showElement && element ? <span className={`equipment-art__element equipment-art__element--${element}`}><ElementSymbol element={element} size={13} /></span> : null}

@@ -50,14 +50,14 @@ test("bootstrap keeps one automatic balanced 108-power starter deck without chan
     );
 
     assert.equal(firstPlayer.id, secondPlayer.id);
-    assert.equal(firstPlayer.silver, 1_500);
+    assert.equal(firstPlayer.silver, 0);
     assert.equal(firstPlayer.gold, 0);
     assert.equal(secondPlayer.silver, firstPlayer.silver);
     assert.equal(secondPlayer.gold, firstPlayer.gold);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
     assert.equal(firstDeck.totalPower, 108);
-    assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 2, water: 2, air: 2, earth: 3 });
     assert.deepEqual(firstDeck.cards.map(({ code }) => code), STARTER_CARDS.map(({ code }) => code));
     assert.deepEqual(secondDeck, firstDeck);
   } finally {
@@ -151,7 +151,7 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
     assert.ok(after.cards.some(({ cardId }) => cardId === bonusCardId));
     assert.ok(after.cards.some(({ instanceId }) => instanceId === bonusInstanceId));
     assert.equal(after.baseBattleHp, after.totalPower);
-    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.deepEqual(countDeckElements(after.cards), { fire: 2, water: 2, air: 2, earth: 3 });
     assert.equal(unchangedResult.status, "unchanged");
     assert.deepEqual(updatedAtAfterUnchangedCheck.rows[0], updatedAtBeforeUnchangedCheck.rows[0]);
   } finally {

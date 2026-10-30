@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import type { DungeonCompleteResponse, DungeonStartResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -152,10 +153,7 @@ export function DungeonScreen({ onBack }: DungeonScreenProps) {
 
   return (
     <section className="dungeon-screen">
-      <header className="dungeon-heading">
-        <button aria-label="Назад" className="dungeon-back" onClick={onBack} type="button"><AppIcon name="chevron" size={19} /></button>
-        <div><span>Старі руни та уламки</span><h1>ПІДЗЕМЕЛЛЯ</h1></div>
-      </header>
+      <ScreenHeading eyebrow="Старі руни та уламки" onBack={onBack} title="ПІДЗЕМЕЛЛЯ" />
       <div className="dungeon-stats"><span>Пари <strong>{matchedIds.size / 2} / 8</strong></span><span>Ходи <strong>{movesUsed} / {run.maxMoves}</strong></span><span className="dungeon-stats__shards"><DungeonGlyph assetKey="card_fragment" size={16} /><strong>{result?.cardShards ?? run.cardShards}</strong></span></div>
       <div className="dungeon-board" aria-label="Поле пам'яті">
         {run.board.map((tile) => {

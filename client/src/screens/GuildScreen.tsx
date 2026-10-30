@@ -1,9 +1,9 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import { GUILD_CONFIG, type GuildAltarCurrency, type GuildMineResponse, type GuildProfileResponse, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
 import { setSessionToken } from "../auth/session";
 import { AppIcon } from "../components/AppIcon";
 import { MenuRow } from "../components/MenuRow";
-import { RibbonTitle } from "../components/RibbonTitle";
 import type { PlayerSummaryState } from "../types/player";
 import { applyToGuild, changeGuildRole, createGuild, decideGuildApplication, donateGuildCardElements, donateGuildTreasury, dissolveGuild, joinGuild, kickGuildMember, leaveGuild, loadGuildCardCandidates, loadGuildProfile, loadGuildTreasuryCardCandidates, loadMyGuild, purchaseGuildAltarUpgrade, setGuildCard, transferGuildLeadership, updateGuildAnnouncement, updateGuildSettings, withdrawGuildApplication } from "../telegram/guild";
 import { GuildDirectory, GuildCreateForm } from "./guild/GuildDirectory";
@@ -68,8 +68,8 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   function navigate(next: GuildView) { setNotice(null); setProfileTab("overview"); setView(next); }
   function retry() { setAttempt((value) => value + 1); }
 
-  async function run(action: () => Promise<GuildMutation>, success: string, refreshPlayer = false, preserveProfileView = false) {
-    if (actionLock.current) return;
+  async function run(action: () => Promise<GuildMutation>, success: string, refreshPlayer = false, preserveProfileView = false): Promise<boolean> {
+    if (actionLock.current) return false;
     actionLock.current = true;
     setBusy(true);
     setNotice(null);
@@ -88,10 +88,12 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
         setProfileState({ status: "ready", data: await loadGuildProfile(selectedId) });
       } else setView({ kind: "mine" });
       setNotice({ error: false, text: success });
+      return true;
     } catch (error) {
       if (committed) {
         setMineState({ status: "error", message: "Дію виконано, але оновити дані не вдалося. Натисніть «Повторити» — виконувати дію вдруге не потрібно." });
       } else setNotice({ error: true, text: guildErrorMessage(error) });
+      return committed;
     } finally {
       if (committed && refreshPlayer) onRetryPlayerSummary();
       actionLock.current = false;
@@ -102,7 +104,6 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   const mine = mineState.status === "ready" ? mineState.data : null;
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const profile = view.kind === "mine" ? mine?.guild : view.kind === "profile" && profileState.status === "ready" && profileState.data.guild.id === view.id ? profileState.data : null;
-  const isRosterView = Boolean(profile && (profileTab === "members" || profileTab === "card" || profileTab === "treasury" || profileTab === "journal"));
   async function loadGuildCardCandidatesForProfile() {
     if (!profile) return;
     setGuildCardCandidatesState({ status: "loading" });
@@ -125,7 +126,8 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   }
   const title = view.kind === "create" ? "Створити гільдію" : view.kind === "directory" ? "Каталог гільдій" : profile ? profile.guild.name : "Гільдія";
   const isGuildHeading = Boolean(profile);
-  const noticeContent = notice ? <div className={"guild-notice" + (notice.error ? " guild-notice--error" : "")} role={notice.error ? "alert" : "status"}><span>{notice.text}</span>{notice.error ? <button className="guild-secondary-button" disabled={busy} onClick={() => { setNotice(null); retry(); }} type="button">Оновити дані</button> : null}</div> : null;
+  const isRosterView = Boolean(profile && ["members", "card", "treasury", "journal"].includes(profileTab));
+  const noticeContent = notice ? <div className={`guild-notice${notice.error ? " guild-notice--error" : " action-feedback action-feedback--success"}`} key={`${notice.error}:${notice.text}`} role={notice.error ? "alert" : "status"}><span>{notice.text}</span>{notice.error ? <button className="guild-secondary-button" disabled={busy} onClick={() => { setNotice(null); retry(); }} type="button">Оновити дані</button> : null}</div> : null;
 
   if (view.kind === "forum" && forumGuildId) {
     const forumGuildName = mine?.guild?.guild.id === forumGuildId ? mine.guild.guild.name : profileState.status === "ready" && profileState.data.guild.id === forumGuildId ? profileState.data.guild.name : "Гільдія";
@@ -133,11 +135,7 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   }
 
   return <section className="guild-screen">
-    <header className={"guild-screen__heading" + (isGuildHeading ? " guild-screen__heading--guild" : "") + (isRosterView ? " guild-screen__heading--roster" : "")} ref={heading}>
-      {view.kind !== "mine" ? <button className="guild-icon-button guild-back-button" aria-label={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} disabled={busy} onClick={() => navigate({ kind: view.kind === "profile" ? "directory" : "mine" })} type="button"><AppIcon name="chevron" size={18} /></button> : isGuildHeading ? null : <AppIcon name="guild" size={24} />}
-      {isGuildHeading ? <RibbonTitle as="h1" size="wide">{title}</RibbonTitle> : <h1>{title}</h1>}
-      {isGuildHeading ? null : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>}
-    </header>
+    {isRosterView ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
     {playerSummaryState.status === "loading" ? <GuildState>Завантаження гравця…</GuildState> : !player ? <GuildState error onRetry={onRetryPlayerSummary}>Не вдалося завантажити гравця. Увійдіть або повторіть спробу.</GuildState> : mineState.status === "loading" ? <GuildState>Завантаження гільдії…</GuildState> : mineState.status === "error" ? <GuildState error onRetry={retry}>{mineState.message}</GuildState> : mine ? <>
       {profile ? <GuildProfile key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
         onTabChange={setProfileTab}
@@ -153,11 +151,11 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
         onUpdateSettings={(input) => { void run(() => updateGuildSettings(profile.guild.id, input), "Налаштування збережено."); }}
         guildCardCandidates={guildCardCandidatesState}
         onLoadGuildCardCandidates={() => { void loadGuildCardCandidatesForProfile(); }}
-        onSetGuildCard={(instanceId) => { void run(() => setGuildCard(profile.guild.id, instanceId), "Карту гільдії оновлено."); }}
+        onSetGuildCard={(instanceId) => run(() => setGuildCard(profile.guild.id, instanceId), "Карту гільдії оновлено.")}
         treasuryCardCandidates={treasuryCardCandidatesState}
         onLoadTreasuryCardCandidates={() => { void loadTreasuryCardCandidatesForProfile(); }}
-        onDonateTreasuryCurrency={(currency: GuildTreasuryCurrency, amount: number) => { void run(() => donateGuildTreasury(profile.guild.id, currency, amount), "Внесок у казну прийнято.", true, true); }}
-        onDonateGuildCardElements={(instanceIds: string[]) => { void run(() => donateGuildCardElements(profile.guild.id, instanceIds), "Карту гільдії прокачано.", true, true); }}
+        onDonateTreasuryCurrency={(currency: GuildTreasuryCurrency, amount: number) => run(() => donateGuildTreasury(profile.guild.id, currency, amount), "Внесок у казну прийнято.", true, true)}
+        onDonateGuildCardElements={(instanceIds: string[]) => run(() => donateGuildCardElements(profile.guild.id, instanceIds), "Карту гільдії прокачано.", true, true)}
         onPurchaseAltar={async (currency: GuildAltarCurrency) => {
           const result = await purchaseGuildAltarUpgrade(profile.guild.id, currency);
           onRetryPlayerSummary();
@@ -165,7 +163,7 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
         }}
         onDirectory={() => navigate({ kind: "directory" })}
         onForum={() => navigate({ kind: "forum", id: profile.guild.id })}
-        onUpdateAnnouncement={(body) => { void run(() => updateGuildAnnouncement(profile.guild.id, body), "Оголошення оновлено."); }}
+        onUpdateAnnouncement={(body) => run(() => updateGuildAnnouncement(profile.guild.id, body), "Оголошення оновлено.")}
       /> : view.kind === "profile" ? profileState.status === "error" ? <GuildState error onRetry={retry}>{profileState.message}</GuildState> : <GuildState>Завантаження гільдії…</GuildState> : <>
         {noticeContent}
         {player.level < GUILD_CONFIG.unlockLevel ? <div className="guild-lock"><AppIcon name="lock" size={24} /><div><strong>Доступно з {GUILD_CONFIG.unlockLevel} рівня</strong><p>Ваш рівень — {player.level}. Поки можна переглядати гільдії.</p></div></div> : null}

@@ -1,8 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { LimitedShopEvent } from "@cardastika/shared";
 import { CardArtwork } from "./CardArtwork";
-import { CardQualityBadge } from "./CardQualityBadge";
-import { ElementSymbol } from "./ElementSymbol";
 
 interface LimitedCardBannerProps {
   errorMessage?: string | null;
@@ -43,9 +41,7 @@ export function LimitedCardBanner({ errorMessage, event, onExpired, onRedeem, re
   return (
     <article className="limited-card-banner" aria-labelledby="limited-card-heading">
       <div className="limited-card-banner__art">
-        <CardArtwork artKey={event.artKey} cardId={event.id} element={event.element} />
-        <CardQualityBadge rarity={event.rarity} size="small" />
-        <span><ElementSymbol element={event.element} /></span>
+        <CardArtwork artKey={event.artKey} cardId={event.id} element={event.element} rarity={event.rarity} />
       </div>
       <div className="limited-card-banner__copy">
         <span className="limited-card-banner__eyebrow">ЛІМІТОВАНА КАРТА</span>

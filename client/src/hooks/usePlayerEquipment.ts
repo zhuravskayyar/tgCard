@@ -46,6 +46,10 @@ export function usePlayerEquipment(enabled: boolean) {
     };
   }, [attempt, credential, enabled]);
 
+  const setInventory = useCallback((inventory: PlayerEquipmentResponse["inventory"]) => {
+    setState((current) => current.status === "ready" ? { status: "ready", data: { ...current.data, inventory } } : current);
+  }, []);
+
   const status: EquipmentInventoryStatus = state.status;
-  return { retry, state, status };
+  return { retry, setInventory, state, status };
 }

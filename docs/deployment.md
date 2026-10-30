@@ -59,9 +59,14 @@ GOOGLE_CLIENT_ID=<Google OAuth client ID>
 `VITE_API_URL` for the same-domain deployment, and do not add tunnel variables
 to Vercel.
 
+The Vercel build compiles the application only; it does not modify the
+database. Apply migrations and seeds explicitly with the direct Neon connection
+string. Back up production before a schema change and follow
+[the guest-auth release runbook](auth-release-runbook.md). Do not use the pooled
+runtime connection for backups, restores, or migrations.
+
 Deploy from the Vercel dashboard or with the Vercel CLI after linking the
-project. Migrations and seeds are intentionally manual one-time operations;
-they are not run during a serverless request.
+project and completing any required database migration.
 
 ## 3. Attach the domain
 

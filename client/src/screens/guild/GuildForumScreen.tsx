@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { GuildForumIndexResponse, GuildForumSectionResponse, GuildForumTopicResponse } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
+import { ScreenHeading } from "../../components/ScreenHeading";
 import { createGuildForumPost, createGuildForumTopic, loadGuildForum, loadGuildForumSection, loadGuildForumTopic } from "../../telegram/guild";
 import { GuildRoleBadge, GuildState, formatDate, guildErrorMessage, type AsyncState } from "./GuildUi";
 
@@ -26,7 +27,7 @@ export function GuildForumScreen({ busy, guildId, guildName, onBack }: GuildForu
   const goBack = () => { if (view.kind === "index") onBack(); else if (view.kind === "section") setView({ kind: "index" }); else setView(view.sectionId ? { kind: "section", id: view.sectionId } : { kind: "index" }); };
 
   return <section className="guild-forum" aria-label={`${heading} — ${guildName}`}>
-    <div className="guild-forum__toolbar"><button className="guild-icon-button" aria-label={view.kind === "index" ? "До гільдії" : "Назад"} disabled={busy} onClick={goBack} type="button"><AppIcon name="chevron" size={18} /></button><div><strong>{heading}</strong><small>{guildName}</small></div><button className="guild-icon-button" aria-label="Оновити форум" disabled={busy} onClick={() => setRefresh((value) => value + 1)} type="button"><AppIcon name="refresh" size={17} /></button></div>
+    <ScreenHeading backDisabled={busy} backLabel={view.kind === "index" ? "До гільдії" : "Назад"} eyebrow={guildName} onBack={goBack} title={heading} action={<button className="guild-icon-button" aria-label="Оновити форум" disabled={busy} onClick={() => setRefresh((value) => value + 1)} type="button"><AppIcon name="refresh" size={17} /></button>} />
     {view.kind === "index" ? <ForumIndex state={indexState} onSection={(id) => { setSectionPage(1); setView({ kind: "section", id }); }} /> : null}
     {view.kind === "section" ? <ForumSection state={sectionState} guildId={guildId} onPage={setSectionPage} onTopic={(id, parentId) => { setTopicPage(1); setView({ kind: "topic", id, sectionId: parentId }); }} onCreated={(id, parentId) => { setTopicPage(1); setView({ kind: "topic", id, sectionId: parentId }); }} /> : null}
     {view.kind === "topic" ? <ForumTopic state={topicState} busy={busy} guildId={guildId} onPage={setTopicPage} onPosted={(data) => setTopicState({ status: "ready", data })} /> : null}

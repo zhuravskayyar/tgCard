@@ -1358,6 +1358,12 @@
   text-align: center;
 }
 
+.guild-screen .guild-altar__status--error {
+  border-color: color-mix(in srgb, var(--state-danger) 65%, #5e302e);
+  background: color-mix(in srgb, var(--state-danger) 18%, var(--bg-panel));
+  color: #f0c6bf;
+}
+
 .guild-screen .guild-altar__upgrades { display: grid; gap: 5px; }
 
 .guild-screen .guild-altar-upgrade {

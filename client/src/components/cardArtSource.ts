@@ -8,6 +8,8 @@ interface CardArtManifest {
 const CARD_ART_EXTENSIONS = ["webp", "png", "jpg", "jpeg"] as const;
 const CARD_ART_MANIFEST_URL = "/card-art/card-art-map.txt";
 let cardArtManifestPromise: Promise<CardArtManifest> | null = null;
+// Kept once loaded so cards mounted later (e.g. the flying attack copy) get their artwork on the first frame.
+let loadedCardArtManifest: CardArtManifest | null = null;
 const cardArtPreloadCache = new Set<string>();
 
 function parseCardArtManifest(source: string): Map<string, string> {
@@ -38,7 +40,8 @@ export function loadCardArtManifest(): Promise<CardArtManifest> {
         if (!response.ok) throw new Error(`Card art manifest request failed with ${response.status}`);
         return { files: parseCardArtManifest(await response.text()), version: "stable" };
       })
-      .catch(() => ({ files: new Map<string, string>(), version: "stable" }));
+      .catch(() => ({ files: new Map<string, string>(), version: "stable" }))
+      .then((manifest) => { loadedCardArtManifest = manifest; return manifest; });
   }
 
   return cardArtManifestPromise;
@@ -63,10 +66,11 @@ export function resolveCardArtworkSources(artKey: string | null, cardId: string 
 }
 
 export function useCardArtworkSource(artKey: string | null, cardId: string | null | undefined) {
-  const [manifest, setManifest] = useState<CardArtManifest | null>(null);
+  const [manifest, setManifest] = useState<CardArtManifest | null>(loadedCardArtManifest);
   const [failedSourceIndex, setFailedSourceIndex] = useState(0);
 
   useEffect(() => {
+    if (manifest) return;
     let active = true;
     void loadCardArtManifest().then((loadedManifest) => {
       if (active) setManifest(loadedManifest);

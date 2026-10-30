@@ -77,7 +77,7 @@ test("Campaign stages unlock sequentially and the boss unlocks only after all 36
     assert.deepEqual(view.boss.reward, {
       xp: 600,
       silver: 1_000,
-      card: { level: 15, name: "Мантикора", rarity: "rare" },
+      card: { level: 15, name: "Борсук", rarity: "rare" },
     });
   } finally {
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);

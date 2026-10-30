@@ -204,23 +204,24 @@ export const BOSS_VICTORY_DIALOGUES = Object.freeze([
 ]);
 
 export const CAMPAIGN_BOSS_CARD_CONFIG = Object.freeze([
-  { code: "elementals_01", level: 15 },
-  { code: "elementals_05", level: 16 },
-  { code: "monsters_02", level: 18 },
-  { code: "elementals_02", level: 15 },
-  { code: "monsters_03", level: 17 },
-  { code: "elementals_03", level: 16 },
-  { code: "monsters_04", level: 18 },
-  { code: "elementals_04", level: 17 },
-  { code: "monsters_01", level: 15 },
+  { code: "starter_v5_01", level: 15 },
+  { code: "starter_v5_02", level: 16 },
+  { code: "starter_v5_03", level: 17 },
+  { code: "starter_v5_04", level: 18 },
+  { code: "starter_v5_05", level: 15 },
+  { code: "starter_v5_06", level: 17 },
+  { code: "starter_v5_07", level: 16 },
+  { code: "starter_v5_08", level: 18 },
+  { code: "starter_v5_09", level: 15 },
 ]);
 
-export const MANTICORE_CARD_CODE = "monsters_03";
+export const CAMPAIGN_BOSS_REWARD_CARD_CODE = "starter_v5_01";
+export const MANTICORE_CARD_CODE = CAMPAIGN_BOSS_REWARD_CARD_CODE;
 export const CAMPAIGN_BOSS_LEVEL = Math.max(...CAMPAIGN_BOSS_CARD_CONFIG.map(({ level }) => level));
 export const CAMPAIGN_BOSS_BASE_REWARD = Object.freeze({ xp: 600, silver: 1_000 });
 export const CAMPAIGN_BOSS_REWARD_CARD = Object.freeze({
   level: 15,
-  name: "Мантикора" as const,
+  name: "Борсук" as const,
   rarity: "rare" as const,
 });
 export const CAMPAIGN_BOSS_HIDDEN_CARD_COUNT = 3;

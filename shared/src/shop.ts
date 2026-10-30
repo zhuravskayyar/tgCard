@@ -121,7 +121,13 @@ export interface CardWorkshopCraftRequest {
 export interface CardWorkshopCraftResponse {
   cardId: string;
   cardShards: number;
+  collectionCompleted?: CollectionCompletionNotice;
+  deckChanged: boolean;
+  deckPower?: number;
+  newDiscovery: boolean;
+  previousDeckPower?: number;
   quantity: number;
+  reward: PlayerCard;
   shardsSpent: number;
   success: true;
 }

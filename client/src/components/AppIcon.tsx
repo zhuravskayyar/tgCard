@@ -12,6 +12,7 @@ export type AppIconName =
   | "arena"
   | "deck"
   | "deck-power"
+  | "fleur-de-lis"
   | "weak-cards"
   | "card-absorb"
   | "card-strength"
@@ -32,6 +33,7 @@ export type AppIconName =
   | "tasks"
   | "lock"
   | "settings"
+  | "back"
   | "chevron"
   | "close"
   | "silver"
@@ -42,7 +44,13 @@ export type AppIconName =
   | "refresh"
   | "arrow-up"
   | "star"
-  | "skull";
+  | "skull"
+  | "sound"
+  | "music"
+  | "vibration"
+  | "animation"
+  | "language"
+  | "support";
 
 interface AppIconProps {
   name: AppIconName;
@@ -52,6 +60,12 @@ interface AppIconProps {
 const paths: Record<AppIconName, ReactNode> = {
   "arrow-up": <path d="M12 21V3m-7 7 7-7 7 7" />,
   star: <path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9L12 3Z" />,
+  sound: <path d="M12 3a5 5 0 0 0-5 5v5l-2 3h14l-2-3V8a5 5 0 0 0-5-5Zm-2 16a2 2 0 0 0 4 0" />,
+  music: <path d="M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm11-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z" />,
+  vibration: <path d="M7 6h10v12H7zM3 9v6M21 9v6" />,
+  animation: <path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9s10 4 10 9" />,
+  language: <path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3zm18 0h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z" />,
+  support: <path d="M9 3h6l1 3H8zM7 6h10v13H7zM12 10v5" />,
   skull: <><path d="M7 16a8 8 0 1 1 10 0v5H7v-5Zm3 1v4m4-4v4" /><circle cx="8.5" cy="11" r="1.5" /><circle cx="15.5" cy="11" r="1.5" /><path d="m11 15 1-2 1 2" /></>,
   home: (
     <>
@@ -101,6 +115,7 @@ const paths: Record<AppIconName, ReactNode> = {
       <path d="M3.5 3.5h11a2 2 0 0 1 2 2M11.5 8 9 13h3l-1 4 4-6h-3l1-3Z" />
     </>
   ),
+  "fleur-de-lis": <path d="M12 22c1.9-1.7 2.2-4.3 1.1-6.8 2.5 2 5.7 1 6.7-1.9-2.7.8-4.2-.7-4.1-3.1C15.9 8 14.4 5.8 12 3 9.6 5.8 8.1 8 8.2 10.2c.1 2.4-1.4 3.9-4.1 3.1 1 2.9 4.2 3.9 6.7 1.9-1.1 2.5-.8 5.1 1.2 6.8ZM5 14h14" />,
   "weak-cards": (
     <>
       <path d="m7 5 10 2-2.5 13-10-2L7 5Z" />
@@ -197,6 +212,7 @@ const paths: Record<AppIconName, ReactNode> = {
       <path d="m19.4 13.2 1.2.9-1.7 2.9-1.4-.6a7.7 7.7 0 0 1-1.8 1l-.2 1.5h-3.4l-.2-1.5a7.7 7.7 0 0 1-1.8-1l-1.4.6-1.7-2.9 1.2-.9a7.3 7.3 0 0 1 0-2.4l-1.2-.9 1.7-2.9 1.4.6a7.7 7.7 0 0 1 1.8-1l.2-1.5h3.4l.2 1.5a7.7 7.7 0 0 1 1.8 1l1.4-.6 1.7 2.9-1.2.9a7.3 7.3 0 0 1 0 2.4Z" />
     </>
   ),
+  back: <path d="m15 5-7 7 7 7" />,
   chevron: <path d="m9 5 7 7-7 7" />,
   close: <path d="m5 5 14 14M19 5 5 19" />,
   silver: (
@@ -212,36 +228,59 @@ const paths: Record<AppIconName, ReactNode> = {
   refresh: <path d="M20 11a8 8 0 0 0-14.7-4L3 10m0 0V5m0 5h5M4 13a8 8 0 0 0 14.7 4L21 14m0 0v5m0-5h-5" />,
 };
 
+const HOME_SPRITES = "/assets/ui/home/sprites/";
+const UI_ICONS = "/assets/ui/icons/";
+
+// Painted sepia icons come first; game-icons silhouettes remain only where no painting exists yet.
 const gameIconSources: Partial<Record<AppIconName, string>> = {
-  home: "/assets/ui/world-tree/game-icons/castle.svg",
-  profile: "/assets/ui/world-tree/game-icons/black-knight-helm.svg",
-  guild: "/assets/ui/world-tree/game-icons/templar-shield.svg",
-  duel: "/assets/ui/world-tree/game-icons/crossed-swords.svg",
-  dungeon: "/assets/ui/world-tree/game-icons/dungeon-gate.svg",
-  campaign: "/assets/ui/world-tree/game-icons/tattered-banner.svg",
-  arena: "/assets/ui/world-tree/game-icons/coliseum.svg",
-  deck: "/assets/ui/world-tree/game-icons/card-random.svg",
-  "deck-power": "/assets/ui/world-tree/game-icons/deck-power-winged-sword.svg",
-  "weak-cards": "/assets/ui/world-tree/game-icons/weak-cards.svg",
-  "card-absorb": "/assets/ui/world-tree/game-icons/card-absorb.svg",
-  "card-strength": "/assets/ui/world-tree/game-icons/card-strength.svg",
-  "card-reward": "/assets/ui/world-tree/game-icons/card-reward.svg",
+  back: `${UI_ICONS}icon-back-v1.webp`,
+  chevron: `${UI_ICONS}icon-chevron-v1.webp`,
+  lock: `${UI_ICONS}icon-lock-v1.webp`,
+  mail: `${UI_ICONS}icon-mail-v1.webp`,
+  inventory: `${UI_ICONS}icon-inventory-v1.webp`,
+  record: `${UI_ICONS}icon-record-v1.webp`,
+  close: `${UI_ICONS}icon-close-v1.webp`,
+  refresh: `${UI_ICONS}icon-refresh-v1.webp`,
+  "card-reward": `${UI_ICONS}icon-card-reward-v1.webp`,
+  "card-strength": `${UI_ICONS}icon-card-strength-v1.webp`,
+  star: `${UI_ICONS}icon-star-v1.webp`,
+  "arrow-up": `${UI_ICONS}icon-arrow-up-v1.webp`,
+  skull: `${UI_ICONS}icon-skull-v1.webp`,
+  target: `${UI_ICONS}icon-target-v1.webp`,
+  "deck-power": `${UI_ICONS}icon-deck-power-v1.webp`,
+  sound: `${UI_ICONS}icon-sound-v1.webp`,
+  music: `${UI_ICONS}icon-music-v1.webp`,
+  vibration: `${UI_ICONS}icon-vibration-v1.webp`,
+  animation: `${UI_ICONS}icon-animation-v1.webp`,
+  language: `${UI_ICONS}icon-language-v1.webp`,
+  support: `${UI_ICONS}icon-support-v1.webp`,
+  home: "/assets/ui/home/nav-icon-home.webp",
+  profile: "/assets/ui/home/nav-icon-profile.webp",
+  guild: "/assets/ui/home/nav-icon-guild.webp",
+  duel: `${HOME_SPRITES}mode-duel.webp`,
+  dungeon: `${HOME_SPRITES}mode-dungeon.webp`,
+  campaign: `${HOME_SPRITES}mode-campaign.webp`,
+  arena: `${HOME_SPRITES}mode-arena.webp`,
+  deck: `${HOME_SPRITES}mode-deck.webp`,
+  tasks: `${HOME_SPRITES}row-icon-tasks.webp`,
+  ranking: `${HOME_SPRITES}row-icon-ranking.webp`,
+  collection: `${HOME_SPRITES}row-icon-collection.webp`,
+  "fleur-de-lis": `${UI_ICONS}icon-fleur-de-lis-v1.webp`,
+  "weak-cards": `${HOME_SPRITES}row-icon-weak-cards.webp`,
+  "card-absorb": `${HOME_SPRITES}row-icon-absorption.webp`,
   "card-shards": "/assets/ui/shop/icon_card_shard_v2.webp",
   "element-cards": "/assets/ui/world-tree/game-icons/element-cards.svg",
   "shop-anvil": "/assets/ui/shop/shop-workshop-anvil.png",
   "shop-universal-card": "/assets/ui/shop/shop-cards-universal.png",
-  equipment: "/assets/ui/world-tree/game-icons/equipment-backpack.svg",
-  record: "/assets/ui/world-tree/game-icons/record-medallist.svg",
-  tournament: "/assets/ui/world-tree/game-icons/laurels-trophy.svg",
-  shop: "/assets/ui/world-tree/game-icons/shop.svg",
-  "arena-shop": "/assets/arena/arena-shop.svg",
-  target: "/assets/arena/target.svg",
-  "battle-pass": "/assets/ui/world-tree/game-icons/crenel-crown.svg",
+  equipment: `${HOME_SPRITES}row-icon-equipment.webp`,
+  tournament: `${HOME_SPRITES}mode-tournament.webp`,
+  shop: `${HOME_SPRITES}row-icon-shop.webp`,
+  "arena-shop": `${UI_ICONS}icon-arena-shop-v1.webp`,
+  "battle-pass": `${HOME_SPRITES}row-icon-battle-pass.webp`,
 };
 
-const svgIconSources: Partial<Record<AppIconName, string>> = {
-  settings: "/assets/ui/world-tree/game-icons/settings-gear.svg",
-};
+const svgIconSources: Partial<Record<AppIconName, string>> = {};
+gameIconSources.settings = `${UI_ICONS}icon-settings-v1.webp`;
 
 export function AppIcon({ name, size = 24 }: AppIconProps) {
   if (name === "silver" || name === "gold") {

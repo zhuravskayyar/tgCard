@@ -10,13 +10,13 @@ import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
 import { isPlayerCardInstance, PlayerDataError } from "./playerDeck";
 
-function isPagination(value: unknown): value is WeakPlayerCardsResponse {
+function isPagination<T = WeakPlayerCardsResponse>(value: unknown, pageSize = 9): value is T {
   if (!value || typeof value !== "object") return false;
   const response = value as Partial<WeakPlayerCardsResponse>;
   return Array.isArray(response.cards)
     && response.cards.every(isPlayerCardInstance)
     && Number.isSafeInteger(response.page) && Number(response.page) >= 1
-    && response.pageSize === 9
+    && response.pageSize === pageSize
     && Number.isSafeInteger(response.totalCards) && Number(response.totalCards) >= 0
     && Number.isSafeInteger(response.totalPages) && Number(response.totalPages) >= 0;
 }
@@ -62,7 +62,7 @@ async function request(
 
 export async function loadWeakCards(initData: string, page: number, signal?: AbortSignal) {
   const value = await request(initData, `/api/player/cards/weak?page=${page}&limit=9`, signal);
-  if (!isPagination(value)) throw new PlayerDataError(502);
+  if (!isPagination<WeakPlayerCardsResponse>(value)) throw new PlayerDataError(502);
   return value;
 }
 
@@ -80,11 +80,11 @@ export async function loadAbsorptionCandidates(
 ) {
   const value = await request(
     initData,
-    `/api/player/cards/${encodeURIComponent(instanceId)}/absorption-candidates?page=${page}&limit=9`,
+    `/api/player/cards/${encodeURIComponent(instanceId)}/absorption-candidates?page=${page}&limit=5`,
     signal,
   );
-  if (!isPagination(value)) throw new PlayerDataError(502);
-  return value as AbsorptionCandidatesResponse;
+  if (!isPagination<AbsorptionCandidatesResponse>(value, 5)) throw new PlayerDataError(502);
+  return value;
 }
 
 export async function previewCardAbsorption(

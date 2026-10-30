@@ -93,6 +93,7 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
     let active = true;
     let frameId: number | null = null;
     let widgetObserver: MutationObserver | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     setProviderState("loading");
     void loadGoogleScript().then((loaded) => {
       const googleIdentity = window.google?.accounts?.id;
@@ -109,13 +110,21 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
             if (normalized) onCredentialRef.current(normalized);
           },
         });
-        containerRef.current.replaceChildren();
-        googleIdentity.renderButton(containerRef.current, {
-          theme: "filled_black",
-          size: "large",
-          width: 320,
-          shape: "rectangular",
-        });
+        const container = containerRef.current;
+        let renderedWidth = 0;
+        const renderButton = () => {
+          const width = appearance === "landing" ? 320 : Math.min(320, Math.floor(container.clientWidth));
+          if (width <= 0 || width === renderedWidth) return;
+          renderedWidth = width;
+          container.replaceChildren();
+          googleIdentity.renderButton(container, {
+            theme: "filled_black",
+            size: "large",
+            width,
+            shape: "rectangular",
+          });
+        };
+        renderButton();
         if (appearance === "landing") {
           fitLandingWidgetFrame(containerRef.current);
           frameId = window.requestAnimationFrame(() => {
@@ -125,6 +134,9 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
             if (containerRef.current) fitLandingWidgetFrame(containerRef.current);
           });
           widgetObserver.observe(containerRef.current, { childList: true, subtree: true });
+        } else {
+          resizeObserver = new ResizeObserver(renderButton);
+          resizeObserver.observe(container);
         }
         setProviderState("ready");
       } catch {
@@ -135,6 +147,7 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
       active = false;
       if (frameId !== null) window.cancelAnimationFrame(frameId);
       widgetObserver?.disconnect();
+      resizeObserver?.disconnect();
     };
   }, [appearance, attempt, clientId, disabled]);
 

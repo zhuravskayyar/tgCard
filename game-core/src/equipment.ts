@@ -40,15 +40,27 @@ export const EQUIPMENT_RARITY_CONFIG: Readonly<Record<CardRarity, {
 };
 
 export const EQUIPMENT_SLOT_LABELS: Readonly<Record<EquipmentSlot, string>> = {
-  head: "Головний убір",
-  cloak: "Плащ",
-  gloves: "Одяг",
-  boots: "Взуття",
-  weapon: "Коп'є мага",
-  shield: "Щит мага",
-  amulet: "Амулет життя",
-  relic: "Дзеркало магії",
-  voodoo: "Кукла Вуду",
+  head: "Каптур",
+  cloak: "Накидка",
+  gloves: "Рукавиці",
+  boots: "Чоботи",
+  weapon: "Жало заклинателя",
+  shield: "Заслін обітниці",
+  amulet: "Оберіг другого подиху",
+  relic: "Відлунне скло",
+  voodoo: "Лиха мотанка",
+};
+
+export const EQUIPMENT_SLOT_SHORT_LABELS: Readonly<Record<EquipmentSlot, string>> = {
+  head: "Каптур",
+  cloak: "Накидка",
+  gloves: "Рукавиці",
+  boots: "Чоботи",
+  weapon: "Жало",
+  shield: "Заслін",
+  amulet: "Оберіг",
+  relic: "Скло",
+  voodoo: "Мотанка",
 };
 
 export const EQUIPMENT_ELEMENT_LABELS: Readonly<Record<CardElement, string>> = {
@@ -63,6 +75,20 @@ export const EQUIPMENT_ELEMENT_SYMBOLS: Readonly<Record<CardElement, string>> = 
   water: "💧",
   earth: "🌿",
   air: "⚡",
+};
+
+const ELEMENT_GENITIVE: Readonly<Record<CardElement, string>> = {
+  fire: "вогню",
+  water: "води",
+  earth: "землі",
+  air: "повітря",
+};
+
+const ELEMENT_CARDS_LABEL: Readonly<Record<CardElement, string>> = {
+  fire: "Вогняні",
+  water: "Водяні",
+  earth: "Земляні",
+  air: "Повітряні",
 };
 
 export type EquipmentSetId = "single_rarity" | "elemental_harmony";
@@ -142,7 +168,7 @@ function getArtifactBonusLabel(type: EquipmentBonusType) {
     case "outgoing_damage": return "Вихідний урон";
     case "incoming_damage_reduction": return "Зменшення вхідного урону";
     case "damage_reflection": return "Відбиття урону";
-    case "health_reduction": return "Прокляття Вуду";
+    case "health_reduction": return "Прокляття мотанки";
     case "save_once": return "Відродження один раз за бій";
     case "passive": return "Пасивний ефект";
     case "element_power": return "Сила стихії";
@@ -200,7 +226,7 @@ export function calculateEquipmentSummary(
       activeSets.push({
         description: "+25% до бонусу кожної речі однакової рідкості",
         id: "single_rarity",
-        label: "Єдина рідкість",
+        label: "Єдиний гарт",
         multiplier: 1.25,
       });
     }
@@ -210,7 +236,7 @@ export function calculateEquipmentSummary(
       activeSets.push({
         description: "Кожна річ підсилює карти всіх чотирьох стихій",
         id: "elemental_harmony",
-        label: "Школа всіх стихій",
+        label: "Коло чотирьох стихій",
         multiplier: null,
       });
     }
@@ -291,6 +317,11 @@ export function resolveEquipmentForgeResult(
     throw new RangeError("Forge inputs must have the same rarity and category");
   }
 
+  const family = pickWeighted(getForgeFamilies(inputDefinitions).map(({ definition, weight }) => ({ value: definition, weight })), random);
+  return getForgeOutput(family, recipe.outputRarity);
+}
+
+function getForgeFamilies(inputDefinitions: readonly EquipmentDefinition[]) {
   const families = new Map<string, { definition: EquipmentDefinition; weight: number }>();
   for (const definition of inputDefinitions) {
     const family = `${definition.slot}:${definition.element ?? "none"}`;
@@ -298,15 +329,39 @@ export function resolveEquipmentForgeResult(
     if (existing) existing.weight += 1;
     else families.set(family, { definition, weight: 1 });
   }
-  const family = pickWeighted([...families.values()].map(({ definition, weight }) => ({ value: definition, weight })), random);
+  return [...families.values()];
+}
+
+function getForgeOutput(family: EquipmentDefinition, outputRarity: CardRarity) {
   const result = STARTER_EQUIPMENT_DEFINITIONS.find((definition) => (
-    definition.category === first.category
+    definition.category === family.category
     && definition.slot === family.slot
     && definition.element === family.element
-    && definition.rarity === recipe.outputRarity
+    && definition.rarity === outputRarity
   ));
   if (!result) throw new Error("Forge result is not present in the equipment catalog");
   return result;
+}
+
+/** Possible forge results with their chance in percent, most likely first. */
+export function getEquipmentForgeChances(inputDefinitions: readonly EquipmentDefinition[]) {
+  const first = inputDefinitions[0];
+  const recipe = first ? getEquipmentForgeRecipe(first.rarity) : null;
+  if (!recipe) return [];
+  return getForgeFamilies(inputDefinitions)
+    .map(({ definition, weight }) => ({
+      chancePct: Math.round((weight / inputDefinitions.length) * 100),
+      definition: getForgeOutput(definition, recipe.outputRarity),
+    }))
+    .sort((left, right) => right.chancePct - left.chancePct);
+}
+
+/** Any enabled thing or artifact of the rarity, equally likely. */
+export function pickRandomEquipment(rarity: CardRarity, random: () => number = Math.random) {
+  const candidates = STARTER_EQUIPMENT_DEFINITIONS.filter((definition) => definition.isEnabled && definition.rarity === rarity);
+  const definition = candidates[Math.floor(random() * candidates.length)];
+  if (!definition) throw new Error("Equipment catalog is empty for the requested rarity");
+  return definition;
 }
 
 function item(
@@ -347,10 +402,10 @@ function item(
 }
 
 const THING_NAMES: Readonly<Record<EquipmentThingSlot, string>> = {
-  head: "Головний убір",
-  cloak: "Плащ",
-  gloves: "Одяг",
-  boots: "Взуття",
+  head: "Каптур",
+  cloak: "Накидка",
+  gloves: "Рукавиці",
+  boots: "Чоботи",
 };
 
 const ARTIFACT_PROFILES: Readonly<Record<EquipmentArtifactSlot, {
@@ -365,22 +420,22 @@ const ARTIFACT_PROFILES: Readonly<Record<EquipmentArtifactSlot, {
   weapon: {
     bonusType: "outgoing_damage",
     description: (value) => `Збільшує вихідний урон на ${value}% від сили карти.`,
-    flavorText: "Коп'є мага пробиває захист першою атакою.",
-    name: "Коп'є мага",
+    flavorText: "Вістря співає ще до того, як торкнеться ворога.",
+    name: "Жало заклинателя",
     values: [2, 4, 8, 12, 20, 30],
   },
   shield: {
     bonusType: "incoming_damage_reduction",
     description: (value) => `Зменшує вхідний урон на ${value}% від сили карти ворога.`,
-    flavorText: "Щит мага тримає удар, але не зупиняє контратаку.",
-    name: "Щит мага",
+    flavorText: "Обітницю дають один раз, і вона тримає будь-який удар.",
+    name: "Заслін обітниці",
     values: [2, 3, 7, 11, 18, 24],
   },
   relic: {
     bonusType: "incoming_damage_reduction",
     description: (value, secondaryValue) => `Зменшує урон на ${value}% і відбиває ${secondaryValue}% від сили карти ворога.`,
-    flavorText: "Дзеркало повертає частину удару тому, хто його завдав.",
-    name: "Дзеркало магії",
+    flavorText: "Скло пам'ятає кожен удар і повертає його тому, хто бив.",
+    name: "Відлунне скло",
     secondaryBonusType: "damage_reflection",
     values: [1, 2, 4, 6, 9, 12],
     secondaryValues: [1, 2, 4, 6, 9, 12],
@@ -388,15 +443,15 @@ const ARTIFACT_PROFILES: Readonly<Record<EquipmentArtifactSlot, {
   amulet: {
     bonusType: "save_once",
     description: (value) => `Після смерті відроджує з ${value}% максимального HP один раз за бій.`,
-    flavorText: "Життя повертається до того, хто ще не завершив свій бій.",
-    name: "Амулет життя",
+    flavorText: "Той, хто не договорив, ще вдихне знову.",
+    name: "Оберіг другого подиху",
     values: [2, 4, 8, 12, 20, 30],
   },
   voodoo: {
     bonusType: "health_reduction",
     description: (value) => `Після смерті зменшує поточне HP вбивці на ${value}% його максимального HP один раз за бій.`,
-    flavorText: "Кукла Вуду залишає прокляття після останнього подиху.",
-    name: "Кукла Вуду",
+    flavorText: "Її в'яжуть мовчки, а розв'язує лише смерть господаря.",
+    name: "Лиха мотанка",
     values: [1, 2, 4, 6, 9, 12],
   },
 };
@@ -412,14 +467,14 @@ function buildEquipmentCatalog(): readonly EquipmentDefinition[] {
         definitions.push(item(
           `equipment_${slot}_${element}_${rarity}`,
           code,
-          `${rarityLabel} ${THING_NAMES[slot]} · ${EQUIPMENT_ELEMENT_LABELS[element]}`,
+          `${THING_NAMES[slot]} ${ELEMENT_GENITIVE[element]} · ${rarityLabel}`,
           slot,
           "things",
           rarity,
           "element_power",
           bonus,
-          `${EQUIPMENT_ELEMENT_LABELS[element]}ні карти отримують +${bonus} сили.`,
-          `Річ стихії ${EQUIPMENT_ELEMENT_LABELS[element].toLowerCase()} зберігає силу своєї рідкості.`,
+          `${ELEMENT_CARDS_LABEL[element]} карти отримують +${bonus} сили.`,
+          `Річ зберігає силу ${ELEMENT_GENITIVE[element]} у кожному шві.`,
           element,
         ));
       }

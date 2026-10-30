@@ -2,35 +2,20 @@ import type { PoolClient } from "pg";
 import { COLLECTION_CARDS, COLLECTIONS, validateCollectionCatalog } from "../collections/collectionCatalog.js";
 import { STARTER_CARDS } from "../inventory/starterCards.js";
 
-const RETIRED_FALLBACK_CARD_CODES = [
-  "shop_uncommon_01",
-  "shop_rare_01",
-  "shop_epic_01",
-  "shop_legendary_01",
-  "shop_mythic_01",
+const RETIRED_STARTER_CARD_IDS = [
+  "starter_01",
+  "starter_02",
+  "starter_03",
+  "starter_04",
+  "starter_05",
+  "starter_06",
+  "starter_07",
+  "starter_08",
+  "starter_09",
 ] as const;
 
 export async function seedCollectionDefinitions(client: PoolClient) {
   const validation = validateCollectionCatalog();
-
-  // Positions are unique. Move existing rows out of the final range first so
-  // adding or reordering a collection cannot collide with an old position.
-  await client.query("UPDATE collections SET position = position + 1000");
-
-  // These temporary pre-collection rewards are not part of the canonical
-  // canonical catalog. Preserve any already-owned instances; otherwise retire
-  // their unused definitions and pool rows through the FK cascade.
-  await client.query(
-    `
-      DELETE FROM cards
-      WHERE code = ANY($1::text[])
-        AND collection_id IS NULL
-        AND NOT EXISTS (
-          SELECT 1 FROM player_card_instances WHERE player_card_instances.card_id = cards.id
-        )
-    `,
-    [RETIRED_FALLBACK_CARD_CODES],
-  );
 
   for (const [index, collection] of COLLECTIONS.entries()) {
     await client.query(
@@ -129,6 +114,28 @@ export async function seedCollectionDefinitions(client: PoolClient) {
   }
   if (Number(databaseValidation.rows[0]?.described_cards) !== canonicalCardCount) {
     throw new Error(`All ${canonicalCardCount} canonical cards must have non-empty descriptions`);
+  }
+
+  const activeCatalogRows = await client.query<{ cards: string; collections: string }>(
+    `
+      SELECT
+        (SELECT COUNT(*) FROM cards) AS cards,
+        (SELECT COUNT(*) FROM collections) AS collections
+    `,
+  );
+  if (Number(activeCatalogRows.rows[0]?.cards) !== canonicalCardCount) {
+    throw new Error("Legacy card definitions are still active; apply migration 063 before seeding the new catalog");
+  }
+  if (Number(activeCatalogRows.rows[0]?.collections) !== COLLECTIONS.length) {
+    throw new Error("Legacy collections are still active; apply migration 063 before seeding the new catalog");
+  }
+
+  const retiredStarterCards = await client.query<{ count: string }>(
+    "SELECT COUNT(*) AS count FROM cards WHERE id = ANY($1::text[]) OR code = ANY($1::text[])",
+    [RETIRED_STARTER_CARD_IDS],
+  );
+  if (Number(retiredStarterCards.rows[0]?.count) > 0) {
+    throw new Error("Legacy starter cards are still active; apply migration 062 before seeding the catalog");
   }
 
   return validation;

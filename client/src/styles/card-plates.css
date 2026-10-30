@@ -1,0 +1,317 @@
+/* Bright-Cut V5: the complete reference model in one 240 x 312 SVG. */
+.deck-card,
+.duel-card,
+.card-detail-card,
+.shop-reveal__card,
+.limited-card-reveal__card {
+  container-type: inline-size;
+  aspect-ratio: 10 / 13;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  clip-path: none;
+  filter: drop-shadow(0 7px 6px #0008);
+  isolation: isolate;
+}
+
+.deck-card::before,
+.card-detail-card::before,
+.shop-reveal__card::before,
+.limited-card-reveal__card::before,
+.deck-card__selected-mark { display: none; }
+
+.deck-card--common { --plate-edge: #e2ca9b; --plate-shadow: #5b3e24; }
+.deck-card--uncommon,
+.deck-card--rare,
+.deck-card--legendary { --plate-edge: #f0d39b; --plate-shadow: #241f19; }
+.deck-card--epic { --plate-edge: #b5c8ce; --plate-shadow: #241f19; }
+.deck-card--mythic { --plate-edge: #f9fcff; --plate-shadow: #241f19; }
+
+.deck-card--fire,
+.duel-card--fire { --card-element: #ff7327; --element-glow: #ff7327; }
+.deck-card--water,
+.duel-card--water { --card-element: #51c2ff; --element-glow: #51c2ff; }
+.deck-card--earth,
+.duel-card--earth { --card-element: #98e75f; --element-glow: #98e75f; }
+.deck-card--air,
+.duel-card--air { --card-element: #f7d85c; --element-glow: #f7d85c; }
+
+.card-fx--material {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  overflow: visible;
+  perspective: none;
+  pointer-events: none;
+  transform: none;
+  transform-style: flat;
+}
+
+.card-fx--material.card-fx--interactive { pointer-events: auto; }
+
+/* Internal geometry comes entirely from SVG attributes, never CSS percentages. */
+.card-model {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.card-model > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The flat SVG stays underneath until the shaded canvas has fully faded in, so the swap never blinks. */
+.card-model--shader-ready > svg { visibility: hidden; transition: visibility 0s linear 220ms; }
+
+.card-material-shader {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+
+.card-material-shader--ready { opacity: 1; }
+.card-material-shader--snapshot { opacity: 1; transition: none; }
+
+.card-hud__protection,
+.card-hud__upgrade {
+  position: absolute;
+  z-index: 8;
+  bottom: 6%;
+  left: 6%;
+  display: grid;
+  width: 18%;
+  aspect-ratio: 1;
+  height: auto;
+  padding: 0;
+  place-items: center;
+  color: #f4e3b0;
+  background: rgb(15 17 15 / 88%);
+  border: 1px solid color-mix(in srgb, var(--plate-edge, #d7bb6d) 72%, #333);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px #000;
+}
+
+.card-hud__protection .app-icon { width: 58%; height: 58%; }
+
+/* Upgrade arrow: no badge, just a bold bevelled arrow that bobs gently in the card's lower-left corner. */
+.card-hud__upgrade {
+  --arrow-fill-top: #b6f56a;
+  --arrow-fill-bottom: #2f8f1c;
+  --arrow-edge: #0f2a08;
+  --arrow-glow: rgb(120 230 70 / 70%);
+  bottom: 4%;
+  left: 4%;
+  width: 21%;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 0 3px var(--arrow-glow)) drop-shadow(0 1px 1px rgb(0 0 0 / 80%));
+}
+.card-hud__upgrade--gold {
+  --arrow-fill-top: #fff1a8;
+  --arrow-fill-bottom: #c08414;
+  --arrow-edge: #3a2104;
+  --arrow-glow: rgb(255 205 60 / 75%);
+}
+/* The span keeps the card's parallax transform; only the arrow inside bobs. */
+.card-hud__upgrade-arrow { display: block; width: 100%; height: 100%; overflow: visible; animation: card-upgrade-bob 1.6s ease-in-out infinite; }
+.card-hud__upgrade-body { fill: var(--arrow-fill-bottom); stroke: var(--arrow-edge); stroke-width: 2; stroke-linejoin: round; paint-order: stroke; }
+.card-hud__upgrade-light { fill: var(--arrow-fill-top); opacity: .9; }
+@keyframes card-upgrade-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12%); } }
+@media (prefers-reduced-motion: reduce) { .card-hud__upgrade-arrow { animation: none; } }
+
+.card-artwork,
+.collection-card-visual > .card-artwork,
+.limited-card-banner__art > .card-artwork,
+.workshop-card__art > .card-artwork,
+.player-profile-card-plate > .card-artwork,
+.campaign-boss-reward-card > .card-artwork {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  padding: 0;
+  aspect-ratio: 10 / 13;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.deck-card--selected,
+.duel-card--selected {
+  z-index: 1;
+  border-color: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--plate-edge, #d8c08b) 62%, transparent)) drop-shadow(0 7px 6px #0008);
+}
+
+.deck-card:hover:not(:disabled) { transform: translateY(-1px); }
+.deck-card:focus-visible { outline: 2px solid var(--plate-edge, #f0cf84); outline-offset: 2px; }
+.card-detail-card { width: min(64vw, 224px); }
+
+.card-detail-overview .card-detail-card {
+  aspect-ratio: 10 / 13;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.arena-slot { aspect-ratio: 10 / 13; }
+.arena-slot .duel-card { height: auto; aspect-ratio: 10 / 13; }
+
+.collection-card-visual,
+.limited-card-banner__art,
+.workshop-card__art,
+.player-profile-card-plate,
+.collection-card-tile__plate,
+.campaign-boss-reward-card,
+.battle-pass-card-thumbnail {
+  position: relative;
+  container-type: inline-size;
+  display: block;
+  aspect-ratio: 10 / 13;
+  height: auto;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.collection-card-tile__plate,
+.player-profile-card-plate,
+.campaign-boss-reward-card { width: 100%; }
+
+.collection-card-tile,
+.player-profile-card-preview {
+  display: grid;
+  gap: 4px;
+  aspect-ratio: auto;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.collection-card-tile > .collection-card-tile__plate { position: relative; }
+.collection-card-tile.collection-card-tile > small {
+  position: static;
+  width: auto;
+  padding: 0;
+  text-align: center;
+}
+
+.player-profile-card-preview > span {
+  position: static;
+  margin: 0;
+  font-size: var(--font-micro);
+}
+
+.campaign-boss-reward {
+  display: grid;
+  width: min(46vw, 168px);
+  gap: 5px;
+  text-align: center;
+}
+
+.battle-pass-card-thumbnail { width: 31px; }
+.battle-pass-milestone--final .battle-pass-card-thumbnail {
+  width: 44px;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.campaign-boss-reward > strong,
+.campaign-boss-reward > small,
+.battle-pass-card-reveal__card > strong,
+.battle-pass-card-reveal__card > small {
+  position: static;
+  z-index: auto;
+  width: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.campaign-boss-reward > small,
+.battle-pass-card-reveal__card > small { color: var(--text-secondary); font-size: var(--font-micro); }
+.battle-pass-card-reveal__card { display: grid; width: min(30vw, 112px); gap: 5px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-card:hover:not(:disabled) { transform: none; }
+}
+
+/* Standalone element medallion: card emblem art with a periodic light sweep and a soft element glow. */
+.element-medallion {
+  --medallion-size: 30px;
+  --medallion-glow: #ffd84a;
+  --medallion-delay: 0s;
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: var(--medallion-size);
+  height: var(--medallion-size);
+  isolation: isolate;
+}
+.element-medallion--fire { --medallion-glow: #ff7a2a; --medallion-delay: 0s; }
+.element-medallion--water { --medallion-glow: #35b4ff; --medallion-delay: .7s; }
+.element-medallion--earth { --medallion-glow: #8fdc4e; --medallion-delay: 1.4s; }
+.element-medallion--air { --medallion-glow: #ffd84a; --medallion-delay: 2.1s; }
+.element-medallion__emblem,
+.element-medallion__emblem > svg { display: block; width: 100%; height: 100%; }
+.element-medallion__emblem { animation: element-medallion-lift 5.6s ease-in-out var(--medallion-delay) infinite; }
+.element-medallion__glow {
+  position: absolute;
+  inset: -38%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--medallion-glow) 70%, transparent) 0, transparent 64%);
+  opacity: .32;
+  animation: element-medallion-pulse 3.8s ease-in-out var(--medallion-delay) infinite;
+  pointer-events: none;
+}
+.element-medallion__shine {
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(118deg, transparent 38%, rgb(255 249 228 / 78%) 49%, rgb(255 249 228 / 0%) 60%) 160% 0 / 260% 100% no-repeat;
+  mix-blend-mode: screen;
+  animation: element-medallion-sweep 5.6s ease-in-out var(--medallion-delay) infinite;
+  pointer-events: none;
+}
+@keyframes element-medallion-pulse { 0%, 100% { opacity: .22; transform: scale(.92); } 50% { opacity: .5; transform: scale(1.04); } }
+@keyframes element-medallion-sweep { 0%, 62% { background-position: 160% 0; } 82%, 100% { background-position: -60% 0; } }
+@keyframes element-medallion-lift { 0%, 62%, 100% { filter: brightness(1); } 72% { filter: brightness(1.14) saturate(1.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .element-medallion__emblem, .element-medallion__glow, .element-medallion__shine { animation: none; }
+  .element-medallion__shine { opacity: 0; }
+}

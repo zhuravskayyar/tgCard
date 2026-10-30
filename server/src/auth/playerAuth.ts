@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import type { AuthIdentityView, AuthProvider, PlayerSummary } from "@cardastika/shared";
+import type { AuthIdentityView, AuthProvider, AuthSessionProvider, PlayerSummary } from "@cardastika/shared";
 import { PlayerPersistenceError, type PlayerRepository } from "../users/playerRepository.js";
 import { validateTelegramInitData } from "./telegramInitData.js";
 import { SessionRepository } from "./sessionRepository.js";
@@ -13,7 +13,7 @@ export class PlayerSessionError extends Error {
 
 export interface AuthenticatedPlayer {
   player: PlayerSummary;
-  provider: AuthProvider;
+  provider: AuthSessionProvider;
   sessionToken?: string;
 }
 
@@ -53,9 +53,34 @@ export class PlayerAuthService {
     };
   }
 
-  async createSession(player: PlayerSummary, provider: AuthProvider) {
-    const session = await this.sessions.create(player.id, provider);
-    return { player, sessionToken: session.token, identities: await this.players.listAuthIdentities(player.id) };
+  async createSession(player: PlayerSummary, provider: AuthSessionProvider) {
+    try {
+      const session = await this.sessions.create(player.id, provider);
+      return { player, sessionProvider: provider, sessionToken: session.token, identities: await this.players.listAuthIdentities(player.id) };
+    } catch (error) {
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
+  async createGuestSession() {
+    try {
+      return await this.sessions.withTransaction(async (client) => {
+        const player = await this.players.createGuestProfile(client);
+        const session = await this.sessions.createInTransaction(client, player.id, "guest");
+        return { player, sessionProvider: "guest" as const, sessionToken: session.token, identities: [] };
+      });
+    } catch (error) {
+      if (error instanceof PlayerPersistenceError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
+  async refreshSession(token: string) {
+    try {
+      return await this.sessions.extendActive(token);
+    } catch (error) {
+      throw new PlayerPersistenceError({ cause: error });
+    }
   }
 
   async revokeSession(token: string) {

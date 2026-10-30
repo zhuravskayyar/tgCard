@@ -12,12 +12,12 @@ test("server creation persists one independent instance with an injected bounded
     },
   } as unknown as PoolClient;
   const instance = await createStandardCardInstance(client, "player-1", {
-    id: "starter_02",
-    code: "starter_02",
-    displayName: "Лис",
+    id: "starter_v5_02",
+    code: "starter_v5_02",
+    displayName: "Рогач",
     description: "Тестовий опис картки для перевірки створення екземпляра без зміни бойової логіки.",
-    artKey: null,
-    element: "fire",
+    artKey: "new-cards/starter_v2_02",
+    element: "earth",
     collectionId: null,
     minRarity: "common",
     shopEligible: false,
@@ -30,5 +30,5 @@ test("server creation persists one independent instance with an injected bounded
   assert.equal(instance.rarity, "common");
   assert.equal(typeof instance.instanceId, "string");
   assert.equal(writes.length, 1);
-  assert.deepEqual(writes[0]?.slice(1), ["player-1", "starter_02", 1, 2]);
+  assert.deepEqual(writes[0]?.slice(1), ["player-1", "starter_v5_02", 1, 2]);
 });

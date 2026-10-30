@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from "react";
+import { ScreenHeading } from "../components/ScreenHeading";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type ShopPurchaseResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { ShopOfferPanel } from "../components/ShopOfferPanel";
@@ -6,7 +7,8 @@ import { ShopRewardReveal } from "../components/ShopRewardReveal";
 import { useShop } from "../hooks/useShop";
 import { CardArtwork } from "../components/CardArtwork";
 import { useCardWorkshop } from "../hooks/useCardWorkshop";
-import type { CardWorkshopCard } from "@cardastika/shared";
+import type { CardWorkshopCard, CardWorkshopCraftResponse, PlayerEquipmentInventory } from "@cardastika/shared";
+import { EquipmentChestSection } from "../components/EquipmentChestSection";
 import { NicknameSkinShopPanel } from "../components/NicknameSkinShopPanel";
 import type { NicknameSkinId, PlayerSummary } from "@cardastika/shared";
 import type { PlayerSummaryState } from "../types/player";
@@ -19,6 +21,7 @@ import { SHOP_BUNDLES } from "../shop/shopBundles";
 
 interface ShopScreenProps {
   onBack: () => void;
+  onEquipmentInventoryChange: (inventory: PlayerEquipmentInventory[]) => void;
   onBalanceChange: (balance: Partial<Pick<PlayerSummary, "arenaTokens" | "gold" | "silver">>) => void;
   onCollectionCompleted: (completion: CollectionCompletionNotice) => void;
   onDeckPowerChange: (deckPower: number) => void;
@@ -30,7 +33,7 @@ interface ShopScreenProps {
   onPurchaseContinue?: () => void;
   playerSummaryState: PlayerSummaryState;
   nickname: string;
-  returnScreen: "home" | "deck" | "collection" | "campaign-stage" | "tasks";
+  returnScreen: "home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials";
 }
 
 const purchaseErrorMessages: Record<string, string> = {
@@ -47,10 +50,11 @@ interface ShopSectionHeadingProps {
   children: string;
 }
 
-type ShopSection = "cards" | "workshop" | "cosmetics" | "boosts";
+type ShopSection = "cards" | "workshop" | "chests" | "cosmetics" | "boosts";
 type ShopView = "categories" | "section";
 type ShopReveal =
   | { kind: "bundle"; bundleId: string; purchases: ShopPurchaseResponse[] }
+  | { kind: "forge"; purchases: ShopPurchaseResponse[] }
   | { kind: "offer"; offerId: string; purchases: ShopPurchaseResponse[] };
 
 const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil"; id: "cards" | "workshop"; label: string }> = [
@@ -117,17 +121,19 @@ function WorkshopCard({ card, cardShards, crafting, onCraft }: { card: CardWorks
     "--workshop-tone": workshopRarityTones[card.rarity],
   } as CSSProperties;
   return <article className={`workshop-card workshop-card--${card.rarity}${canAfford ? " workshop-card--available" : ""}`} style={style}>
-    <div className="workshop-card__art"><CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} /><span aria-hidden="true" className="workshop-card__rarity-badge"><AppIcon name="deck-power" size={12} /></span></div>
-    <div className="workshop-card__copy">
-      <div className="workshop-card__title-row"><strong>{card.displayName ?? "Невідома карта"}</strong></div>
-      <span className="workshop-card__meta">{rarityLabels[card.rarity]} · Копій: {card.ownedQuantity}</span>
-      <div className="workshop-card__progress"><span><strong>{cardShards}</strong> / {card.cost} кристалів</span><span className="workshop-card__progress-track"><span style={{ width: `${progress}%` }} /></span></div>
+    <div className="workshop-card__shelf">
+      <div className="workshop-card__art"><CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity} /></div>
+      <div className="workshop-card__copy">
+        <div className="workshop-card__title-row"><strong>{card.displayName ?? "Невідома карта"}</strong></div>
+        <span className="workshop-card__meta">{rarityLabels[card.rarity]} · Копій: {card.ownedQuantity}</span>
+        <div className="workshop-card__progress"><span><strong>{cardShards}</strong> / {card.cost} кристалів</span><span className="workshop-card__progress-track"><span style={{ width: `${progress}%` }} /></span></div>
+      </div>
     </div>
-    <div className="workshop-card__purchase"><span className="workshop-card__cost"><CardShardMark size={14} /><strong>{card.cost}</strong></span><button aria-label={canAfford ? `Створити ${card.displayName ?? "карту"}` : `Потрібно ${card.cost} кристалів`} className="workshop-card__craft" disabled={!canAfford || crafting} onClick={onCraft} type="button">{crafting ? "Створення…" : canAfford ? "СТВОРИТИ" : "НЕДОСТАТНЬО"}</button></div>
+    <div className="workshop-card__purchase"><button aria-label={canAfford ? `Викувати ${card.displayName ?? "карту"} за ${card.cost} кристалів` : `Потрібно ще ${card.cost - cardShards} кристалів`} className="workshop-card__craft" disabled={!canAfford || crafting} onClick={onCraft} type="button">{crafting ? "Куємо…" : <><span>{canAfford ? "Викувати за" : "Потрібно"}</span><CardShardMark size={18} /><strong>{canAfford ? card.cost : card.cost - cardShards}</strong></>}</button></div>
   </article>;
 }
 
-function CardWorkshopSection() {
+function CardWorkshopSection({ onCrafted }: { onCrafted: (result: CardWorkshopCraftResponse) => void }) {
   const { craft, craftErrorCode, craftingCardId, retry, state } = useCardWorkshop();
   const craftErrorMessages: Record<string, string> = {
     insufficient_card_shards: "Недостатньо уламків карт.",
@@ -145,18 +151,20 @@ function CardWorkshopSection() {
       })
     : [];
   return <section aria-label="Майстерня карт" className="card-workshop">
-    <ShopWallet items={[{ id: "card-shards", icon: <CardShardMark size={18} />, label: "Кристали майстерні", value: state.status === "ready" ? state.data.cardShards : undefined }]} />
+    <div className="workshop-head">
+      <span className="workshop-head__balance"><CardShardMark size={22} /><strong>{state.status === "ready" ? state.data.cardShards : "—"}</strong><span>кристалів</span></span>
+    </div>
     {state.status === "loading" ? <div className="workshop-state">Завантаження ротації…</div> : null}
     {state.status === "unavailable" ? <div className="workshop-state">Майстерня доступна після запуску через Telegram.</div> : null}
     {state.status === "error" ? <div className="workshop-state workshop-state--error"><span>Не вдалося завантажити майстерню.</span><button onClick={retry} type="button">Повторити</button></div> : null}
     {state.status === "ready" ? <>
-      <div className="workshop-list">{workshopCards.map((card) => <WorkshopCard card={card} cardShards={state.data.cardShards} crafting={craftingCardId !== null} key={card.cardId} onCraft={() => void craft(card.cardId)} />)}</div>
+      <div className="workshop-list">{workshopCards.map((card) => <WorkshopCard card={card} cardShards={state.data.cardShards} crafting={craftingCardId !== null} key={card.cardId} onCraft={() => void craft(card.cardId).then((result) => { if (result) onCrafted(result); })} />)}</div>
     </> : null}
     {craftErrorCode ? <p className="workshop-error" role="alert">{craftErrorMessages[craftErrorCode] ?? "Не вдалося створити карту."}</p> : null}
   </section>;
 }
 
-export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onOpenDeck, onOpenTasks, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
+export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onOpenDeck, onOpenTasks, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
   const { catalogState, purchase, purchaseBundle, purchaseErrorCode, purchasingBundleId, purchasingOfferId, retryCatalog } = useShop();
   const [view, setView] = useState<ShopView>("categories");
   const [section, setSection] = useState<ShopSection>("cards");
@@ -164,8 +172,12 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
   const [batchPurchasing, setBatchPurchasing] = useState(false);
   const [purchaseCount, setPurchaseCount] = useState(0);
   const [reveal, setReveal] = useState<ShopReveal | null>(null);
+  const shopRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    shopRef.current?.closest<HTMLElement>(".app-content")?.scrollTo({ top: 0, behavior: "auto" });
+  }, [view, section, reveal]);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
-  const beginnerContext = returnScreen === "campaign-stage" || returnScreen === "tasks";
+  const beginnerContext = returnScreen === "campaign-stage" || returnScreen === "tasks" || returnScreen === "trials";
   const continueLabel = returnScreen === "campaign-stage"
     ? "Повернутися до етапу"
     : returnScreen === "tasks"
@@ -187,10 +199,12 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
   if (reveal) {
     return (
       <ShopRewardReveal
+        key={reveal.purchases[0]?.reward.instanceId}
         canBuyTen={reveal.kind === "offer" && purchaseCount >= 10}
-        continueLabel={continueLabel}
+        continueLabel={reveal.kind === "forge" ? "До майстерні" : continueLabel}
+        forged={reveal.kind === "forge"}
         errorMessage={purchaseErrorCode ? purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку." : null}
-        onBuyAgain={() => reveal.kind === "offer" ? void handlePurchase(reveal.offerId) : void handleBundlePurchase(reveal.bundleId)}
+        onBuyAgain={reveal.kind === "forge" ? undefined : () => reveal.kind === "offer" ? void handlePurchase(reveal.offerId) : void handleBundlePurchase(reveal.bundleId)}
         onBuyTen={reveal.kind === "offer" ? () => void handleBatchPurchase(reveal.offerId) : undefined}
         onContinue={() => {
           const reward = reveal.purchases[0]?.reward;
@@ -198,10 +212,29 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
           onTutorialRevealContinue?.(reward ? { cardId: reward.cardId, collectionId: reward.collectionId } : undefined);
           onPurchaseContinue?.();
         }}
-        purchasing={batchPurchasing || (reveal.kind === "offer" ? purchasingOfferId === reveal.offerId : purchasingBundleId === reveal.bundleId)}
+        packRarity={reveal.kind === "offer" && catalogState.status === "ready"
+          ? catalogState.catalog.offers.find((offer) => offer.id === reveal.offerId)?.guaranteedRarity
+          : undefined}
+        purchasing={batchPurchasing || (reveal.kind === "offer" ? purchasingOfferId === reveal.offerId : reveal.kind === "bundle" && purchasingBundleId === reveal.bundleId)}
         purchases={reveal.purchases}
       />
     );
+  }
+
+  function handleCrafted(result: CardWorkshopCraftResponse) {
+    if (result.collectionCompleted) onCollectionCompleted(result.collectionCompleted);
+    if (result.deckChanged && result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
+    setReveal({
+      kind: "forge",
+      purchases: [{
+        reward: result.reward,
+        newDiscovery: result.newDiscovery,
+        updatedBalance: { silver: player?.silver ?? 0, gold: player?.gold ?? 0 },
+        updatedChances: [],
+        deckChanged: result.deckChanged,
+        ...(result.deckPower !== undefined ? { deckPower: result.deckPower } : {}),
+      }],
+    });
   }
 
   async function handlePurchase(offerId: string) {
@@ -262,7 +295,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
 
   function handleCategorySelect(category: ShopCategory) {
     setActiveCategory(category.id);
-    setSection(category.destination === "cosmetics" ? "cosmetics" : category.destination === "boosts" ? "boosts" : "cards");
+    setSection(category.destination === "cosmetics" ? "cosmetics" : category.destination === "boosts" ? "boosts" : category.destination === "chests" ? "chests" : "cards");
     setView("section");
   }
 
@@ -287,16 +320,8 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
     (section === "cards" || section === "workshop");
 
   return (
-    <section className={`shop-screen shop-screen--${view} shop-screen--${section}`}>
-      <header className="shop-heading">
-        <button aria-label={view === "section" ? "До категорій" : "Назад"} className="shop-back" onClick={handleShopBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>{view === "categories" ? "ОБЕРИ СВОЮ КАТЕГОРІЮ" : activeCategoryData?.title ?? "Крамниця карт"}</span>
-          <h1>МАГАЗИН</h1>
-        </div>
-      </header>
+    <section className={`shop-screen shop-screen--${view} shop-screen--${section}`} ref={shopRef}>
+      <ScreenHeading backLabel={view === "section" ? "До категорій" : "Назад"} onBack={handleShopBack} title={view === "categories" ? "Магазин" : activeCategoryData?.title ?? "Магазин"} />
 
       {view === "categories" ? (
         <div aria-label="Категорії магазину" className="shop-category-list">
@@ -316,11 +341,13 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
             type="button"
           >
             <AppIcon name={tab.icon} size={24} />
+            <span>{tab.label}</span>
           </button>
         ))}
       </div> : null}
 
-      {view === "section" && section === "workshop" ? <CardWorkshopSection /> : null}
+      {view === "section" && section === "workshop" ? <CardWorkshopSection onCrafted={handleCrafted} /> : null}
+      {view === "section" && section === "chests" ? <EquipmentChestSection onInventoryChange={onEquipmentInventoryChange} onSilverChange={(silver) => onBalanceChange({ silver })} silver={playerSummaryState.status === "ready" ? playerSummaryState.data.silver : 0} /> : null}
       {view === "section" && section === "cosmetics" ? <NicknameSkinShopPanel nickname={nickname} onBalanceChange={onBalanceChange} onEquippedSkinChange={onEquippedSkinChange} /> : null}
       {view === "section" && section === "boosts" ? <ShopBoostSection onBack={handleShopBack} onOpenDeck={onOpenDeck} onOpenTasks={onOpenTasks} player={player} /> : null}
 
@@ -342,7 +369,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
               <section className="shop-bundle-section" aria-label="Готові набори">
                 <ShopSectionHeading>Готові набори</ShopSectionHeading>
                 <div className="shop-bundle-list">
-                  {SHOP_BUNDLES.map((bundle) => (
+                  {SHOP_BUNDLES.length ? SHOP_BUNDLES.map((bundle) => (
                     catalogState.catalog.bundles.find((offer) => offer.id === bundle.id) ? (
                       <ShopBundleBanner
                         availableBalance={player?.gold}
@@ -354,7 +381,7 @@ export function ShopScreen({ onBack, onBalanceChange, onCollectionCompleted, onD
                         purchasing={purchasingBundleId === bundle.id}
                       />
                     ) : null
-                  ))}
+                  )) : <div className="shop-inline-empty">Набори з новими картами з’являться тут.</div>}
                 </div>
               </section>
             ) : (

@@ -173,8 +173,8 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
           aria-hidden="true"
           className="tutorial-overlay__arrow"
           key={`arrow-${rect.left}-${rect.top}-${index}`}
-          style={{ left: rect.left + rect.width / 2, top: Math.max(8, rect.bottom - 15) }}
-        ><AppIcon name="arrow-up" size={28} /></span>
+          style={{ left: rect.left + rect.width / 2, top: rect.bottom + 2 }}
+        ><AppIcon name="arrow-up" size={52} /></span>
       )) : null}
       <section className={`tutorial-dialog tutorial-dialog--${dialogPlacement}${referenceDuel ? " tutorial-dialog--reference-duel" : ""}`} style={referenceDuel && referenceDialogTop !== null ? { bottom: "auto", top: referenceDialogTop } : undefined}>
         <div className="tutorial-dialog__art" aria-hidden="true"><Lariska emotion={STEP_EMOTION[step]} /></div>

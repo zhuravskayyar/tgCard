@@ -1,4 +1,15 @@
 /* Rewards use the shared warm stone and bronze materials. */
+.shop-reveal__card,
+.limited-card-reveal__card { animation: reward-card-reveal 480ms cubic-bezier(.2,.7,.25,1) both; }
+@keyframes reward-card-reveal {
+  from { opacity: .45; transform: translateY(8px) scale(.96); box-shadow: inset 0 0 0 4px var(--bg-inset), 0 4px 12px rgb(0 0 0 / 24%); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-reveal__card,
+  .limited-card-reveal__card { animation: none; }
+}
+
 .tasks-screen, .battle-pass-screen { background: var(--bg-app); padding: 12px 12px 24px; gap: 10px; }
 .battle-pass-screen::before { display: none; }
 .tasks-screen__panel, .tasks-screen__list { gap: 8px; }
@@ -167,9 +178,6 @@
 .daily-login-modal__tasks-link { min-height: 44px; padding: 4px 0; background: none; border: 0; color: var(--text-primary); text-align: left; font: inherit; font-size: var(--font-sm); line-height: 1.4; text-decoration: underline; text-decoration-color: var(--border-accent); text-underline-offset: 3px; cursor: pointer; }
 .daily-login-modal__tasks-link:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 3px; }
 .daily-login-modal__series-rule { margin: 0; color: var(--text-muted); font-size: var(--font-xs); line-height: 1.45; }
-.card-hud__upgrade { width: 24px; height: 26px; bottom: 5px; left: 5px; color: #a5f179; background: linear-gradient(180deg, #294021, #10200c); border: 1px solid #8ec36a; border-radius: 4px; box-shadow: 0 1px 4px #000, inset 0 1px rgb(255 255 255 / 18%); }
-.card-hud__upgrade--gold { color: #ffe294; background: linear-gradient(180deg, #70511d, #382508); border-color: #dfba74; }
-.card-hud__upgrade .app-icon { width: 20px; height: 20px; stroke-width: 3; filter: drop-shadow(0 1px 1px #000); }
 @media (max-width: 360px) {
   .tasks-screen__mascot { grid-template-columns: 50px minmax(0, 1fr) auto; padding-right: 5px; }
   .tasks-screen__mascot-art { width: 50px; height: 56px; }
@@ -186,3 +194,266 @@
   .daily-login-modal__currency-slot strong { font-size: var(--font-sm); }
   .daily-login-modal__currency-slot small { font-size: .6875rem; }
 }
+
+/* Story trials reuse the painted quest paper; only layout lives here. */
+.story-trials__list { display: grid; gap: var(--space-3); min-width: 0; }
+.story-trials__progress { margin: 0; color: var(--text-muted); font-size: var(--font-xs); text-align: center; }
+.story-trials__reward { flex-direction: column; align-items: flex-end; gap: 2px; }
+.story-trials__reward > span { display: inline-flex; align-items: center; gap: 3px; }
+.campaign-locked-hub__hint { margin: 0; color: var(--text-muted); font-size: var(--font-xs); text-align: center; }
+.story-trials-screen .campaign-dialogue {
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  background: none;
+  border: 16px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  box-shadow: none;
+}
+.story-trials-screen .campaign-dialogue__sprite {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  min-height: 0;
+  background: none;
+  border: 0;
+  overflow: visible;
+}
+.story-trials-screen .campaign-dialogue__sprite .lariska-image {
+  position: absolute;
+  inset: 11%;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 300% 300%;
+  animation: none;
+}
+.story-trials-screen .campaign-dialogue__sprite .lariska-image > img {
+  position: absolute;
+  top: 2%;
+  left: -55%;
+  width: 210%;
+  max-width: none;
+  height: auto;
+  filter: none;
+  animation: none;
+}
+.story-trials-screen .campaign-dialogue__sprite::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.story-trials-screen .campaign-dialogue__body { padding: 0 2px 0 6px; }
+.story-trials-screen .campaign-dialogue__body > strong,
+.story-trials-screen .campaign-dialogue__body p { color: var(--text-primary); }
+.story-trials__progress { font-size: var(--font-sm); font-weight: 700; color: var(--text-primary); }
+:root .app-shell .app-content .notice-board-screen { background: none; }
+
+.notice-board {
+  gap: 10px;
+  padding: 0 0 4px;
+  border: 33px solid transparent;
+  border-width: 61px 33px 56px;
+  border-image: url("/assets/ui/trials/board/board-v1.webp") 185 100 170 100 fill / 61px 33px 56px round;
+}
+.notice-board > * { margin-inline: -13px; }
+:root .app-shell .app-content .notice-board-screen .quest-paper__title strong {
+  color: #2b1a0c;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-shadow: 0 1px 0 rgb(255 245 220 / 55%);
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__reward {
+  color: #2b1a0c;
+  font-size: 16px;
+  font-weight: 800;
+  opacity: 1;
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__progress-head span,
+:root .app-shell .app-content .notice-board-screen .quest-paper__progress-head strong {
+  color: #2b1a0c;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 1;
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__track {
+  background: rgb(60 35 15 / 28%);
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__button { font-size: 14px; font-weight: 800; }
+:root .app-shell .app-content .story-trials-screen .campaign-dialogue__body p { color: #2b1a0c; font-size: 15px; line-height: 1.35; }
+:root .app-shell .app-content .story-trials-screen .campaign-dialogue__body > strong { color: #2b1a0c; font-size: 18px; }
+:root .app-shell .app-content .notice-board-screen .quest-paper__status { display: none; }
+:root .app-shell .app-content .notice-board-screen .quest-paper__status--done { display: block; color: #2b1a0c; font-size: 14px; font-weight: 800; }
+:root .app-shell .app-content .notice-board-screen .quest-paper__footer { flex-wrap: nowrap; justify-content: flex-end; }
+:root .app-shell .app-content .notice-board-screen .quest-paper--completed .quest-paper__footer,
+:root .app-shell .app-content .notice-board-screen .quest-paper--claimed .quest-paper__footer { justify-content: space-between; }
+:root .app-shell .app-content .notice-board > .notice-board__plaque {
+  justify-self: center;
+  width: min(100%, 270px);
+  margin: -4px 0 2px;
+  padding: 8px 18px;
+  color: #fff3d6;
+  font-size: 14px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+}
+
+:root .app-shell .app-content .notice-board-screen .quest-paper {
+  position: relative;
+  min-height: 0;
+  padding: 16px 16px 14px;
+  background: url("/assets/ui/trials/board/notice-torn-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 3px rgb(30 15 5 / 45%));
+  transform: rotate(-.7deg) translateX(-2px);
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper:nth-of-type(even) {
+  background-image: url("/assets/ui/trials/board/notice-straight-v1.webp");
+  transform: rotate(.8deg) translateX(2px);
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper.story-notice--official {
+  padding-left: 34px;
+  background-image: url("/assets/ui/trials/board/notice-official-v1.webp");
+  transform: none;
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__content { min-height: 0; background: none; border: 0; box-shadow: none; }
+:root .app-shell .app-content .notice-board-screen .quest-paper::before,
+:root .app-shell .app-content .notice-board-screen .quest-paper::after { content: none; }
+.story-notice__nail {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  background: url("/assets/ui/trials/board/nail-v1.webp") center / contain no-repeat;
+  filter: drop-shadow(0 2px 1px rgb(30 15 5 / 55%));
+}
+.story-notice__seal { flex: none; width: 42px; height: auto; transform: rotate(-10deg); }
+:root .app-shell .app-content .notice-board-screen .quest-paper__button {
+  flex: none;
+  min-width: 124px;
+  min-height: 34px;
+  padding: 2px 12px 2px 34px;
+  color: var(--text-primary);
+  background: url("/assets/ui/trials/board/tag-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  box-shadow: none;
+  white-space: nowrap;
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__button--claim {
+  min-width: 178px;
+  min-height: 40px;
+  padding: 4px 22px;
+  color: #f6e7c8;
+  background-image: url("/assets/ui/trials/button-leather-v1.webp");
+}
+:root .app-shell .app-content .notice-board-screen .quest-paper__button::before,
+:root .app-shell .app-content .notice-board-screen .quest-paper__button::after { content: none; }
+
+.campaign-locked-hub__map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 983 / 337;
+  background: url("/assets/ui/trials/campaign-map-v1.webp") center / 100% 100% no-repeat;
+}
+.campaign-locked-hub__name {
+  position: absolute;
+  top: 8%;
+  left: 27%;
+  width: 46%;
+  height: 16%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Daily tasks header: Lariska and the daily reward on the same painted plate. */
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__marathon {
+  background: none;
+  border: 16px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 2px;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot {
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 0;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-art {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  background: none;
+  border: 0;
+  overflow: visible;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-art .lariska-image {
+  position: absolute;
+  inset: 11%;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 300% 300%;
+  animation: none;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-art .lariska-image > img {
+  position: absolute;
+  top: 2%;
+  left: -55%;
+  width: 210%;
+  max-width: none;
+  height: auto;
+  filter: none;
+  animation: none;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-copy strong { color: #2b1a0c; font-size: 18px; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-copy p { color: #2b1a0c; font-size: 15px; line-height: 1.35; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-reset { color: #2b1a0c; font-size: 13px; font-weight: 700; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__ornate-heading strong { color: #2b1a0c; font-size: 16px; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-progress > strong { color: #2b1a0c; font-size: 15px; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-progress > small,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-reward small,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-note { color: #2b1a0c; font-size: 13px; font-weight: 700; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-reward strong { color: #2b1a0c; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__daily-progress-track { background: rgb(60 35 15 / 28%); }
+:root .app-shell .app-content .notice-board > .notice-board__plaque { text-align: center; font-weight: 700; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection {
+  background: none;
+  border: 16px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 2px;
+}
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-heading strong,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-heading p,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-heading > span,
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-reward strong { color: #2b1a0c; opacity: 1; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-heading strong { font-size: 16px; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-heading p { font-size: 14px; line-height: 1.3; }
+:root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection-actions { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; overflow: hidden; }

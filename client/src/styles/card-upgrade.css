@@ -1,0 +1,730 @@
+/* A fixed mobile composition between the shared HUD and navigation. */
+:root .app-shell .app-content:has(.card-detail-screen) {
+  padding: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 6px) 12px calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + 6px);
+  overflow: clip;
+}
+:root .app-shell .app-screen-transition:has(> .card-detail-screen) { height: 100%; min-height: 0; }
+:root .app-shell .card-detail-screen {
+  --upgrade-heading-height: 42px;
+  --upgrade-weak-height: 34px;
+  --book-compact-height: 32px;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 4px;
+  padding: 0;
+}
+:root .app-shell .card-detail-screen[data-expanded-panel] {
+  height: 100%;
+  grid-template-rows: var(--upgrade-heading-height) minmax(0, 1fr) var(--upgrade-weak-height) auto;
+}
+:root .app-shell .card-detail-screen[data-expanded-panel="weak"] { grid-template-rows: var(--upgrade-heading-height) auto minmax(var(--upgrade-weak-height), 1fr) auto; }
+:root .app-shell .card-detail-screen .card-detail-heading { display: grid; min-width: 0; justify-items: center; padding: 0; text-align: center; }
+:root .app-shell .card-detail-screen .card-detail-meta { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+:root .app-shell .card-detail-screen .card-detail-overview { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 3px; min-width: 0; min-height: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+:root .app-shell .card-detail-screen[data-expanded-panel="weak"] .card-detail-overview { grid-template-rows: auto auto; }
+:root .app-shell .card-detail-screen .card-detail-overview__main { display: grid; grid-template-columns: minmax(112px, min(144px, 40%)) minmax(0, 1fr); align-items: center; align-self: center; gap: 8px; }
+:root .app-shell .card-detail-screen .card-detail-card { width: 100%; max-width: none; min-width: 0; aspect-ratio: 10 / 13; }
+:root .app-shell .card-detail-screen .card-detail-overview__side { display: grid; gap: 6px; min-width: 0; align-self: center; }
+:root .app-shell .card-detail-screen .card-detail-reference-stats { display: grid; align-content: center; gap: 0; min-width: 0; padding: 5px 6px; background: transparent; border: 0 solid transparent; border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch; box-shadow: none; }
+:root .app-shell .card-detail-screen .card-detail-reference-stat { display: grid; min-height: 28px; grid-template-columns: 19px minmax(0, 1fr) auto; align-items: center; gap: 5px; padding: 1px 3px; border-bottom: 1px solid #9b723955; color: var(--home-ink); font-size: 12.5px; }
+:root .app-shell .card-detail-screen .card-detail-reference-stat > .app-icon { width: 17px; height: 17px; color: var(--home-ink); }
+:root .app-shell .card-detail-screen .card-detail-reference-stat > span:nth-child(2) { color: var(--home-ink-muted); }
+:root .app-shell .card-detail-screen .card-detail-reference-stat > strong { font-size: 20px; line-height: 1; }
+:root .app-shell .card-detail-screen .card-detail-reference-stat__level-icon { width: 17px; height: 19px; color: var(--home-ink); font-size: 22px; text-shadow: none; }
+
+:root .app-shell .card-detail-screen .card-protection-toggle { display: grid; grid-template-columns: 17px minmax(0, 1fr) 38px; align-items: center; gap: 4px; width: 100%; height: 36px; min-height: 36px; margin: 0; padding: 3px 8px 3px 15px; color: var(--home-ink); background: transparent; border-radius: 0; filter: none; text-align: left; border: 0 solid transparent; border-image: var(--sprite-button-secondary) 0 120 0 120 fill / 0 36px / 0 stretch; box-shadow: none; }
+:root .app-shell .card-detail-screen .card-protection-toggle > .app-icon { grid-area: 1 / 1; width: 17px; height: 17px; color: var(--home-ink); }
+:root .app-shell .card-detail-screen .card-protection-toggle > .app-icon g { stroke-width: 2; }
+:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { grid-area: 1 / 2; overflow: hidden; color: var(--home-ink); font-size: 12px; font-weight: 700; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+:root .app-shell .card-detail-screen .card-protection-toggle__switch { grid-area: 1 / 3; display: block; width: 38px; height: 22px; overflow: visible; padding: 2px; background: #3c2917; border: 1px solid #765025; border-radius: 12px; box-shadow: inset 0 2px 4px #160b08b3; }
+:root .app-shell .card-detail-screen .card-protection-toggle__switch > span { display: block; width: 16px; height: 16px; background: linear-gradient(145deg, #f1dfba, #c4a36e 62%, #e6cb94); border: 1px solid #806035; border-radius: 50%; box-shadow: inset 1px 1px #fff0c7, inset -1px -1px #967442, 0 1px 2px #140b0799; transition: transform 140ms ease; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch { background-color: #405330; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch > span { transform: translateX(16px); }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-busy="true"] { opacity: .75; }
+
+:root .app-shell .card-detail-screen .progression-panel--reference { display: grid; gap: 0; width: 100%; min-width: 0; min-height: 0; padding: 0; overflow: visible; color: var(--home-ink); background: none; border: 0; border-image: none; border-radius: 0; box-shadow: none; }
+:root .app-shell .card-detail-screen .progression-panel__content { display: grid; gap: 2px; }
+:root .app-shell .card-detail-screen .progression-panel__content[hidden] { display: none; }
+:root .app-shell .card-detail-screen .level-progress { height: 12px; margin: 0 2px; overflow: hidden; padding: 3px 5px; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; border: 0; border-radius: 0; box-shadow: none; }
+:root .app-shell .card-detail-screen .level-progress > span { display: block; height: 100%; background: linear-gradient(#ffc650, #dd8108 55%, #ba5b04); border: 0; box-shadow: inset 0 1px #fff0a0; }
+:root .app-shell .card-detail-screen .progression-panel__upgrade-row { display: flex; justify-content: center; padding: 0; border: 0; }
+:root .app-shell .card-detail-screen .level-up-button { display: grid; width: min(100%, 260px); height: 40px; min-height: 40px; margin: 0; padding: 2px 22px; place-items: center; color: var(--action-ink); background: transparent; border-radius: 0; filter: none; border: 0 solid transparent; border-image: var(--sprite-button-primary) 0 120 0 120 fill / 0 36px / 0 stretch; box-shadow: none; }
+:root .app-shell .card-detail-screen .level-up-button > span { position: relative; z-index: 1; color: var(--action-ink); font-family: var(--font-display) !important; font-size: 18.5px; line-height: 1; text-shadow: none; }
+:root .app-shell .card-detail-screen .level-up-button:disabled { opacity: .65; cursor: not-allowed; }
+:root .app-shell .card-detail-screen .progression-panel__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; padding: 2px 0 0; border: 0; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div { display: grid; align-content: center; justify-items: center; gap: 1px; min-height: 30px; padding: 0 4px; background: none; border: 0; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div + div { border-left: 1px solid #87633166; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span { width: auto; color: var(--home-ink-muted); font-family: var(--font-display) !important; font-size: 11px; line-height: 1; }
+:root .app-shell .card-detail-screen .progression-panel__facts strong { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; font-size: 20px; line-height: 1; }
+:root .app-shell .card-detail-screen .progression-panel__facts strong span { width: auto; font-family: inherit !important; font-size: inherit; line-height: inherit; }
+:root .app-shell .card-detail-screen .progression-panel__facts .currency-icon { width: 18px; height: 18px; margin: 0; }
+:root .app-shell .card-detail-screen .progression-panel__external-hint { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 3px 0 0; padding: 0; color: var(--home-ink); background: none; border: 0; font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center; }
+:root .app-shell .card-detail-screen .progression-panel__external-hint > span { flex: 0 0 auto; color: var(--home-ink-muted); font: 12px/1 Georgia, serif; }
+
+:root .app-shell .card-detail-screen .absorption-panel { display: grid; grid-template-rows: var(--upgrade-weak-height) minmax(0, 1fr); gap: 0; min-height: 0; padding: 0; overflow: hidden; background: none; border: 0; border-image: none; box-shadow: none; }
+:root .app-shell .card-detail-screen .weak-cards-heading { display: grid; width: 100%; height: var(--upgrade-weak-height); min-height: var(--upgrade-weak-height); grid-template-columns: 13% minmax(0, 1fr) auto 16px; align-items: center; gap: 8px; padding: 1px 16px; background: transparent; border-radius: 0; filter: none; border: 0 solid transparent; border-image: var(--sprite-menu-row) 0 160 0 160 fill / 0 36px / 0 stretch; box-shadow: none; }
+:root .app-shell .card-detail-screen .weak-cards-heading__icon { position: relative; z-index: 1; width: 28px; height: 28px; object-fit: contain; }
+:root .app-shell .card-detail-screen .weak-cards-heading__title { color: var(--home-ink); font-family: var(--font-display) !important; font-size: 15.5px; font-weight: 700; text-align: left; text-transform: uppercase; text-shadow: none; }
+:root .app-shell .card-detail-screen .weak-cards-heading__chevron { display: grid; place-items: center; color: var(--home-ink); }
+:root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon { width: 16px; height: 16px; transform: rotate(90deg); transition: transform 140ms ease; }
+:root .app-shell .card-detail-screen .weak-cards-heading[aria-expanded="true"] .weak-cards-heading__chevron .app-icon { transform: rotate(-90deg); }
+:root .app-shell .card-detail-screen .weak-cards-heading > small { display: grid; min-width: 26px; min-height: 21px; padding: 1px 7px; place-items: center; color: var(--home-ink-muted); background-color: #302215; border: 1px solid #a17d43; border-radius: 2px; font-size: 15px; line-height: 1; clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%); }
+:root .app-shell .card-detail-screen .weak-cards-content { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; margin: -1px 6px 0; overflow: hidden; background: #281a10; border: 1px solid #72522d; }
+:root .app-shell .card-detail-screen .weak-cards-content[hidden] { display: none; }
+:root .app-shell .card-detail-screen .weak-cards-content > .selector-state { min-height: 0; height: 100%; padding: 8px 10px; color: var(--home-ink); background: transparent; border: 0; box-shadow: none; font-size: 12px; line-height: 1.3; }
+:root .app-shell .card-detail-screen .weak-cards-content > .selector-state--empty { display: flex; align-items: center; justify-content: flex-end; padding: 6px 10px 16px; background: transparent; }
+:root .app-shell .card-detail-screen .selector-state--empty > span { max-width: 68%; color: var(--home-ink-muted); font-size: 12px; line-height: 1.3; text-align: center; }
+:root .app-shell .card-detail-screen .absorption-grid { display: grid; grid-auto-flow: column; grid-auto-columns: 60px; grid-template-columns: none; grid-template-rows: 78px; gap: 6px; min-height: 0; padding: 6px; overflow-x: auto; overflow-y: hidden; }
+:root .app-shell .card-detail-screen .absorption-grid .deck-card { width: 60px; height: 78px; }
+:root .app-shell .card-detail-screen .weak-cards-content .card-pagination { min-height: 23px; margin: 0; padding: 0; }
+:root .app-shell .card-detail-screen .weak-cards-content .card-pagination button { min-height: 23px; height: 23px; padding-block: 1px; }
+:root .app-shell .card-detail-screen .card-detail-actions { display: grid; gap: 4px; padding: 0; }
+
+:root .card-detail-feedback-layer {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  pointer-events: none;
+}
+:root .card-detail-feedback-layer :is(.action-feedback, .card-action-error) {
+  position: absolute;
+  right: auto;
+  bottom: calc(var(--home-navigation-height, 68px) + env(safe-area-inset-bottom, 0px) + 8px);
+  left: 50%;
+  display: grid;
+  box-sizing: border-box;
+  width: min(401px, calc(100vw - 24px));
+  max-width: 401px;
+  min-height: clamp(40px, 12vw, 52px);
+  height: auto;
+  margin: 0;
+  padding: 8px 24px;
+  place-items: center;
+  color: var(--state-danger);
+  background: transparent;
+  border-radius: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-align: center;
+  white-space: normal;
+  transform: translateX(-50%);
+  border: 0 solid transparent;
+  border-image: var(--sprite-button-secondary) 0 120 0 120 fill / 0 36px / 0 stretch;
+  box-shadow: none;
+}
+:root .card-detail-feedback-layer .card-action-error { color: var(--state-danger); }
+:root .card-detail-feedback-layer .action-feedback--success { animation: card-detail-feedback-enter 420ms ease-out both; }
+@keyframes card-detail-feedback-enter {
+  0% { opacity: .55; transform: translate(-50%, 3px); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .card-detail-feedback-layer .action-feedback--success { animation: none; }
+}
+
+@media (max-height: 640px) {
+  :root .app-shell .card-detail-screen { --upgrade-heading-height: 36px; --upgrade-weak-height: 30px; --book-compact-height: 28px; gap: 3px; }
+  :root .app-shell .card-detail-screen .card-detail-overview { gap: 3px; }
+  :root .app-shell .card-detail-screen .progression-panel--reference { padding: 0; }
+  :root .app-shell .card-detail-screen .level-progress { height: 10px; padding-block: 2px; }
+  :root .app-shell .card-detail-screen .level-up-button { height: 34px; min-height: 34px; }
+  :root .app-shell .card-detail-screen .level-up-button > span { font-size: 17px; }
+  :root .app-shell .card-detail-screen .progression-panel__facts > div { min-height: 28px; }
+  :root .app-shell .card-detail-screen .progression-panel__facts strong { font-size: 18px; }
+  :root .app-shell .card-detail-screen .progression-panel__external-hint { font-size: 9.5px; }
+  :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__icon { width: 24px; height: 24px; }
+  :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__title { font-size: 15px; }
+  :root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 24px; height: 24px; }
+  :root .app-shell .card-detail-screen .weak-cards-heading__title { font-size: 14px; }
+}
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-detail-overview__main { gap: 6px; }
+  :root .app-shell .card-detail-screen .card-detail-reference-stats { padding: 4px; }
+  :root .app-shell .card-detail-screen .card-detail-reference-stat { grid-template-columns: 17px minmax(0, 1fr) auto; min-height: 27px; font-size: 12px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle { gap: 3px; padding-inline: 12px 7px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: 11.5px; }
+}
+@media (min-height: 760px) {
+  :root .app-shell .card-detail-screen { --upgrade-heading-height: 48px; --upgrade-weak-height: 40px; --book-compact-height: 40px; gap: 6px; }
+  :root .app-shell .card-detail-screen .card-detail-overview { gap: 6px; }
+  :root .app-shell .card-detail-screen .card-detail-overview__main { grid-template-columns: 40% minmax(0, 1fr); }
+  :root .app-shell .card-detail-screen .card-detail-reference-stat { min-height: 34px; font-size: 14px; }
+  :root .app-shell .card-detail-screen .card-detail-reference-stat > strong { font-size: 22px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle { height: 40px; min-height: 40px; }
+  :root .app-shell .card-detail-screen .progression-panel--reference { padding: 0; }
+  :root .app-shell .card-detail-screen .level-progress { height: 14px; }
+  :root .app-shell .card-detail-screen .level-up-button { height: 48px; min-height: 48px; }
+  :root .app-shell .card-detail-screen .level-up-button > span { font-size: 21px; }
+  :root .app-shell .card-detail-screen .progression-panel__facts > div { min-height: 40px; }
+  :root .app-shell .card-detail-screen .progression-panel__facts > div > span { font-size: 12px; }
+  :root .app-shell .card-detail-screen .progression-panel__facts strong { font-size: 22px; }
+  :root .app-shell .card-detail-screen .progression-panel__external-hint { font-size: 12px; }
+  :root .app-shell .card-detail-screen .card-detail-actions { gap: 6px; }
+  :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__icon { width: 32px; height: 32px; }
+  :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__title { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__switch > span,
+  :root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon { transition: none; }
+}
+
+/* Card detail: the shared TopHud stays unchanged; the screen keeps a readable plate and natural scrolling. */
+:root .app-shell:has(.card-detail-screen) {
+  max-width: 425px;
+}
+
+:root .app-shell .app-content:has(.card-detail-screen) {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+:root .app-shell .app-screen-transition:has(> .card-detail-screen) {
+  height: auto;
+  min-height: 100%;
+}
+:root .app-shell .card-detail-screen {
+  --upgrade-heading-height: 36px;
+  --upgrade-weak-height: 31px;
+  --book-compact-height: 29px;
+  height: auto;
+  min-height: 100%;
+  align-content: start;
+  gap: 4px;
+}
+:root .app-shell .card-detail-screen[data-expanded-panel] {
+  height: auto;
+  min-height: 100%;
+  grid-template-rows: var(--upgrade-heading-height) auto var(--upgrade-weak-height) auto;
+}
+:root .app-shell .card-detail-screen[data-expanded-panel="weak"] {
+  grid-template-rows: var(--upgrade-heading-height) auto auto auto;
+}
+:root .app-shell .card-detail-screen .card-detail-overview {
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+  min-height: 0;
+}
+:root .app-shell .card-detail-screen[data-expanded-panel="weak"] .card-detail-overview { grid-template-rows: auto auto auto; }
+:root .app-shell .card-detail-screen .card-detail-overview__main {
+  grid-template-columns: minmax(108px, min(132px, 36%)) minmax(0, 1fr);
+  align-self: start;
+  gap: 8px;
+}
+:root .app-shell .card-detail-screen .card-detail-overview__side { gap: 5px; }
+:root .app-shell .card-detail-screen .card-detail-reference-stats {
+  grid-template-rows: repeat(3, auto);
+  align-content: space-evenly;
+  /* Height follows the three rows, so narrow phones never squeeze them together. */
+  aspect-ratio: auto;
+  row-gap: 2px;
+  padding-block: 12px 14px;
+  gap: 0;
+  padding: 5px 8% 10px;
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .card-detail-reference-stat {
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px;
+  padding: 0 2%;
+  color: var(--home-ink);
+  border-bottom: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+:root .app-shell .card-detail-screen .card-detail-reference-stat > span {
+  color: var(--home-ink-muted);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 4.2vw, 17px);
+  font-weight: 700;
+  line-height: 1.1;
+}
+:root .app-shell .card-detail-screen .card-detail-reference-stat > strong {
+  justify-self: end;
+  font-size: clamp(23px, 6.2vw, 26px);
+  color: var(--home-ink);
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  line-height: 1;
+  text-align: right;
+}
+:root .app-shell .card-detail-screen .card-protection-toggle {
+  grid-template-columns: 16px minmax(0, 1fr) 34px;
+  height: 32px;
+  min-height: 32px;
+  gap: 4px;
+  padding: 2px 8px 2px 12px;
+}
+:root .app-shell .card-detail-screen .card-protection-toggle > .app-icon { width: 16px; height: 16px; }
+:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: 11.5px; }
+:root .app-shell .card-detail-screen .card-protection-toggle__switch {
+  box-sizing: border-box;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+}
+:root .app-shell .card-detail-screen .card-protection-toggle__switch > span { box-sizing: border-box; width: 14px; height: 14px; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] { color: var(--state-success); }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] > .app-icon { color: var(--state-success); }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch { background-color: #4b733b; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch > span { transform: translateX(14px); }
+
+:root .app-shell .card-detail-screen .progression-panel--reference {
+  min-height: 0;
+  gap: 0;
+  width: min(100%, 370px);
+  justify-self: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .progression-panel__content { gap: 2px; }
+:root .app-shell .card-detail-screen .level-progress {
+  height: 9px;
+  margin-inline: 2px;
+  padding: 2px 4px;
+}
+:root .app-shell .card-detail-screen .progression-panel__upgrade-row { padding: 0; }
+:root .app-shell .card-detail-screen .level-up-button {
+  width: min(100%, 260px);
+  height: 36px;
+  min-height: 36px;
+  padding-inline: 18px;
+}
+:root .app-shell .card-detail-screen .level-up-button > span { font-size: 16.5px; }
+:root .app-shell .card-detail-screen .progression-panel__facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding-top: 2px;
+  border-top: 0;
+  border-bottom: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div {
+  min-width: 0;
+  min-height: 30px;
+  gap: 2px;
+  padding: 1px 4px;
+  background: none;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div + div { border-left: 1px solid rgb(112 79 39 / 32%); }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span { font-size: 10.5px; line-height: 1.1; text-align: center; }
+:root .app-shell .card-detail-screen .progression-panel__facts strong {
+  min-width: 0;
+  gap: 4px;
+  font-size: 18px;
+  white-space: nowrap;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts .currency-icon { width: 17px; height: 17px; }
+:root .app-shell .card-detail-screen .progression-panel__external-hint {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+  color: var(--home-ink);
+  background: none;
+  border: 0;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+:root .app-shell .card-detail-screen .absorption-panel {
+  grid-template-rows: auto auto;
+  min-height: 0;
+  overflow: visible;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading {
+  height: var(--upgrade-weak-height);
+  min-height: var(--upgrade-weak-height);
+  grid-template-columns: 34px minmax(0, 1fr) auto 16px;
+  gap: 6px;
+  padding: 1px 13px;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 23px; height: 23px; justify-self: center; }
+:root .app-shell .card-detail-screen .weak-cards-heading__title { font-size: 13px; }
+:root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon { width: 14px; height: 14px; }
+:root .app-shell .card-detail-screen .weak-cards-heading > small { min-width: 23px; min-height: 18px; font-size: 12px; }
+:root .app-shell .card-detail-screen .weak-cards-content {
+  grid-template-rows: auto auto;
+  min-height: 0;
+  margin: 0 6px;
+  overflow: visible;
+}
+:root .app-shell .card-detail-screen .weak-cards-content > .selector-state { height: auto; }
+:root .app-shell .card-detail-screen .absorption-grid {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-content: start;
+  gap: 6px;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+:root .app-shell .card-detail-screen .absorption-card-slot {
+  flex: 0 1 60px;
+  width: 60px;
+  max-width: 60px;
+  min-width: 0;
+  aspect-ratio: 10 / 13;
+}
+:root .app-shell .card-detail-screen .absorption-grid .deck-card {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 10 / 13;
+}
+:root .app-shell .card-detail-screen .card-detail-actions { gap: 3px; }
+:root .app-shell .card-detail-screen .menu-row.menu-row--book.menu-row--compact {
+  --menu-row-height: var(--book-compact-height);
+  grid-template-columns: 34px minmax(0, 1fr) auto 16px;
+  gap: 5px;
+  padding: 0 13px;
+}
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__icon { width: 23px; height: 23px; }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__title { font-size: 15px; text-align: left; }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__action { justify-self: end; }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__indicator { width: 6px; height: 6px; box-shadow: 0 0 0 1px rgb(73 106 50 / 15%); }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__chevron { justify-self: end; margin-right: 8px; }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__chevron .app-icon { width: 15px; height: 15px; }
+
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-detail-overview__main { grid-template-columns: minmax(104px, min(120px, 36%)) minmax(0, 1fr); gap: 6px; }
+  :root .app-shell .card-detail-screen .card-detail-reference-stats { padding: 5px 7% 10px; }
+  :root .app-shell .card-detail-screen .card-detail-reference-stat { gap: 4px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle { grid-template-columns: 15px minmax(0, 1fr) 32px; gap: 3px; padding-inline: 9px 6px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle__switch { width: 32px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch > span { transform: translateX(12px); }
+  :root .app-shell .card-detail-screen .weak-cards-heading { padding-inline: 10px; }
+  :root .app-shell .card-detail-screen .menu-row.menu-row--book.menu-row--compact { padding-inline: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__switch > span { transition: none; }
+}
+
+/* Keep the navigation sprites upright and their text clear of the left medallion. */
+:root .app-shell .card-detail-screen {
+  --upgrade-weak-height: 36px;
+  --book-compact-height: 36px;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading {
+  grid-template-columns: 64px minmax(0, 1fr) auto 34px;
+  gap: 6px;
+  padding-inline: 13px;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__chevron {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  justify-self: end;
+  margin-right: 8px;
+  place-items: center;
+  color: var(--home-ink);
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon {
+  width: 22px;
+  height: 22px;
+  color: inherit;
+}
+:root .app-shell .card-detail-screen .weak-cards-content {
+  background: none;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 25px; height: 25px; }
+:root .app-shell .card-detail-screen .weak-cards-heading__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root .app-shell .card-detail-screen .menu-row.menu-row--book.menu-row--compact {
+  --menu-row-height: 36px;
+  grid-template-columns: 64px minmax(0, 1fr) auto 16px;
+  gap: 6px;
+  padding-inline: 13px;
+}
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__icon { width: 26px; height: 26px; }
+:root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__title { font-size: 15.5px; }
+
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .weak-cards-heading {
+    grid-template-columns: 60px minmax(0, 1fr) auto 16px;
+    gap: 4px;
+    padding-inline: 10px;
+  }
+  :root .app-shell .card-detail-screen .menu-row.menu-row--book.menu-row--compact {
+    grid-template-columns: 60px minmax(0, 1fr) auto 16px;
+    gap: 4px;
+    padding-inline: 10px;
+  }
+}
+
+:root .fxp {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  color: #a6ffb0;
+  font: 700 24px Georgia, "Times New Roman", serif;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  text-shadow: 0 0 5px #3dff78, 0 0 14px #19c452, 0 1px 0 #05301a;
+  will-change: transform, opacity;
+}
+:root .fxspark { text-shadow: 0 0 6px #3dff78, 0 0 12px #19c452; }
+:root .fxtrail { text-shadow: 0 0 10px #3dff78; }
+:root .fxflash,
+:root .fxring {
+  position: fixed;
+  z-index: 59;
+  pointer-events: none;
+  border-radius: 50%;
+}
+:root .fxflash {
+  background: radial-gradient(circle, rgba(190,255,200,.95), rgba(50,225,100,.5) 38%, rgba(20,200,80,0) 70%);
+  mix-blend-mode: screen;
+}
+:root .fxring { border: 2px solid #9dffa8; box-shadow: 0 0 16px #2cff6a, inset 0 0 14px #2cff6a; }
+:root .card-detail-screen .fx-layer { position: absolute; z-index: 6; inset: 0; pointer-events: none; }
+:root .card-detail-screen .fx-layer svg { display: block; width: 100%; height: 100%; }
+:root .card-detail-screen .fx-outline {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px #ffc94a) drop-shadow(0 0 12px rgba(255,190,60,.6));
+}
+:root .card-detail-screen .fx-layer.protected .fx-outline { opacity: .55; animation: auraPulse 2.6s ease-in-out infinite; }
+@keyframes auraPulse {
+  0%, 100% { opacity: .3; filter: drop-shadow(0 0 3px #ffc94a) drop-shadow(0 0 8px rgba(255,190,60,.4)); }
+  50% { opacity: .75; filter: drop-shadow(0 0 6px #ffd76a) drop-shadow(0 0 16px rgba(255,190,60,.8)); }
+}
+:root .card-detail-screen .fx-sweep {
+  position: absolute;
+  inset: 1%;
+  opacity: 0;
+  clip-path: polygon(5% 0%,95% 0%,100% 5%,100% 95%,95% 100%,5% 100%,0% 95%,0% 5%);
+  background: linear-gradient(112deg,transparent 40%,rgba(255,232,150,.7) 50%,transparent 60%) 160% 0 / 220% 100% no-repeat;
+  mix-blend-mode: screen;
+}
+:root .card-detail-screen .fx-lock {
+  position: absolute;
+  top: 15.5%;
+  left: 86%;
+  display: none;
+  width: 13%;
+  aspect-ratio: 44 / 84;
+  transform-origin: 50% 7%;
+  filter: drop-shadow(0 3px 3px #000a);
+}
+:root .card-detail-screen .fx-lock.on { display: block; }
+:root .card-detail-screen .fx-lock.idle { animation: lockSwing 3.4s ease-in-out infinite alternate; }
+@keyframes lockSwing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+:root .card-detail-screen .fx-lock .shackle { transform: translateY(-6px); transition: transform .16s cubic-bezier(.5,0,.2,1.7); }
+:root .card-detail-screen .fx-lock.closed .shackle { transform: translateY(0); }
+:root .fxflash.gold { background: radial-gradient(circle,rgba(255,246,200,.95),rgba(255,190,60,.5) 38%,rgba(255,170,40,0) 70%); }
+:root .fxring.gold { border-color: #ffe08a; box-shadow: 0 0 16px #ffb92e, inset 0 0 14px #ffb92e; }
+:root .fxp.gold { color: #ffe9a0; text-shadow: 0 0 6px #ffc24a, 0 0 14px #e89a1a, 0 1px 0 #3a2603; }
+@media (prefers-reduced-motion: reduce) {
+  :root .card-detail-screen .fx-layer.protected .fx-outline { animation: none; opacity: .55; }
+}
+
+/* Absorption progress: the same hand-drawn vine as the HUD experience bar, growing with absorbed elements. */
+:root .app-shell .card-detail-screen .progression-panel .level-progress {
+  height: auto;
+  margin: 0 4px;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .progression-panel .level-progress .experience-vine { width: 100%; }
+
+/* The absorption expander wears the same clasp strip and engraved icon as the menu rows below it. */
+:root .app-shell .card-detail-screen .weak-cards-heading {
+  --upgrade-weak-height: 52px;
+  height: var(--upgrade-weak-height);
+  min-height: var(--upgrade-weak-height);
+  grid-template-columns: 38px minmax(0, 1fr) auto 18px;
+  column-gap: 10px;
+  margin-bottom: 4px;
+  padding: 4px 9% 4px 9%;
+  background: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-image: none;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 38px; height: 38px; object-fit: contain; }
+:root .app-shell .card-detail-screen .weak-cards-heading__title {
+  overflow: visible;
+  font-size: clamp(14px, 4.2vw, 17px);
+  line-height: 1.1;
+  text-overflow: clip;
+  text-transform: none;
+  white-space: normal;
+}
+:root .app-shell .card-detail-screen .weak-cards-heading > small {
+  min-width: 40px;
+  min-height: 22px;
+  padding: 0 10px;
+  color: #f4e2b8;
+  background: url("/assets/ui/home/deck-counter-tag-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Upgrade plate: hint, vine, button and the one-line "Сила / Ціна" summary share one frame, as one action. */
+:root .app-shell .card-detail-screen .progression-panel--reference {
+  margin-top: 4px;
+  padding: 16px 18px 16px;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+}
+:root .app-shell .card-detail-screen .progression-panel__content { gap: 6px; }
+:root .app-shell .card-detail-screen .progression-panel--reference .progression-panel__external-hint {
+  margin: 0;
+  color: var(--home-ink-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  padding: 0;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+}
+:root .app-shell .card-detail-screen .progression-panel__facts > div + div::before { display: none; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span {
+  color: var(--home-ink-muted);
+  font: 600 14px/1 var(--font-display);
+}
+
+/* With no weak cards of this element, one quiet line replaces the absorption expander. */
+:root .app-shell .card-detail-screen .absorption-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+  padding-inline: 12px;
+  color: var(--home-ink-muted);
+  font: 600 clamp(12.5px, 3.8vw, 14px)/1.3 var(--font-display);
+  text-align: center;
+}
+:root .app-shell .card-detail-screen .absorption-panel[hidden] { display: none; }
+
+/* Protection switch: readable label, a clear lock, and a thumb that stays clear of the frame's corner studs. */
+:root .app-shell .card-detail-screen .card-protection-toggle {
+  grid-template-columns: 20px minmax(0, 1fr) 42px;
+  gap: 8px;
+  height: 42px;
+  min-height: 42px;
+  padding: 3px 18px 3px 16px;
+}
+:root .app-shell .card-detail-screen .card-protection-toggle > .app-icon { width: 19px; height: 19px; }
+:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) {
+  font: 700 clamp(12.5px, 3.6vw, 14px)/1.1 var(--font-display);
+}
+:root .app-shell .card-detail-screen .card-protection-toggle__switch { width: 42px; height: 24px; padding: 2px; }
+:root .app-shell .card-detail-screen .card-protection-toggle__switch > span { width: 18px; height: 18px; transition: transform 160ms ease-out; }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] .card-protection-toggle__switch > span { transform: translateX(18px); }
+:root .app-shell .card-detail-screen .card-protection-toggle[aria-checked="true"] > .app-icon { filter: drop-shadow(0 0 3px rgb(120 200 90 / 60%)); }
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__switch > span { transition: none; }
+}
+/* On narrow phones the switch itself shows the state; the label shortens instead of truncating. */
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-protection-toggle { gap: 6px; padding-inline: 14px 16px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle__state { display: none; }
+}
+
+/* The card is the hero of this screen: give it about 45% of the width, stats and switch stay beside it. */
+:root .app-shell .card-detail-screen .card-detail-overview__main {
+  grid-template-columns: minmax(128px, 45%) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+:root .app-shell .card-detail-screen .card-detail-overview__side { align-content: center; gap: 8px; }
+@media (max-width: 380px) {
+  :root .app-shell .card-detail-screen .card-detail-overview__main { grid-template-columns: minmax(118px, 43%) minmax(0, 1fr); gap: 8px; }
+}
+
+/* Weak cards shown inline, as in the reference: a ribbon title, cards, and "Поглинути +N%" under each. */
+:root .app-shell .card-detail-screen .absorption-panel {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+}
+:root .app-shell .card-detail-screen .absorption-panel__title { justify-self: stretch; margin: 4px 0 0; }
+:root .app-shell .card-detail-screen .absorption-grid--inline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .absorption-card-slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: clamp(76px, 22vw, 92px);
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { width: 100%; height: auto; }
+:root .app-shell .card-detail-screen .absorption-card-slot__action {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 2px 4px;
+  color: var(--home-ink);
+  background: none;
+  border: 0;
+  font: 700 13px/1.15 var(--font-display);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:root .app-shell .card-detail-screen .absorption-card-slot__action > span { text-decoration: underline; text-decoration-color: rgb(109 62 16 / 55%); text-underline-offset: 3px; }
+:root .app-shell .card-detail-screen .absorption-card-slot__action > strong { color: var(--state-success); font: 800 14px/1 var(--font-display); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action:active { transform: translateY(1px); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action:disabled { opacity: .55; cursor: default; }
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { display: block; aspect-ratio: 240 / 312; min-height: 0; }
+:root .app-shell .card-detail-screen .absorption-grid--inline { min-height: 0; overflow: visible; }
+
+/* The screen is now a plain vertical flow; the old fixed rows sized the collapsed expander. */
+:root .app-shell .card-detail-screen[data-expanded-panel] { grid-template-rows: none; grid-auto-rows: auto; }
+:root .app-shell .card-detail-screen .absorption-panel { grid-template-rows: none; grid-auto-rows: auto; min-height: auto; overflow: visible; }
+:root .app-shell .card-detail-screen .absorption-grid--inline { grid-auto-flow: row; grid-template-rows: none; padding: 0; overflow: visible; }
+@media (max-width: 440px) {
+  :root .app-shell .card-detail-screen .card-protection-toggle__state { display: none; }
+}
+:root .app-shell .card-detail-screen .absorption-grid--inline .absorption-card-slot { flex: 0 0 auto; max-width: none; aspect-ratio: auto; overflow: visible; }
+:root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { height: auto; }

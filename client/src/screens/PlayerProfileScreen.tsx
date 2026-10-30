@@ -1,7 +1,7 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { getLeagueByRating } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { CardArtwork } from "../components/CardArtwork";
-import { CardQualityBadge } from "../components/CardQualityBadge";
 import { EquipmentLoadout } from "../components/EquipmentLoadout";
 import { LeagueBadge } from "../components/LeagueBadge";
 import { LeagueProgressCard } from "../components/LeagueProgressCard";
@@ -55,15 +55,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
 
   return (
     <section className="player-profile-screen">
-      <header className="player-profile-screen__heading">
-        <button aria-label="Назад" className="player-profile-screen__back" onClick={onBack} type="button">
-          <AppIcon name="chevron" size={20} />
-        </button>
-        <div>
-          <span>РЕЙТИНГ</span>
-          <h1>ПРОФІЛЬ ГРАВЦЯ</h1>
-        </div>
-      </header>
+      <ScreenHeading eyebrow="РЕЙТИНГ" onBack={onBack} title="ПРОФІЛЬ ГРАВЦЯ" />
 
       {state.status === "loading" ? <div className="player-profile-state">Завантаження профілю…</div> : null}
       {state.status === "unavailable" ? <div className="player-profile-state">Профіль доступний після запуску через Telegram.</div> : null}
@@ -118,9 +110,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
               <div className="player-profile-strongest-cards">
                 {state.data.strongestCards.map((card) => (
                   <article className={`player-profile-card-preview player-profile-card-preview--${card.element} player-profile-card-preview--${card.rarity}`} key={card.instanceId}>
-                    <CardArtwork artKey={card.artKey} cardId={card.cardId} disableHolo element={card.element} />
-                    <CardQualityBadge rarity={card.rarity} size="tiny" />
-                    <strong>{formatScore(card.finalPower)}</strong>
+                    <div className="player-profile-card-plate"><CardArtwork artKey={card.artKey} cardId={card.cardId} disableHolo element={card.element} power={card.finalPower} rarity={card.rarity} /></div>
                     <span>{card.displayName ?? "Карта"}</span>
                   </article>
                 ))}

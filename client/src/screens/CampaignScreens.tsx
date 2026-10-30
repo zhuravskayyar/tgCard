@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,7 +11,7 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
-import { CardArtwork } from "../components/CardArtwork";
+import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { FirstVisitHint } from "../components/FirstVisitHint";
@@ -57,12 +58,7 @@ function CampaignHeading({ eyebrow, onBack, title, titleFirst = false }: {
   titleFirst?: boolean;
 }) {
   return (
-    <header className={`campaign-heading${titleFirst ? " campaign-heading--title-first" : ""}`}>
-      <button aria-label="Назад" onClick={onBack} type="button"><AppIcon name="chevron" size={18} /></button>
-      <div>
-        {titleFirst ? <><h1>{title}</h1><span>{eyebrow}</span></> : <><span>{eyebrow}</span><h1>{title}</h1></>}
-      </div>
-    </header>
+    <ScreenHeading eyebrow={eyebrow} onBack={onBack} title={title} titleFirst={titleFirst} />
   );
 }
 
@@ -136,6 +132,25 @@ function useCampaign(): CampaignLoadState {
     return () => controller.abort();
   }, []);
   return state;
+}
+
+export function CampaignLockedHub({ caveName, onBack, onOpenTrials }: {
+  caveName: string | null;
+  onBack: () => void;
+  onOpenTrials: () => void;
+}) {
+  return (
+    <div className="campaign-screen">
+      <CampaignHeading eyebrow="Шлях гравця" onBack={onBack} title="Кампанія" titleFirst />
+      <section className="campaign-stage-list" aria-label={caveName ?? "Кампанія"}>
+        <div className="campaign-locked-hub__map">
+          {caveName ? <h2 className="campaign-locked-hub__name">{caveName}</h2> : null}
+        </div>
+        <p className="campaign-locked-hub__hint">Пройди випробування!</p>
+        <MenuRow attention compact icon="campaign" metalTexture onClick={onOpenTrials} title="Випробування" />
+      </section>
+    </div>
+  );
 }
 
 export function CampaignScreen({ onBack, onCampaignCompleted, onOpenBoss, onOpenStage }: {
@@ -448,10 +463,14 @@ function BossVictoryResult({ battle, onReturn }: { battle: CampaignBossView; onR
       </div>
       {result.accountBoostMultiplier === 2 ? <p>Буст ×2 активний на 24 години</p> : null}
       {result.rewardCard ? (
-        <div className={`campaign-boss-reward-card deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}>
-          <CardArtwork artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} />
-          <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
+        <div className="campaign-boss-reward">
+          <div className={`campaign-boss-reward-card deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}>
+          <CardFxWrapper artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} rarity={result.rewardCard.rarity}>
+            <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
+          </CardFxWrapper>
+          </div>
           <strong>{result.rewardCard.displayName ?? result.rewardCard.code}</strong>
+          <small>Рівень {result.rewardCard.level} · {result.rewardCard.rarity}</small>
         </div>
       ) : null}
       <button onClick={onReturn} type="button">До кампанії</button>

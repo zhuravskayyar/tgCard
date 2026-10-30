@@ -51,7 +51,7 @@ test("new player receives nine starters and a second login does not duplicate th
       firstInventory.map(({ displayName }) => displayName),
       STARTER_CARDS.map(({ displayName }) => displayName),
     );
-    assert.ok(firstInventory.every((card) => card.artKey === null));
+    assert.ok(firstInventory.every((card) => card.artKey === STARTER_CARDS.find(({ id }) => id === card.cardId)?.artKey));
 
     const secondPlayer = await players.findOrCreateFromTelegram(user);
     const secondInventory = await inventory.findByPlayerId(secondPlayer.id);
@@ -80,7 +80,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
       `SELECT player_card_instances.id
        FROM player_card_instances
        INNER JOIN cards ON cards.id = player_card_instances.card_id
-       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_v5_01'`,
       [player.id],
     )).rows[0];
     assert.ok(starter);
@@ -97,7 +97,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
         `SELECT COUNT(*) AS count
          FROM player_card_instances
          INNER JOIN cards ON cards.id = player_card_instances.card_id
-         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_v5_01'`,
         [player.id],
       )).rows[0]?.count),
       0,

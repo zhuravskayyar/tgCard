@@ -8,7 +8,7 @@ test("battle pass thresholds fit the monthly diamond income", () => {
 });
 
 test("reference reward nodes use a currency boost, silver, gold, and a lowest-deck-level card", () => {
-  assert.deepEqual(BATTLE_PASS_MILESTONES.map(({ reward }) => reward?.kind ?? null), ["boost", null, "silver", null, "gold", null, "card"]);
+  assert.deepEqual(BATTLE_PASS_MILESTONES.map(({ reward }) => reward?.kind ?? null), ["boost", "equipment", "silver", "equipment", "gold", "equipment", "card"]);
   assert.deepEqual(BATTLE_PASS_MILESTONES[0]?.reward, {
     durationHours: 24,
     kind: "boost",

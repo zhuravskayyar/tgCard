@@ -1,16 +1,19 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
-import { getTelegramWebApp } from "../telegram";
+import { getRawTelegramInitData } from "../telegram";
 import {
   AccountLinkError,
   linkGoogleAccount,
   linkTelegramAccount,
+  linkTelegramMiniAppAccount,
   loadCurrentAuth,
   logoutPlayer,
 } from "../telegram/authenticatePlayer";
+import type { AuthSessionProvider } from "@cardastika/shared";
 import type { PlayerSummaryState } from "../types/player";
 
 interface SettingsScreenProps {
@@ -27,7 +30,8 @@ function isLinked(identities: AuthIdentityView[], provider: AuthIdentityView["pr
 
 type LinkRequest =
   | { provider: "google"; credential: string }
-  | { provider: "telegram"; authData: Record<string, string> };
+  | { provider: "telegram"; authData: Record<string, string> }
+  | { provider: "telegram"; initData: string };
 
 type TransferRequest = Extract<LinkRequest, { provider: "google" }>;
 
@@ -62,20 +66,22 @@ function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: Accou
 }
 
 export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSummaryState, showTutorialReplay }: SettingsScreenProps) {
+  const isLocalBrowser = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const [identities, setIdentities] = useState<AuthIdentityView[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
+  const [sessionProvider, setSessionProvider] = useState<AuthSessionProvider | null>(null);
   const [pendingProvider, setPendingProvider] = useState<LinkRequest["provider"] | null>(null);
   const [transferRequest, setTransferRequest] = useState<TransferRequest | null>(null);
   const linkInFlightRef = useRef(false);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
-  const isTelegram = Boolean(getTelegramWebApp());
+  const isTelegram = Boolean(getRawTelegramInitData());
 
   useEffect(() => {
     const controller = new AbortController();
     void loadCurrentAuth(controller.signal)
-      .then((value) => { setIdentities(value.identities); setState("ready"); })
+      .then((value) => { setIdentities(value.identities); setSessionProvider(value.sessionProvider); setState("ready"); })
       .catch(() => { if (!controller.signal.aborted) setState("error"); });
     return () => controller.abort();
   }, []);
@@ -90,16 +96,20 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
     try {
       const result = request.provider === "google"
         ? await linkGoogleAccount(request.credential, controller.signal, replaceExisting)
-        : await linkTelegramAccount(request.authData, controller.signal);
+        : "initData" in request
+          ? await linkTelegramMiniAppAccount(request.initData, controller.signal)
+          : await linkTelegramAccount(request.authData, controller.signal);
       setIdentities(result.identities);
       setTransferRequest(null);
-      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.`);
+      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Отримано 500 золота." : ""}`);
     } catch (error) {
       if (
         request.provider === "google"
         && error instanceof AccountLinkError
         && error.code === "identity_belongs_to_other_player"
         && !replaceExisting
+        && sessionProvider !== null
+        && sessionProvider !== "guest"
       ) {
         setTransferRequest(request);
       } else {
@@ -110,7 +120,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       linkInFlightRef.current = false;
       setPendingProvider(null);
     }
-  }, []);
+  }, [sessionProvider]);
 
   async function handleLogout() {
     await logoutPlayer();
@@ -119,11 +129,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
 
   return (
     <section className="settings-screen">
-      <header className="settings-heading">
-        <button className="screen-back" onClick={onBack} type="button" aria-label="Назад">‹</button>
-        <h1>НАЛАШТУВАННЯ</h1>
-        <span aria-hidden="true" />
-      </header>
+      <ScreenHeading onBack={onBack} title="НАЛАШТУВАННЯ" />
 
       <section className="settings-section" aria-labelledby="settings-account">
         <h2 id="settings-account">АКАУНТ</h2>
@@ -132,13 +138,21 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
             <span>Telegram</span>
             {isLinked(identities, "telegram")
               ? <strong>✓ Прив'язано</strong>
-              : <TelegramLoginButton disabled={pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
+              : isTelegram
+                ? <button className="auth-provider-button" disabled={state !== "ready" || pendingProvider !== null} onClick={() => {
+                    const initData = getRawTelegramInitData();
+                    if (initData) void link({ provider: "telegram", initData });
+                    else setLinkError("Не вдалося перевірити Telegram. Закрий і знову відкрий гру з Telegram.");
+                  }} type="button">{pendingProvider === "telegram" ? "Прив’язуємо…" : "Прив’язати Telegram"}</button>
+                : isLocalBrowser
+                  ? <span className="settings-provider__hint">Відкрий гру в Telegram, щоб прив’язати акаунт.</span>
+                  : <TelegramLoginButton disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
           </div>
           <div className="settings-provider">
             <span>Google</span>
             {isLinked(identities, "google")
               ? <strong>✓ Прив'язано</strong>
-              : <GoogleSignInButton disabled={pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
+              : <GoogleSignInButton disabled={state !== "ready" || pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
           </div>
         </div>
         {state === "loading" ? <p className="settings-hint">Завантаження способів входу…</p> : null}
@@ -157,16 +171,16 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-game">
         <h2 id="settings-game">ГРА</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="guild" metalTexture title="Звуки — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Музика — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Вібрація — незабаром" />
+          <MenuRow compact disabled icon="sound" metalTexture title="Звуки — незабаром" />
+          <MenuRow compact disabled icon="music" metalTexture title="Музика — незабаром" />
+          <MenuRow compact disabled icon="vibration" metalTexture title="Вібрація — незабаром" />
         </div>
       </section>
 
       <section className="settings-section" aria-labelledby="settings-interface">
         <h2 id="settings-interface">ІНТЕРФЕЙС</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="deck" metalTexture title="Анімації — незабаром" />
+          <MenuRow compact disabled icon="animation" metalTexture title="Анімації — незабаром" />
           <MenuRow compact disabled icon="card-strength" metalTexture title="Ефекти карт — незабаром" />
         </div>
       </section>
@@ -174,9 +188,9 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-other">
         <h2 id="settings-other">ІНШЕ</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="guild" metalTexture title="Мова — незабаром" />
+          <MenuRow compact disabled icon="language" metalTexture title="Мова — незабаром" />
           <MenuRow compact disabled icon="mail" metalTexture title="Сповіщення — незабаром" />
-          <MenuRow compact disabled icon="guild" metalTexture title="Підтримка — незабаром" />
+          <MenuRow compact disabled icon="support" metalTexture title="Підтримка — незабаром" />
           {showTutorialReplay ? <MenuRow compact icon="record" metalTexture onClick={onReplayTutorial} title="Як грати · пройти навчання ще раз" /> : null}
           <MenuRow compact disabled icon="lock" metalTexture title="Політика конфіденційності — незабаром" />
         </div>

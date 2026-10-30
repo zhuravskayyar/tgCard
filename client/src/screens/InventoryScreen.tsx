@@ -1,3 +1,4 @@
+import { ScreenHeading } from "../components/ScreenHeading";
 import { useState } from "react";
 import type { NicknameSkinId } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -24,10 +25,7 @@ export function InventoryScreen({ nickname, onBack, onEquippedSkinChange }: Inve
 
   return (
     <section className="inventory-screen">
-      <header className="inventory-heading">
-        <button aria-label="Назад" className="screen-back" onClick={onBack} type="button"><AppIcon name="chevron" size={19} /></button>
-        <div><span>Сховище мандрівника</span><h1>ІНВЕНТАР</h1></div>
-      </header>
+      <ScreenHeading eyebrow="Сховище мандрівника" onBack={onBack} title="ІНВЕНТАР" />
 
       <div className="inventory-tabs" role="tablist" aria-label="Розділ інвентарю">
         <button aria-selected={tab === "cosmetics"} className={tab === "cosmetics" ? "inventory-tab inventory-tab--active" : "inventory-tab"} onClick={() => setTab("cosmetics")} role="tab" type="button">

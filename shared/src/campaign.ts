@@ -86,7 +86,7 @@ export interface CampaignBossSummary {
   reward: CampaignReward & {
     card: {
       level: number;
-      name: "Мантикора";
+      name: string;
       rarity: "rare";
     };
   };
