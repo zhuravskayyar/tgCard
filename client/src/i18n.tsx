@@ -405,9 +405,10 @@ function shouldSkipTextNode(node: Text) {
   return !parent || ["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) || parent.isContentEditable;
 }
 
-function localizeDom(root: HTMLElement, locale: UiLocale, originalTexts: WeakMap<Text, string>, originalAttributes: WeakMap<Element, Map<string, string>>) {
+function localizeDom(root: Element | Text, locale: UiLocale, originalTexts: WeakMap<Text, string>, originalAttributes: WeakMap<Element, Map<string, string>>) {
   const textWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let textNode = textWalker.nextNode() as Text | null;
+  // A walker never yields its own root, so a directly mutated text node is visited here.
+  let textNode = (root instanceof Text ? root : textWalker.nextNode()) as Text | null;
   while (textNode) {
     if (!shouldSkipTextNode(textNode)) {
       const current = textNode.nodeValue ?? "";
@@ -422,7 +423,8 @@ function localizeDom(root: HTMLElement, locale: UiLocale, originalTexts: WeakMap
     textNode = textWalker.nextNode() as Text | null;
   }
 
-  root.querySelectorAll<HTMLElement>("*").forEach((element) => {
+  if (root instanceof Text) return;
+  [root, ...root.querySelectorAll("*")].forEach((element) => {
     const saved = originalAttributes.get(element) ?? new Map<string, string>();
     translatableAttributes.forEach((attribute) => {
       if (!element.hasAttribute(attribute)) return;
@@ -457,23 +459,24 @@ export function RussianLanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale;
     document.title = locale === "ru" ? "Cardastika — Мировое Древо" : "Cardastika — Світове Дерево";
     const root = document.getElementById("root");
-    if (!root) return;
+    // Source strings are Ukrainian, so only the Russian locale ever rewrites the DOM.
+    if (!root || locale !== "ru") return;
 
     const originalTexts = new WeakMap<Text, string>();
     const originalAttributes = new WeakMap<Element, Map<string, string>>();
-    let scheduled = false;
-    const apply = () => {
-      scheduled = false;
-      localizeDom(root, locale, originalTexts, originalAttributes);
-    };
-    const schedule = () => {
-      if (scheduled) return;
-      scheduled = true;
-      window.queueMicrotask(apply);
-    };
 
-    apply();
-    const observer = new MutationObserver(schedule);
+    localizeDom(root, locale, originalTexts, originalAttributes);
+    // Only what changed is revisited: animated screens mutate the DOM many times a second.
+    const observer = new MutationObserver((records) => {
+      const changed = new Set<Node>();
+      for (const record of records) {
+        if (record.type === "childList") record.addedNodes.forEach((node) => changed.add(node));
+        else changed.add(record.target);
+      }
+      for (const node of changed) {
+        if (node.isConnected && (node instanceof Element || node instanceof Text)) localizeDom(node, locale, originalTexts, originalAttributes);
+      }
+    });
     observer.observe(root, { attributes: true, attributeFilter: [...translatableAttributes], characterData: true, childList: true, subtree: true });
     return () => observer.disconnect();
   }, [locale]);

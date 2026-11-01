@@ -11,6 +11,8 @@ import { GuildProfile } from "./guild/GuildProfile";
 import { GuildForumScreen } from "./guild/GuildForumScreen";
 import { GuildState, formatDate, guildErrorMessage, type AsyncState } from "./guild/GuildUi";
 import "./guild/guild.css";
+import "./guild/guild-polish.css";
+import "./guild/guild-book.css";
 
 interface GuildScreenProps {
   playerSummaryState: PlayerSummaryState;
@@ -126,16 +128,16 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   }
   const title = view.kind === "create" ? "Створити гільдію" : view.kind === "directory" ? "Каталог гільдій" : profile ? profile.guild.name : "Гільдія";
   const isGuildHeading = Boolean(profile);
-  const isRosterView = Boolean(profile && ["members", "card", "treasury", "journal"].includes(profileTab));
+  const isSubScreen = Boolean(profile && profileTab !== "overview");
   const noticeContent = notice ? <div className={`guild-notice${notice.error ? " guild-notice--error" : " action-feedback action-feedback--success"}`} key={`${notice.error}:${notice.text}`} role={notice.error ? "alert" : "status"}><span>{notice.text}</span>{notice.error ? <button className="guild-secondary-button" disabled={busy} onClick={() => { setNotice(null); retry(); }} type="button">Оновити дані</button> : null}</div> : null;
 
   if (view.kind === "forum" && forumGuildId) {
-    const forumGuildName = mine?.guild?.guild.id === forumGuildId ? mine.guild.guild.name : profileState.status === "ready" && profileState.data.guild.id === forumGuildId ? profileState.data.guild.name : "Гільдія";
-    return <section className="guild-screen"><GuildForumScreen busy={busy} guildId={forumGuildId} guildName={forumGuildName} onBack={() => navigate(mine?.guild?.guild.id === forumGuildId ? { kind: "mine" } : { kind: "profile", id: forumGuildId })} /></section>;
+    const forumGuild = mine?.guild?.guild.id === forumGuildId ? mine.guild.guild : profileState.status === "ready" && profileState.data.guild.id === forumGuildId ? profileState.data.guild : null;
+    return <section className="guild-screen"><GuildForumScreen busy={busy} guildElement={forumGuild?.themeElement ?? null} guildEmblemId={forumGuild?.emblemId ?? null} guildId={forumGuildId} guildName={forumGuild?.name ?? "Гільдія"} onBack={() => navigate(mine?.guild?.guild.id === forumGuildId ? { kind: "mine" } : { kind: "profile", id: forumGuildId })} /></section>;
   }
 
   return <section className="guild-screen">
-    {isRosterView ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
+    {isSubScreen ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
     {playerSummaryState.status === "loading" ? <GuildState>Завантаження гравця…</GuildState> : !player ? <GuildState error onRetry={onRetryPlayerSummary}>Не вдалося завантажити гравця. Увійдіть або повторіть спробу.</GuildState> : mineState.status === "loading" ? <GuildState>Завантаження гільдії…</GuildState> : mineState.status === "error" ? <GuildState error onRetry={retry}>{mineState.message}</GuildState> : mine ? <>
       {profile ? <GuildProfile key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
         onTabChange={setProfileTab}

@@ -3,6 +3,7 @@ import { useBattleExchange, useBattleResultReady } from "../components/useBattle
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { cardArtAvatarClassName } from "../components/avatarBackdrop";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCardArtworkSource } from "../components/cardArtSource";
 import "../styles/duel-screen.css";
 import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
 import type {
@@ -79,9 +80,13 @@ interface DuelScreenProps extends DuelResultNavigation {
 }
 
 export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
+  // Bot avatars are card art: resolve them through the manifest, since stored paths can outlive a moved file.
+  const artKey = photoUrl?.startsWith("/card-art/") ? photoUrl.slice("/card-art/".length).replace(/\.\w+$/, "") : null;
+  const artwork = useCardArtworkSource(artKey, null);
+  const source = artKey ? artwork.source : photoUrl;
   return (
     <span className="duel-avatar" aria-hidden="true">
-      {photoUrl ? <img alt="" className={cardArtAvatarClassName(photoUrl)} src={photoUrl} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
+      {source ? <img alt="" className={cardArtAvatarClassName(source)} onError={artKey ? artwork.onSourceError : undefined} src={source} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
     </span>
   );
 }
@@ -132,8 +137,9 @@ function HpImpactEffect({ element, level }: { element: CardElement; level: DuelE
   );
 }
 
-export function HpPanel({ currentHp, maximumHp, side, tone, hit = false, damageElement, damageLevel = "normal", tutorialTarget }: {
+export function HpPanel({ currentHp, detail, maximumHp, side, tone, hit = false, damageElement, damageLevel = "normal", tutorialTarget }: {
   currentHp: number;
+  detail?: string;
   maximumHp: number;
   side: Pick<DuelSideSnapshot, "level" | "name" | "photoUrl">;
   tone: "enemy" | "player";
@@ -149,7 +155,7 @@ export function HpPanel({ currentHp, maximumHp, side, tone, hit = false, damageE
       <div className="duel-hp-panel__body">
         <div>
           <strong>{side.name}</strong>
-          <span>Рівень {side.level}</span>
+          <span>{detail ?? `Рівень ${side.level}`}</span>
         </div>
         <div className="duel-hp-panel__value">
           <span>HP</span>

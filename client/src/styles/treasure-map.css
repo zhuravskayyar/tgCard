@@ -164,8 +164,8 @@
   50% { transform: translateY(-5px) scale(1.05); filter: drop-shadow(0 0 16px rgb(255 205 90 / 100%)) drop-shadow(0 8px 5px rgb(35 18 5 / 45%)); }
 }
 @keyframes treasure-pin-bob {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: -5px; }
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -5px; }
 }
 @keyframes treasure-card-in {
   from { opacity: 0; transform: scale(.8); }

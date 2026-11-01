@@ -1338,7 +1338,7 @@ export class GuildService implements GuildActivityRecorder {
 
   private normalizeEmblem(value: string | undefined) {
     const emblemId = (value ?? "shield-1").trim();
-    if (!/^shield-[1-8]$/u.test(emblemId)) throw new GuildDomainError("invalid_guild_emblem", "Guild emblem is invalid", 400);
+    if (!/^shield-([1-9]|10)$/u.test(emblemId)) throw new GuildDomainError("invalid_guild_emblem", "Guild emblem is invalid", 400);
     return emblemId;
   }
 

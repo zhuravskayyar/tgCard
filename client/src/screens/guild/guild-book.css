@@ -1,0 +1,322 @@
+/* Guild in the parchment book: every surface is a painted sprite, CSS only lays out and slices them.
+   Loaded after guild.css and guild-polish.css; the long prefix outranks their dark surfaces. */
+.guild-screen {
+  --book-ink: #2d1b0e;
+  --book-ink-muted: #5d452a;
+  --book-ink-accent: #7a2f16;
+  --sprite-text-plate: url("/assets/ui/game/text-panel-plate-v1.webp");
+  --sprite-row-plate: url("/assets/ui/trials/quest-plate-v1.webp");
+  --sprite-ring: url("/assets/ui/trials/medallion-v1.webp");
+}
+
+/* The page itself is the book: no board on top of it. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-profile {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  gap: var(--space-2);
+}
+
+/* Text plates. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-state, .guild-notice, .guild-pending, .guild-lock, .guild-promo-banner, .guild-feature-notice, .guild-card-sheet, .guild-forum-post, .guild-forum__form, .guild-create, .guild-entry) {
+  padding: 4px;
+  color: var(--book-ink);
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: var(--sprite-text-plate) 96 fill / 20px 18px / 0 stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Sub-screen blocks: the page's tree drawing swallows bare text, so everything readable sits on a plate. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts, .guild-journal__list, .guild-roster__members, .guild-treasury__balance, .guild-treasury__donations, .guild-treasury__cards, .guild-treasury__stats-list, .guild-altar__intro, .guild-altar__activation, .guild-altar-upgrade, .guild-raid__bosses, .guild-raid__chat, .guild-raid__status, .guild-management .guild-form, .guild-applications-list, .guild-search) {
+  margin: 0;
+  padding: 4px;
+  color: var(--book-ink);
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: var(--sprite-text-plate) 96 fill / 20px 18px / 0 stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Inside a plate nothing draws its own box or rule: rows separate by space. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts > div, .guild-journal-entry, .guild-member, .guild-member-row, .guild-treasury__stat-row, .guild-application, .guild-raid__messages, .guild-raid__empty, .guild-section-bar, .guild-roster__nav, .guild-member-actions) { border: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__art { border: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts, .guild-journal__list, .guild-roster__members, .guild-treasury__stats-list) { display: grid; gap: 8px; }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts dt, .guild-information__facts small, .guild-information__identity span, .guild-journal-entry__meta time, .guild-journal-entry p, .guild-member-row__identity small, .guild-member-row__value small, .guild-member-row__index, .guild-treasury__empty, .guild-treasury__cooldown, .guild-treasury__subheading + p, .guild-altar-upgrade p, .guild-altar__activation p, .guild-raid__empty, .guild-raid__status, .guild-management .guild-helper) { color: var(--book-ink-muted); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts dd, .guild-information__identity h2, .guild-journal-entry__people strong, .guild-journal-entry__target, .guild-member-row__identity strong, .guild-member-row__value strong, .guild-treasury__subheading, .guild-treasury__balance, .guild-treasury__balance strong, .guild-altar__intro, .guild-altar__activation strong, .guild-altar-upgrade h4, .guild-altar-upgrade small, .guild-raid__chat h2, .guild-raid__chat h3, .guild-raid__boss, .guild-application strong, .guild-application small) { color: var(--book-ink); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity h2 { font-family: var(--font-display); }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-role { color: var(--book-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-text-button { min-width: 84px; padding-inline: 12px; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-section-heading { padding-inline: 8px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-form > button { width: 100%; }
+
+/* Crest picker: the bronze ring marks the chosen shield. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker { padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker legend { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker__option { position: relative; padding: 8px 2px 4px; color: var(--book-ink-muted); border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker__option span { color: inherit; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker__option--selected { color: var(--book-ink); font-weight: 700; background: var(--sprite-ring) center top / 62px 62px no-repeat; }
+
+/* Shield and paint blend inside their own group, so the page behind never tints the crest. */
+.guild-emblem__shield { display: block; width: 100%; height: 100%; isolation: isolate; }
+.guild-emblem__metal { mix-blend-mode: multiply; opacity: .55; }
+
+.guild-create__crest { display: grid; justify-items: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-create__crest .guild-emblem { width: 96px; height: 96px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-emblem-picker__options { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.guild-element-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-element-picker .guild-emblem-picker__option--selected { background-size: 50px 50px; background-position: center 3px; }
+
+/* Forum markers are painted scrolls. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section__icon, .guild-forum-topic__mark) { width: 34px; height: 34px; }
+:is(.guild-forum-section__icon, .guild-forum-topic__mark) img { display: block; width: 100%; height: 100%; object-fit: contain; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section, .guild-forum-topic) { grid-template-columns: 34px minmax(0, 1fr) auto; }
+
+/* Treasury heading keeps only the ribbon; numbers are ink on the plate. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__header { border: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__balance > div, .guild-treasury__balance .app-icon) { color: var(--book-ink); font-weight: 700; }
+
+/* Potions were lit for a black niche: on parchment they draw normally. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__art img { mix-blend-mode: normal; filter: none; }
+
+/* Raid lobby. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid__bosses > strong { color: var(--book-ink); font-family: var(--font-display) !important; text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid__boss-name { color: var(--book-ink); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid__empty { color: var(--book-ink-muted) !important; }
+
+/* Management is a plain sheet: the form inside carries the plate. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-management { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-management > .guild-helper { display: none; }
+
+/* Single-line plates: forum rows, directory rows and form fields. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section, .guild-forum-topic, .guild-list-row, input:not([type="checkbox"]), select, textarea) {
+  color: var(--book-ink);
+  border-style: solid;
+  border-width: 12px 14px;
+  border-image: var(--sprite-row-plate) 44 fill / 12px 14px / 0 stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-list { border: 0; background: none; box-shadow: none; gap: 4px; display: grid; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section, .guild-forum-topic, .guild-list-row) { min-height: 62px; padding: 2px 4px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(input:not([type="checkbox"]), select, textarea) { padding: 2px 4px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(input, textarea)::placeholder { color: var(--book-ink-muted); opacity: 1; }
+
+/* Ink on parchment. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-promo-banner__heading h3, .guild-promo-banner__copy, .guild-forum-section strong, .guild-forum-topic strong, .guild-list-row__body strong, .guild-forum-post p, .guild-forum-post__meta strong, .guild-state, .guild-notice, .guild-form label, .guild-section-heading h2, .guild-card-sheet h3, .guild-feature-notice h3) { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-kicker, .guild-promo-banner__heading small, .guild-forum-section small, .guild-forum-topic small, .guild-forum-section__meta, .guild-forum-topic__replies, .guild-forum-post__meta time, .guild-helper, .guild-empty-copy, .guild-card-sheet__copy, .guild-feature-notice__copy, .guild-list-row__body small, .guild-list-row__body > span, .guild-section-heading span, .guild-checkbox) { color: var(--book-ink-muted); }
+
+/* Announcement. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__heading { grid-template-columns: 28px minmax(0, 1fr) auto; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__heading h3 { font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__art { color: var(--book-ink); filter: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__copy { padding: 6px 2px 0; font-size: var(--font-xs); line-height: 1.35; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-inline-button { min-width: 84px; padding-inline: 12px; color: var(--book-ink); white-space: nowrap; }
+
+/* Six destinations float on the page inside bronze rings, like the home menu medals. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-menu { gap: 10px 4px; padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) {
+  min-height: 0;
+  padding: 0 2px;
+  align-content: start;
+  justify-items: center;
+  gap: 2px;
+  border: 0;
+  outline: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+}
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile__art {
+  position: relative;
+  display: grid;
+  width: 88px;
+  height: 88px;
+  padding: 15px;
+  place-items: center;
+  overflow: visible;
+  border: 0;
+  background: var(--sprite-ring) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile__asset { position: static; width: 100%; height: 100%; object-fit: contain; opacity: 1; filter: none; transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile__art--emblem .guild-emblem { width: 100%; height: 100%; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) strong { position: static; max-width: 100%; color: var(--book-ink); font-size: var(--font-xs); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) small { position: static; max-width: 100%; color: var(--book-ink-muted); font-size: var(--font-micro); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile__art { filter: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile:not(:disabled):is(:hover, :focus-visible) { background: none; }
+
+/* War, arena and raid used full-bleed night scenes; here they sit in the same ring as the others. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile--war, .guild-mode-tile--arena, .guild-mode-tile--raid) { align-content: start; padding: 0 2px; overflow: visible; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile--war, .guild-mode-tile--arena, .guild-mode-tile--raid)::after { content: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile--war, .guild-mode-tile--arena, .guild-mode-tile--raid) .guild-mode-tile__art { position: relative; inset: auto; width: 88px; height: 88px; opacity: 1; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile--war, .guild-mode-tile--arena, .guild-mode-tile--raid) .guild-mode-tile__asset { object-fit: contain; filter: contrast(1.25) brightness(.82); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile--disabled .guild-mode-tile__asset { opacity: .72; filter: contrast(1.25) brightness(.82) grayscale(.5); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-tile[data-coming-soon="true"] { opacity: 1; filter: none; }
+
+/* Guild card stands between the medals. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__art { display: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__chance { position: static; padding: 0; color: var(--book-ink-muted); font-size: var(--font-micro); background: none; border: 0; }
+
+/* Row groups keep the reference's rhythm: a gap instead of a drawn line. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-menu-section { padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-menu-section--lower { margin-top: 2px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-menu-section--lower::before { content: ""; display: block; height: 16px; margin-bottom: 2px; background: url("/assets/guild/divider-v1.webp") center / contain no-repeat; }
+
+/* Grid pass: one 8px gutter, one rhythm, one type scale. Nothing below --font-xs is readable on parchment. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen { --book-ink-muted: #4a3620; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-profile, .guild-forum) { padding-inline: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(#guild-roster-panel, .guild-hub, .guild-roster, .guild-treasury, .guild-altar, .guild-raid, .guild-information, .guild-journal, .guild-management, .guild-announcements, .guild-forum__content) { display: grid; gap: var(--space-2); min-width: 0; padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-altar, .guild-raid, .guild-altar) * { font-family: inherit !important; }
+
+/* Six medals: three equal columns, equal art boxes, so both label lines sit on one baseline. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3) var(--space-1); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 88px auto auto; width: 100%; gap: 2px; justify-items: center; align-content: start; text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) strong { font-size: var(--font-sm); font-weight: 700; line-height: 1.15; white-space: normal; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) small { font-size: var(--font-xs); line-height: 1.15; white-space: normal; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__visual { position: static; display: grid; width: 66px; height: 88px; place-items: center; transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__level { position: static; padding: 0; background: none; }
+
+/* Older passes pinned the tile height, which squeezed the labels: here the content sets it. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-mode-menu { grid-auto-rows: auto; grid-template-rows: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) { height: auto; min-height: 0; max-height: none; aspect-ratio: auto; overflow: visible; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) :is(strong, small) { display: block; height: auto; max-height: none; overflow: visible; line-height: 1.2; }
+
+/* Bare lines the tree drawing would swallow get a slim plate; every plate keeps text off its ornate edge. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__cooldown, .guild-section-bar, .guild-raid__actions > p, .guild-raid__actions > small, .guild-altar__battle > p) { display: block; min-height: 0; margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts, .guild-journal__list, .guild-roster__members, .guild-treasury__balance, .guild-treasury__donations, .guild-treasury__cards, .guild-altar-upgrade, .guild-altar__activation, .guild-altar__intro, .guild-raid__bosses, .guild-raid__chat, .guild-raid__status, .guild-management .guild-form, .guild-promo-banner, .guild-create) { padding: 6px 10px; }
+
+/* Rows: icon, title, then the value flush right before the sprite's arrow. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-menu-list { display: grid; gap: var(--space-1); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row__title { color: var(--book-ink); font-size: var(--font-md); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row__action { margin-right: 26px; color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row__detail { color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury-balance { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury-balance > span { display: inline-flex; align-items: center; gap: 3px; color: var(--book-ink); }
+/* A closed row stays legible: the lock says it is closed, not a wash over the text. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled { opacity: 1; filter: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled :is(.menu-row__title, .menu-row__action) { color: var(--book-ink-muted); opacity: .78; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled .menu-row__icon { filter: grayscale(.7); opacity: .72; }
+
+/* Announcement button holds its word. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-inline-button { min-width: 92px; min-height: 36px; font-size: var(--font-xs); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-kicker, .guild-promo-banner__heading small) { font-size: var(--font-xs); letter-spacing: .04em; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__copy { font-size: var(--font-sm); }
+
+/* Facts ruled like a ledger: label left, value right. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__facts > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: var(--space-2); padding: 0; text-align: left; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__facts dt { font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__facts dd { margin: 0; font-size: var(--font-sm); font-weight: 700; text-align: right; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__facts small { display: block; font-size: var(--font-xs); font-weight: 400; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity { display: grid; justify-items: center; gap: 2px; text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity .guild-emblem { width: 92px; height: 92px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity h2 { margin: 0; font-size: var(--font-lg); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity span { font-size: var(--font-sm); }
+
+/* Roster: strict columns, the action slot is reserved so values line up with or without a button. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row { display: grid; grid-template-columns: 16px 34px 18px minmax(0, 1fr) auto 32px; align-items: center; gap: 6px; min-height: 40px; padding: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__index { font-size: var(--font-xs); text-align: right; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__avatar { width: 34px; height: 34px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity { display: grid; gap: 1px; min-width: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity strong { overflow: hidden; font-size: var(--font-sm); text-overflow: ellipsis; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity small { font-size: var(--font-xs); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__value { display: grid; gap: 1px; justify-items: end; text-align: right; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__value strong { font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__value small { font-size: var(--font-xs); white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row .guild-icon-button { grid-column: 6; width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__role { display: grid; place-items: center; width: 18px; overflow: hidden; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__role .guild-role { font-size: 0; gap: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tabs { justify-content: center; gap: var(--space-1); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__actions { display: grid; justify-items: center; gap: var(--space-2); padding: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__divider { height: 16px; border: 0; background: url("/assets/guild/divider-v1.webp") center / contain no-repeat; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .ribbon-title { justify-self: center; margin-inline: auto; transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__actions button { width: min(100%, 260px); min-height: 44px; margin: 0; }
+
+/* Treasury and altar: the same two columns, controls one height. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__balance { display: grid; justify-items: center; gap: var(--space-1); font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__balance > div { font-size: var(--font-md); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__cooldown { margin: 0; color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__donations { display: grid; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__donation-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: end; gap: var(--space-2); padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__donation-row label { display: grid; gap: var(--space-1); color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__donation-row button { height: 44px; min-height: 44px; font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__subheading strong, .guild-altar-upgrade h4) { color: var(--book-ink); font-size: var(--font-md); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__subheading small, .guild-helper, .guild-treasury__empty, .guild-altar-upgrade p, .guild-altar__activation p) { color: var(--book-ink-muted); font-size: var(--font-sm); line-height: 1.35; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__intro { font-size: var(--font-sm); text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__activation strong { font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: start; gap: var(--space-3); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__art { width: 64px; height: 64px; overflow: visible; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__art img { position: static; width: 64px; height: 64px; object-fit: contain; transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__body { gap: var(--space-1); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade__heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar-upgrade small { display: inline-flex; align-items: center; gap: 3px; font-size: var(--font-sm); font-weight: 700; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__buy { width: 100%; min-height: 40px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__battle > p { margin: 0; color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title::before,
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title::after { content: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title { display: block; }
+
+/* Clan statistics: number, rank, name, value; each on one line, ink on the plate. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-row { display: grid; grid-template-columns: 18px 18px minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); min-height: 32px; padding: 0; color: var(--book-ink); border: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-index { color: var(--book-ink-muted); font-size: var(--font-sm); text-align: right; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-badge { display: grid; place-items: center; width: 18px; overflow: hidden; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-badge .guild-role { gap: 0; font-size: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-name { min-width: 0; overflow: hidden; color: var(--book-ink); font-size: var(--font-md); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-value { display: inline-flex; align-items: center; gap: 3px; color: var(--book-ink); font-size: var(--font-md); font-weight: 700; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stats-empty { color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__note { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+/* Shared metric tabs: painted plates, the warmer one is selected. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tabs { display: grid; grid-template-columns: repeat(5, 48px); justify-content: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tab { display: grid; width: 48px; height: 44px; place-items: center; padding: 0; border: 0; border-radius: 0; background: var(--sprite-button-secondary) center / 100% 100% no-repeat; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tab--active { background: url("/assets/ui/auth/parchment/button-parchment-v1.webp") center / 100% 100% no-repeat; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-sprite { width: 26px; height: 26px; object-fit: contain; }
+
+/* Journal: name left, date right, event below. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: var(--space-2); align-items: start; min-height: 0; padding: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry__dot { margin-top: 6px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry__meta { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry__people strong { font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry__meta time { font-size: var(--font-xs); white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-journal-entry p { margin: 1px 0 0; font-size: var(--font-sm); line-height: 1.3; }
+
+/* Raid lobby text. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid__boss-name { font-size: var(--font-sm); white-space: normal; text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-raid__status, .guild-raid__empty, .guild-raid__actions small, .guild-raid__actions p) { color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
+
+/* Forum: guild crest and crumbs. */
+.guild-forum { padding-inline: 4px; }
+.guild-forum__crest { display: grid; justify-items: center; gap: 2px; padding-top: 2px; text-align: center; }
+.guild-forum__crest .guild-emblem { width: 72px; height: 72px; }
+.guild-forum__crest strong { padding: 0 8px; color: var(--book-ink); font: 700 var(--font-md) var(--font-display); overflow-wrap: anywhere; border-style: solid; border-width: 8px 12px; border-image: var(--sprite-row-plate) 44 fill / 8px 12px / 0 stretch; }
+
+/* Crumbs sit on a plate: the page's tree drawing would swallow bare text. */
+.guild-forum__crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; padding: 0 4px; color: var(--book-ink-muted); font-size: var(--font-xs); border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+.guild-forum__crumbs button { min-height: 32px; padding: 0; color: var(--book-ink-accent); background: none; border: 0; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; text-align: left; }
+.guild-forum__crumbs span[aria-current] { color: var(--book-ink); font-weight: 700; overflow-wrap: anywhere; }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section__icon, .guild-forum-topic__mark) { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section strong, .guild-forum-topic strong) { font-size: var(--font-sm); white-space: normal; overflow-wrap: anywhere; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section small, .guild-forum-topic small) { font-size: var(--font-xs); white-space: normal; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-forum-section__meta, .guild-forum-topic__replies) { font-size: var(--font-xs); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum-section--locked { opacity: .68; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum-topic--unread strong { color: var(--book-ink-accent); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__note { margin: 0; padding-inline: 4px; color: var(--book-ink-muted); font-size: var(--font-xs); line-height: 1.35; text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__empty { color: var(--book-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__empty strong { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum-post p { font-size: var(--font-sm); line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__pager { color: var(--book-ink); }

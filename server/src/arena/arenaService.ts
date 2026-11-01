@@ -1,17 +1,20 @@
 import { randomUUID } from "node:crypto";
 import {
   ARENA_BOT_ACTION_INTERVAL_MS,
-  ARENA_GOLD_DAILY_CAP,
+  ARENA_IDLE_FINISH_MS,
+  ARENA_MIN_COUNTED_MOVES,
+  ARENA_NO_WINNERS_ALIVE_COUNT,
+  ARENA_UNCOUNTED_RATING_CHANGE,
   ARENA_PARTICIPANT_COUNT,
   ARENA_QUEUE_DURATION_MS,
   ARENA_SLOT_COOLDOWN_MS,
   calculateArenaDamage,
+  calculateArenaRatingChange,
   compareArenaResults,
   cycleCardPoolSlotWithGuildCard,
   getArenaCardChangeCost,
-  getArenaReward,
+  getArenaTokenReward,
   getElementMultiplier,
-  getPlayerCollectionModifiers,
   getStartingHp,
   initializeCyclicCardPool,
   shuffleCards,
@@ -19,11 +22,12 @@ import {
   type RandomSource,
 } from "@cardastika/game-core";
 import {
-  DUEL_LEAGUE_CONFIG,
+  ARENA_LEAGUE_CONFIG,
+  getArenaLeagueIndexAfter,
   getLeagueByRating,
-  getLeagueIndexByRating,
   type ArenaActionRequest,
   type ActiveArenaResponse,
+  type ArenaLeaderboardResponse,
   type ArenaBattleLogEntry,
   type ArenaBattleParticipantSnapshot,
   type ArenaCardSlot,
@@ -47,8 +51,7 @@ import {
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
-import { getCompletedCollectionModifiers, recordCardDiscovery } from "../collections/discoveryService.js";
-import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
+import { recordCardDiscovery } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
@@ -62,8 +65,7 @@ const BOT_PLAYER_TARGET_CHANCE = 0.1;
 
 interface ArenaPlayerRow {
   account_xp: number;
-  arena_gold_day: string | Date;
-  arena_gold_earned_today: number;
+  arena_highest_league_index: number;
   arena_league_index: number;
   arena_rating: number;
   arena_tokens: string | number;
@@ -93,6 +95,7 @@ interface ArenaRow {
 
 interface ArenaState {
   battleLog: ArenaBattleLogEntry[];
+  lastPlayerActionAt?: string;
   matchId: string;
   participants: ArenaBattleParticipantSnapshot[];
   pairStates: Record<string, ArenaPairInteractionSnapshot>;
@@ -101,6 +104,7 @@ interface ArenaState {
   result: ArenaResult | null;
   resultsByPlayer?: Record<string, ArenaResult>;
   targetId: string | null;
+  technicalFinish?: boolean;
 }
 
 interface CosmeticRow {
@@ -127,16 +131,11 @@ function selectRandomArenaEquipment(rarity: CardRarity) {
   return definition;
 }
 
-function getUtcDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function toLeagueView(index: number): ArenaLeagueView {
-  const league = DUEL_LEAGUE_CONFIG.leagues[index];
+  const league = ARENA_LEAGUE_CONFIG.leagues[index];
   if (!league) throw new Error("Arena league is outside the configured range");
   return {
     accentColor: league.accentColor,
-    baseSilver: [100, 120, 150, 200, 250, 300, 400, 450, 500, 600, 650, 700, 800, 850, 900, 1_000, 1_200, 1_500, 2_000, 2_200, 2_500][index]!,
     division: league.division,
     iconKey: league.iconKey,
     index: league.index,
@@ -144,6 +143,7 @@ function toLeagueView(index: number): ArenaLeagueView {
     maxRating: league.maxRating,
     minRating: league.minRating,
     name: league.name,
+    promotionReward: league.promotionReward,
   };
 }
 
@@ -226,8 +226,15 @@ function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = M
     ...players.map(({ playerId, snapshot, guildCard }) => createParticipant(snapshot, playerId, false, random, guildCard)),
     ...Array.from({ length: ARENA_PARTICIPANT_COUNT - players.length }, (_, index) => createBot(players[index % players.length]!.snapshot, index, random)),
   ];
+  // Every card opens face down for one full cycle, so nobody strikes before the table is seen.
+  const firstCardsAt = new Date(Date.now() + ARENA_SLOT_COOLDOWN_MS).toISOString();
+  for (const participant of participants) {
+    participant.cooldownUntil = [firstCardsAt, firstCardsAt, firstCardsAt];
+    if (participant.isBot) participant.lastBotActionAt = firstCardsAt;
+  }
   const state: ArenaState = {
     battleLog: [],
+    lastPlayerActionAt: firstCardsAt,
     matchId: randomUUID(),
     participants,
     pairStates: {},
@@ -270,7 +277,7 @@ function aliveParticipants(state: ArenaState) {
 }
 
 function arenaIsOver(state: ArenaState) {
-  return aliveParticipants(state).length <= 1;
+  return state.technicalFinish === true || aliveParticipants(state).length <= 1;
 }
 
 function findParticipant(state: ArenaState, id: string) {
@@ -498,13 +505,26 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     targetState.voodooUsed = true;
     target.modifiers.equipmentState = targetState;
   }
+  // A strike is an exchange, as in a duel: the opposing card answers in the same lane.
+  const attackerHpBeforeCounter = attacker.hp;
+  const counter = attackerHpBeforeCounter > 0 ? calculateArenaDamage({
+    attacker: targetCard,
+    attackerModifiers: target.modifiers,
+    defender: attackerCard,
+    defenderModifiers: attacker.modifiers,
+  }).damage : 0;
+  attacker.hp = Math.max(0, attacker.hp - counter);
+  target.totalDamageDealt += counter;
   attacker.totalDamageDealt += result.damage;
+  attacker.moves = (attacker.moves ?? 0) + 1;
+  if (!attacker.isBot) state.lastPlayerActionAt = new Date(now).toISOString();
   attacker.cooldownUntil[slotIndex] = new Date(now + ARENA_SLOT_COOLDOWN_MS).toISOString();
   const targetDefeated = target.hp === 0;
-  if (targetDefeated) {
-    attacker.kills += 1;
+  if (targetDefeated) attacker.kills += 1;
+  if (attacker.hp === 0 && attackerHpBeforeCounter > 0) target.kills += 1;
+  for (const fallen of [target, attacker].filter(({ hp }) => hp === 0)) {
     for (const participant of state.participants) {
-      if (participant.targetId === target.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id) : nextTarget(state, participant.id);
+      if (participant.targetId === fallen.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id) : nextTarget(state, participant.id);
     }
   }
   state.battleLog = [...state.battleLog, {
@@ -512,6 +532,7 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     attackerId: attacker.id,
     attackerName: attacker.name,
     attackerPhotoUrl: attacker.photoUrl,
+    counterDamage: counter,
     damage: result.damage,
     id: randomUUID(),
     multiplier: result.multiplier,
@@ -546,6 +567,10 @@ function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, n
 
 function advanceBots(state: ArenaState, now: number, random: RandomSource) {
   if (arenaIsOver(state)) return false;
+  if (state.lastPlayerActionAt && now - new Date(state.lastPlayerActionAt).getTime() >= ARENA_IDLE_FINISH_MS) {
+    state.technicalFinish = true;
+    return true;
+  }
   const pairStateCountBefore = state.pairStates ? Object.keys(state.pairStates).length : 0;
   ensurePairStates(state);
   const pairStateCountAfter = Object.keys(state.pairStates).length;
@@ -570,7 +595,9 @@ function setInitialTargets(state: ArenaState) {
 }
 
 function resultPlacement(state: ArenaState) {
-  const ordered = [...state.participants].sort((left, right) => compareArenaResults(
+  // A player who barely struck cannot take a winning place, however much the counters dealt.
+  const fought = (participant: ArenaBattleParticipantSnapshot) => participant.isBot || (participant.moves ?? 0) >= ARENA_MIN_COUNTED_MOVES;
+  const ordered = [...state.participants].sort((left, right) => Number(fought(right)) - Number(fought(left)) || compareArenaResults(
     { remainingHp: left.hp, kills: left.kills, totalDamageDealt: left.totalDamageDealt },
     { remainingHp: right.hp, kills: right.kills, totalDamageDealt: right.totalDamageDealt },
   ));
@@ -583,8 +610,7 @@ async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, l
     `
       SELECT id, first_name, username, photo_url, level, silver, gold, account_xp,
         card_shards, duel_wins, duel_rating, duel_highest_league_index,
-        arena_rating, arena_league_index, arena_wins, arena_top3_count, arena_tokens,
-        arena_gold_earned_today, arena_gold_day
+        arena_rating, arena_league_index, arena_wins, arena_top3_count, arena_highest_league_index, arena_tokens
       FROM players WHERE id = $1 ${lock ? "FOR UPDATE" : ""}
     `,
     [playerId],
@@ -597,44 +623,52 @@ async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, l
 async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState, guildActivity?: GuildActivityRecorder) {
   const ordered = resultPlacement(state);
   state.resultsByPlayer = {};
+  const noWinners = state.technicalFinish === true && aliveParticipants(state).length >= ARENA_NO_WINNERS_ALIVE_COUNT;
+  const averageDamage = ordered.reduce((sum, participant) => sum + participant.totalDamageDealt, 0) / ordered.length;
+  const liveRatings = await client.query<{ arena_rating: number; id: string }>("SELECT id, arena_rating FROM players WHERE id = ANY($1::uuid[])", [ordered.filter(({ isBot }) => !isBot).map(({ id }) => id)]);
+  const ratingOf = new Map(liveRatings.rows.map((entry) => [entry.id, toSafeInteger(entry.arena_rating, "arena rating")]));
   for (const participant of ordered.filter(({ isBot }) => !isBot)) {
     if (!participant.placement) throw new Error("Arena player placement is missing");
     const player = await loadPlayer(client, participant.id, true);
     const placement = participant.placement;
+    const moves = participant.moves ?? 0;
+    const counted = moves >= ARENA_MIN_COUNTED_MOVES;
+    const won = counted && !noWinners && placement <= 3;
     const ratingBefore = toSafeInteger(player.arena_rating, "arena rating");
-    const leagueBeforeIndex = getLeagueIndexByRating(ratingBefore);
-    const storedDailyGold = toSafeInteger(player.arena_gold_earned_today, "arena daily gold");
-    const dailyGold = String(player.arena_gold_day).slice(0, 10) === getUtcDate() ? storedDailyGold : 0;
-    const currencyBoost = await getCurrencyBoostStatus(client, participant.id);
-    const reward = getArenaReward(placement, leagueBeforeIndex, dailyGold, currencyBoost.multiplier);
-    const collectionModifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, participant.id), "arena");
-    const silverReward = Math.round(reward.silver * (1 + collectionModifiers.silverRewardPct / 100));
-    if (!Number.isSafeInteger(silverReward) || silverReward < 0) throw new Error("Arena silver reward exceeds safe integer limits");
-    const ratingAfter = Math.max(0, ratingBefore + reward.ratingChange);
-    const leagueAfterIndex = getLeagueIndexByRating(ratingAfter);
-    const goldEarnedToday = String(player.arena_gold_day).slice(0, 10) === getUtcDate()
-      ? dailyGold + reward.gold
-      : reward.gold;
+    // Bots are matched to the player's league, so they count at the player's own rating.
+    const opponentRatings = ordered.filter(({ id }) => id !== participant.id).map(({ id }) => ratingOf.get(id) ?? ratingBefore);
+    const averageOpponentRating = opponentRatings.reduce((sum, rating) => sum + rating, 0) / opponentRatings.length;
+    const ratingChange = noWinners
+      ? 0
+      : counted
+        ? calculateArenaRatingChange({ averageDamage, averageOpponentRating, damageDealt: participant.totalDamageDealt, placement, playerRating: ratingBefore })
+        : ARENA_UNCOUNTED_RATING_CHANGE;
+    const arenaTokens = counted && !noWinners ? getArenaTokenReward(placement) : 0;
+    const leagueBeforeIndex = toSafeInteger(player.arena_league_index, "arena league");
+    const highestBefore = toSafeInteger(player.arena_highest_league_index, "arena highest league");
+    const ratingAfter = Math.max(0, ratingBefore + ratingChange);
+    const leagueAfterIndex = getArenaLeagueIndexAfter(ratingAfter, leagueBeforeIndex);
+    // Every league first reached on the way up pays its one-time silver.
+    const promotionSilver = ARENA_LEAGUE_CONFIG.leagues
+      .filter(({ index }) => index > highestBefore && index <= leagueAfterIndex)
+      .reduce((sum, league) => sum + league.promotionReward, 0);
     const updated = await client.query<ArenaPlayerRow>(
       `
         UPDATE players SET
           silver = silver + $2,
-          gold = gold + $3,
-          arena_tokens = arena_tokens + $4,
-          arena_rating = $5,
-          arena_league_index = $6,
-          arena_wins = arena_wins + $7,
-          arena_top3_count = arena_top3_count + $8,
-          arena_gold_earned_today = $9,
-          arena_gold_day = CURRENT_DATE,
+          arena_tokens = arena_tokens + $3,
+          arena_rating = $4,
+          arena_league_index = $5,
+          arena_highest_league_index = GREATEST(arena_highest_league_index, $5),
+          arena_wins = arena_wins + $6,
+          arena_top3_count = arena_top3_count + $6,
           updated_at = NOW()
         WHERE id = $1
         RETURNING id, first_name, username, photo_url, level, silver, gold, account_xp,
           card_shards, duel_wins, duel_rating, duel_highest_league_index,
-          arena_rating, arena_league_index, arena_wins, arena_top3_count, arena_tokens,
-          arena_gold_earned_today
+          arena_rating, arena_league_index, arena_highest_league_index, arena_wins, arena_top3_count, arena_tokens
       `,
-      [participant.id, silverReward, reward.gold, reward.arenaTokens, ratingAfter, leagueAfterIndex, placement <= 3 ? 1 : 0, placement <= 3 ? 1 : 0, goldEarnedToday],
+      [participant.id, promotionSilver, arenaTokens, ratingAfter, leagueAfterIndex, won ? 1 : 0],
     );
     const updatedPlayer = updated.rows[0];
     if (!updatedPlayer) throw new Error("Arena reward update returned no player");
@@ -643,17 +677,20 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
       leagueBefore: toLeagueView(leagueBeforeIndex),
       player: toPlayerSummary(updatedPlayer),
       reward: {
-        arenaTokens: reward.arenaTokens,
-        gold: reward.gold,
-        goldCapped: reward.goldCapped,
+        arenaTokens,
+        counted,
+        moves,
         placement,
+        promotionSilver,
         ratingAfter,
         ratingBefore,
-        ratingChange: reward.ratingChange,
-        silver: silverReward,
-        status: placement <= 3 ? "win" : "loss",
+        ratingChange,
+        status: won ? "win" : "loss",
       },
     };
+    if (!counted) continue;
+    await client.query("INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'ARENA_FINISHED', $2)", [participant.id, JSON.stringify({ matchId: row.id })]);
+    if (won) await client.query("INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'ARENA_WON', $2)", [participant.id, JSON.stringify({ matchId: row.id })]);
     const activityType = placement === 1
       ? "arena_place_1"
       : placement === 2
@@ -697,6 +734,7 @@ function toView(row: ArenaRow, playerId: string, playerGold: number, arenaTokens
       kills: participant.kills,
       level: participant.level,
       maxHp: participant.maxHp,
+      moves: participant.moves ?? 0,
       name: participant.name,
       photoUrl: participant.photoUrl,
       ...(participant.placement ? { placement: participant.placement } : {}),
@@ -810,7 +848,8 @@ export class ArenaService {
     const equippedCosmetics: Partial<Record<ArenaCosmeticType, string>> = {};
     for (const cosmetic of cosmetics.rows) if (cosmetic.equipped) equippedCosmetics[cosmetic.cosmetic_type] = cosmetic.cosmetic_id;
     return {
-      arenaLeague: toLeagueView(getLeagueIndexByRating(toSafeInteger(player.arena_rating, "arena rating"))),
+      arenaLeague: toLeagueView(toSafeInteger(player.arena_league_index, "arena league")),
+      nextArenaLeague: toSafeInteger(player.arena_league_index, "arena league") < ARENA_LEAGUE_CONFIG.leagues.length - 1 ? toLeagueView(toSafeInteger(player.arena_league_index, "arena league") + 1) : null,
       arenaRating: toSafeInteger(player.arena_rating, "arena rating"),
       arenaTokens: toSafeInteger(player.arena_tokens, "arena tokens"),
       arenaTop3Count: toSafeInteger(player.arena_top3_count, "arena top 3 count"),
@@ -818,6 +857,27 @@ export class ArenaService {
       cardShards: toSafeInteger(player.card_shards, "card shards"),
       cosmetics: cosmeticViews,
       equippedCosmetics,
+    };
+  }
+
+  async getLeaderboard(playerId: string): Promise<ArenaLeaderboardResponse> {
+    const player = await loadPlayer(this.pool as unknown as Pick<PoolClient, "query">, playerId);
+    const leagueIndex = toSafeInteger(player.arena_league_index, "arena league");
+    const name = "COALESCE(NULLIF(nickname, ''), NULLIF(first_name, ''), username, 'Гравець')";
+    const top = await this.pool.query<{ id: string; name: string; photo_url: string | null; arena_rating: number }>(
+      `SELECT id, ${name} AS name, photo_url, arena_rating FROM players WHERE arena_league_index = $1 ORDER BY arena_rating DESC, id LIMIT 100`,
+      [leagueIndex],
+    );
+    const rating = toSafeInteger(player.arena_rating, "arena rating");
+    const ahead = await this.pool.query<{ count: string }>(
+      "SELECT COUNT(*) FROM players WHERE arena_league_index = $1 AND (arena_rating > $2 OR (arena_rating = $2 AND id < $3))",
+      [leagueIndex, rating, playerId],
+    );
+    const entries = top.rows.map((entry, index) => ({ name: entry.name, photoUrl: entry.photo_url, playerId: entry.id, rank: index + 1, rating: toSafeInteger(entry.arena_rating, "arena rating") }));
+    return {
+      entries,
+      league: toLeagueView(leagueIndex),
+      player: { name: player.first_name ?? player.username ?? "Гравець", photoUrl: player.photo_url, playerId, rank: Number(ahead.rows[0]?.count ?? 0) + 1, rating },
     };
   }
 
@@ -1172,7 +1232,7 @@ export class ArenaService {
          WHERE id = $1 AND arena_tokens >= $2
          RETURNING id, first_name, username, photo_url, level, silver, gold, account_xp, card_shards,
            duel_wins, duel_rating, duel_highest_league_index, arena_rating, arena_league_index,
-           arena_wins, arena_top3_count, arena_tokens, arena_gold_earned_today`,
+           arena_highest_league_index, arena_wins, arena_top3_count, arena_tokens`,
         [playerId, offer.price, offer.rewardType === "shards" ? offer.quantity ?? 0 : 0],
       );
       const updatedPlayer = updated.rows[0];

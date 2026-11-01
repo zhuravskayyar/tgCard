@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { GUILD_CONFIG, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
+import { GUILD_CONFIG, type CardElement, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
@@ -30,6 +30,7 @@ interface GuildHubProps {
 interface GuildModeTileProps {
   detail: string;
   disabled?: boolean;
+  emblemElement?: CardElement | null;
   emblemId?: string;
   asset: GuildAssetName;
   label: string;
@@ -43,9 +44,9 @@ type GuildFeatureKey = "war" | "arena" | "raid";
 const GUILD_ASSET_SOURCES: Record<GuildAssetName, string> = {
   main: "/assets/guild/guild-main.svg",
   altar: "/assets/guild/guild-altar-sprite-1.png",
-  war: "/assets/guild/guild-war-art.png",
-  arena: "/assets/guild/guild-arena-art.png",
-  raid: "/assets/guild/guild-raid-art.png",
+  war: "/assets/guild/medal-war-v1.webp",
+  arena: "/assets/guild/medal-arena-v1.webp",
+  raid: "/assets/guild/medal-raid-v1.webp",
 };
 
 const GUILD_FEATURE_MESSAGES: Record<GuildFeatureKey, { title: string; body: string }> = {
@@ -95,8 +96,8 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
       <span className="guild-card-platform__visual" aria-hidden="true">
         {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <span className="guild-card-platform__pedestal"><span>+</span></span>}
       </span>
-      {active ? <small className="guild-card-platform__level">Рів. {active.level}</small> : <><strong>Карта гільдії</strong><small>{canManage ? "Обрати карту" : "Карту ще не обрано"}</small></>}
-      <span className="guild-card-platform__chance">15% у бою</span>
+      <strong>Карта гільдії</strong>
+      <small className="guild-card-platform__level">{active ? `Рівень ${active.level}` : canManage ? "Обрати карту" : "Не обрано"}</small>
     </button>
     {panel ? <section className="guild-card-sheet" aria-label="Карта гільдії">
       <div className="guild-card-sheet__header"><div><span className="guild-kicker">Карта гільдії</span><h3>{active ? active.displayName ?? active.code : "Карта не обрана"}</h3></div><button className="guild-inline-button" onClick={() => { setPanel(null); setPending(null); }} type="button">Закрити</button></div>
@@ -115,9 +116,9 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
   </>;
 }
 
-function GuildModeTile({ asset, detail, disabled = false, emblemId, label, name, onClick }: GuildModeTileProps) {
+function GuildModeTile({ asset, detail, disabled = false, emblemElement, emblemId, label, name, onClick }: GuildModeTileProps) {
   const content = <>
-    <span className={`guild-mode-tile__art${asset === "main" ? " guild-mode-tile__art--emblem" : ""}`}>{asset === "main" ? <GuildEmblem emblemId={emblemId ?? "shield-1"} /> : <img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} />}</span>
+    <span className={`guild-mode-tile__art${asset === "main" ? " guild-mode-tile__art--emblem" : ""}`}>{asset === "main" ? <GuildEmblem element={emblemElement} emblemId={emblemId} /> : <img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} />}</span>
     <strong>{label}</strong>
     <small>{name ?? detail}</small>
     {name ? <small>{detail}</small> : null}
@@ -195,7 +196,7 @@ function formatJournalDate(value: string) {
 export function GuildJournal({ profile }: { profile: GuildProfileResponse }) {
   const { journal } = profile.dashboard;
   return <section className="guild-journal" aria-labelledby="guild-journal-title">
-    <RibbonTitle as="h3" id="guild-journal-title" leading={<AppIcon name="record" size={17} />} size="wide" trailing={`${journal.length} подій`}>ЛІТОПИС ГІЛЬДІЇ</RibbonTitle>
+    <RibbonTitle as="h3" id="guild-journal-title" leading={<AppIcon name="record" size={17} />} size="wide">ЛІТОПИС ГІЛЬДІЇ</RibbonTitle>
     {journal.length ? <div className="guild-journal__list">{journal.map((entry) => {
       const actor = entry.actorName ?? "Система";
       const target = entry.targetName && entry.targetName !== entry.actorName ? entry.targetName : null;
@@ -261,33 +262,29 @@ export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onD
     </GuildPromoBanner> : null}
 
     <section className="guild-mode-menu" aria-label="Основні розділи гільдії">
-      <GuildModeTile asset="main" detail={`Рівень ${guild.level}`} emblemId={guild.emblemId} label="Про гільдію" onClick={onInfo} />
+      <GuildModeTile asset="main" detail={`Рівень ${guild.level}`} emblemElement={guild.themeElement} emblemId={guild.emblemId} label="Про гільдію" onClick={onInfo} />
       <GuildCardPlatform active={profile.guildCard.active} canManage={profile.guildCard.canManage} candidates={guildCardCandidates} busy={busy} onLoadCandidates={onLoadGuildCardCandidates} onSetGuildCard={onSetGuildCard} />
       <GuildModeTile asset="altar" detail={`Рівень ${guild.level}`} label="Алтар гільдії" onClick={onDevelopment} />
       <GuildModeTile asset="war" detail="Незабаром" disabled label="Війна" onClick={() => setFeature("war")} />
       <GuildModeTile asset="arena" detail="Незабаром" disabled label="Арена" onClick={() => setFeature("arena")} />
-      <GuildModeTile asset="raid" detail="Відьми · спільний прогрес" label="Івент гільдії" onClick={onRaid} />
+      <GuildModeTile asset="raid" detail="Відьми" label="Івент гільдії" onClick={onRaid} />
     </section>
     {feature ? <GuildFeatureNotice feature={feature} onClose={() => setFeature(null)} /> : null}
-
-    <section className="guild-reward-section" aria-labelledby="guild-reward-title">
-      <RibbonTitle as="h3" id="guild-reward-title" leading={<AppIcon name="card-reward" size={17} />} size="wide">НАГОРОДИ ГІЛЬДІЇ</RibbonTitle>
-    </section>
 
     <section className="guild-menu-section" aria-label="Основні функції гільдії">
       <div className="guild-menu-list">
         <MenuRow compact actionContent={<span className="guild-treasury-balance"><span><AppIcon name="silver" size={13} />{formatNumber(profile.treasury.balance.silver)}</span><span><AppIcon name="gold" size={13} />{formatNumber(profile.treasury.balance.gold)}</span></span>} icon="inventory" iconSrc="/assets/guild/guild-treasury-cart.png" metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
-        <MenuRow compact icon="profile" metalTexture disabled={busy} onClick={onMembers} title="Склад" />
-        {managesApplications ? <MenuRow compact icon="mail" metalTexture disabled={busy} onClick={onApplications} title="Заявки" /> : null}
-        <MenuRow compact icon="tournament" metalTexture disabled title="Досягнення гільдії" />
+        <MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture disabled={busy} onClick={onMembers} title="Склад" />
+        {managesApplications ? <MenuRow compact detail={profile.applications.length ? String(profile.applications.length) : undefined} icon="mail" metalTexture disabled={busy} onClick={onApplications} title="Заявки" /> : null}
+        <MenuRow compact icon="tournament" locked metalTexture disabled title="Досягнення гільдії" />
       </div>
     </section>
 
     <section className="guild-menu-section guild-menu-section--lower" aria-label="Додаткові розділи гільдії">
       <div className="guild-menu-list">
         <MenuRow compact icon="collection" metalTexture disabled={busy} onClick={onForum} title="Форум гільдії" />
-        <MenuRow compact icon="mail" metalTexture disabled title="Чат гільдії" />
-        <MenuRow compact icon="guild" metalTexture disabled title="Чат союзу" />
+        <MenuRow compact icon="mail" locked metalTexture disabled title="Чат гільдії" />
+        <MenuRow compact icon="guild" locked metalTexture disabled title="Чат союзу" />
         <MenuRow compact icon="record" metalTexture disabled={busy} onClick={onJournal} title="Літопис" />
         <MenuRow compact icon="campaign" metalTexture disabled={busy} onClick={onAnnouncements} title="Оголошення" />
       </div>
@@ -333,7 +330,7 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
   }
 
   return <section className="guild-development guild-altar" aria-labelledby="guild-altar-title">
-    <RibbonTitle as="h3" id="guild-altar-title" leading={<AppIcon name="guild" size={17} />} size="wide" trailing={`Рівень ${formatNumber(altar.currentLevel)}`}>АЛТАР ГІЛЬДІЇ</RibbonTitle>
+    <RibbonTitle as="h3" id="guild-altar-title" leading={<AppIcon name="guild" size={17} />} size="wide">АЛТАР · РІВЕНЬ {formatNumber(altar.currentLevel)}</RibbonTitle>
     <p className="guild-altar__intro">Підсилення Алтаря купуються за ресурси гравця та діють одразу.</p>
     <div className="guild-altar__activation"><strong>Підсилення активується одразу</strong><p>Завершена колекція «Відьми» додає +2 рівні лише до золотого підсилення.</p></div>
     {altarNotice ? <p className={`guild-altar__status${altarNotice.error ? " guild-altar__status--error" : " action-feedback action-feedback--success"}`} role={altarNotice.error ? "alert" : "status"}>{altarNotice.text}</p> : null}
@@ -346,7 +343,7 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
         </article>;
       })}
     </div>
-    <button className="guild-altar__battle" onClick={onRaid} type="button"><p>Карти колекції «Відьми» можна отримати лише в івентах гільдії.</p><img src="/assets/guild/guild-altar-battle.png" alt="" /><strong>Битви з підсиленнями</strong><small>Відкрити івент гільдії</small></button>
-    <div className="guild-altar__menu guild-menu-list" aria-label="Розділи алтаря"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact detail="Розмови гільдії" icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact detail="Каталог" icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div>
+    <p className="guild-altar__note">Карти колекції «Відьми» можна отримати лише в івентах гільдії.</p>
+    <div className="guild-altar__menu guild-menu-list" aria-label="Розділи алтаря"><MenuRow compact icon="campaign" metalTexture onClick={onRaid} title="Битви з відьмами" /><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div>
   </section>;
 }

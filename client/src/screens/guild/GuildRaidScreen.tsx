@@ -221,7 +221,7 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
     </ol>
     <p className="guild-raid-result__participants">Всього учасників: {participantCount}</p>
     <div className="guild-raid-result__retry"><p>Ще спроба?</p><button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onRetry} type="button">Повторити бій</button></div>
-    <figure className="guild-raid-result__battle-art"><img alt="" src="/assets/guild/guild-altar-battle.png" /><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного івенту: {nextLevel}</small></figcaption></figure>
+    <figure className="guild-raid-result__battle-art"><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного івенту: {nextLevel}</small></figcaption></figure>
   </section>;
 }
 
@@ -379,6 +379,6 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
     </section> : null}
 
     {raidState.status === "ready" ? <p className="guild-raid__status" role="status">{notice}</p> : null}
-    {!battleVisible && !resultVisible ? <div className="guild-raid__menu guild-menu-list" aria-label="Розділи гільдії"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact detail="Розмови гільдії" icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact detail="Каталог" icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div> : null}
+    {!battleVisible && !resultVisible ? <div className="guild-raid__menu guild-menu-list" aria-label="Розділи гільдії"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div> : null}
   </section>;
 }

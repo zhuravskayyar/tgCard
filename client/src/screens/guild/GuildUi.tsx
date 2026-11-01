@@ -8,23 +8,9 @@ export const LANGUAGE_LABELS: Record<GuildLanguage, string> = { uk: "Украї�
 export const ELEMENT_LABELS: Record<CardElement, string> = { fire: "Вогонь", water: "Вода", air: "Повітря", earth: "Земля" };
 export const MODE_LABELS: Record<GuildRecruitmentMode, string> = { open: "Відкритий набір", application: "За заявкою", closed: "Набір закритий" };
 export const ROLE_ORDER: readonly GuildRole[] = ["leader", "officer", "veteran", "member", "newbie"];
-export const GUILD_EMBLEM_OPTIONS = [
-  { id: "shield-1", label: "Сонце" },
-  { id: "shield-2", label: "Місяць" },
-  { id: "shield-3", label: "Вогонь" },
-  { id: "shield-4", label: "Вода" },
-  { id: "shield-5", label: "Листок" },
-  { id: "shield-6", label: "Гора" },
-  { id: "shield-7", label: "Кристал" },
-  { id: "shield-8", label: "Зірка" },
-] as const;
+export { GUILD_EMBLEM_OPTIONS, GuildEmblem } from "./GuildEmblem";
 export const formatNumber = formatUiNumber;
 export const formatDate = (value: string) => new Date(value).toLocaleString("uk-UA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-
-export function guildEmblemIndex(emblemId?: string) {
-  const match = emblemId ? /^shield-([1-8])$/u.exec(emblemId) : null;
-  return match ? Number(match[1]) - 1 : 0;
-}
 
 export function guildErrorMessage(error: unknown) {
   if (!(error instanceof GuildApiError)) return "Не вдалося зв’язатися із сервером. Перевірте з’єднання та повторіть спробу.";
@@ -92,12 +78,6 @@ export function GuildState({ children, error = false, onRetry }: { children: Rea
     <span>{children}</span>
     {onRetry ? <button className="guild-secondary-button" onClick={onRetry} type="button">Повторити</button> : null}
   </div>;
-}
-
-export function GuildEmblem({ emblemId }: { emblemId: string }) {
-  const index = guildEmblemIndex(emblemId);
-  const row = Math.floor(index / 4);
-  return <span className="guild-emblem" aria-hidden="true"><span className="guild-emblem__sprite" style={{ backgroundPosition: `${(index % 4) * 33.333333}% ${row === 0 ? "25%" : "68%"}` }} /></span>;
 }
 
 export function GuildRoleBadge({ role }: { role: GuildRole }) {

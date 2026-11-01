@@ -68,6 +68,29 @@ export const DUEL_LEAGUE_CONFIG: LeagueConfig = Object.freeze({
   ))),
 });
 
+const ARENA_LEAGUE_MIN_RATINGS = [0, 500, 600, 800, 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_200, 2_400, 2_600, 2_800, 3_000, 3_200, 3_400, 3_600, 3_800, 4_000, 4_200] as const;
+
+export const ARENA_START_RATING = 1_400;
+export const ARENA_DEMOTION_BUFFER = 100;
+
+// Same 21 leagues and promotion silver as duels, on the Arena's own rating scale.
+export const ARENA_LEAGUE_CONFIG: LeagueConfig = Object.freeze({
+  ...DUEL_LEAGUE_CONFIG,
+  leagues: Object.freeze(DUEL_LEAGUE_CONFIG.leagues.map((league, index) => ({
+    ...league,
+    maxRating: index === ARENA_LEAGUE_MIN_RATINGS.length - 1 ? null : ARENA_LEAGUE_MIN_RATINGS[index + 1]! - 1,
+    minRating: ARENA_LEAGUE_MIN_RATINGS[index]!,
+  }))),
+});
+
+// Promotion is immediate; demotion waits until the rating falls a full buffer below the league floor.
+export function getArenaLeagueIndexAfter(rating: number, currentIndex: number) {
+  const byRating = getLeagueIndexByRating(rating, ARENA_LEAGUE_CONFIG);
+  if (byRating >= currentIndex) return byRating;
+  const floor = ARENA_LEAGUE_CONFIG.leagues[currentIndex]!.minRating;
+  return rating > floor - ARENA_DEMOTION_BUFFER ? currentIndex : byRating;
+}
+
 function assertRating(rating: number, field = "Rating") {
   if (!Number.isSafeInteger(rating) || rating < 0) {
     throw new RangeError(`${field} must be a non-negative safe integer`);

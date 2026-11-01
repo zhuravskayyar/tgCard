@@ -1,3 +1,5 @@
+import { loadCardTexture, saveCardTexture } from "./cardTextureCache";
+
 type ShaderMaterial = {
   bump: number;
   brush: number;
@@ -48,6 +50,7 @@ interface CardShaderInstance {
   destruction: { from: number; startedAt: number; duration: number; to: number; resolve: () => void } | null;
   destructionProgress: number;
   idleMotion: IdleTiltMotion;
+  painted: { destruction: number; x: number; y: number; at: number };
   material: ShaderMaterial;
   onReady: (ready: boolean) => void;
   pointerActive: boolean;
@@ -62,13 +65,21 @@ interface MountCardMaterialShaderOptions {
   artworkSource?: string | null;
   canvas: HTMLCanvasElement;
   materialId: string;
+  onCacheMiss?: () => void;
   onReady: (ready: boolean) => void;
   svgMarkup: string;
+  textureKey?: string;
 }
 
 const SHADER_WIDTH = 360;
 const SHADER_HEIGHT = 468;
-const TARGET_FRAME_MS = 1000 / 30;
+// Slightly under 33.3ms so a 60Hz display lands on every second frame instead of drifting to every third.
+const TARGET_FRAME_MS = 1000 / 30 - 2;
+// Below this change in tilt a repaint is invisible, so a resting card costs nothing.
+const TILT_REPAINT_EPSILON = 0.002;
+// Past this much main-thread time the remaining cards wait for the next tick, oldest paint first.
+const PAINT_BUDGET_MS = 5;
+const SCROLL_SETTLE_MS = 140;
 const ART_DATA_URL_CACHE_LIMIT = 12;
 
 const MATERIALS: Readonly<Record<string, ShaderMaterial>> = {
@@ -369,11 +380,7 @@ function randomBetween(minimum: number, maximum: number) {
   return minimum + Math.random() * (maximum - minimum);
 }
 
-function drawInstance(instance: CardShaderInstance, time: number) {
-  const renderer = sharedRenderer;
-  if (!renderer || instance.failed) return;
-  const { gl, uniforms, canvas: output } = renderer;
-  const material = instance.material;
+function advanceInstance(instance: CardShaderInstance, time: number) {
   let targetX = 0;
   let targetY = 0;
   if (!instance.reducedMotion) {
@@ -409,6 +416,13 @@ function drawInstance(instance: CardShaderInstance, time: number) {
       effect.resolve();
     }
   }
+}
+
+function paintInstance(instance: CardShaderInstance, time: number) {
+  const renderer = sharedRenderer;
+  if (!renderer || instance.failed) return;
+  const { gl, uniforms, canvas: output } = renderer;
+  const material = instance.material;
 
   gl.viewport(0, 0, SHADER_WIDTH, SHADER_HEIGHT);
   gl.clearColor(0, 0, 0, 0);
@@ -428,7 +442,30 @@ function drawInstance(instance: CardShaderInstance, time: number) {
 
   instance.context.clearRect(0, 0, instance.canvas.width, instance.canvas.height);
   instance.context.drawImage(output, 0, 0, instance.canvas.width, instance.canvas.height);
+  instance.painted = { destruction: instance.destructionProgress, x: instance.tilt.x, y: instance.tilt.y, at: time };
   instance.onReady(true);
+}
+
+function drawInstance(instance: CardShaderInstance, time: number) {
+  advanceInstance(instance, time);
+  paintInstance(instance, time);
+}
+
+function needsPaint(instance: CardShaderInstance) {
+  const { painted, tilt } = instance;
+  return painted.destruction !== instance.destructionProgress
+    || Math.abs(painted.x - tilt.x) > TILT_REPAINT_EPSILON
+    || Math.abs(painted.y - tilt.y) > TILT_REPAINT_EPSILON;
+}
+
+let lastScrollAt = -Infinity;
+let scrollTracking = false;
+
+function trackScrolling() {
+  if (scrollTracking) return;
+  scrollTracking = true;
+  // Scroll does not bubble, so capture sees every scrolling screen; the shared listener lives as long as the page.
+  window.addEventListener("scroll", () => { lastScrollAt = performance.now(); }, { capture: true, passive: true });
 }
 
 // Battle strikes hold the idle tilt so the shared main thread goes to the strike animation.
@@ -459,8 +496,24 @@ function renderFrame(time: number) {
   if (!hasAnimatedVisibleCards()) return;
   if (time - lastFrameAt >= TARGET_FRAME_MS) {
     lastFrameAt = time;
+    const scrolling = time - lastScrollAt < SCROLL_SETTLE_MS;
+    const urgent: CardShaderInstance[] = [];
+    const idle: CardShaderInstance[] = [];
     for (const instance of instances) {
-      if (instance.visible && !instance.failed) drawInstance(instance, time);
+      if (!instance.visible || instance.failed) continue;
+      const destroying = instance.destruction !== null;
+      advanceInstance(instance, time);
+      if (destroying || instance.pointerActive) urgent.push(instance);
+      else if (!scrolling && needsPaint(instance)) idle.push(instance);
+    }
+    for (const instance of urgent) {
+      if (needsPaint(instance)) paintInstance(instance, time);
+    }
+    idle.sort((a, b) => a.painted.at - b.painted.at);
+    const paintStartedAt = performance.now();
+    for (const instance of idle) {
+      paintInstance(instance, time);
+      if (performance.now() - paintStartedAt > PAINT_BUDGET_MS) break;
     }
   }
   if (hasAnimatedVisibleCards()) animationFrame = requestAnimationFrame(renderFrame);
@@ -479,7 +532,7 @@ function handleDocumentVisibility() {
   }
 }
 
-export function mountCardMaterialShader({ artworkSource, canvas, materialId, onReady, svgMarkup }: MountCardMaterialShaderOptions) {
+export function mountCardMaterialShader({ artworkSource, canvas, materialId, onCacheMiss, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
   let disposed = false;
   let visible = !("IntersectionObserver" in window);
   let creating = false;
@@ -494,6 +547,7 @@ export function mountCardMaterialShader({ artworkSource, canvas, materialId, onR
   canvas.width = SHADER_WIDTH;
   canvas.height = SHADER_HEIGHT;
   context.imageSmoothingEnabled = true;
+  trackScrolling();
   document.addEventListener("visibilitychange", handleDocumentVisibility);
 
   const fail = () => {
@@ -525,7 +579,13 @@ export function mountCardMaterialShader({ artworkSource, canvas, materialId, onR
     if (creating || failed || disposed) return;
     creating = true;
     void (async () => {
-      const image = await makeSvgImage(svgMarkup, artworkSource);
+      const cachedTexture = textureKey ? await loadCardTexture(textureKey) : null;
+      if (disposed) {
+        cachedTexture?.close();
+        return;
+      }
+      if (!cachedTexture) onCacheMiss?.();
+      const image = cachedTexture ?? await makeSvgImage(svgMarkup, artworkSource);
       if (disposed) return;
       const renderer = getSharedRenderer();
       if (!renderer) throw new Error("WebGL is unavailable");
@@ -535,6 +595,8 @@ export function mountCardMaterialShader({ artworkSource, canvas, materialId, onR
       const textureContext = textureCanvas.getContext("2d");
       if (!textureContext) throw new Error("Card texture canvas is unavailable");
       textureContext.drawImage(image, 0, 0, SHADER_WIDTH, SHADER_HEIGHT);
+      cachedTexture?.close();
+      if (!cachedTexture && textureKey) saveCardTexture(textureKey, textureCanvas);
       const texture = createTexture(renderer.gl, textureCanvas);
       if (!texture) throw new Error("Card texture could not be created");
       const outputContext = canvas.getContext("2d");
@@ -557,6 +619,7 @@ export function mountCardMaterialShader({ artworkSource, canvas, materialId, onR
           duration: 0,
           nextAt: performance.now() + randomBetween(180, 2100),
         },
+        painted: { destruction: 0, x: 0, y: 0, at: 0 },
         material,
         onReady,
         pointerActive: false,
@@ -645,7 +708,7 @@ export function mountCardMaterialShader({ artworkSource, canvas, materialId, onR
 
 const powerTextureRevisions = new WeakMap<HTMLCanvasElement, number>();
 
-export async function updateCardMaterialShaderPower(canvas: HTMLCanvasElement, svgMarkup: string, artworkSource?: string | null) {
+export async function updateCardMaterialShaderPower(canvas: HTMLCanvasElement, svgMarkup: string, artworkSource?: string | null, textureKey?: string) {
   const instance = canvasInstances.get(canvas);
   const renderer = sharedRenderer;
   if (!instance || !renderer || instance.failed) return false;
@@ -663,6 +726,7 @@ export async function updateCardMaterialShaderPower(canvas: HTMLCanvasElement, s
   const height = 38 * scale;
   instance.textureContext.clearRect(x, y, width, height);
   instance.textureContext.drawImage(image, x, y, width, height, x, y, width, height);
+  if (textureKey) saveCardTexture(textureKey, instance.textureCanvas);
 
   const gl = renderer.gl;
   gl.bindTexture(gl.TEXTURE_2D, instance.texture);

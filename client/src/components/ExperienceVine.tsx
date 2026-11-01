@@ -17,6 +17,10 @@ const LEAF_COUNT = 18;
 const LEAF_SHAPE = "M0 0C2 -5 4 -8 8 -8C9 -11 13 -12 15 -9C18 -11 22 -8 21 -5C24 -3 26 -1 28 0C26 2 24 4 21 5C22 8 18 11 15 9C13 12 9 11 8 8C4 8 2 5 0 0Z";
 const LEAF_VEIN = "M1 0L26 0M6 0L10 -5M6 0L10 5M13 0L17 -5M13 0L17 5M20 0L23 -3M20 0L23 3";
 const MOTE_COLORS = ["#f2b83a", "#ffe08a", "#c8922a"];
+const VIEW_WIDTH = 520;
+const VIEW_TOP = 14;
+const VIEW_HEIGHT = 42;
+const GROWTH_FRAME_MS = 1000 / 30 - 2;
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -35,8 +39,29 @@ function svgElement(name: string, attributes: Record<string, string | number>, p
 }
 
 // Builds the vine once and animates only while the displayed progress catches up with the target.
-function mountVine(svg: SVGSVGElement, prefix: string, reduceMotion: boolean): VineController {
-  const part = (name: string) => svg.querySelector<SVGElement>(`[data-part="${name}"]`)!;
+function mountVine(root: HTMLElement, prefix: string, reduceMotion: boolean): VineController {
+  const parts = new Map<string, SVGElement>();
+  const part = (name: string) => {
+    let element = parts.get(name);
+    if (!element) {
+      element = root.querySelector<SVGElement>(`[data-part="${name}"]`)!;
+      parts.set(name, element);
+    }
+    return element;
+  };
+  const tipElement = root.querySelector<HTMLElement>(".experience-vine__tip")!;
+  // Growth rewrites hundreds of attributes under SVG filters, so unchanged values are never touched.
+  const attributeCache = new WeakMap<Element, Map<string, string>>();
+  const setAttr = (element: Element, name: string, value: string) => {
+    let cache = attributeCache.get(element);
+    if (!cache) {
+      cache = new Map();
+      attributeCache.set(element, cache);
+    }
+    if (cache.get(name) === value) return;
+    cache.set(name, value);
+    element.setAttribute(name, value);
+  };
   const ref = (name: string) => `url(#${prefix}-${name})`;
   let seed = 11;
   const random = () => {
@@ -74,12 +99,27 @@ function mountVine(svg: SVGSVGElement, prefix: string, reduceMotion: boolean): V
   part("stem").setAttribute("d", `M${top.join("L")}L${bottom.reverse().join("L")}Z`);
   part("ticks").setAttribute("d", ticks);
 
-  const vine = part("vine") as SVGPathElement;
-  const totalLength = vine.getTotalLength();
+  // The stem is a known polyline, so positions come from a table instead of getPointAtLength.
+  const lengths = [0];
+  for (let index = 1; index < points.length; index += 1) {
+    lengths.push(lengths[index - 1] + Math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1]));
+  }
+  const totalLength = lengths[lengths.length - 1];
+  const pointAt = (position: number) => {
+    let low = 0;
+    let high = lengths.length - 1;
+    while (high - low > 1) {
+      const middle = (low + high) >> 1;
+      if (lengths[middle] <= position) low = middle;
+      else high = middle;
+    }
+    const t = (position - lengths[low]) / (lengths[high] - lengths[low]);
+    return { x: points[low][0] + (points[high][0] - points[low][0]) * t, y: points[low][1] + (points[high][1] - points[low][1]) * t };
+  };
   const at = (position: number) => {
     const clamped = Math.max(0, Math.min(totalLength - 2.1, position));
-    const a = vine.getPointAtLength(clamped);
-    const b = vine.getPointAtLength(clamped + 2);
+    const a = pointAt(clamped);
+    const b = pointAt(clamped + 2);
     return { x: a.x, y: a.y, heading: Math.atan2(b.y - a.y, b.x - a.x) };
   };
 
@@ -165,32 +205,33 @@ function mountVine(svg: SVGSVGElement, prefix: string, reduceMotion: boolean): V
     const visible = length > 1;
     const tip = at(Math.min(length, totalLength));
     const dash = `${length} ${totalLength + 10}`;
-    for (const name of ["hl", "halo", "halo2"]) part(name).setAttribute("stroke-dasharray", dash);
-    part("clip").setAttribute("width", String(visible ? tip.x + 1 : 0));
+    for (const name of ["hl", "halo", "halo2"]) setAttr(part(name), "stroke-dasharray", dash);
+    setAttr(part("clip"), "width", String(visible ? tip.x + 1 : 0));
     const bark = part("bark");
-    bark.setAttribute("x1", String(tip.x - 130));
-    bark.setAttribute("x2", String(tip.x));
-    part("tip").setAttribute("transform", `translate(${tip.x.toFixed(1)} ${tip.y.toFixed(1)})`);
-    part("tip").setAttribute("opacity", visible ? "1" : "0");
-    part("halo").setAttribute("opacity", String(visible ? 0.25 + 0.5 * shown : 0));
-    part("halo2").setAttribute("opacity", String(visible ? 0.12 + 0.35 * shown : 0));
-    part("leafglow").setAttribute("opacity", String(visible ? (0.2 + 0.5 * shown) * 0.7 : 0));
+    setAttr(bark, "x1", String(tip.x - 130));
+    setAttr(bark, "x2", String(tip.x));
+    tipElement.style.left = `${((tip.x / VIEW_WIDTH) * 100).toFixed(2)}%`;
+    tipElement.style.top = `${(((tip.y - VIEW_TOP) / VIEW_HEIGHT) * 100).toFixed(2)}%`;
+    tipElement.style.opacity = visible ? "1" : "0";
+    setAttr(part("halo"), "opacity", String(visible ? 0.25 + 0.5 * shown : 0));
+    setAttr(part("halo2"), "opacity", String(visible ? 0.12 + 0.35 * shown : 0));
+    setAttr(part("leafglow"), "opacity", String(visible ? (0.2 + 0.5 * shown) * 0.7 : 0));
     for (const leaf of leaves) {
       const t = clamp01((length - leaf.position) / 34);
       const scale = t ? easeOutBack(t) * leaf.size : 0;
       const transform = `translate(${leaf.x.toFixed(1)} ${leaf.y.toFixed(1)}) rotate(${leaf.angle.toFixed(1)}) scale(${scale.toFixed(3)} ${(scale * leaf.side).toFixed(3)})`;
-      leaf.group.setAttribute("transform", transform);
-      leaf.glow.setAttribute("transform", transform);
+      setAttr(leaf.group, "transform", transform);
+      setAttr(leaf.glow, "transform", transform);
     }
     for (const tendril of tendrils) {
       const t = clamp01((length - tendril.position) / 70);
-      tendril.element.setAttribute("stroke-dasharray", `${(t * tendril.length).toFixed(1)} ${tendril.length + 5}`);
-      tendril.element.setAttribute("opacity", t > 0 ? "1" : "0");
-      tendril.bead.setAttribute("opacity", t > 0.98 ? "1" : "0");
+      setAttr(tendril.element, "stroke-dasharray", `${(t * tendril.length).toFixed(1)} ${tendril.length + 5}`);
+      setAttr(tendril.element, "opacity", t > 0 ? "1" : "0");
+      setAttr(tendril.bead, "opacity", t > 0.98 ? "1" : "0");
     }
     for (const bloom of blooms) {
       const t = bloom.end ? clamp01((shown - 0.95) / 0.05) : clamp01((length - bloom.position - 14) / 46);
-      bloom.group.setAttribute("transform", `translate(${bloom.x.toFixed(1)} ${bloom.y.toFixed(1)}) rotate(${bloom.angle.toFixed(1)}) scale(${(t ? easeOutBack(t) : 0).toFixed(3)})`);
+      setAttr(bloom.group, "transform", `translate(${bloom.x.toFixed(1)} ${bloom.y.toFixed(1)}) rotate(${bloom.angle.toFixed(1)}) scale(${(t ? easeOutBack(t) : 0).toFixed(3)})`);
     }
     for (const node of nodes) {
       const lit = length > node.position;
@@ -224,7 +265,12 @@ function mountVine(svg: SVGSVGElement, prefix: string, reduceMotion: boolean): V
   };
 
   const step = (now: number) => {
-    const elapsed = Math.min(0.05, (now - last) / 1000);
+    // Growth repaints filtered SVG, so it is capped at 30fps and keeps real time on slow phones.
+    if (now - last < GROWTH_FRAME_MS) {
+      frame = requestAnimationFrame(step);
+      return;
+    }
+    const elapsed = Math.min(0.25, (now - last) / 1000);
     last = now;
     const difference = target - shown;
     const growing = Math.abs(difference) > 0.0004;
@@ -271,16 +317,17 @@ function mountVine(svg: SVGSVGElement, prefix: string, reduceMotion: boolean): V
 }
 
 export function ExperienceVine({ level, progress }: ExperienceVineProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<VineController | null>(null);
   const prefix = `vine${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const id = (name: string) => `${prefix}-${name}`;
+  const viewBox = `0 ${VIEW_TOP} ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return undefined;
+    const root = rootRef.current;
+    if (!root) return undefined;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const controller = mountVine(svg, prefix, reduceMotion);
+    const controller = mountVine(root, prefix, reduceMotion);
     controllerRef.current = controller;
     return () => {
       controller.destroy();
@@ -293,7 +340,9 @@ export function ExperienceVine({ level, progress }: ExperienceVineProps) {
   }, [level, progress]);
 
   return (
-    <svg aria-hidden="true" className="experience-vine" ref={svgRef} viewBox="0 14 520 42">
+    // Looping glow and spark are separate root layers: the compositor moves them without repainting the filters.
+    <div aria-hidden="true" className="experience-vine" ref={rootRef}>
+    <svg className="experience-vine__layer" viewBox={viewBox}>
       <defs>
         <linearGradient data-part="bark" gradientUnits="userSpaceOnUse" id={id("bark")} x1="0" x2="100" y1="0" y2="0">
           <stop offset="0" stopColor="#2a1d12" />
@@ -319,11 +368,13 @@ export function ExperienceVine({ level, progress }: ExperienceVineProps) {
         <path data-part="dead" fill="none" opacity=".75" stroke="#6b5636" strokeDasharray="3 4" strokeLinecap="round" strokeWidth="1.1" />
         <path data-part="dead2" fill="none" opacity=".25" stroke="#6b5636" strokeWidth=".5" transform="translate(0 1.5)" />
       </g>
-      <g className="experience-vine__pulse">
+    </svg>
+    <svg className="experience-vine__layer experience-vine__pulse" viewBox={viewBox}>
         <path data-part="halo2" fill="none" filter={`url(#${id("wide")})`} opacity="0" stroke="#e8a030" strokeLinecap="round" strokeWidth="10" />
         <path data-part="halo" fill="none" filter={`url(#${id("glow")})`} opacity="0" stroke="#f6c14a" strokeLinecap="round" strokeWidth="4" />
         <g data-part="leafglow" filter={`url(#${id("soft")})`} opacity="0" />
-      </g>
+    </svg>
+    <svg className="experience-vine__layer" viewBox={viewBox}>
       <g filter={`url(#${id("rough")})`}>
         <g data-part="tendrils" fill="none" stroke="#3a2a1c" strokeLinecap="round" strokeWidth=".8" />
         <g data-part="leaves" />
@@ -337,12 +388,19 @@ export function ExperienceVine({ level, progress }: ExperienceVineProps) {
       <path data-part="vine" fill="none" stroke="none" />
       <path data-part="hl" fill="none" opacity=".5" stroke="#f6d98a" strokeLinecap="round" strokeWidth=".6" transform="translate(0 -.6)" />
       <g data-part="nodes" />
+    </svg>
+    <svg className="experience-vine__layer" viewBox={viewBox}>
       <g data-part="sparks" />
-      <g data-part="tip" opacity="0">
-        <circle fill="#f6c14a" filter={`url(#${id("soft")})`} opacity=".5" r="9" />
-        <path className="experience-vine__spark" d="M0 -9L1.5 -1.5L9 0L1.5 1.5L0 9L-1.5 1.5L-9 0L-1.5 -1.5Z" fill="#f9d25e" filter={`url(#${id("glow")})`} stroke="#3a2a1c" strokeWidth=".5" />
-      </g>
       <rect className="experience-vine__flash" data-part="flash" fill="#ffd978" filter={`url(#${id("wide")})`} height="12" pointerEvents="none" rx="6" width="492" x="14" y="29" />
     </svg>
+    <div className="experience-vine__tip" style={{ opacity: 0 }}>
+      <svg className="experience-vine__tip-glow" viewBox="-20 -20 40 40">
+        <circle fill="#f6c14a" filter={`url(#${id("soft")})`} opacity=".5" r="9" />
+      </svg>
+      <svg className="experience-vine__spark" viewBox="-20 -20 40 40">
+        <path d="M0 -9L1.5 -1.5L9 0L1.5 1.5L0 9L-1.5 1.5L-9 0L-1.5 -1.5Z" fill="#f9d25e" filter={`url(#${id("glow")})`} stroke="#3a2a1c" strokeWidth=".5" />
+      </svg>
+    </div>
+    </div>
   );
 }

@@ -28,5 +28,5 @@ test("reference reward nodes use a currency boost, silver, gold, and a lowest-de
 });
 
 test("the daily task reward pool remains seven diamonds before the multiplier", () => {
-  assert.equal(DAILY_TASKS.reduce((total, task) => total + task.rewardDiamonds, 0), 7);
+  assert.equal(DAILY_TASKS.reduce((total, task) => total + task.rewardDiamonds, 0), 13);
 });

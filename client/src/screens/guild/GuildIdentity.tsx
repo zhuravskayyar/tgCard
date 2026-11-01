@@ -15,9 +15,9 @@ export function GuildIdentity({ profile, includeStickyTitle = true }: { profile:
       : 0;
 
   return <>
-    {includeStickyTitle ? <GuildScrollTitle name={guild.name} emblemId={guild.emblemId} heroRef={heroRef} /> : null}
+    {includeStickyTitle ? <GuildScrollTitle name={guild.name} element={guild.themeElement} emblemId={guild.emblemId} heroRef={heroRef} /> : null}
     <section className="guild-hero" ref={heroRef} aria-labelledby="guild-hero-title">
-      <div className="guild-hero__emblem"><GuildEmblem emblemId={guild.emblemId} /></div>
+      <div className="guild-hero__emblem"><GuildEmblem element={guild.themeElement} emblemId={guild.emblemId} /></div>
       <div className="guild-hero__identity">
         <span className="guild-eyebrow">Гільдія · рівень {guild.level}</span>
         <h2 id="guild-hero-title">{guild.name}</h2>

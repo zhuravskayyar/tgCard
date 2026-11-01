@@ -7,7 +7,8 @@ import { ProfileScreen } from "./screens/ProfileScreen";
 import { ShopScreen } from "./screens/ShopScreen";
 import { CardDetailScreen } from "./screens/CardDetailScreen";
 import { WeakCardsScreen } from "./screens/WeakCardsScreen";
-import { CollectionCardScreen, CollectionDetailScreen, CollectionsScreen } from "./screens/CollectionsScreens";
+import { BestiaryBook } from "./components/bestiary/BestiaryBook";
+import { CollectionCardScreen } from "./screens/CollectionsScreens";
 import { DuelScreen } from "./screens/DuelScreen";
 import { DuelSearchLoopPreview, isDuelSearchLoopPreview } from "./screens/DuelSearchLoopPreview";
 import { CampaignBossScreen, CampaignLockedHub, CampaignScreen, CampaignStageScreen } from "./screens/CampaignScreens";
@@ -470,6 +471,10 @@ export function App() {
   }
 
   function openTaskTarget(taskId: string) {
+    if (taskId === "play-arenas" || taskId === "win-arenas") {
+      openArena();
+      return;
+    }
     if (taskId === "win-duels" || taskId === "play-duels") {
       openDuel("tasks");
       return;
@@ -623,7 +628,7 @@ export function App() {
       onNavigate={navigateFromBottom}
       onRetryPlayerSummary={retry}
       playerSummaryState={playerSummaryState}
-      screenKey={screen}
+      screenKey={screen === "collection" ? "collections" : screen}
       deckPowerOverride={deckPowerOverride}
       overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
       modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
@@ -737,8 +742,7 @@ export function App() {
           onPurchaseContinue={continueAfterShopPurchase}
         />
       ) : null}
-      {screen === "collections" ? <CollectionsScreen onBack={() => collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} /> : null}
-      {screen === "collection" && collectionId ? <CollectionDetailScreen collectionId={collectionId} onBack={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} onOpenShop={() => openShop("collection")} /> : null}
+      {screen === "collections" || (screen === "collection" && collectionId) ? <BestiaryBook collectionId={screen === "collection" ? collectionId : null} onBack={() => collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onBackToContents={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} onOpenShop={() => openShop("collection")} /> : null}
       {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
       {screen === "campaign" && campaignUnlocked === false ? <CampaignLockedHub caveName={storyCaveName} onBack={goHome} onOpenTrials={openTrials} /> : null}
       {screen === "campaign" && campaignUnlocked !== false ? <CampaignScreen onBack={goHome} onCampaignCompleted={tutorial.complete} onOpenBoss={() => { setScreen("campaign-boss"); updatePath("/campaign/boss"); }} onOpenStage={openCampaignStage} /> : null}

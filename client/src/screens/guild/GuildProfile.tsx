@@ -3,9 +3,9 @@ import { GUILD_CONFIG, GUILD_ROLE_LABELS, canKickGuildMember, canManageGuildRole
 import { AppIcon } from "../../components/AppIcon";
 import { MenuRow } from "../../components/MenuRow";
 import { RibbonTitle } from "../../components/RibbonTitle";
+import { ScreenHeading } from "../../components/ScreenHeading";
 import { ELEMENT_LABELS, GuildEmblem, GuildRoleBadge, GuildState, LANGUAGE_LABELS, MODE_LABELS, ROLE_ORDER, formatDate, formatNumber, type AsyncState } from "./GuildUi";
 import { GuildAnnouncements, GuildDevelopment, GuildHub, GuildJournal } from "./GuildHub";
-import { GuildIdentity } from "./GuildIdentity";
 import { GuildCardScreen } from "./GuildCardScreen";
 import { GuildRaidScreen } from "./GuildRaidScreen";
 import { GuildTreasuryScreen } from "./GuildTreasuryScreen";
@@ -56,8 +56,6 @@ export function GuildProfile({ profile, mine, playerLevel, onTabChange, busy, no
   const managesApplications = permissions.includes("manage_applications");
   const application = mine.activeApplication;
   const memberPages = Math.max(1, Math.ceil(members.length / 10));
-  const panelTab = tab === "info" || tab === "members" || tab === "applications" || tab === "development" ? tab : null;
-  const showGuildTabs = tab !== "overview" && tab !== "info" && tab !== "members" && tab !== "card" && tab !== "development" && tab !== "raid" && tab !== "treasury" && tab !== "journal";
 
   useEffect(() => { setDescription(guild.description); setMode(guild.recruitmentMode); }, [guild.description, guild.recruitmentMode]);
   useEffect(() => { onTabChange(tab); }, [onTabChange, tab]);
@@ -83,7 +81,7 @@ export function GuildProfile({ profile, mine, playerLevel, onTabChange, busy, no
   }
 
   return <section className={`guild-profile${tab === "members" ? " guild-profile--roster" : tab === "card" ? " guild-profile--card" : tab === "journal" ? " guild-profile--journal" : ""}`} data-element={guild.themeElement ?? undefined} aria-label={`Профіль гільдії ${guild.name}`} aria-busy={busy}>
-    {tab !== "overview" && tab !== "info" && tab !== "members" && tab !== "card" && tab !== "development" && tab !== "raid" && tab !== "treasury" && tab !== "journal" ? <GuildIdentity profile={profile} /> : null}
+    {tab !== "overview" && tab !== "treasury" ? <ScreenHeading backDisabled={busy} backLabel="До гільдії" onBack={() => setTab("overview")} title={guild.name} /> : null}
     {!viewer.member && tab === "overview" ? <div className="guild-entry">
       {entryMessage ? <p className="guild-helper" role="status">{entryMessage}</p> : guild.recruitmentMode === "application" ? <form className="guild-form" onSubmit={(event) => { event.preventDefault(); onApply(applicationMessage); }}>
         <label>Повідомлення для гільдії <span className="guild-helper">Необов’язково</span><textarea rows={2} maxLength={500} value={applicationMessage} onChange={(event) => setApplicationMessage(event.target.value)} placeholder="Розкажіть про себе…" /></label>
@@ -92,15 +90,8 @@ export function GuildProfile({ profile, mine, playerLevel, onTabChange, busy, no
       {application && !mine.guild ? <div className="guild-pending"><small>Діє до {formatDate(application.expiresAt)}</small><button className="guild-secondary-button" disabled={busy} onClick={() => onWithdraw(application.id)} type="button">Відкликати заявку</button></div> : null}
     </div> : null}
     {notice}
-    {showGuildTabs ? <div className="guild-tabs" role="tablist" aria-label="Розділи гільдії">
-      <button id="guild-overview-tab" role="tab" aria-selected={false} aria-controls="guild-roster-panel" onClick={() => setTab("overview")} type="button">Огляд</button>
-      <button id="guild-info-tab" role="tab" aria-selected={false} aria-controls="guild-roster-panel" onClick={() => setTab("info")} type="button">Профіль</button>
-      <button id="guild-members-tab" role="tab" aria-selected={false} aria-controls="guild-roster-panel" onClick={() => setTab("members")} type="button">Склад <span>{members.length}</span></button>
-      {managesApplications ? <button id="guild-applications-tab" role="tab" aria-selected={tab === "applications"} aria-controls="guild-roster-panel" onClick={() => setTab("applications")} type="button">Заявки <span>{applications.length}</span></button> : null}
-      <button id="guild-development-tab" role="tab" aria-selected={panelTab === "development"} aria-controls="guild-roster-panel" onClick={() => setTab("development")} type="button">Алтар гільдії</button>
-    </div> : null}
-    <div id="guild-roster-panel" role={tab === "overview" ? "region" : "tabpanel"} aria-label={tab === "overview" ? "Огляд гільдії" : undefined} aria-labelledby={panelTab ? `guild-${panelTab}-tab` : undefined}>
-      {tab === "overview" ? <GuildHub profile={profile} busy={busy} guildCardCandidates={guildCardCandidates} onLoadGuildCardCandidates={onLoadGuildCardCandidates} onSetGuildCard={onSetGuildCard} onInfo={() => setTab("info")} onMembers={() => setTab("members")} onApplications={() => setTab("applications")} onDevelopment={() => setTab("development")} onRaid={() => setTab("raid")} onDirectory={onDirectory} onForum={onForum} onTreasury={() => setTab("treasury")} onJournal={() => setTab("journal")} onAnnouncements={() => setTab("announcements")} onUpdateAnnouncement={onUpdateAnnouncement} /> : tab === "info" ? <GuildInformation profile={profile} onBack={() => setTab("overview")} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "card" ? <GuildCardScreen busy={busy} onCardBack={() => setTab("members")} onForum={onForum} onLoadCardCandidates={onLoadGuildCardCandidates} onLoadTreasuryCardCandidates={onLoadTreasuryCardCandidates} onSetGuildCard={onSetGuildCard} onDonateGuildCardElements={onDonateGuildCardElements} onTreasury={() => setTab("treasury")} profile={profile} guildCardCandidates={guildCardCandidates} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "development" ? <GuildDevelopment busy={busy} onPurchaseAltar={onPurchaseAltar} profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} onRaid={() => setTab("raid")} /> : tab === "raid" ? <GuildRaidScreen profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "treasury" ? <GuildTreasuryScreen busy={busy} onBack={() => setTab("overview")} onDonateCardElements={onDonateGuildCardElements} onDonateCurrency={onDonateTreasuryCurrency} onLoadCardCandidates={onLoadTreasuryCardCandidates} profile={profile} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "journal" ? <GuildJournal profile={profile} /> : tab === "announcements" ? <GuildAnnouncements busy={busy} onUpdateAnnouncement={onUpdateAnnouncement} profile={profile} /> : tab === "management" ? <GuildManagement busy={busy} description={description} guild={guild} mode={mode} onDescriptionChange={setDescription} onModeChange={setMode} onUpdateSettings={onUpdateSettings} /> : <>
+    <div id="guild-roster-panel" role="region" aria-label={tab === "overview" ? "Огляд гільдії" : "Розділ гільдії"}>
+      {tab === "overview" ? <GuildHub profile={profile} busy={busy} guildCardCandidates={guildCardCandidates} onLoadGuildCardCandidates={onLoadGuildCardCandidates} onSetGuildCard={onSetGuildCard} onInfo={() => setTab("info")} onMembers={() => setTab("members")} onApplications={() => setTab("applications")} onDevelopment={() => setTab("development")} onRaid={() => setTab("raid")} onDirectory={onDirectory} onForum={onForum} onTreasury={() => setTab("treasury")} onJournal={() => setTab("journal")} onAnnouncements={() => setTab("announcements")} onUpdateAnnouncement={onUpdateAnnouncement} /> : tab === "info" ? <GuildInformation profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "card" ? <GuildCardScreen busy={busy} onCardBack={() => setTab("members")} onForum={onForum} onLoadCardCandidates={onLoadGuildCardCandidates} onLoadTreasuryCardCandidates={onLoadTreasuryCardCandidates} onSetGuildCard={onSetGuildCard} onDonateGuildCardElements={onDonateGuildCardElements} onTreasury={() => setTab("treasury")} profile={profile} guildCardCandidates={guildCardCandidates} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "development" ? <GuildDevelopment busy={busy} onPurchaseAltar={onPurchaseAltar} profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} onRaid={() => setTab("raid")} /> : tab === "raid" ? <GuildRaidScreen profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "treasury" ? <GuildTreasuryScreen busy={busy} onBack={() => setTab("overview")} onDonateCardElements={onDonateGuildCardElements} onDonateCurrency={onDonateTreasuryCurrency} onLoadCardCandidates={onLoadTreasuryCardCandidates} profile={profile} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "journal" ? <GuildJournal profile={profile} /> : tab === "announcements" ? <GuildAnnouncements busy={busy} onUpdateAnnouncement={onUpdateAnnouncement} profile={profile} /> : tab === "management" ? <GuildManagement busy={busy} description={description} guild={guild} mode={mode} onDescriptionChange={setDescription} onModeChange={setMode} onUpdateSettings={onUpdateSettings} /> : <>
         {tab === "members" ? <GuildRoster members={members} treasury={profile.treasury} memberPage={memberPage} memberPages={memberPages} viewer={viewer} permissions={permissions} busy={busy} expandedMember={expandedMember} rankManagementOpen={rankManagementOpen} onToggleRankManagement={() => { setRankManagementOpen((value) => !value); setExpandedMember(null); }} onToggleMember={(id) => setExpandedMember((current) => current === id ? null : id)} onPageChange={(page) => { setMemberPage(page); setExpandedMember(null); }} onChangeRole={onChangeRole} onTransfer={onTransfer} onKick={onKick} onLeave={onLeave} onTreasury={() => setTab("treasury")} onCard={() => setTab("card")} onForum={onForum} /> : applications.length === 0 ? <GuildState>Нових заявок немає. Тут з’являться гравці, які хочуть приєднатися.</GuildState> : <div className="guild-applications-list">{applications.map((item) => <article className="guild-application" key={item.id}>
           <strong>{item.playerName}</strong><small>Рівень {item.playerLevel} · до {formatDate(item.expiresAt)}</small>
           <div><button className="guild-primary-button" disabled={busy || guild.isFull} onClick={() => onDecideApplication(item.id, "accept")} type="button">Прийняти</button><button className="guild-secondary-button" disabled={busy} onClick={() => onDecideApplication(item.id, "reject")} type="button">Відхилити</button></div>
@@ -108,10 +99,9 @@ export function GuildProfile({ profile, mine, playerLevel, onTabChange, busy, no
         </article>)}</div>}
         </>}
     </div>
-    {tab === "overview" && permissions.includes("manage_settings") ? <div className="guild-management-entry guild-menu-list"><MenuRow compact detail="Налаштування та права" icon="settings" metalTexture disabled={busy} onClick={() => setTab("management")} title="Керування гільдією" /></div> : null}
-    {tab !== "members" && tab !== "card" ? <div className="guild-footer">
-      <button className="guild-directory-link" onClick={onDirectory} disabled={busy} type="button"><AppIcon name="guild" size={17} /><span>Переглянути інші гільдії</span><AppIcon name="chevron" size={13} /></button>
-      {tab !== "applications" && (viewer.member?.role === "leader" ? members.length === 1 && permissions.includes("dissolve_guild") ? <button className="guild-danger-button" disabled={busy} onClick={onDissolve} type="button">Розпустити гільдію</button> : null : permissions.includes("leave_guild") ? <button className="guild-danger-button" disabled={busy} onClick={onLeave} type="button">Вийти з гільдії</button> : null)}
+    {tab === "overview" && permissions.includes("manage_settings") ? <div className="guild-management-entry guild-menu-list"><MenuRow compact icon="settings" metalTexture disabled={busy} onClick={() => setTab("management")} title="Керування гільдією" /></div> : null}
+    {tab === "overview" ? <div className="guild-footer">
+      {(viewer.member?.role === "leader" ? members.length === 1 && permissions.includes("dissolve_guild") ? <button className="guild-danger-button" disabled={busy} onClick={onDissolve} type="button">Розпустити гільдію</button> : null : permissions.includes("leave_guild") ? <button className="guild-danger-button" disabled={busy} onClick={onLeave} type="button">Вийти з гільдії</button> : null)}
     </div> : null}
   </section>;
 }
@@ -192,8 +182,8 @@ function GuildRoster({ members, treasury, memberPage, memberPages, viewer, permi
             <span className="guild-member-row__index">{(memberPage - 1) * 10 + index + 1}</span>
             <span className="guild-member-row__avatar" aria-hidden="true">{member.photoUrl ? <img alt="" src={member.photoUrl} /> : member.displayName.slice(0, 1).toUpperCase()}</span>
             <span className="guild-roster__role" aria-hidden="true"><GuildRoleBadge role={member.role} /></span>
-            <span className="guild-member-row__identity"><strong>{member.displayName}{isSelf ? " · ви" : ""}</strong><small>{GUILD_ROLE_LABELS[member.role]} · рівень {member.level}</small></span>
-            <span className="guild-member-row__value"><strong>{metric === "rank" ? GUILD_ROLE_LABELS[member.role] : formatNumber(guildRosterMetricValue(metric, treasuryMembers.get(member.playerId)))}</strong><small>{metric === "rank" ? "звання" : metric === "guildXp" ? "XP" : metric === "cardElements" ? "елементів" : metric === "gold" ? "золота" : "срібла"}</small></span>
+            <span className="guild-member-row__identity"><strong>{member.displayName}{isSelf ? " · ви" : ""}</strong><small>{GUILD_ROLE_LABELS[member.role]}</small></span>
+            <span className="guild-member-row__value"><strong>{metric === "rank" ? `${member.level} рів.` : formatNumber(guildRosterMetricValue(metric, treasuryMembers.get(member.playerId)))}</strong><small>{metric === "rank" ? `${Math.max(0, Math.floor((Date.now() - Date.parse(member.joinedAt)) / 86_400_000))} д у гільдії` : metric === "guildXp" ? "XP" : metric === "cardElements" ? "елементів" : metric === "gold" ? "золота" : "срібла"}</small></span>
             {canManage ? <button className="guild-icon-button" aria-label={`Керувати: ${member.displayName}`} aria-expanded={expanded} aria-controls={`guild-member-${member.playerId}`} disabled={busy} onClick={() => onToggleMember(member.playerId)} type="button"><AppIcon name="chevron" size={16} /></button> : null}
           </div>
           {expanded && canManage ? <div className="guild-member-actions" id={`guild-member-${member.playerId}`}>
@@ -204,10 +194,10 @@ function GuildRoster({ members, treasury, memberPage, memberPages, viewer, permi
         </div>;
       })}
     </div>
-    <nav className="guild-pagination guild-roster__pagination" aria-label="Сторінки складу">
+    {memberPages > 1 ? <nav className="guild-pagination guild-roster__pagination" aria-label="Сторінки складу">
       {pageNumbers.map((page) => <button className="guild-secondary-button" aria-current={page === memberPage ? "page" : undefined} key={page} onClick={() => onPageChange(page)} type="button">{page}</button>)}
-      {memberPages > 1 ? <button className="guild-secondary-button" aria-label="Наступна сторінка" disabled={memberPage >= memberPages} onClick={() => onPageChange(Math.min(memberPages, memberPage + 1))} type="button">»</button> : null}
-    </nav>
+      <button className="guild-secondary-button" aria-label="Наступна сторінка" disabled={memberPage >= memberPages} onClick={() => onPageChange(Math.min(memberPages, memberPage + 1))} type="button">»</button>
+    </nav> : null}
     <div className="guild-roster__actions">
       {permissions.includes("manage_roles") ? <button className="guild-primary-button" disabled={busy} onClick={onToggleRankManagement} type="button">{rankManagementOpen ? "Згорнути керування" : "Керування званнями"}</button> : null}
       <button className="guild-danger-button" disabled={busy || !permissions.includes("leave_guild")} onClick={onLeave} type="button">Покинути гільдію</button>
@@ -222,25 +212,24 @@ function GuildRoster({ members, treasury, memberPage, memberPages, viewer, permi
   </div>;
 }
 
-function GuildInformation({ profile, onBack, onMembers, onForum, onDirectory }: { profile: GuildProfileResponse; onBack: () => void; onMembers: () => void; onForum: () => void; onDirectory: () => void }) {
+function GuildInformation({ profile, onMembers, onForum, onDirectory }: { profile: GuildProfileResponse; onMembers: () => void; onForum: () => void; onDirectory: () => void }) {
   const { guild, members } = profile;
   const leader = members.find((member) => member.role === "leader");
   return <section className="guild-information guild-information--reference" aria-labelledby="guild-information-title">
     <RibbonTitle as="h3" id="guild-information-title" leading={<AppIcon name="guild" size={17} />} size="wide">ІНФОРМАЦІЯ ПРО ГІЛЬДІЮ</RibbonTitle>
-    <div className="guild-information__identity"><GuildEmblem emblemId={guild.emblemId} /><h2>{guild.name}</h2><span>{guild.themeElement ? ELEMENT_LABELS[guild.themeElement] : "Без стихії"} · {MODE_LABELS[guild.recruitmentMode]}</span></div>
+    <div className="guild-information__identity"><GuildEmblem element={guild.themeElement} emblemId={guild.emblemId} /><h2>{guild.name}</h2><span>{guild.themeElement ? ELEMENT_LABELS[guild.themeElement] : "Без стихії"} · {MODE_LABELS[guild.recruitmentMode]}</span></div>
     <dl className="guild-information__facts"><div><dt>Заснована</dt><dd>{new Date(guild.createdAt).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" })}</dd></div><div><dt>Рівень</dt><dd>{guild.level}<small>{guild.nextLevelExperience === null ? "Максимальний рівень" : `${formatNumber(guild.experience)} / ${formatNumber(guild.nextLevelExperience)} XP`}</small></dd></div><div><dt>Склад</dt><dd>{guild.memberCount} / {guild.memberCapacity}</dd></div><div><dt>Активність</dt><dd>{formatNumber(guild.activityScore)} XP<small>за 7 днів</small></dd></div><div><dt>Лідер</dt><dd>{leader?.displayName ?? "—"}</dd></div><div><dt>Мова</dt><dd>{LANGUAGE_LABELS[guild.language]}</dd></div></dl>
-    <button className="guild-information__back" onClick={onBack} type="button">До огляду гільдії</button>
     <div className="guild-information__actions guild-menu-list" aria-label="Дії з інформацією про гільдію">
       <MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" />
-      <MenuRow compact detail="Розмови гільдії" icon="collection" metalTexture onClick={onForum} title="Форум гільдії" />
-      <MenuRow compact detail="Каталог" icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" />
+      <MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" />
+      <MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" />
     </div>
   </section>;
 }
 
 function GuildManagement({ busy, description, guild, mode, onDescriptionChange, onModeChange, onUpdateSettings }: { busy: boolean; description: string; guild: GuildProfileResponse["guild"]; mode: GuildRecruitmentMode; onDescriptionChange: (value: string) => void; onModeChange: (value: GuildRecruitmentMode) => void; onUpdateSettings: (input: { description: string; recruitmentMode: GuildRecruitmentMode }) => void }) {
   return <section className="guild-management" aria-labelledby="guild-management-title">
-    <RibbonTitle as="h3" id="guild-management-title" leading={<AppIcon name="settings" size={17} />} size="wide" trailing="Для лідера й офіцерів">КЕРУВАННЯ ГІЛЬДІЄЮ</RibbonTitle>
+    <RibbonTitle as="h3" id="guild-management-title" leading={<AppIcon name="settings" size={17} />} size="wide">КЕРУВАННЯ ГІЛЬДІЄЮ</RibbonTitle>
     <p className="guild-helper">Адміністративні дії залежать від вашої ролі. Цей екран змінює лише доступні налаштування гільдії.</p>
     <form className="guild-form" onSubmit={(event) => { event.preventDefault(); onUpdateSettings({ description, recruitmentMode: mode }); }}>
       <label>Опис<textarea maxLength={GUILD_CONFIG.descriptionMaxLength} rows={4} value={description} onChange={(event) => onDescriptionChange(event.target.value)} /></label>

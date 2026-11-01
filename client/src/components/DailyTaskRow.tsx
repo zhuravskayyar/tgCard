@@ -7,7 +7,9 @@ const taskActions: Record<string, { icon: AppIconName; label: string }> = {
   "absorb-cards": { icon: "card-absorb", label: "До колоди" },
   "acquire-cards": { icon: "shop", label: "До магазину" },
   "buy-cards": { icon: "shop", label: "До магазину" },
+  "play-arenas": { icon: "arena", label: "На арену" },
   "play-duels": { icon: "duel", label: "До дуелей" },
+  "win-arenas": { icon: "arena", label: "На арену" },
   "upgrade-card": { icon: "card-strength", label: "До колоди" },
   "win-duels": { icon: "duel", label: "До дуелей" },
 };

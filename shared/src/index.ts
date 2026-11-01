@@ -71,6 +71,8 @@ export type {
   ArenaOutcome,
   ArenaPairInteractionSnapshot,
   ArenaParticipantView,
+  ArenaLeaderboardEntry,
+  ArenaLeaderboardResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
   ArenaQueueView,
@@ -132,7 +134,11 @@ export {
   type LeaderboardResponse,
 } from "./leaderboards.js";
 export {
+  ARENA_DEMOTION_BUFFER,
+  ARENA_LEAGUE_CONFIG,
+  ARENA_START_RATING,
   DUEL_LEAGUE_CONFIG,
+  getArenaLeagueIndexAfter,
   applyLeagueProgression,
   calcDuelRatingChange,
   calcDuelSilverReward,

@@ -303,9 +303,13 @@
 :root .app-shell .top-hud__xp-track { height: auto; overflow: visible; background: transparent; border-radius: 0; }
 
 /* Experience vine: growth is scripted, only the glow pulse and tip spark loop in CSS. */
-.experience-vine { display: block; width: 100%; height: auto; overflow: visible; }
-.experience-vine__pulse { animation: experience-vine-pulse 3.2s ease-in-out infinite; }
-.experience-vine__spark { animation: experience-vine-spin 7s linear infinite; transform-box: fill-box; transform-origin: center; }
+.experience-vine { position: relative; display: block; width: 100%; aspect-ratio: 520 / 42; overflow: visible; }
+.experience-vine__layer { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
+.experience-vine__pulse { will-change: opacity; animation: experience-vine-pulse 3.2s ease-in-out infinite; }
+/* 40 viewBox units of the 520-wide vine, centred on the growing tip. */
+.experience-vine__tip { position: absolute; width: 7.6923%; aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; }
+.experience-vine__tip-glow, .experience-vine__spark { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
+.experience-vine__spark { animation: experience-vine-spin 7s linear infinite; }
 .experience-vine__mote { animation: experience-vine-rise var(--t, 1.6s) ease-out forwards; }
 .experience-vine__flash { opacity: 0; }
 .experience-vine__flash--active { animation: experience-vine-flash 1.1s ease-out; }

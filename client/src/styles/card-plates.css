@@ -303,15 +303,25 @@
   inset: 9%;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(118deg, transparent 38%, rgb(255 249 228 / 78%) 49%, rgb(255 249 228 / 0%) 60%) 160% 0 / 260% 100% no-repeat;
   mix-blend-mode: screen;
-  animation: element-medallion-sweep 5.6s ease-in-out var(--medallion-delay) infinite;
   pointer-events: none;
 }
+/* The sweep moves a child layer, so the glint never repaints the medallion. */
+.element-medallion__shine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 260%;
+  background: linear-gradient(118deg, transparent 38%, rgb(255 249 228 / 78%) 49%, rgb(255 249 228 / 0%) 60%);
+  transform: translateX(-98.46%);
+  animation: element-medallion-sweep 5.6s ease-in-out var(--medallion-delay) infinite;
+}
 @keyframes element-medallion-pulse { 0%, 100% { opacity: .22; transform: scale(.92); } 50% { opacity: .5; transform: scale(1.04); } }
-@keyframes element-medallion-sweep { 0%, 62% { background-position: 160% 0; } 82%, 100% { background-position: -60% 0; } }
+@keyframes element-medallion-sweep { 0%, 62% { transform: translateX(-98.46%); } 82%, 100% { transform: translateX(36.92%); } }
 @keyframes element-medallion-lift { 0%, 62%, 100% { filter: brightness(1); } 72% { filter: brightness(1.14) saturate(1.1); } }
 @media (prefers-reduced-motion: reduce) {
-  .element-medallion__emblem, .element-medallion__glow, .element-medallion__shine { animation: none; }
+  .element-medallion__emblem, .element-medallion__glow, .element-medallion__shine::before { animation: none; }
   .element-medallion__shine { opacity: 0; }
 }
