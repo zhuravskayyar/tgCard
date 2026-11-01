@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PlayerCollectionCard } from "@cardastika/shared";
 import { CardArtwork } from "../CardArtwork";
+import { CardSilhouette } from "./CardSilhouette";
 
 // Shader plates mount as they approach the viewport and only once the page has stopped turning.
 function useMountWhenNear(enabled: boolean) {
@@ -19,14 +20,14 @@ function useMountWhenNear(enabled: boolean) {
   return { near, ref };
 }
 
-function LockedCard() {
+function LockedCard({ card, onOpen }: { card: PlayerCollectionCard; onOpen?: () => void }) {
   return (
-    <article aria-label="Невідома карта" className="bestiary-card bestiary-card--locked">
+    <button aria-label={`${card.displayName}, ще не знайдено`} className="bestiary-card bestiary-card--locked" disabled={!onOpen} onClick={onOpen} type="button">
       <span aria-hidden="true" className="bestiary-card__plate">
-        <span className="bestiary-card__unknown"><i>?</i></span>
+        <CardSilhouette artKey={card.artKey} cardId={card.id} />
       </span>
-      <span className="bestiary-card__name">Невідома карта</span>
-    </article>
+      <span className="bestiary-card__name">{card.displayName}</span>
+    </button>
   );
 }
 
@@ -43,5 +44,5 @@ function OwnedCard({ card, onOpen, settled }: { card: PlayerCollectionCard; onOp
 }
 
 export function BestiaryCard({ card, onOpen, settled }: { card: PlayerCollectionCard; onOpen?: () => void; settled: boolean }) {
-  return card.discovered ? <OwnedCard card={card} onOpen={onOpen} settled={settled} /> : <LockedCard />;
+  return card.discovered ? <OwnedCard card={card} onOpen={onOpen} settled={settled} /> : <LockedCard card={card} onOpen={onOpen} />;
 }

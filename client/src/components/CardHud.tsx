@@ -30,7 +30,7 @@ export function CardHud({ element, power, protectedFromAbsorption = false, rarit
 
   return (
     <>
-      <CardPlateFrame artworkSource={artwork.source} element={element} onArtworkError={artwork.onSourceError} power={power} rarity={rarity} staticMaterial={staticMaterial} />
+      <CardPlateFrame artworkLoading={artwork.loading} artworkSource={artwork.source} element={element} onArtworkError={artwork.onSourceError} power={power} rarity={rarity} staticMaterial={staticMaterial} />
       {protectedFromAbsorption ? <span aria-label="Карта захищена" className="card-hud__protection"><AppIcon name="lock" size={15} /></span> : null}
       {upgradeIndicator ? <span title={upgradeIndicator === "gold" ? "Золотий рівень — підвищення за золото" : "Доступне безкоштовне підвищення"} aria-label={upgradeIndicator === "gold" ? "Золотий рівень — підвищення за золото" : "Доступне безкоштовне підвищення"} className={`card-hud__upgrade card-hud__upgrade--${upgradeIndicator}`}><UpgradeArrow /></span> : null}
     </>

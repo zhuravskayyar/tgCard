@@ -91,6 +91,7 @@ If the full test suite was not run for an isolated, low-risk change, report:
 
 ## Asset generation
 
+- Card art work follows `docs/card-art-workflow.md`: master prompt, acceptance criteria, step-by-step process and current state.
 - Before implementing game UI from a visual reference, check that the required
   sprites exist and match it. Generate missing frames, plates, buttons, and
   controls before styling; do not substitute unrelated assets or CSS stand-ins
@@ -135,8 +136,7 @@ If the full test suite was not run for an isolated, low-risk change, report:
 
 ## Card content
 
-- Cards may depict non-humanoid creatures, spirits, relics, objects, or natural forces.
-- Never invent humans, humanoids, anthropomorphic animals, human faces, clothing, or roles for card subjects.
+- Cards may depict humans, humanoids, creatures, spirits, relics, objects, or natural forces.
 - Keep entity scale, rarity, and power logically consistent; detailed rules live in `docs/game-rules.md`.
 - Complete active decks use 9 cards with a `3/2/2/2` element distribution; inventory is unrestricted.
 

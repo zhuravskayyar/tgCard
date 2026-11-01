@@ -13,11 +13,11 @@ interface CardArtworkProps {
 }
 
 export const CardArtwork = memo(function CardArtwork({ artKey, cardId, element, power, rarity = "common" }: CardArtworkProps) {
-  const { onSourceError, source } = useCardArtworkSource(artKey, cardId);
+  const { loading, onSourceError, source } = useCardArtworkSource(artKey, cardId);
 
   return (
     <span className={`card-artwork card-artwork--${rarity}`} aria-hidden="true">
-      <CardPlateFrame artworkSource={source} element={element} onArtworkError={onSourceError} power={power} rarity={rarity} />
+      <CardPlateFrame artworkLoading={loading} artworkSource={source} element={element} onArtworkError={onSourceError} power={power} rarity={rarity} />
     </span>
   );
 });

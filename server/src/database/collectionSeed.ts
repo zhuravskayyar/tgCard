@@ -14,8 +14,65 @@ const RETIRED_STARTER_CARD_IDS = [
   "starter_09",
 ] as const;
 
+const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+
+/** Clears the retired collections so the new ones can take their positions. Runs once: later seeds find nothing to do. */
+async function detachRetiredCollections(client: PoolClient) {
+  const activeIds = COLLECTIONS.map(({ id }) => id);
+  await client.query("UPDATE cards SET collection_id = NULL WHERE collection_id <> ALL($1::text[])", [activeIds]);
+  await client.query("DELETE FROM player_collection_completions WHERE collection_id <> ALL($1::text[])", [activeIds]);
+  await client.query("DELETE FROM collection_cards WHERE collection_id <> ALL($1::text[])", [activeIds]);
+  await client.query("DELETE FROM collections WHERE id <> ALL($1::text[])", [activeIds]);
+}
+
+/**
+ * Moves what players already own from retired cards to new ones of the same element, keeping every instance,
+ * its level and its deck slot. Each retired card gets its own target, so one deck never ends up with duplicates.
+ */
+async function replaceRetiredCards(client: PoolClient, canonicalIds: readonly string[]) {
+  const retired = await client.query<{ element: string; id: string; min_rarity: string }>(
+    "SELECT id, element, min_rarity FROM cards WHERE id <> ALL($1::text[]) AND limited = FALSE ORDER BY id",
+    [canonicalIds],
+  );
+  if (!retired.rows.length) return;
+  const references = await client.query<{ column_name: string; table_name: string }>(`
+    SELECT conrelid::regclass::text AS table_name, attribute.attname AS column_name
+    FROM pg_constraint
+    INNER JOIN pg_attribute attribute ON attribute.attrelid = conrelid AND attribute.attnum = ANY(conkey)
+    WHERE contype = 'f' AND confrelid = 'cards'::regclass
+  `);
+  const retiredIds = retired.rows.map(({ id }) => id);
+  await client.query("DELETE FROM shop_card_pools WHERE card_id = ANY($1::text[])", [retiredIds]);
+  const holders = references.rows.filter(({ table_name: table }) => table !== "shop_card_pools" && table !== "player_card_discoveries");
+  const inUse = new Set<string>();
+  for (const { table_name: table, column_name: column } of holders) {
+    const used = await client.query<{ id: string }>(`SELECT DISTINCT ${column} AS id FROM ${table} WHERE ${column} = ANY($1::text[])`, [retiredIds]);
+    for (const { id } of used.rows) inUse.add(id);
+  }
+  const free = COLLECTION_CARDS.map((card) => ({ element: card.element, id: card.id, rank: RARITY_ORDER.indexOf(card.minRarity) }));
+  for (const old of retired.rows) {
+    if (!inUse.has(old.id)) {
+      await client.query("DELETE FROM player_card_discoveries WHERE card_id = $1", [old.id]);
+      await client.query("DELETE FROM cards WHERE id = $1", [old.id]);
+      continue;
+    }
+    const rank = RARITY_ORDER.indexOf(old.min_rarity);
+    const candidates = free.filter(({ element }) => element === old.element)
+      .sort((left, right) => Number(left.rank > rank) - Number(right.rank > rank) || Math.abs(left.rank - rank) - Math.abs(right.rank - rank) || left.id.localeCompare(right.id));
+    const target = candidates[0];
+    if (!target) throw new Error(`No new ${old.element} card is left to replace ${old.id}`);
+    free.splice(free.indexOf(target), 1);
+    await client.query("INSERT INTO retired_catalog_card_replacements (retired_card_id, card_id) VALUES ($1, $2)", [old.id, target.id]);
+    for (const { table_name: table, column_name: column } of [...holders, { table_name: "player_card_discoveries", column_name: "card_id" }]) {
+      await client.query(`UPDATE ${table} SET ${column} = $1 WHERE ${column} = $2`, [target.id, old.id]);
+    }
+    await client.query("DELETE FROM cards WHERE id = $1", [old.id]);
+  }
+}
+
 export async function seedCollectionDefinitions(client: PoolClient) {
   const validation = validateCollectionCatalog();
+  await detachRetiredCollections(client);
 
   for (const [index, collection] of COLLECTIONS.entries()) {
     await client.query(
@@ -52,7 +109,10 @@ export async function seedCollectionDefinitions(client: PoolClient) {
       ],
     );
 
-    for (const card of collection.cards) {
+  }
+
+  for (const card of COLLECTION_CARDS) {
+    {
       await client.query(
         `
           INSERT INTO cards (
@@ -89,7 +149,15 @@ export async function seedCollectionDefinitions(client: PoolClient) {
     }
   }
 
+  await client.query("DELETE FROM collection_cards");
+  for (const collection of COLLECTIONS) {
+    for (const [index, card] of collection.cards.entries()) {
+      await client.query("INSERT INTO collection_cards (collection_id, card_id, position) VALUES ($1, $2, $3)", [collection.id, card.id, index + 1]);
+    }
+  }
+
   const canonicalIds = [...STARTER_CARDS, ...COLLECTION_CARDS].map(({ id }) => id);
+  await replaceRetiredCards(client, canonicalIds);
   const databaseValidation = await client.query<{ canonical_cards: string; external_starters: string; described_cards: string }>(
     `
       SELECT

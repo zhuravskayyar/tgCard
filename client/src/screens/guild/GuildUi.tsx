@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, type CardElement, type GuildLanguage, type GuildRecruitmentMode, type GuildRole } from "@cardastika/shared";
 import { GuildApiError } from "../../telegram/guild";
-import { formatUiNumber } from "../../i18n";
+import { formatUiNumber, getUiNumberLocale } from "../../i18n";
 
 export type AsyncState<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "error"; message: string };
 export const LANGUAGE_LABELS: Record<GuildLanguage, string> = { uk: "Українська", ru: "Русский", en: "English", de: "Deutsch", other: "Інша" };
@@ -10,7 +10,7 @@ export const MODE_LABELS: Record<GuildRecruitmentMode, string> = { open: "Від
 export const ROLE_ORDER: readonly GuildRole[] = ["leader", "officer", "veteran", "member", "newbie"];
 export { GUILD_EMBLEM_OPTIONS, GuildEmblem } from "./GuildEmblem";
 export const formatNumber = formatUiNumber;
-export const formatDate = (value: string) => new Date(value).toLocaleString("uk-UA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export const formatDate = (value: string) => new Date(value).toLocaleString(getUiNumberLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function guildErrorMessage(error: unknown) {
   if (!(error instanceof GuildApiError)) return "Не вдалося зв’язатися із сервером. Перевірте з’єднання та повторіть спробу.";

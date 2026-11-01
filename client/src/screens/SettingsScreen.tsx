@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
+import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { getRawTelegramInitData } from "../telegram";
 import {
@@ -15,6 +16,8 @@ import {
 } from "../telegram/authenticatePlayer";
 import type { AuthSessionProvider } from "@cardastika/shared";
 import type { PlayerSummaryState } from "../types/player";
+
+const LOCALE_NAMES: Readonly<Record<UiLocale, string>> = { en: "English", uk: "Українська", ru: "Русский", de: "Deutsch" };
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -188,7 +191,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-other">
         <h2 id="settings-other">ІНШЕ</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="language" metalTexture title="Мова — незабаром" />
+          <MenuRow compact icon="language" metalTexture onClick={() => setUiLocale(UI_LOCALES[(UI_LOCALES.indexOf(getUiLocale()) + 1) % UI_LOCALES.length]!)} title={`Мова: ${LOCALE_NAMES[getUiLocale()]}`} />
           <MenuRow compact disabled icon="mail" metalTexture title="Сповіщення — незабаром" />
           <MenuRow compact disabled icon="support" metalTexture title="Підтримка — незабаром" />
           {showTutorialReplay ? <MenuRow compact icon="record" metalTexture onClick={onReplayTutorial} title="Як грати · пройти навчання ще раз" /> : null}

@@ -112,14 +112,9 @@ also have one-time bonuses (an extra Common card, 5 Gold, and a title).
 
 ## Permanent card content rules
 
-Cards may represent animals, beasts, mythical creatures, non-humanoid elemental
-creatures or spirits, relics, artifacts, magical or natural objects, and
-manifestations of natural forces.
-
-Card content must never include humans, humanoid characters, anthropomorphic
-animals, human faces on creatures, animals wearing human clothing, or animals
-presented as knights, mages, warriors, priests, or other human roles. Do not add
-human-like arms or body structures to animals.
+Cards may represent humans, humanoid characters, animals, beasts, mythical
+creatures, elemental creatures or spirits, relics, artifacts, magical or natural
+objects, and manifestations of natural forces.
 
 Power and rarity must remain logically consistent with the scale of the entity.
 The intended progression is ordinary beast, elemental beast, mythical creature,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuthConfig } from "../auth/useAuthConfig";
 import { AuthProviderIcon } from "./AuthProviderIcon";
+import { getUiLocale } from "../i18n";
 
 declare global {
   interface Window {
@@ -118,6 +119,7 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
           renderedWidth = width;
           container.replaceChildren();
           googleIdentity.renderButton(container, {
+            locale: getUiLocale(),
             theme: "filled_black",
             size: "large",
             width,

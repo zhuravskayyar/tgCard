@@ -1,3 +1,4 @@
+import { hideMissingCardArt } from "../components/cardArtSource";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { useState } from "react";
 import type { PlayerBalance, PlayerMailAction, PlayerMailActionResponse, PlayerMailClaimResponse, PlayerNicknameUpdateResponse } from "@cardastika/shared";
@@ -125,7 +126,7 @@ export function MailScreen({ changeNickname, claim, currentNickname, onBack, onB
                     <div className="mail-message__rewards" aria-label="Нагорода">
                       {message.gold > 0 ? <span><CurrencyIcon kind="gold" size={19} />+{message.gold}</span> : null}
                       {message.silver > 0 ? <span><CurrencyIcon kind="silver" size={19} />+{message.silver}</span> : null}
-                      {message.cardReward ? <span className="mail-message__card-reward"><img alt="" src={`/card-art/${message.cardReward.artKey ?? message.cardReward.code}.png`} />Карта: {message.cardReward.displayName ?? message.cardReward.code} · рівень {message.cardReward.level}</span> : null}
+                      {message.cardReward ? <span className="mail-message__card-reward"><img alt="" onError={hideMissingCardArt} src={`/card-art/${message.cardReward.artKey ?? message.cardReward.code}.png`} />Карта: {message.cardReward.displayName ?? message.cardReward.code} · рівень {message.cardReward.level}</span> : null}
                     </div>
                   ) : null}
                   {nicknameAction ? actionCompleted ? (

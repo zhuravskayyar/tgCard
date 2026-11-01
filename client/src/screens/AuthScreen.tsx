@@ -4,6 +4,9 @@ import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { AuthProviderIcon } from "../components/AuthProviderIcon";
 import { ElementAmbientFx } from "../components/ElementAmbientFx";
 import { setSessionToken } from "../auth/session";
+import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
+
+const LOCALE_LABELS: Readonly<Record<UiLocale, string>> = { en: "EN", uk: "UA", ru: "RU", de: "DE" };
 
 interface AuthScreenProps {
   error: string | null;
@@ -120,6 +123,13 @@ export function AuthScreen({
   return (
     <main className="auth-screen auth-screen--guest">
       <ElementAmbientFx />
+      {isTelegramMiniApp ? null : (
+        <nav aria-label="Language" className="auth-screen__languages">
+          {UI_LOCALES.map((locale) => (
+            <button aria-pressed={locale === getUiLocale()} key={locale} onClick={() => setUiLocale(locale)} type="button">{LOCALE_LABELS[locale]}</button>
+          ))}
+        </nav>
+      )}
       <div className="auth-screen__layout">
         <section className="auth-screen__hero" aria-labelledby="auth-screen-title">
           <div className="auth-screen__crest" aria-hidden="true">

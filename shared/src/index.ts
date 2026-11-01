@@ -196,6 +196,8 @@ export {
   type ShopCatalogResponse,
   type ShopCurrency,
   type ShopOffer,
+  type ShopPoolCard,
+  type ShopPoolGroup,
   type ShopPurchaseRequest,
   type ShopPurchaseResponse,
   type ShopUpgradeChance,

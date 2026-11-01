@@ -53,7 +53,7 @@ test("completed progress and bonus survive consuming four current instances", {
 
     const repository = new CollectionRepository(pool);
     const before = await repository.detail(player.id, predators.id);
-    assert.equal(before.collection.discoveredCards, 10);
+    assert.equal(before.collection.discoveredCards, predators.cards.length);
     assert.equal(before.collection.completed, true);
     const collectionWithoutCover = COLLECTIONS.find(({ coverArtKey }) => coverArtKey === null);
     assert.ok(collectionWithoutCover);
@@ -69,9 +69,9 @@ test("completed progress and bonus survive consuming four current instances", {
     const after = await repository.detail(player.id, predators.id);
     const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(pool, player.id));
     const bonuses = await getCompletedCollectionBonuses(pool, player.id);
-    assert.equal(after.collection.discoveredCards, 10);
+    assert.equal(after.collection.discoveredCards, predators.cards.length);
     assert.equal(after.collection.completed, true);
-    assert.equal(modifiers.silverRewardPct, 3);
+    assert.equal(modifiers.silverRewardPct, 0);
     assert.deepEqual(bonuses, [{
       bonus: predators.bonus,
       bonusLabel: predators.bonusLabel,
@@ -115,6 +115,10 @@ test("a four-card collection completes after its fourth discovery", {
   for (const card of elementalSpirits.cards) await pool.query(
     "INSERT INTO cards (id, code, display_name, element, collection_id) VALUES ($1, $1, 'Test collection card', 'fire', $2)",
     [card.id, elementalSpirits.id],
+  );
+  for (const [index, card] of elementalSpirits.cards.entries()) await pool.query(
+    "INSERT INTO collection_cards (collection_id, card_id, position) VALUES ($1, $2, $3)",
+    [elementalSpirits.id, card.id, index + 1],
   );
 
   try {

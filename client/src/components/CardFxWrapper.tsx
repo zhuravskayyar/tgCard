@@ -3,11 +3,13 @@ import type { CardElement, CardRarity } from "@cardastika/shared";
 import { useCardArtworkSource } from "./cardArtSource";
 
 interface CardArtworkSourceValue {
+  loading: boolean;
   onSourceError: () => void;
   source: string | null;
 }
 
 export const CardArtworkSourceContext = createContext<CardArtworkSourceValue>({
+  loading: false,
   onSourceError: () => undefined,
   source: null,
 });

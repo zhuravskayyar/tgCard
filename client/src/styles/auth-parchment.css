@@ -143,3 +143,7 @@
 :root .auth-screen--guest .auth-screen__login-panel { justify-self: center; width: 100%; max-width: 380px; }
 :root .auth-screen--guest .auth-screen__hero .auth-screen__eyebrow,
 :root .auth-screen--guest .auth-screen__hero h1 { text-align: center; }
+
+:root .auth-screen--guest .auth-screen__languages { position: absolute; top: max(10px, env(safe-area-inset-top)); right: 12px; z-index: 5; display: flex; gap: 4px; }
+:root .auth-screen--guest .auth-screen__languages button { min-width: 38px; min-height: 34px; padding: 0 6px; color: #2d1b0e; font-size: 14px; font-weight: 800; text-shadow: 0 0 4px #f3e4bf, 0 0 8px #f3e4bf; background: none; border: 0; border-bottom: 2px solid transparent; }
+:root .auth-screen--guest .auth-screen__languages button[aria-pressed="true"] { color: #2d1b0e; border-bottom-color: #2d1b0e; }

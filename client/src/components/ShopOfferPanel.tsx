@@ -22,6 +22,15 @@ const upgradeLabels: Record<CardRarity, string> = {
   mythic: "міфічної",
 };
 
+const rarityPlurals: Record<CardRarity, string> = {
+  common: "Звичайні",
+  uncommon: "Незвичайні",
+  rare: "Рідкісні",
+  epic: "Епічні",
+  legendary: "Легендарні",
+  mythic: "Міфічні",
+};
+
 interface ShopOfferPanelProps {
   availableBalance?: number;
   dataTutorialTarget?: string;
@@ -93,6 +102,20 @@ export function ShopOfferPanel({
                   <span className="shop-offer__pity-track"><span style={{ width: `${Math.min(100, Math.max(0, leadUpgrade.chance))}%` }} /></span>
                 </div>
               ) : null}
+            </details>
+          ) : null}
+          {offer.pool.length ? (
+            <details className="shop-offer__details">
+              <summary><span className="shop-offer__details-link">Детальніше <AppIcon name="chevron" size={13} /></span></summary>
+              <p className="shop-offer__odds-note">Прямо зараз у продажу:</p>
+              <div className="shop-offer__pool">
+                {offer.pool.map((group) => (
+                  <section key={group.rarity}>
+                    <h4>{rarityPlurals[group.rarity]}</h4>
+                    <ul>{group.cards.map((card) => <li data-element={card.element} key={card.id}>{card.displayName}</li>)}</ul>
+                  </section>
+                ))}
+              </div>
             </details>
           ) : null}
         </div>

@@ -1,6 +1,10 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { warmCardMaterialRenderer } from "../cards/cardMaterialShader";
+import { useScreenReveal } from "../hooks/useScreenReveal";
 import type { PlayerSummaryState } from "../types/player";
 import { BottomNav, type BottomNavItem } from "./BottomNav";
+import { loadCardArtManifest } from "./cardArtSource";
+import { preloadScreenLoader, ScreenLoader } from "./ScreenLoader";
 import { TopHud } from "./TopHud";
 
 interface AppShellProps {
@@ -28,17 +32,28 @@ export function AppShell({
 }: AppShellProps) {
   const contentRef = useRef<HTMLElement>(null);
 
+  const revealed = useScreenReveal(screenKey, contentRef);
+
   useLayoutEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
   }, [screenKey]);
+
+  // Prepared after the first paint, so the first screen with cards has nothing left to compile or fetch.
+  useEffect(() => {
+    void loadCardArtManifest();
+    preloadScreenLoader();
+    const timer = window.setTimeout(warmCardMaterialRenderer, 200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <div className="app-shell">
       <TopHud deckPowerOverride={deckPowerOverride} onRetry={onRetryPlayerSummary} state={playerSummaryState} />
       <main className="app-content" ref={contentRef}>
-        <div className="app-screen-transition" key={screenKey}>
+        <div className={`app-screen-transition${revealed ? "" : " app-screen-transition--pending"}`} key={screenKey}>
           {children}
         </div>
+        {revealed ? null : <ScreenLoader />}
       </main>
       <BottomNav activeItem={activeNavigationItem} onSelect={onNavigate} />
       {overlay}

@@ -1,9 +1,18 @@
 # Collections v1
 
-Cardastika has 15 permanent collections of 10 cards each, 150 species in total,
-in `server/src/collections/collectionCatalog.ts`. The 9 starter species stay outside
-collections and out of the shop. Each card keeps its art list ID as `artKey`; a card
-without a file shows the placeholder until the art is added.
+Cardastika has 50 permanent collections of 3 to 15 cards, 213 species in total (16 of
+them outside any collection). The catalog is generated from `tools/card-catalog/` into
+`server/src/collections/catalogData.generated.ts` and readable in `docs/card-catalog-v2.md`;
+edit the sources there and rerun `node tools/card-catalog/build-catalog.js <repo path>`.
+One card may belong to several collections: membership lives in `collection_cards`, and
+`cards.collection_id` keeps only the first one. The 9 starter species stay outside
+collections and out of the shop. A card shows artwork only once it has a line in
+`client/public/card-art/card-art-map.txt`.
+
+Each shop banner sells its own list of cards at each rarity (`shopPools` in the generated
+data, shown under "Детальніше"). A shop card's `minRarity` is the lowest rarity any banner
+sells it at. Bonuses for mechanics that do not exist yet use the `none` type and say so in
+their label.
 
 Collection progress comes only from `player_card_discoveries`, never from the
 current inventory. Acquiring a species inserts one idempotent discovery row.

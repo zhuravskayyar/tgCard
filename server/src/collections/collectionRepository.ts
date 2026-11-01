@@ -115,7 +115,8 @@ const SUMMARY_QUERY = `
       (
         SELECT cards.art_key
         FROM cards
-        WHERE cards.collection_id = collections.id
+        INNER JOIN collection_cards members ON members.card_id = cards.id
+        WHERE members.collection_id = collections.id
           AND cards.art_key IS NOT NULL
         ORDER BY cards.code
         LIMIT 1
@@ -131,7 +132,8 @@ const SUMMARY_QUERY = `
     COUNT(discoveries.card_id) AS discovered_cards,
     completions.completed_at
   FROM collections
-  LEFT JOIN cards ON cards.collection_id = collections.id
+  LEFT JOIN collection_cards members ON members.collection_id = collections.id
+  LEFT JOIN cards ON cards.id = members.card_id
   LEFT JOIN player_card_discoveries discoveries
     ON discoveries.card_id = cards.id AND discoveries.player_id = $1
   LEFT JOIN player_collection_completions completions
@@ -209,14 +211,15 @@ export class CollectionRepository {
             instances.id
           ) FILTER (WHERE instances.id IS NOT NULL))[1] AS strongest_instance_id
         FROM cards
+        INNER JOIN collection_cards members ON members.card_id = cards.id AND members.collection_id = $3
         LEFT JOIN player_card_discoveries discoveries
           ON discoveries.card_id = cards.id AND discoveries.player_id = $1
         LEFT JOIN player_card_instances instances
           ON instances.card_id = cards.id AND instances.player_id = $1
-        WHERE cards.collection_id = $3
+        WHERE TRUE
           ${cardFilter}
-        GROUP BY cards.id, discoveries.card_id
-        ORDER BY cards.code
+        GROUP BY cards.id, discoveries.card_id, members.position
+        ORDER BY members.position
       `,
       parameters,
     );

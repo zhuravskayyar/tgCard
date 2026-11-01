@@ -9,7 +9,7 @@ interface BrightCutMaterial {
 }
 interface ReferenceOptions {
   uid: string; element: CardElement; showArtwork?: boolean; blank?: boolean; emblemOnly?: boolean;
-  guides?: boolean; engravingDepth?: number; characterArtSource?: string | null;
+  guides?: boolean; engravingDepth?: number; characterArtSource?: string | null; artOnly?: boolean;
 }
 function escapeXmlAttribute(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -25,11 +25,11 @@ function escapeXmlAttribute(value: string) {
 function artTintMatrix(materialId: string) {
   const ramps: Readonly<Record<string, readonly [string, string]>> = {
     paper: ["#302015", "#d7b88b"],
-    copper: ["#24100d", "#ebae87"],
-    bronze: ["#242016", "#e1c891"],
-    silver: ["#111b23", "#e5eff0"],
-    gold: ["#241407", "#ffe0a0"],
-    platinum: ["#0e1720", "#eefbff"],
+    wood: ["#150b05", "#cfae7e"],
+    silver: ["#070c11", "#f8fcfd"],
+    gold: ["#160b03", "#fff1cc"],
+    enamel: ["#3f0d09", "#fff0c0"],
+    astronite: ["#02060b", "#e4ecf2"],
   };
   const [lowColor, highColor] = ramps[materialId] ?? ramps.silver;
   const rgb = (color: string) => [1, 3, 5].map((index) => parseInt(color.slice(index, index + 2), 16) / 255);
@@ -55,30 +55,31 @@ export const ELEMENT_FINISH={
  air:{deep:'#40240c',mid:'#94601a',rim:'#ffe05c',core:'#fffce2',spark:'#fff0a1'}
 };
 export const BRIGHT_CUT_MATERIALS: readonly BrightCutMaterial[] =[
- {id:'paper', name:'Пергамент', desc:'Пресований пергамент · матові волокна', brief:'Волокниста основа', base:['#4b3422','#b18a58','#e9d2a2','#f4dfb7','#cab084','#edd1a0','#af8652','#432d1c'], edge:'#503923',stroke:'#fae3ad', dark:'#715539',light:'#fff1cc',shadow:'#513720',punch:'#77553b',number:'#6b4c2e',numLight:'#fff1ca',metal:false,grain:.19},
- {id:'copper', patina:'#4f9c88', name:'Мідь', desc:'Тепла кована мідь · м’яка патина', brief:'Тепла патина', base:['#3c211d','#a26149','#e0a884','#f5c5a3','#ac6650','#e6a988','#99533e','#351c18'], edge:'#42221f',stroke:'#fbd3b0', dark:'#734333',light:'#ffd4b5',shadow:'#48231c',punch:'#874834',number:'#6b3329',numLight:'#f9c4a0',metal:true,grain:.095},
- {id:'bronze', patina:'#6f8f5e', name:'Бронза', desc:'Витримана бронза · м’який темний відлив', brief:'Витриманий сплав', base:['#332c1f','#79734b','#bfb085','#ddd0a0','#77764d','#d7c697','#8a784f','#29271a'],edge:'#363322',stroke:'#e6d5a6',dark:'#55553c',light:'#f2dcb3',shadow:'#242819',punch:'#686449',number:'#4e4730',numLight:'#ded1a3',metal:true,grain:.09},
- {id:'silver', name:'Срібло', desc:'Сатинове срібло · матове шліфування', brief:'Матове шліфування',base:['#283237','#6f828a','#a9b8bf','#e5eceb','#82959d','#d8e1e0','#627780','#222d31'],edge:'#2a353b',stroke:'#f6fdff',dark:'#46585f',light:'#f7fdff',shadow:'#1a252b',punch:'#5d7178',number:'#39505a',numLight:'#f5fbfc',metal:true,grain:.092,sheenA:.09,sheenB:.02,noiseOpacity:.42,hammerOpacity:.24},
- {id:'gold', name:'Золото', desc:'Тепле шампанське золото · точна обробка', brief:'Шляхетний сплав',base:['#503015','#a26c2a','#e2b865','#fbe1a1','#d4a34f','#f9d18a','#ad7a32','#4a2c12'],edge:'#523014',stroke:'#ffe3a2',dark:'#855621',light:'#ffefba',shadow:'#412309',punch:'#9e6827',number:'#61330f',numLight:'#ffe4a1',metal:true,grain:.045},
- {id:'platinum', name:'Платина', desc:'Полірована платина · чисте ювелірне сяйво', brief:'Ювелірний блиск',base:['#46545d','#afc1cb','#e4eef2','#ffffff','#c1d2db','#eef5f7','#9eb2bc','#3a4851'],edge:'#41505a',stroke:'#ffffff',dark:'#6f828f',light:'#ffffff',shadow:'#1d2a33',punch:'#8fa3af',number:'#4b6070',numLight:'#ffffff',metal:true,grain:.03,sheenA:.24,sheenB:.09,noiseOpacity:.18,hammerOpacity:.07}
+ {id:'paper', name:'Пергамент', desc:'Пресований пергамент · живі волокна', brief:'Ручний пергамент', base:['#4b3422','#b18a58','#e9d2a2','#f4dfb7','#cab084','#edd1a0','#af8652','#432d1c'],edge:'#503923',stroke:'#fae3ad',dark:'#715539',light:'#fff1cc',shadow:'#513720',punch:'#77553b',number:'#6b4c2e',numLight:'#fff1ca',metal:false,grain:.19},
+ {id:'wood', name:'Дерево', desc:'Старе дерево · тріщини й потертості', brief:'Зістарене дерево',base:['#231a12','#493826','#695339','#7f6a4c','#574430','#725d41','#463524','#1f1710'],edge:'#2e180b',stroke:'#e3b884',dark:'#3b200f',light:'#d9a86c',shadow:'#1a0c05',punch:'#6e4322',number:'#2a1408',numLight:'#ecc48f',metal:true,grain:.1,sheenA:.08,sheenB:.03,noiseOpacity:.08,hammerOpacity:.04},
+ {id:'silver', name:'Срібло', desc:'Полірований метал · майже дзеркальне срібло', brief:'Дзеркальна поліровка',base:['#283237','#6f828a','#a9b8bf','#e5eceb','#82959d','#d8e1e0','#627780','#222d31'],edge:'#2a353b',stroke:'#f6fdff',dark:'#46585f',light:'#f7fdff',shadow:'#1a252b',punch:'#5d7178',number:'#39505a',numLight:'#f5fbfc',metal:true,grain:.092,sheenA:.09,sheenB:.02,noiseOpacity:.05,hammerOpacity:0},
+ {id:'gold', name:'Золото', desc:'Глибоке золото · теплі дзеркальні грані', brief:'Ювелірна поліровка',base:['#503015','#a26c2a','#e2b865','#fbe1a1','#d4a34f','#f9d18a','#ad7a32','#4a2c12'],edge:'#523014',stroke:'#ffe3a2',dark:'#855621',light:'#ffefba',shadow:'#412309',punch:'#9e6827',number:'#61330f',numLight:'#ffe4a1',metal:true,grain:.045,noiseOpacity:.05,hammerOpacity:0},
+ {id:'enamel', name:'Рубінова емаль', desc:'Рубінове скло · золоті перегородки', brief:'Емаль на золоті',base:['#2a0306','#6a070f','#a30f1b','#c8202a','#860b16','#b01520','#5a060e','#210205'],edge:'#6b4415',stroke:'#ffe3a2',dark:'#6e0a12',light:'#ffdf9a',shadow:'#1c0203',punch:'#b98a3a',number:'#240305',numLight:'#ffe4a1',metal:true,grain:.01,sheenA:.08,sheenB:.03,noiseOpacity:.03,hammerOpacity:0},
+ {id:'astronite',name:'Астроніт',desc:'Чорний зоряний метал · зорі в глибині',brief:'Зоряний метал',base:['#05090e','#0e151d','#18212b','#2d3945','#10171f','#1b2530','#0c1219','#04060b'],edge:'#111923',stroke:'#b9a178',dark:'#101923',light:'#9eacb2',shadow:'#020408',punch:'#37424c',number:'#0b1420',numLight:'#deca8d',metal:true,grain:.008,sheenA:.14,sheenB:.16,noiseOpacity:.07,hammerOpacity:.01}
 ];
 
 function shapePath(x=4,y=4,w=232,h=304,c=14){return `M${x+c} ${y} H${x+w-c} L${x+w} ${y+c} V${y+h-c} L${x+w-c} ${y+h} H${x+c} L${x} ${y+h-c} V${y+c} Z`}
 function gradient(stops: readonly string[]){return stops.map((c,i)=>`<stop offset="${Math.round(i/(stops.length-1)*100)}%" stop-color="${c}"/>`).join('')}
 function grainPattern(id: string,mat: BrightCutMaterial){
- if(mat.id==='silver') return `<pattern id="${id}-brush" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)"><path d="M-1 1H7 M-1 4H7" stroke="${mat.light}" stroke-width=".42" stroke-opacity=".10"/><path d="M-1 2.4H7 M-1 5.4H7" stroke="${mat.dark}" stroke-width=".34" stroke-opacity=".17"/></pattern>`;
- if(mat.id==='platinum') return `<pattern id="${id}-brush" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M1 0V5 M3.5 0V5" stroke="${mat.light}" stroke-width=".34" stroke-opacity=".16"/><path d="M0 1.1H5" stroke="${mat.dark}" stroke-width=".22" stroke-opacity=".05"/></pattern>`;
- return `<pattern id="${id}-brush" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 .6h4 M0 3.2h4" stroke="${mat.light}" stroke-width=".35" stroke-opacity="${mat.metal?.13:.045}"/><path d="M0 1.8h4" stroke="${mat.dark}" stroke-width=".3" stroke-opacity=".12"/></pattern>`
+ if(mat.id==='wood') return `<pattern id="${id}-brush" width="9" height="23" patternUnits="userSpaceOnUse"><path d="M2 1V7 M6 11V19" stroke="${mat.shadow}" stroke-width=".5" stroke-opacity=".28"/></pattern>`;
+ if(mat.id==='silver') return `<pattern id="${id}-brush" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)"><path d="M-1 1H7 M-1 4H7" stroke="${mat.light}" stroke-width=".42" stroke-opacity=".02"/><path d="M-1 2.4H7 M-1 5.4H7" stroke="${mat.dark}" stroke-width=".34" stroke-opacity=".03"/></pattern>`;
+ if(mat.id==='enamel') return `<pattern id="${id}-brush" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M1 0V5" stroke="${mat.light}" stroke-width=".2" stroke-opacity=".025"/></pattern>`;
+ return `<pattern id="${id}-brush" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 .6h4 M0 3.2h4" stroke="${mat.light}" stroke-width=".35" stroke-opacity="${mat.id==='gold'?.012:mat.metal?.13:.045}"/><path d="M0 1.8h4" stroke="${mat.dark}" stroke-width=".3" stroke-opacity="${mat.id==='gold'?.012:.12}"/></pattern>`
 }
 function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: ReferenceOptions){
  const characterImageSource=opts.characterArtSource ? escapeXmlAttribute(opts.characterArtSource) : "";
  const uid=opts.uid;const g=(s: string)=>`${uid}-${s}`;const isPaper=!mat.metal;const el=ELEMENTS[opts.element];const gc=GLOW[opts.element],en=[mat.dark,mat.light], finish=ELEMENT_FINISH[opts.element];
  // Independent power-tray palette: the numerals remain legible on all six materials.
- const powerPalette = mat.id==='platinum' ? {dark:'#080e16', mid:'#182632', edge:'#cfe6ef', numeral:'#f7feff', low:'#afcbd7'}
+ const powerPalette = mat.id==='enamel' ? {dark:'#1c0305',mid:'#4a0a10',edge:'#ffd98f',numeral:'#fff1c4',low:'#c18c3c'}
+   : mat.id==='astronite' ? {dark:'#020610',mid:'#12212d',edge:'#bba878',numeral:'#fff4cb',low:'#927e5a'}
+   : mat.id==='wood' ? {dark:'#140a05',mid:'#38200f',edge:'#e3b884',numeral:'#ffeccb',low:'#b78550'}
    : mat.id==='silver' ? {dark:'#0a1219', mid:'#26333a', edge:'#c2d2d6', numeral:'#f7fcff', low:'#a5bec9'}
    : mat.id==='paper' ? {dark:'#24160b', mid:'#4d311c', edge:'#e3be83', numeral:'#ffe4aa', low:'#be915a'}
-   : mat.id==='copper' ? {dark:'#1a0d0a', mid:'#43251d', edge:'#ffd5b4', numeral:'#ffe2bc', low:'#cb8963'}
-   : mat.id==='bronze' ? {dark:'#15150e', mid:'#353321', edge:'#ded2a3', numeral:'#ffedc1', low:'#9e9366'}
    : {dark:'#180c05', mid:'#3c200c', edge:'#ffdf9a', numeral:'#fff1c4', low:'#b87f35'};
  const cut=(opts.engravingDepth ?? 85)/100;
  const cutShift=(.35+cut*1.62).toFixed(2);
@@ -102,6 +103,8 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
    <clipPath id="${g('power-clip')}"><path d="${shapePath(59.8,20.2,162.3,32.0,4.0)}"/></clipPath>
    <radialGradient id="${g('rivet')}" cx="28%" cy="24%" r="80%"><stop stop-color="${mat.light}"/><stop offset=".4" stop-color="${mat.punch}"/><stop offset="1" stop-color="${mat.shadow}"/></radialGradient>
    ${grainPattern(uid,mat)}
+   ${mat.id==='wood'?`<filter id="${g('wooddark')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".11 .007" numOctaves="4" seed="8"/><feColorMatrix values="${cm('#170a03',3.4,-1.35)}"/></filter><filter id="${g('woodlight')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".55 .02" numOctaves="2" seed="3"/><feColorMatrix values="${cm('#f0bd7c',2.6,-1.35)}"/></filter><filter id="${g('knot')}" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency=".06 .03" numOctaves="2" seed="5" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="6" xChannelSelector="R" yChannelSelector="G"/></filter>`:''}
+   ${mat.id==='enamel'?`<pattern id="${g('cloison')}" width="40" height="40" patternUnits="userSpaceOnUse"><g fill="none"><path d="M20 0L40 20L20 40L0 20Z" stroke="#2a0406" stroke-width="2.6"/><circle cx="20" cy="20" r="6.5" stroke="#2a0406" stroke-width="2.4"/><path d="M20 0L40 20L20 40L0 20Z" stroke="#e9bd62" stroke-width="1.15"/><circle cx="20" cy="20" r="6.5" stroke="#e9bd62" stroke-width="1"/></g></pattern><radialGradient id="${g('milk')}" cx=".45" cy=".38" r=".82"><stop offset="0" stop-color="#ff5a4a" stop-opacity=".2"/><stop offset="1" stop-color="#120103" stop-opacity=".45"/></radialGradient>`:''}
    <linearGradient id="${g('enam')}" x1="0" y1="0" x2="1" y2="0"><stop stop-color="${en[0]}"/><stop offset="1" stop-color="${en[1]}"/></linearGradient><linearGradient id="${g('gloss')}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff" stop-opacity=".6"/><stop offset=".5" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></linearGradient><linearGradient id="${g('badge')}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${mat.light}"/><stop offset=".48" stop-color="${mat.punch}"/><stop offset="1" stop-color="${mat.dark}"/></linearGradient><radialGradient id="${g('medallion')}" cx="44%" cy="38%" r="72%"><stop offset="0" stop-color="${finish.mid}"/><stop offset=".58" stop-color="${finish.deep}"/><stop offset="1" stop-color="#110b09"/></radialGradient>
    <linearGradient id="${g('efire')}" x1="0" y1="1" x2=".7" y2=".05"><stop offset="0" stop-color="${finish.rim}"/><stop offset=".44" stop-color="${finish.core}"/><stop offset=".77" stop-color="${finish.spark}"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
    <radialGradient id="${g('spill')}"><stop offset="0" stop-color="${finish.rim}" stop-opacity=".86"/><stop offset=".45" stop-color="${finish.rim}" stop-opacity=".29"/><stop offset="1" stop-color="${finish.rim}" stop-opacity="0"/></radialGradient>
@@ -117,8 +120,12 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
      ${isPaper?`<feComponentTransfer in="toned"><feFuncR type="discrete" tableValues=".18 .26 .37 .51 .67 .78"/><feFuncG type="discrete" tableValues=".115 .18 .27 .39 .54 .68"/><feFuncB type="discrete" tableValues=".065 .12 .18 .27 .40 .52"/><feFuncA type="identity"/></feComponentTransfer>`:''}
    </filter>
    <filter id="${g('art-shadow')}" x="-22%" y="-22%" width="144%" height="144%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="${cutHalo}" result="blur"/><feOffset in="blur" dx="${cutShift}" dy="${cutShift}" result="offset"/><feFlood flood-color="${mat.shadow}" flood-opacity=".94" result="shade"/><feComposite in="shade" in2="offset" operator="in"/></filter>
+   <filter id="${g('art-outline')}" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="1.5" result="wide"/><feGaussianBlur in="wide" stdDeviation=".45" result="soft"/><feFlood flood-color="#080503" flood-opacity=".92"/><feComposite in2="soft" operator="in"/></filter>
    <filter id="${g('art-inner-shadow')}" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="${cutShift}" dy="${cutShift}" result="moved"/><feComposite in="SourceAlpha" in2="moved" operator="out" result="rim"/><feFlood flood-color="#000000" result="black"/><feComposite in="black" in2="rim" operator="in"/></filter>
    <filter id="${g('art-inner-light')}" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB"><feOffset in="SourceAlpha" dx="-${cutShift}" dy="-${cutShift}" result="moved"/><feComposite in="SourceAlpha" in2="moved" operator="out" result="rim"/><feFlood flood-color="${mat.light}" result="light"/><feComposite in="light" in2="rim" operator="in"/></filter>
+   ${isPaper||mat.id==='wood'?`<filter id="${g('worn')}" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="${isPaper?'.032':'.05'}" numOctaves="4" seed="${isPaper?14:6}" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="${isPaper?11:5}" xChannelSelector="R" yChannelSelector="G" result="d"/><feMorphology in="d" operator="erode" radius="${isPaper?9:4}" result="e1"/><feGaussianBlur in="e1" stdDeviation="${isPaper?6:3}" result="b1"/><feComposite in="d" in2="b1" operator="out" result="s1"/><feFlood flood-color="${isPaper?'#5a2c0d':'#120a05'}" flood-opacity="${isPaper?.72:.6}"/><feComposite in2="s1" operator="in" result="scorch"/><feMorphology in="d" operator="erode" radius="${isPaper?2.6:1.2}" result="e2"/><feGaussianBlur in="e2" stdDeviation="${isPaper?1.3:.7}" result="b2"/><feComposite in="d" in2="b2" operator="out" result="s2"/><feFlood flood-color="#120804" flood-opacity=".96"/><feComposite in2="s2" operator="in" result="char"/><feMerge><feMergeNode in="d"/><feMergeNode in="scorch"/><feMergeNode in="char"/></feMerge></filter>`:''}
+   ${isPaper?`<filter id="${g('grime')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".024 .03" numOctaves="4" seed="31"/><feColorMatrix values="${cm('#2e1b0a',3.6,-1.72)}"/></filter><filter id="${g('specks')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".42" numOctaves="2" seed="17"/><feColorMatrix values="${cm('#1f1206',8,-5.1)}"/></filter><filter id="${g('smudge')}" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>`:''}
+   ${mat.id==='wood'?`<filter id="${g('cracks')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".2 .005" numOctaves="3" seed="23"/><feColorMatrix values="${cm('#070301',8,-5)}"/></filter><filter id="${g('stains')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".018 .026" numOctaves="3" seed="12"/><feColorMatrix values="${cm('#0e0703',3.4,-1.6)}"/></filter><filter id="${g('scuffs')}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".035 .4" numOctaves="2" seed="41"/><feColorMatrix values="${cm('#cdb88e',5,-3.1)}"/></filter>`:''}
    <clipPath id="${g('clip')}"><path d="${face}"/></clipPath>
    <g id="${g('em')}" transform="${el.tr}"><path d="${el.d}" fill-rule="evenodd"/></g>
  </defs>`;
@@ -129,11 +136,21 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
  <path d="${face}" fill="url(#${g(isPaper?'paper':'metal')})" stroke="${mat.light}" stroke-opacity=".55" stroke-width=".8"/>
  <path d="${face}" fill="url(#${g('depth')})"/>
  </g>
- <g clip-path="url(#${g('clip')})">${isPaper?`<rect width="240" height="312" fill="#000" filter="url(#${g('blot')})" opacity=".5"/><rect width="240" height="312" fill="#000" filter="url(#${g('fd')})" opacity=".26"/><rect width="240" height="312" fill="#000" filter="url(#${g('fl')})" opacity=".38"/><rect width="240" height="312" fill="url(#${g('pv')})"/><path d="M120 5V307" stroke="${mat.shadow}" stroke-opacity=".16" stroke-width=".9"/><path d="M121 5V307" stroke="${mat.light}" stroke-opacity=".3" stroke-width=".8"/><path d="M5 156H235" stroke="${mat.shadow}" stroke-opacity=".13" stroke-width=".9"/><path d="M5 157H235" stroke="${mat.light}" stroke-opacity=".26" stroke-width=".8"/>`:`<rect x="9" y="9" width="224" height="294" fill="url(#${uid}-brush)"/><path d="${face}" fill="url(#${g('sheen')})"/>${mat.id==='silver'?`<path d="M26 72L214 250" stroke="${mat.light}" stroke-opacity=".10" stroke-width="16" stroke-linecap="round"/><path d="M38 58L226 236" stroke="${mat.dark}" stroke-opacity=".08" stroke-width="9" stroke-linecap="round"/>`:mat.id==='platinum'?`<path d="M28 46C76 26 164 24 213 48" fill="none" stroke="#f7feff" stroke-opacity=".16" stroke-width="19" stroke-linecap="round"/><path d="M28 262C90 232 166 230 220 254" fill="none" stroke="#dbf4ff" stroke-opacity=".18" stroke-width="21" stroke-linecap="round"/><path d="M171 18L215 294" stroke="#ffffff" stroke-opacity=".11" stroke-width="14" stroke-linecap="round"/>`:''}<rect width="240" height="312" fill="#000" filter="url(#${g('noise')})" opacity="${mat.noiseOpacity??.32}"/><rect width="240" height="312" fill="#000" filter="url(#${g('hammer')})" opacity="${mat.hammerOpacity??.19}"/>${mat.patina?`<rect width="240" height="312" fill="#000" filter="url(#${g('pat')})" opacity=".42"/>`:''}`}</g>
+ <g clip-path="url(#${g('clip')})">${isPaper?`<rect width="240" height="312" fill="#000" filter="url(#${g('blot')})" opacity=".3"/><rect width="240" height="312" fill="#000" filter="url(#${g('fd')})" opacity=".34"/><rect width="240" height="312" fill="#000" filter="url(#${g('fl')})" opacity=".38"/><rect width="240" height="312" fill="#000" filter="url(#${g('grime')})" opacity=".4"/><rect width="240" height="312" fill="#000" filter="url(#${g('specks')})" opacity=".6"/><g filter="url(#${g('smudge')})" fill="#2a1707"><ellipse cx="42" cy="270" rx="20" ry="13" opacity=".4" transform="rotate(-24 42 270)"/><ellipse cx="205" cy="96" rx="15" ry="24" opacity=".3"/><ellipse cx="118" cy="290" rx="34" ry="7" opacity=".3"/></g><rect width="240" height="312" fill="url(#${g('pv')})"/><path d="M120 5V307" stroke="${mat.shadow}" stroke-opacity=".16" stroke-width=".9"/><path d="M121 5V307" stroke="${mat.light}" stroke-opacity=".3" stroke-width=".8"/><path d="M5 156H235" stroke="${mat.shadow}" stroke-opacity=".13" stroke-width=".9"/><path d="M5 157H235" stroke="${mat.light}" stroke-opacity=".26" stroke-width=".8"/>`:`<rect x="9" y="9" width="224" height="294" fill="url(#${uid}-brush)"/><path d="${face}" fill="url(#${g('sheen')})"/>${mat.id==='silver'?`<path d="M26 72L214 250" stroke="${mat.light}" stroke-opacity=".03" stroke-width="16" stroke-linecap="round"/><path d="M38 58L226 236" stroke="${mat.dark}" stroke-opacity=".02" stroke-width="9" stroke-linecap="round"/>`:mat.id==='enamel'?`<path d="${face}" fill="url(#${g('milk')})"/><rect x="9" y="9" width="222" height="294" fill="url(#${g('cloison')})"/>`:mat.id==='wood'?`<rect width="240" height="312" fill="#000" filter="url(#${g('wooddark')})" opacity=".85"/><rect width="240" height="312" fill="#000" filter="url(#${g('woodlight')})" opacity=".34"/><g filter="url(#${g('knot')})" fill="none" stroke="#170a03"><ellipse cx="33" cy="38" rx="4" ry="7" fill="#170a03" fill-opacity=".6" stroke-width=".8"/><ellipse cx="33" cy="38" rx="8" ry="14" stroke-width=".7" stroke-opacity=".55"/><ellipse cx="33" cy="38" rx="13" ry="23" stroke-width=".6" stroke-opacity=".36"/></g><rect width="240" height="312" fill="#000" filter="url(#${g('stains')})" opacity=".42"/><rect width="240" height="312" fill="#000" filter="url(#${g('cracks')})" opacity=".9"/><rect width="240" height="312" fill="#000" filter="url(#${g('scuffs')})" opacity=".22"/>`:''}<rect width="240" height="312" fill="#000" filter="url(#${g('noise')})" opacity="${mat.noiseOpacity??.32}"/><rect width="240" height="312" fill="#000" filter="url(#${g('hammer')})" opacity="${mat.hammerOpacity??.19}"/>${mat.patina?`<rect width="240" height="312" fill="#000" filter="url(#${g('pat')})" opacity=".42"/>`:''}`}</g>
+ ${mat.id==='astronite'?`<g clip-path="url(#${g('clip')})" fill="none" stroke="#cdb17a" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M20 110Q37 119 42 141L55 156 47 176 57 185 54 212" stroke-width=".48" opacity=".44"/>
+  <path d="M42 141L28 149 24 165M47 176L35 183 31 195M57 185L70 191 74 204" stroke-width=".32" opacity=".37"/>
+  <path d="M216 90Q201 110 213 126L199 139 204 151 194 169 202 182 195 200 216 220" stroke-width=".46" opacity=".42"/>
+  <path d="M199 139L182 136 176 151M194 169L181 177M202 182L214 188 225 208M195 200L183 214" stroke-width=".3" opacity=".35"/>
+  <path d="M37 283L47 267 43 248 56 233 49 222M197 287L182 276 185 262 173 251" stroke-width=".38" opacity=".33"/>
+  <circle cx="47" cy="176" r=".9" fill="#ffe4a2" stroke="none" opacity=".75"/>
+  <circle cx="199" cy="139" r="1" fill="#ffe4a2" stroke="none" opacity=".7"/>
+  <circle cx="183" cy="214" r=".75" fill="#ffe4a2" stroke="none" opacity=".68"/>
+  </g>`:''}
  <path d="${inset}" fill="none" stroke="${mat.shadow}" stroke-opacity=".88" stroke-width="2.1"/>
  <path d="${shapePath(14.6,14.6,210.8,282.8,8)}" fill="none" stroke="${mat.light}" stroke-opacity=".8" stroke-width=".65"/>
  <path d="${shapePath(12.1,12.1,215.8,287.8,9)}" fill="none" stroke="${mat.light}" stroke-opacity=".55" stroke-width=".64"/>
- <path d="${well}" fill="url(#${g('well')})"/><path d="${well}" fill="none" stroke="url(#${g('rim')})" stroke-width="1.5"/>
+ <path d="${well}" fill="url(#${g('well')})" opacity="${isPaper?.3:1}"/><path d="${well}" fill="none" stroke="url(#${g('rim')})" stroke-width="1.5"/>
  <path d="${shapePath(17.6,58.6,204.8,235.8,7)}" fill="none" stroke="${mat.light}" stroke-opacity=".47" stroke-width=".7"/>
 
 `;
@@ -180,15 +197,16 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
    <path d="M209 276A18 18 0 0 1 202 280" fill="none" stroke="${finish.rim}" stroke-opacity=".62" stroke-width=".95" stroke-linecap="round"/>
  </g>`;
  const character=opts.showArtwork && characterImageSource?`<g class="card-sprite" data-art="material-adaptive">
-   ${!isPaper?`<image href="${characterImageSource}" x="12.5" y="63.5" width="215" height="215" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-shadow')})" opacity="${(.30+.28*cut).toFixed(2)}"/>`:''}
-   <image href="${characterImageSource}" x="12.5" y="63.5" width="215" height="215" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-material')})" opacity="${isPaper?.88:1}"/>
-   ${isPaper?`<image href="${characterImageSource}" x="12.5" y="63.5" width="215" height="215" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity=".085"/>`:
-   `<image href="${characterImageSource}" x="12.5" y="63.5" width="215" height="215" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity="${(.13+.13*cut).toFixed(2)}"/>
-    <image href="${characterImageSource}" x="12.5" y="63.5" width="215" height="215" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-light')})" opacity="${(.14+.13*cut).toFixed(2)}"/>`}
+   ${!isPaper?`<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-outline')})"/><image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-shadow')})" opacity="${(.30+.28*cut).toFixed(2)}"/>`:''}
+   <image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-material')})" opacity="${isPaper?.88:1}"/>
+   ${isPaper?`<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity=".085"/>`:
+   `<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity="${(.13+.13*cut).toFixed(2)}"/>
+    <image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-light')})" opacity="${(.14+.13*cut).toFixed(2)}"/>`}
  </g>`:'';
+ if(opts.artOnly) return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 240 312" aria-hidden="true">${defs}${character}</svg>`;
  const guides=`<g class="guide"><rect class="outline" x="16" y="18" width="36" height="35" rx="4"/><rect class="outline" x="54" y="18" width="171" height="35" rx="4"/><rect class="outline" x="16" y="57" width="208" height="239" rx="8"/><circle cx="197" cy="263" r="20"/><path class="crosshair" d="M120 57V296M16 175H224"/></g>`;
  if(opts.emblemOnly) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="171.5 238 51 51" aria-hidden="true" data-material="${mat.id}">${defs}${emblem}</svg>`;
- return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 240 312" aria-hidden="true" data-material="${mat.id}" preserveAspectRatio="xMidYMid meet">${defs}<g id="${g('base-layer')}">${base}</g><g id="${g('character-layer')}" data-layer="replaceable-character">${character}</g>${emblem}${power}${opts.guides?guides:''}</svg>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 240 312" aria-hidden="true" data-material="${mat.id}" preserveAspectRatio="xMidYMid meet">${defs}<g id="${g('base-layer')}" ${isPaper||mat.id==='wood'?`filter="url(#${g('worn')})"`:''}>${base}</g><g id="${g('character-layer')}" data-layer="replaceable-character">${character}</g>${emblem}${power}${opts.guides?guides:''}</svg>`;
 }
 
 
@@ -205,6 +223,14 @@ export function renderBrightCutCard(options: {
   return svgCard(BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[options.rarity]],options.power,{
     uid:options.id, element:options.element, showArtwork:options.character ?? Boolean(options.artworkSource),
     engravingDepth:options.depth ?? 85, characterArtSource: options.artworkSource,
+  });
+}
+
+// Astronite floats its art inside the frame, so the shader needs the art on its own.
+export function renderBrightCutArtLayer(options: { element: CardElement; rarity: CardRarity; id: string; artworkSource: string; depth?: number }): string {
+  return svgCard(BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[options.rarity]],undefined,{
+    uid:options.id, element:options.element, showArtwork:true, artOnly:true,
+    engravingDepth:options.depth ?? 85, characterArtSource:options.artworkSource,
   });
 }
 

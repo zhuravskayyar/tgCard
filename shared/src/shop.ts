@@ -11,11 +11,23 @@ export interface ShopUpgradeChance {
   rarity: CardRarity;
 }
 
+export interface ShopPoolCard {
+  displayName: string;
+  element: CardElement;
+  id: string;
+}
+
+export interface ShopPoolGroup {
+  cards: ShopPoolCard[];
+  rarity: CardRarity;
+}
+
 export interface ShopOffer {
   canAfford: boolean;
   currency: ShopCurrency;
   guaranteedRarity: CardRarity;
   id: string;
+  pool: ShopPoolGroup[];
   price: number;
   upgrades: ShopUpgradeChance[];
 }

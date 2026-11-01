@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 
 interface CardArtManifest {
   files: Map<string, string>;
@@ -78,9 +78,11 @@ export function resolveCardArtworkSources(artKey: string | null, cardId: string 
   const lookupKey = artKey?.trim() || cardId?.trim() || null;
   if (!lookupKey) return [];
 
+  // Only cards listed in the manifest have artwork, so the rest make no requests at all.
   // Catalog keys may carry a folder the artwork has since moved out of; the manifest knows the bare name.
   const bareKey = lookupKey.slice(lookupKey.lastIndexOf("/") + 1);
-  const configuredFile = manifest.files.get(lookupKey) ?? manifest.files.get(bareKey) ?? lookupKey;
+  const configuredFile = manifest.files.get(lookupKey) ?? manifest.files.get(bareKey);
+  if (!configuredFile) return [];
   const hasExtension = /\.[a-zA-Z0-9]+$/.test(configuredFile);
   const candidates = hasExtension
     ? [configuredFile]
@@ -92,9 +94,23 @@ export function resolveCardArtworkSources(artKey: string | null, cardId: string 
   });
 }
 
+/** Art that is not painted yet leaves an empty slot rather than a broken-image icon. */
+export function hideMissingCardArt(event: SyntheticEvent<HTMLImageElement>) {
+  event.currentTarget.style.visibility = "hidden";
+}
+
+// A later mount of the same card skips the files already missing instead of requesting each extension again.
+const FAILED_SOURCE_RETRY_MS = 60_000;
+const failedCardArtSources = new Map<string, number>();
+
+function hasCardArtSourceFailed(source: string) {
+  const failedAt = failedCardArtSources.get(source);
+  return failedAt !== undefined && Date.now() - failedAt < FAILED_SOURCE_RETRY_MS;
+}
+
 export function useCardArtworkSource(artKey: string | null, cardId: string | null | undefined) {
   const [manifest, setManifest] = useState<CardArtManifest | null>(loadedCardArtManifest);
-  const [failedSourceIndex, setFailedSourceIndex] = useState(0);
+  const [, setFailureRevision] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -104,18 +120,16 @@ export function useCardArtworkSource(artKey: string | null, cardId: string | nul
     return () => { active = false; };
   }, []);
 
-  const sourceKey = `${artKey ?? ""}:${cardId ?? ""}:${manifest?.version ?? "loading"}`;
-  useEffect(() => setFailedSourceIndex(0), [sourceKey]);
-
-  const artworkSources = resolveCardArtworkSources(artKey, cardId, manifest);
+  const source = resolveCardArtworkSources(artKey, cardId, manifest).find((candidate) => !hasCardArtSourceFailed(candidate)) ?? null;
   const onSourceError = useCallback(() => {
-    setFailedSourceIndex((current) => current + 1);
-  }, []);
+    if (source) failedCardArtSources.set(source, Date.now());
+    setFailureRevision((current) => current + 1);
+  }, [source]);
 
   return {
     loading: manifest === null,
     onSourceError,
-    source: artworkSources[failedSourceIndex] ?? null,
+    source,
   };
 }
 

@@ -2,6 +2,7 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
 import { GUILD_CONFIG, type GuildAltarCurrency, type GuildMineResponse, type GuildProfileResponse, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
 import { setSessionToken } from "../auth/session";
+import { getUiLocale, translateUi } from "../i18n";
 import { AppIcon } from "../components/AppIcon";
 import { MenuRow } from "../components/MenuRow";
 import type { PlayerSummaryState } from "../types/player";
@@ -20,6 +21,11 @@ interface GuildScreenProps {
 }
 type GuildView = { kind: "mine" | "directory" | "create" } | { kind: "profile" | "forum"; id: string };
 type GuildMutation = GuildProfileResponse | { left: boolean } | { dissolved: boolean } | { withdrawn: boolean };
+
+// Browser dialogs sit outside the DOM the language provider rewrites.
+function confirmUi(text: string) {
+  return window.confirm(translateUi(text, getUiLocale()));
+}
 
 export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildScreenProps) {
   const [mineState, setMineState] = useState<AsyncState<GuildMineResponse>>({ status: "loading" });
@@ -146,10 +152,10 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
         onWithdraw={(id) => { void run(() => withdrawGuildApplication(id), "Заявку відкликано."); }}
         onChangeRole={(id, role) => { void run(() => changeGuildRole(profile.guild.id, id, role), "Роль учасника змінено."); }}
         onDecideApplication={(id, decision) => { void run(() => decideGuildApplication(profile.guild.id, id, decision), decision === "accept" ? "Гравця прийнято до гільдії." : "Заявку відхилено."); }}
-        onDissolve={() => { if (window.confirm("Розпустити гільдію? Її розвиток буде втрачено, а назва стане вільною.")) void run(() => dissolveGuild(profile.guild.id), "Гільдію розпущено."); }}
-        onKick={(id) => { if (window.confirm("Виключити " + (profile.members.find((member) => member.playerId === id)?.displayName ?? "учасника") + " з гільдії?")) void run(() => kickGuildMember(profile.guild.id, id), "Учасника виключено."); }}
-        onLeave={() => { if (window.confirm("Вийти з гільдії? Вступ до іншої буде доступний через " + GUILD_CONFIG.leaveCooldownHours + " години.")) void run(() => leaveGuild(profile.guild.id), "Ви вийшли з гільдії."); }}
-        onTransfer={(id) => { if (window.confirm("Передати лідерство " + (profile.members.find((member) => member.playerId === id)?.displayName ?? "учаснику") + "? Ви втратите права лідера.")) void run(() => transferGuildLeadership(profile.guild.id, id), "Лідерство передано."); }}
+        onDissolve={() => { if (confirmUi("Розпустити гільдію? Її розвиток буде втрачено, а назва стане вільною.")) void run(() => dissolveGuild(profile.guild.id), "Гільдію розпущено."); }}
+        onKick={(id) => { if (confirmUi("Виключити " + (profile.members.find((member) => member.playerId === id)?.displayName ?? "учасника") + " з гільдії?")) void run(() => kickGuildMember(profile.guild.id, id), "Учасника виключено."); }}
+        onLeave={() => { if (confirmUi("Вийти з гільдії? Вступ до іншої буде доступний через " + GUILD_CONFIG.leaveCooldownHours + " години.")) void run(() => leaveGuild(profile.guild.id), "Ви вийшли з гільдії."); }}
+        onTransfer={(id) => { if (confirmUi("Передати лідерство " + (profile.members.find((member) => member.playerId === id)?.displayName ?? "учаснику") + "? Ви втратите права лідера.")) void run(() => transferGuildLeadership(profile.guild.id, id), "Лідерство передано."); }}
         onUpdateSettings={(input) => { void run(() => updateGuildSettings(profile.guild.id, input), "Налаштування збережено."); }}
         guildCardCandidates={guildCardCandidatesState}
         onLoadGuildCardCandidates={() => { void loadGuildCardCandidatesForProfile(); }}

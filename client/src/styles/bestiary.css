@@ -297,6 +297,32 @@
   border-image: url("/assets/ui/equipment/slot-v1.webp") 42 fill / 14px stretch;
 }
 
+/* The art's own outline, blacked out; the slot sprite shows around it. */
+.bestiary-card__silhouette {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  filter: brightness(0) drop-shadow(0 0 1px rgb(255 214 150 / 85%)) drop-shadow(0 0 3px rgb(255 214 150 / 35%));
+}
+
+.collection-card-title { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The screen's background is a busy engraving, so the description sits on the painted text plate. */
+:root[data-game-theme="light"] .app-shell .app-content .collection-card-screen .collection-card-description {
+  margin: 0;
+  padding: 0;
+  color: #2d1b0e;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+}
+
 .bestiary-card__unknown i {
   font-style: normal;
   font-size: 40px;

@@ -10,7 +10,6 @@ const SAVE_DELAY_MS = 1200;
 const available = typeof window !== "undefined" && window.isSecureContext && Boolean(window.caches);
 const pendingSaves = new WeakMap<HTMLCanvasElement, number>();
 
-// localStorage is read synchronously, which lets the first render know a texture is on its way.
 const index = readIndex();
 
 function readIndex() {
@@ -58,10 +57,6 @@ export function cardTextureKey(markup: string, id: string) {
   first = Math.imul(first ^ (first >>> 16), 2246822507) ^ Math.imul(second ^ (second >>> 13), 3266489909);
   second = Math.imul(second ^ (second >>> 16), 2246822507) ^ Math.imul(first ^ (first >>> 13), 3266489909);
   return `${(second >>> 0).toString(36)}${(first >>> 0).toString(36)}-${source.length.toString(36)}`;
-}
-
-export function hasCardTexture(key: string) {
-  return index.has(key);
 }
 
 export async function loadCardTexture(key: string) {

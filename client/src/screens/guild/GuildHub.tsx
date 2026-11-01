@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GUILD_CONFIG, type CardElement, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
+import { getUiNumberLocale } from "../../i18n";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
@@ -183,7 +184,7 @@ function formatJournalDetail(entry: GuildJournalEntryView) {
 }
 
 function formatJournalDate(value: string) {
-  return new Date(value).toLocaleString("uk-UA", {
+  return new Date(value).toLocaleString(getUiNumberLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -237,7 +238,7 @@ export function GuildAnnouncements({ profile, busy, onUpdateAnnouncement }: { pr
 }
 
 function formatMissionDate(value: string) {
-  return new Date(value).toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+  return new Date(value).toLocaleDateString(getUiNumberLocale(), { day: "numeric", month: "short" });
 }
 
 export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onDevelopment, onRaid, onDirectory, onForum, onTreasury, onJournal, onAnnouncements, onUpdateAnnouncement, guildCardCandidates, onLoadGuildCardCandidates, onSetGuildCard }: GuildHubProps) {

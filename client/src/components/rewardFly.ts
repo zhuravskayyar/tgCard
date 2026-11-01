@@ -1,3 +1,4 @@
+import { getUiNumberLocale } from "../i18n";
 import { CURRENCY_ICON_SOURCES, type CurrencyKind } from "./currencyIcons";
 import { RESOURCE_ICON_SOURCES } from "./ResourceIcon";
 
@@ -41,7 +42,7 @@ function showGainLabel(target: Element, amount: number, variant: string, suffix 
   const rect = target.getBoundingClientRect();
   const label = document.createElement("span");
   label.className = `reward-fly__gain reward-fly__gain--${variant}`;
-  label.textContent = `+${new Intl.NumberFormat("uk-UA").format(amount)}${suffix}`;
+  label.textContent = `+${new Intl.NumberFormat(getUiNumberLocale()).format(amount)}${suffix}`;
   label.style.left = `${rect.left + rect.width / 2}px`;
   label.style.top = `${rect.bottom + 2}px`;
   document.body.append(label);

@@ -443,22 +443,7 @@
   object-fit: contain;
   border-radius: inherit;
 }
-.collection-card-visual > span:last-child {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  color: var(--card-element);
-  background: rgb(9 13 18 / 90%);
-  border: 1px solid var(--card-element);
-  border-radius: 50%;
-}
-
-.collection-card-visual > span:last-child .element-symbol { width: 22px; height: 22px; }
-.collection-card-visual--unknown .card-artwork { filter: brightness(.24) saturate(.2); }
+.collection-card-visual--unknown { padding: 0; background: none; border: 0; border-radius: 0; }
 
 .collection-card-description {
   margin: 0;
@@ -7280,6 +7265,105 @@ button.mode-tile::before,
   position: relative;
   min-height: 100%;
   animation: screen-enter var(--motion-standard) var(--motion-ease-soft) both;
+}
+
+/* The screen builds unseen over the shell's own page; its entry animation starts once it is complete. */
+.app-screen-transition--pending {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+/* Shown only when a screen is genuinely slow: a fast transition never reaches the end of the delay. */
+.screen-loader {
+  position: fixed;
+  z-index: 1;
+  top: calc(50% + (var(--hud-height, 0px) - var(--navigation-height, 0px)) / 2);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: screen-loader-appear 220ms ease-out 320ms forwards;
+  perspective: 600px;
+}
+
+.screen-loader__card {
+  position: relative;
+  display: block;
+  width: 116px;
+  aspect-ratio: 2 / 3;
+  filter: drop-shadow(0 8px 10px rgb(45 27 14 / 45%));
+  animation: screen-loader-sway 2600ms ease-in-out infinite;
+}
+
+.screen-loader__back {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* The seal sits in the empty medallion painted at the centre of the card back. */
+.screen-loader__seal {
+  position: absolute;
+  top: 49.2%;
+  left: 50%;
+  width: 37%;
+  height: auto;
+  animation: screen-loader-seal 2600ms ease-in-out infinite;
+}
+
+.screen-loader__glint {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  mix-blend-mode: screen;
+}
+
+.screen-loader__glint img {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  animation: screen-loader-glint 2600ms ease-in-out infinite;
+}
+
+.screen-loader__label {
+  color: var(--home-ink, #2d1b0e);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+@keyframes screen-loader-appear {
+  to { opacity: 1; }
+}
+
+@keyframes screen-loader-sway {
+  0%, 100% { transform: rotateY(-14deg) translateY(2px); }
+  50% { transform: rotateY(14deg) translateY(-3px); }
+}
+
+@keyframes screen-loader-seal {
+  0%, 100% { transform: translate(-50%, -50%) scale(.97); }
+  50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes screen-loader-glint {
+  0% { transform: translateX(-120%); }
+  55%, 100% { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-loader__card,
+  .screen-loader__glint img { animation: none; }
+  .screen-loader__seal { animation: none; transform: translate(-50%, -50%); }
+  .screen-loader__glint { display: none; }
 }
 
 :where(

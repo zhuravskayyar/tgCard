@@ -1,6 +1,6 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { RussianLanguageProvider } from "./i18n";
+import { LanguageProvider } from "./i18n";
 import "./theme";
 import "@fontsource/alegreya-sans/400.css";
 import "@fontsource/alegreya-sans/500.css";
@@ -44,10 +44,10 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <RussianLanguageProvider>
+    <LanguageProvider>
       <Suspense fallback={<div aria-busy="true" />}>
         <RootApplication />
       </Suspense>
-    </RussianLanguageProvider>
+    </LanguageProvider>
   </StrictMode>,
 );
