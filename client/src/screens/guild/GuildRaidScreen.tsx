@@ -360,7 +360,7 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
   const currentBattle = raid && raid.battle?.raidLevel === raid.level ? raid.battle : null;
   const currentResult = raid && raid.lastResult?.level === raid.level ? raid.lastResult : null;
   const battleFinished = Boolean(currentBattle && (currentBattle.status !== "active" || raid?.status !== "active"));
-  const resultReady = useBattleResultReady(currentBattle?.status === "active" && raid?.status === "active", battleFinished);
+  const resultReady = useBattleResultReady(currentBattle?.status === "active" && raid?.status === "active", battleFinished, currentBattle?.status === "won" ? "win" : currentBattle?.status === "lost" ? "loss" : null);
   const battleVisible = Boolean(currentBattle) && !resultReady;
   const resultVisible = Boolean(currentResult || currentBattle?.status === "lost");
   return <section className="guild-raid" aria-labelledby="guild-raid-title" data-raid-id={raid?.id}>

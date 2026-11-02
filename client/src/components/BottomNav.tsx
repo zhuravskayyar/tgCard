@@ -29,6 +29,7 @@ export function BottomNav({ activeItem, onSelect }: BottomNavProps) {
             <button
               aria-current={isActive ? "page" : undefined}
               className="bottom-navigation__item"
+              data-sound="nav-page"
               key={item.id}
               onClick={() => onSelect?.(item.id)}
               type="button"

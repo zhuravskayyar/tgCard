@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { CardElement, CardRarity, ShopPurchaseResponse } from "@cardastika/shared";
+import { playSound, preloadSounds, revealSoundCue, REWARD_SOUND_CUES } from "../audio";
 import { CardNameBadge } from "./CardNameBadge";
 import { CardHud } from "./CardHud";
 import { CardFxWrapper } from "./CardFxWrapper";
@@ -70,6 +71,16 @@ export function ShopRewardReveal({
     return () => window.clearTimeout(timeout);
   }, [unboxStage]);
 
+  useEffect(() => { preloadSounds(REWARD_SOUND_CUES); }, []);
+
+  const revealRarity = (purchases[activeIndex] ?? purchases[0])?.reward.rarity;
+  useEffect(() => {
+    if (unboxStage === "shake") playSound("pack-shake");
+    else if (unboxStage === "tear") playSound("pack-tear");
+    else if (unboxStage === "rise" && revealRarity) playSound(revealSoundCue(revealRarity));
+    else if (unboxStage === "forge") playSound("forge-strike");
+  }, [revealRarity, unboxStage]);
+
   useLayoutEffect(() => {
     if (unboxStage !== "idle" && unboxStage !== "done") return;
     revealRef.current?.focus({ preventScroll: true });
@@ -119,8 +130,11 @@ export function ShopRewardReveal({
           aria-label="Відкрити пакунок"
           aria-disabled={unboxStage !== "idle"}
           className={`shop-unbox shop-unbox--${unboxStage} shop-unbox--${reward.rarity}`}
+          data-sound="none"
           onClick={() => {
-            if (unboxStage === "idle") setUnboxStage(prefersReducedMotion() ? "done" : "shake");
+            if (unboxStage !== "idle") return;
+            if (prefersReducedMotion()) playSound(revealSoundCue(reward.rarity));
+            setUnboxStage(prefersReducedMotion() ? "done" : "shake");
           }}
           type="button"
         >

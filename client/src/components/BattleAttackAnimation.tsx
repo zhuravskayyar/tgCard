@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { CardElement, CardRarity, DuelExchange } from "@cardastika/shared";
+import { elementSoundCue, playSound, type SoundCue } from "../audio";
 import { BRIGHT_CUT_MATERIALS, ELEMENT_FINISH, GLOW, getBrightCutMaterialId } from "../cards/brightCutModel";
 import { holdCardMaterialAnimation } from "../cards/cardMaterialShader";
 import { CardFxWrapper } from "./CardFxWrapper";
@@ -32,6 +33,7 @@ const HIT_MS: Record<Tier, number> = { weak: 70, even: 120, strong: 220 };
 const FORCE: Record<Tier, number> = { weak: 0.55, even: 1, strong: 1.8 };
 const SHAKE: Record<Tier, [number, number]> = { weak: [3, 240], even: [7, 360], strong: [15, 620] };
 const RECOIL_MS: Record<Tier, number> = { weak: 380, even: 520, strong: 760 };
+const HIT_SOUND: Record<Tier, SoundCue> = { weak: "hit-weak", even: "hit-normal", strong: "hit-strong" };
 const TIER_LABEL: Record<Tier, string> = { weak: "Слабкий удар", even: "Рівний удар", strong: "Сильний удар!" };
 const RISE_MS = 260;
 const RETURN_MS = 520;
@@ -428,10 +430,17 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
     let trailFrame = 0;
     const timers: number[] = [];
 
+    // One physical hit plus one quiet element accent, on the frame the burst is drawn.
+    const impactSound = () => {
+      playSound(HIT_SOUND[tier]);
+      playSound(elementSoundCue(exchange.playerCard.element));
+    };
+
     const strike = async () => {
       const options = { fill: "forwards" as const };
       if (reducedMotion) {
         burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, "weak", direction);
+        impactSound();
         setDamage({ tier, at: impact, counterAt });
         await new Promise<void>((resolve) => { timers.push(window.setTimeout(resolve, 700)); });
         return;
@@ -449,6 +458,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         trailFrame = requestAnimationFrame(trail);
       };
       trailFrame = requestAnimationFrame(trail);
+      playSound("battle-fly");
       await ghost.animate([
         { transform: transform(0, 20, 0, 7, 1.12) },
         { transform: transform(dx / 2, dy / 2, spin / 2, 0, 1.22), offset: 0.5 },
@@ -458,6 +468,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       if (cancelled) return;
 
       burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, tier, direction);
+      impactSound();
       shakeBoard(board, tier);
       setDamage({ tier, at: impact, counterAt });
       const force = FORCE[tier];
@@ -498,6 +509,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         ];
         ghost.style.visibility = "hidden";
         target.style.visibility = "hidden";
+        playSound("card-flip", { gain: 0.6 });
         // The strike ends only once the fresh cards have settled, so the screen never cuts the flip short.
         await Promise.all([cards.player, cards.enemy].map((card) => {
           delete card.dataset.attackCovered;

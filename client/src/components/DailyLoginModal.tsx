@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DailyLoginClaimResponse, LariskaDailyRewardPlayerState, LariskaDailyRewardSummary, LariskaDailyRewardView } from "@cardastika/shared";
+import { playSound } from "../audio";
 import { AppIcon } from "./AppIcon";
 import { CurrencyIcon } from "./CurrencyDisplay";
 import { Lariska } from "./Lariska";
@@ -41,6 +42,7 @@ export function DailyLoginModal({ data, onClaim, onClose, onOpenTasks, onPlayerS
     try {
       const response = await onClaim();
       onPlayerSummaryChange(response.rewardPlayer);
+      playSound("coins-reward");
       // The letter stays open while the rewards fly out of it.
       await new Promise((resolve) => window.setTimeout(resolve, 1_100));
       onClose();

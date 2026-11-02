@@ -1,5 +1,6 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import { installSoundEffects } from "./audio";
 import { LanguageProvider } from "./i18n";
 import "./theme";
 import "@fontsource/alegreya-sans/400.css";
@@ -41,6 +42,8 @@ const RootApplication = isAdminPath
 if (!rootElement) {
   throw new Error("Root element was not found");
 }
+
+if (!isAdminPath) installSoundEffects();
 
 createRoot(rootElement).render(
   <StrictMode>

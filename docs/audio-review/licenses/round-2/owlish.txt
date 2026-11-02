@@ -1,0 +1,7 @@
+Source: https://opengameart.org/content/sound-effects-pack
+Title: Sound Effects Pack
+Author: OwlishMedia / Owlstorm
+License: CC0-1.0
+https://creativecommons.org/publicdomain/zero/1.0/
+Prepared for Cardastika audition: trimmed edge silence, peak adjusted, short edge fades, transcoded to MP3; no pitch/speed change.
+Source verified: 2026-11-02. This source record does not replace the original license.

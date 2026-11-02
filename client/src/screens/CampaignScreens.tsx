@@ -498,7 +498,7 @@ export function CampaignBossScreen({ onCampaignCompleted, onDeckPowerChange, onP
 }) {
   const [state, setState] = useState<BossScreenState>({ status: "loading" });
   const clash = useBattleExchange(state.status === "battle" ? state.battle.battleLog[0] ?? null : null);
-  const resultReady = useBattleResultReady(state.status === "battle" && state.battle.status === "active", state.status === "battle" && state.battle.status !== "active");
+  const resultReady = useBattleResultReady(state.status === "battle" && state.battle.status === "active", state.status === "battle" && state.battle.status !== "active", state.status === "battle" && state.battle.status !== "active" ? state.battle.status === "won" ? "win" : "loss" : null);
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const [introIndex, setIntroIndex] = useState(0);
 

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
+import { setSoundEnabled, useSoundEnabled } from "../audio";
 import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { getRawTelegramInitData } from "../telegram";
@@ -69,6 +70,7 @@ function AccountTransferDialog({ onCancel, onConfirm, pending, provider }: Accou
 }
 
 export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSummaryState, showTutorialReplay }: SettingsScreenProps) {
+  const soundEnabled = useSoundEnabled();
   const isLocalBrowser = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const [identities, setIdentities] = useState<AuthIdentityView[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -174,7 +176,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-game">
         <h2 id="settings-game">ГРА</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact disabled icon="sound" metalTexture title="Звуки — незабаром" />
+          <MenuRow compact icon="sound" metalTexture onClick={() => setSoundEnabled(!soundEnabled)} title={`Звуки: ${soundEnabled ? "увімкнено" : "вимкнено"}`} />
           <MenuRow compact disabled icon="music" metalTexture title="Музика — незабаром" />
           <MenuRow compact disabled icon="vibration" metalTexture title="Вібрація — незабаром" />
         </div>

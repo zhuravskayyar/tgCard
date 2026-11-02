@@ -497,7 +497,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
 export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false, tutorialResultError = null }: DuelScreenProps) {
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
-  const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active");
+  const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active", state.status === "duel" && state.duel.status !== "active" ? state.duel.status === "won" ? "win" : "loss" : null);
   const requestInFlightRef = useRef(false);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const searchSequenceRef = useRef(0);

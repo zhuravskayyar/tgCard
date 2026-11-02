@@ -1,0 +1,7 @@
+Source: https://opengameart.org/content/fantasy-sound-effects-library
+Title: Fantasy Sound Effects Library
+Author: Little Robot Sound Factory
+License: CC-BY-3.0
+https://creativecommons.org/licenses/by/3.0/
+Prepared for Cardastika audition: trimmed edge silence, peak adjusted, short edge fades, transcoded to MP3; no pitch/speed change.
+Source verified: 2026-11-02. This source record does not replace the original license.

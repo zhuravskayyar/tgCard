@@ -368,7 +368,7 @@ function ShopTab({ profile, catalog, catalogError, catalogLoading, pending, onLo
 export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChange }: ArenaScreenProps) {
   const [profile, setProfile] = useState<ArenaProfileResponse | null>(null);
   const [match, setMatch] = useState<ArenaView | null>(null);
-  const resultReady = useBattleResultReady(match?.status === "active", match?.status === "finished");
+  const resultReady = useBattleResultReady(match?.status === "active", match?.status === "finished", match?.result?.reward.status ?? null);
   const [queueState, setQueueState] = useState<ArenaQueueView | null>(null);
   const [catalog, setCatalog] = useState<ArenaShopCatalogResponse | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);

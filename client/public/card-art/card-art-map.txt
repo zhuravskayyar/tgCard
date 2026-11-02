@@ -68,3 +68,26 @@ salamander | Вогнянка | salamander
 impetuous_lizard | Ящірка-блискавка | impetuous_lizard
 crabman | Крабоїд | crabman
 giant_dragonfly | Бабка-велетка | giant_dragonfly
+thickskinned_dwarf | Гном Шкураток | thickskinned_dwarf
+gloomy_wayfarer | Похмурий мандрівник | gloomy_wayfarer
+war_archangel | Архангел у латах | war_archangel
+fire_titan | Титан із горна | fire_titan
+fire_dragon | Змій Смолич | fire_dragon
+north_dragon | Змій із-за Перевалу | north_dragon
+silver_dragon | Срібний Лускач | silver_dragon
+feathered_dragon | Пернатий змій | feathered_dragon
+underground_dragon | Сліпий Полоз | underground_dragon
+black_dragon | Чорний Гад | black_dragon
+sea_dragon | Морський Змій | sea_dragon
+flying_monkey | Крилата мавпа | flying_monkey
+gloomy_rhino | Носоріг-брила | gloomy_rhino
+furious_rat | Скажена щурка | furious_rat
+merry_croco | Крокодил-веселун | merry_croco
+air_serpent | Небесний полоз | air_serpent
+mamukrajua | Мамонт-магараджа | mamukrajua
+eternal_phoenix | Птах-Попелець | eternal_phoenix
+sage_basilisk | Василіск Книжник | sage_basilisk
+north_witch | Відьма Хуртовини | north_witch
+wood_mistress | Пані Пуща | wood_mistress
+fire_knight | Лицар-Головешка | fire_knight
+lakes_princess | Княжна Озерна | lakes_princess
