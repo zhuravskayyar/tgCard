@@ -4,40 +4,60 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071014" />
-    <meta name="description" content="Cardastika — фентезійна карткова гра про Світове Дерево та чотири стихії." />
-    <meta name="robots" content="index, follow" />
+    <meta name="description" content="Cardastika — безкоштовна фентезійна карткова онлайн-гра. Збери колоду з 9 карт, керуй чотирма стихіями, перемагай у дуелях. Play Cardastika in your browser." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="https://app.cardastika.org/" />
     <link rel="icon" type="image/webp" href="/assets/ui/auth/cardastika-logo.webp" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="alternate" hreflang="uk" href="https://app.cardastika.org/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Cardastika" />
-    <meta property="og:title" content="Cardastika — Світове Дерево" />
-    <meta property="og:description" content="Увійдіть у свій світ магії чотирьох стихій." />
+    <meta property="og:locale" content="uk_UA" />
+    <meta property="og:title" content="Cardastika — фентезійна карткова онлайн-гра" />
+    <meta property="og:description" content="Збери дев'ять карт, опануй вогонь, воду, повітря й землю та змагайся у фентезійних дуелях." />
     <meta property="og:url" content="https://app.cardastika.org/" />
     <meta property="og:image" content="https://app.cardastika.org/assets/ui/auth/cardastika-logo.webp" />
-    <meta property="og:image:alt" content="Логотип Cardastika з чотирма стихіями" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Cardastika — Світове Дерево" />
-    <meta name="twitter:description" content="Фентезійна карткова гра про магію чотирьох стихій." />
+    <meta property="og:image:alt" content="Логотип Cardastika" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cardastika — Fantasy Card Game" />
+    <meta name="twitter:description" content="Build a nine-card deck, master four elements, and battle online." />
     <meta name="twitter:image" content="https://app.cardastika.org/assets/ui/auth/cardastika-logo.webp" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "VideoGame",
         "name": "Cardastika",
-        "alternateName": "Кардастіка",
+        "alternateName": ["Кардастіка", "Кардастика"],
         "url": "https://app.cardastika.org/",
-        "description": "Фентезійна карткова гра про Світове Дерево та чотири стихії.",
+        "description": "Fantasy online card game with nine-card decks, elemental battles, collecting cards and guilds.",
+        "inLanguage": ["uk", "en"],
         "applicationCategory": "Game",
-        "genre": ["Fantasy", "Card game"],
+        "genre": ["Fantasy", "Collectible card game", "Strategy"],
+        "gamePlatform": ["Web browser", "Telegram Mini App"],
         "operatingSystem": "Web"
       }
     </script>
+    <style>
+      .cardastika-first-paint{box-sizing:border-box;min-height:100vh;padding:clamp(36px,7vw,92px) 24px;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 0%,#27352e,#071014 70%);color:#efe4ce;font-family:Georgia,serif}
+      .cardastika-first-paint>div{max-width:710px}.cardastika-first-paint img{width:112px;height:112px;object-fit:contain}
+      .cardastika-first-paint h1{font-size:clamp(2rem,5vw,3.5rem);margin:14px 0}.cardastika-first-paint p{line-height:1.7;color:#d7cbb2}
+      .cardastika-first-paint a{display:inline-block;margin-top:12px;padding:13px 22px;border:1px solid #bc9c62;color:#ffe4a9;text-decoration:none;border-radius:6px}
+    </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <title>Cardastika — Світове Дерево</title>
+    <title>Cardastika — фентезійна карткова онлайн-гра | Fantasy Card Game</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="cardastika-first-paint">
+        <div>
+          <img src="/assets/ui/auth/cardastika-logo.webp" alt="Cardastika — World Tree fantasy game" width="112" height="112" />
+          <h1>Cardastika — карткова фентезі-гра</h1>
+          <p>Збери колоду з дев'яти карт і керуй стихіями вогню, води, повітря та землі. Змагайся в дуелях, відкривай нові карти й досліджуй світ Світового Дерева.</p>
+          <p>Build your nine-card deck, master four elements, and challenge rivals in a fantasy card game.</p>
+          <a href="/about.html">Про гру / Explore Cardastika</a>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
