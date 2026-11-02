@@ -1,6 +1,9 @@
 // Finished card textures kept on the device, so a reload skips artwork fetching and SVG rasterizing.
-const CACHE_NAME = "cardastika-card-textures-v1";
-const INDEX_STORAGE_KEY = "cardastika.cardTextures.v1";
+// Bump the version when artwork is replaced under the same URLs, so devices drop the old textures at once.
+const CACHE_NAME = "cardastika-card-textures-v2";
+const INDEX_STORAGE_KEY = "cardastika.cardTextures.v2";
+const RETIRED_CACHE_NAMES = ["cardastika-card-textures-v1"];
+const RETIRED_INDEX_KEYS = ["cardastika.cardTextures.v1"];
 const REQUEST_PREFIX = "/__card-texture/";
 const MAX_ENTRIES = 150;
 // Artwork can be replaced under the same URL, so a stale texture must age out on its own.
@@ -11,6 +14,15 @@ const available = typeof window !== "undefined" && window.isSecureContext && Boo
 const pendingSaves = new WeakMap<HTMLCanvasElement, number>();
 
 const index = readIndex();
+
+if (available) {
+  for (const name of RETIRED_CACHE_NAMES) void caches.delete(name).catch(() => undefined);
+  try {
+    for (const key of RETIRED_INDEX_KEYS) localStorage.removeItem(key);
+  } catch {
+    // Storage may be blocked; the retired entries then simply stay unused.
+  }
+}
 
 function readIndex() {
   const entries = new Map<string, number>();

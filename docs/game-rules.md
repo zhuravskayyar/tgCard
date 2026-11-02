@@ -4,14 +4,18 @@ These are the current product constraints.
 
 - A deck contains 9 cards.
 - The game has 4 elements and 6 rarity levels.
-- The canonical catalog currently contains 150 cards: 141 collection cards in
-  20 collections of varying sizes and 9 starter cards outside those
-  collections.
+- The canonical catalog contains 213 cards in 50 collections (16 of them outside
+  any collection); see `docs/collections.md`.
 - Collection bonuses come from completed collections; an instance's persisted
   creation `bonusPower` is part of its own final power, not a mutable card buff.
-- A new account starts with 1,500 silver, 0 gold, and 9 starter cards.
-- Each starter instance is Lv1 with base power 10, bonus power 2, final power
-  12, Common rarity, and no collection.
+- A new account starts with 1,500 silver, 0 gold, and 11 starter cards, copied
+  from the reference start (`server/src/inventory/starterCards.ts`).
+- Starters are ordinary catalog cards and count toward collections. The deck gets
+  Вітрогонка at Lv5 (power 84) and eight Lv1 cards at power 12: Ворон-пересмішник,
+  Гірський орел, Вогнянка, Іфрита Жарина, Ящірка-блискавка, Наяда Ставка,
+  Невисоклик Пиріжок, Ельф-слідопит. Крабоїд and Бабка-велетка start as weak
+  cards at Lv1, power 10.
+- The first campaign boss rewards Вовк Сіроманець at Lv15, as in the reference.
 - Battle calculations must live in `game-core` and the server must remain
   authoritative over battle outcomes.
 

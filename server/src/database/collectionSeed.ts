@@ -1,6 +1,5 @@
 import type { PoolClient } from "pg";
 import { COLLECTION_CARDS, COLLECTIONS, validateCollectionCatalog } from "../collections/collectionCatalog.js";
-import { STARTER_CARDS } from "../inventory/starterCards.js";
 
 const RETIRED_STARTER_CARD_IDS = [
   "starter_01",
@@ -156,29 +155,22 @@ export async function seedCollectionDefinitions(client: PoolClient) {
     }
   }
 
-  const canonicalIds = [...STARTER_CARDS, ...COLLECTION_CARDS].map(({ id }) => id);
+  const canonicalIds = COLLECTION_CARDS.map(({ id }) => id);
   await replaceRetiredCards(client, canonicalIds);
-  const databaseValidation = await client.query<{ canonical_cards: string; external_starters: string; described_cards: string }>(
+  const databaseValidation = await client.query<{ canonical_cards: string; described_cards: string }>(
     `
       SELECT
         COUNT(*) FILTER (WHERE id = ANY($1::text[])) AS canonical_cards,
-        COUNT(*) FILTER (
-          WHERE id = ANY($2::text[]) AND collection_id IS NULL
-        ) AS external_starters,
         COUNT(*) FILTER (
           WHERE id = ANY($1::text[]) AND char_length(description) > 0
         ) AS described_cards
       FROM cards
     `,
-    [canonicalIds, STARTER_CARDS.map(({ id }) => id)],
+    [canonicalIds],
   );
   const canonicalCardCount = canonicalIds.length;
-  const starterCardCount = STARTER_CARDS.length;
   if (Number(databaseValidation.rows[0]?.canonical_cards) !== canonicalCardCount) {
     throw new Error(`Database seed must contain exactly ${canonicalCardCount} canonical cards`);
-  }
-  if (Number(databaseValidation.rows[0]?.external_starters) !== starterCardCount) {
-    throw new Error(`All ${starterCardCount} starter cards must remain outside collections`);
   }
   if (Number(databaseValidation.rows[0]?.described_cards) !== canonicalCardCount) {
     throw new Error(`All ${canonicalCardCount} canonical cards must have non-empty descriptions`);

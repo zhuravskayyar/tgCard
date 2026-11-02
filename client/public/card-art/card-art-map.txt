@@ -60,3 +60,11 @@ river_naiad | Наяда Ставка | river_naiad
 forest_dryad | Дріада Вербичка | forest_dryad
 fire_witch | Купальська відьма | fire_witch
 elvish_princess | Ельфійка Аелін | elvish_princess
+carefree_hobbit | Невисоклик Пиріжок | carefree_hobbit
+elvish_scout | Ельф-слідопит | elvish_scout
+black_raven | Ворон-пересмішник | black_raven
+mountain_eagle | Гірський орел | mountain_eagle
+salamander | Вогнянка | salamander
+impetuous_lizard | Ящірка-блискавка | impetuous_lizard
+crabman | Крабоїд | crabman
+giant_dragonfly | Бабка-велетка | giant_dragonfly

@@ -204,24 +204,25 @@ export const BOSS_VICTORY_DIALOGUES = Object.freeze([
 ]);
 
 export const CAMPAIGN_BOSS_CARD_CONFIG = Object.freeze([
-  { code: "starter_v5_01", level: 15 },
-  { code: "starter_v5_02", level: 16 },
-  { code: "starter_v5_03", level: 17 },
-  { code: "starter_v5_04", level: 18 },
-  { code: "starter_v5_05", level: 15 },
-  { code: "starter_v5_06", level: 17 },
-  { code: "starter_v5_07", level: 16 },
-  { code: "starter_v5_08", level: 18 },
-  { code: "starter_v5_09", level: 15 },
+  { code: "wind_fairy", level: 15 },
+  { code: "black_raven", level: 16 },
+  { code: "salamander", level: 17 },
+  { code: "impetuous_lizard", level: 18 },
+  { code: "carefree_hobbit", level: 15 },
+  { code: "mountain_eagle", level: 17 },
+  { code: "fire_ifrit", level: 16 },
+  { code: "river_naiad", level: 18 },
+  { code: "elvish_scout", level: 15 },
 ]);
 
-export const CAMPAIGN_BOSS_REWARD_CARD_CODE = "starter_v5_01";
+// The reference gives the pack leader for the first campaign.
+export const CAMPAIGN_BOSS_REWARD_CARD_CODE = "pack_leader";
 export const MANTICORE_CARD_CODE = CAMPAIGN_BOSS_REWARD_CARD_CODE;
 export const CAMPAIGN_BOSS_LEVEL = Math.max(...CAMPAIGN_BOSS_CARD_CONFIG.map(({ level }) => level));
 export const CAMPAIGN_BOSS_BASE_REWARD = Object.freeze({ xp: 600, silver: 1_000 });
 export const CAMPAIGN_BOSS_REWARD_CARD = Object.freeze({
   level: 15,
-  name: "Борсук" as const,
+  name: "Вовк Сіроманець" as const,
   rarity: "rare" as const,
 });
 export const CAMPAIGN_BOSS_HIDDEN_CARD_COUNT = 3;

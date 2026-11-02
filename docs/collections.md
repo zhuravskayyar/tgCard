@@ -5,8 +5,8 @@ them outside any collection). The catalog is generated from `tools/card-catalog/
 `server/src/collections/catalogData.generated.ts` and readable in `docs/card-catalog-v2.md`;
 edit the sources there and rerun `node tools/card-catalog/build-catalog.js <repo path>`.
 One card may belong to several collections: membership lives in `collection_cards`, and
-`cards.collection_id` keeps only the first one. The 9 starter species stay outside
-collections and out of the shop. A card shows artwork only once it has a line in
+`cards.collection_id` keeps only the first one. The 11 starter cards are ordinary
+catalog species, some of them inside collections (see `docs/game-rules.md`). A card shows artwork only once it has a line in
 `client/public/card-art/card-art-map.txt`.
 
 Each shop banner sells its own list of cards at each rarity (`shopPools` in the generated

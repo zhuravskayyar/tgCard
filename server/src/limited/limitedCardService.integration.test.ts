@@ -23,7 +23,7 @@ for (const [index, [eventId, promoCode]] of [
       assert.equal(await service.getActiveEvent(player.id), null);
       await assert.rejects(service.redeem(player.id, eventId!, promoCode!), LimitedCardEventUnavailableError);
       assert.deepEqual((await new CollectionRepository(pool).list(player.id)).limitedCards, []);
-      assert.equal((await pool.query("SELECT COUNT(*) AS count FROM player_card_instances WHERE player_id = $1", [player.id])).rows[0]?.count, "9");
+      assert.equal((await pool.query("SELECT COUNT(*) AS count FROM player_card_instances WHERE player_id = $1", [player.id])).rows[0]?.count, "11");
     } finally {
       await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
       await pool.end();

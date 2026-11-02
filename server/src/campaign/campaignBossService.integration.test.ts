@@ -83,7 +83,7 @@ test("Campaign boss start/resume redacts every active enemy card field and revea
   }
 });
 
-test("first boss victory grants one standard Lv15 Rare Борсук and finalizes Campaign once", {
+test("first boss victory grants one standard Lv15 Rare Вовк Сіроманець and finalizes Campaign once", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -112,9 +112,9 @@ test("first boss victory grants one standard Lv15 Rare Борсук and finalize
       cardRarity: won.result.rewardCard?.rarity,
     }, {
       outcome: "win",
-      xp: 12,
+      xp: 6,
       silver: 1_000,
-      cardName: "Борсук",
+      cardName: "Вовк Сіроманець",
       cardLevel: 15,
       cardRarity: "rare",
     });
@@ -143,7 +143,7 @@ test("first boss victory grants one standard Lv15 Rare Борсук and finalize
       instances: Number(persisted.rows[0]?.instances),
       discoveries: Number(persisted.rows[0]?.discoveries),
       deckCount: Number(persisted.rows[0]?.deck_count),
-    }, { instances: 2, discoveries: 1, deckCount: 1 });
+    }, { instances: 1, discoveries: 1, deckCount: 1 });
     const completedCampaign = await campaign.getCampaign(player.id, now);
     assert.equal(completedCampaign.stages[5]?.state, "completed");
     assert.equal(completedCampaign.boss.state, "completed");

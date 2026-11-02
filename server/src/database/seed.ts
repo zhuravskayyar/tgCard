@@ -2,11 +2,6 @@ import { Pool } from "pg";
 import { recalculateAllAutomaticDecks } from "../decks/automaticDeckService.js";
 import { backfillStarterCards } from "../inventory/starterCardGrant.js";
 import { backfillCardDiscoveries } from "../collections/discoveryService.js";
-import {
-  STARTER_CARD_CONTENT_SEED_NAME,
-  STARTER_CARD_SEED_NAME,
-  seedStarterCardDefinitions,
-} from "./starterCardSeed.js";
 import { seedCollectionDefinitions } from "./collectionSeed.js";
 import { seedLimitedCardDefinition } from "./limitedCardSeed.js";
 
@@ -23,18 +18,7 @@ try {
 
   try {
     await client.query("BEGIN");
-    await seedStarterCardDefinitions(client);
     await seedLimitedCardDefinition(client);
-    for (const seedName of [STARTER_CARD_SEED_NAME, STARTER_CARD_CONTENT_SEED_NAME]) {
-      const applied = await client.query(
-        "SELECT 1 FROM schema_seeds WHERE name = $1",
-        [seedName],
-      );
-
-      if (!applied.rowCount) {
-        await client.query("INSERT INTO schema_seeds (name) VALUES ($1)", [seedName]);
-      }
-    }
 
     const catalog = await seedCollectionDefinitions(client);
     console.log(`Collection catalog validated: ${catalog.cardCount} cards; elements ${JSON.stringify(catalog.elementCounts)}`);

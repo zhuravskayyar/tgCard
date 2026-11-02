@@ -17,12 +17,12 @@ test("catalog has fifty collections of varied size with shared cards", () => {
   assert.equal(validateCollectionCatalog().cardCount, 213);
 });
 
-test("every card has a unique identity and a description; starters stay outside", () => {
-  const cards = [...STARTER_CARDS, ...COLLECTION_CARDS];
+test("every card has a unique identity and a description; starters come from the catalog", () => {
+  const cards = COLLECTION_CARDS;
   assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length);
   assert.equal(new Set(COLLECTION_CARDS.map(({ displayName }) => displayName)).size, COLLECTION_CARDS.length);
   assert.ok(cards.every(({ description }) => description.trim().length > 0));
-  assert.ok(STARTER_CARDS.every(({ collectionId, shopEligible }) => collectionId === null && !shopEligible));
+  assert.ok(STARTER_CARDS.every((starter) => cards.includes(starter)));
 });
 
 test("banner pools sell only eligible cards at or above their minimum rarity", () => {
