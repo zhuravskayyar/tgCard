@@ -44,7 +44,7 @@ type GuildFeatureKey = "war" | "arena" | "raid";
 
 const GUILD_ASSET_SOURCES: Record<GuildAssetName, string> = {
   main: "/assets/guild/guild-main.svg",
-  altar: "/assets/guild/guild-altar-sprite-1.png",
+  altar: "/assets/guild/medal-altar-v1.webp",
   war: "/assets/guild/medal-war-v1.webp",
   arena: "/assets/guild/medal-arena-v1.webp",
   raid: "/assets/guild/medal-raid-v1.webp",
@@ -95,10 +95,12 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
     <button aria-label={active ? `Карта гільдії: ${active.displayName ?? active.code}, ${active.finalPower} сили` : canManage ? "Карта гільдії: Обрати карту" : "Карта гільдії: Карту ще не обрано"} aria-pressed={panel !== null} className="guild-card-platform" onClick={openPlatform} type="button">
       <span className="guild-card-platform__art" aria-hidden="true"><img alt="" src="/assets/guild/guild-reward.svg" /></span>
       <span className="guild-card-platform__visual" aria-hidden="true">
-        {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <span className="guild-card-platform__pedestal"><span>+</span></span>}
+        {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <img alt="" className="guild-card-platform__empty" src="/assets/guild/card-back-v1.webp" />}
       </span>
-      <strong>Карта гільдії</strong>
-      <small className="guild-card-platform__level">{active ? `Рівень ${active.level}` : canManage ? "Обрати карту" : "Не обрано"}</small>
+      <span className="guild-tile-caption">
+        <strong>Карта гільдії</strong>
+        <small className="guild-card-platform__level">{active ? `Рівень ${active.level}` : canManage ? "Обрати карту" : "Не обрано"}</small>
+      </span>
     </button>
     {panel ? <section className="guild-card-sheet" aria-label="Карта гільдії">
       <div className="guild-card-sheet__header"><div><span className="guild-kicker">Карта гільдії</span><h3>{active ? active.displayName ?? active.code : "Карта не обрана"}</h3></div><button className="guild-inline-button" onClick={() => { setPanel(null); setPending(null); }} type="button">Закрити</button></div>
@@ -120,9 +122,11 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
 function GuildModeTile({ asset, detail, disabled = false, emblemElement, emblemId, label, name, onClick }: GuildModeTileProps) {
   const content = <>
     <span className={`guild-mode-tile__art${asset === "main" ? " guild-mode-tile__art--emblem" : ""}`}>{asset === "main" ? <GuildEmblem element={emblemElement} emblemId={emblemId} /> : <img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} />}</span>
-    <strong>{label}</strong>
-    <small>{name ?? detail}</small>
-    {name ? <small>{detail}</small> : null}
+    <span className="guild-tile-caption">
+      <strong>{label}</strong>
+      <small>{name ?? detail}</small>
+      {name ? <small>{detail}</small> : null}
+    </span>
   </>;
   const className = `guild-mode-tile guild-mode-tile--${asset}${disabled ? " guild-mode-tile--disabled" : ""}`;
   const ariaLabel = name ? `${label}: ${name}, ${detail}` : `${label}: ${detail}`;

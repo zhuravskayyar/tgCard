@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ShopCategory } from "../shop/shopCategories";
+import { AppIcon } from "./AppIcon";
 
 interface ShopCategoryBannerProps {
   category: ShopCategory;
@@ -36,7 +37,7 @@ export function ShopCategoryBanner({ category, onSelect }: ShopCategoryBannerPro
         <strong>{category.title}</strong>
         <span>{category.subtitle}</span>
       </span>
-      <span aria-hidden="true" className="shop-category-banner__arrow">→</span>
+      <span aria-hidden="true" className="shop-category-banner__arrow"><AppIcon name="chevron" size={22} /></span>
     </button>
   );
 }

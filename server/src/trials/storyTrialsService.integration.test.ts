@@ -3,7 +3,7 @@ import test from "node:test";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { StoryTrialNotClaimableError, StoryTrialsService } from "./storyTrialsService.js";
+import { StoryTrialMissingError, StoryTrialNotClaimableError, StoryTrialsService } from "./storyTrialsService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let telegramSequence = 0n;
@@ -75,7 +75,7 @@ test("Story trials derive progress from events, pay once and unlock the campaign
   }
 });
 
-test("A player with claimed campaign quests keeps campaign access and legacy link rewards count as claimed", {
+test("Old campaign quests do not unlock a new location; legacy link rewards remain claimed", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -94,7 +94,7 @@ test("A player with claimed campaign quests keeps campaign access and legacy lin
       [player.id],
     );
     const view = await service.getTrials(player.id);
-    assert.equal(view.campaignUnlocked, true);
+    assert.equal(view.campaignUnlocked, false);
     assert.equal(view.trials.find(({ id }) => id === "save-profile")?.state, "claimed");
   } finally {
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);

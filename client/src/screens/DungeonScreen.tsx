@@ -153,7 +153,7 @@ export function DungeonScreen({ onBack }: DungeonScreenProps) {
 
   return (
     <section className="dungeon-screen">
-      <ScreenHeading eyebrow="Старі руни та уламки" onBack={onBack} title="ПІДЗЕМЕЛЛЯ" />
+      <ScreenHeading onBack={onBack} title="Підземелля" />
       <div className="dungeon-stats"><span>Пари <strong>{matchedIds.size / 2} / 8</strong></span><span>Ходи <strong>{movesUsed} / {run.maxMoves}</strong></span><span className="dungeon-stats__shards"><DungeonGlyph assetKey="card_fragment" size={16} /><strong>{result?.cardShards ?? run.cardShards}</strong></span></div>
       <div className="dungeon-board" aria-label="Поле пам'яті">
         {run.board.map((tile) => {

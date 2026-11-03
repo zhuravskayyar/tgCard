@@ -33,9 +33,10 @@ export function MenuRow({ active: _active = false, actionContent, attention = fa
     >
       <MenuTextureSlices />
       {illustrationSrc ? <img alt="" aria-hidden="true" className="menu-row__illustration" src={illustrationSrc} /> : null}
-      <span className="menu-row__icon">
+      {/* The illustration already pictures the row, so a second icon would only repeat it. */}
+      {illustrationSrc ? null : <span className="menu-row__icon">
         {iconSrc ? <img alt="" aria-hidden="true" className="menu-row__icon-image" src={iconSrc} /> : <AppIcon name={icon} size={23} />}
-      </span>
+      </span>}
       <span className="menu-row__title">{title}</span>
       <span className="menu-row__action">
         {actionContent ?? (locked ? <AppIcon name="lock" size={14} /> : attention ? <span aria-hidden="true" className="menu-row__indicator" /> : detail ? <span className="menu-row__detail">{detail}</span> : badge ? <Badge value={badge} /> : null)}

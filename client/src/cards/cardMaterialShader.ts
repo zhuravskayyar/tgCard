@@ -21,6 +21,7 @@ interface ShaderUniforms {
   kind: WebGLUniformLocation | null;
   metallic: WebGLUniformLocation | null;
   destruction: WebGLUniformLocation | null;
+  elementColor: WebGLUniformLocation | null;
   rough: WebGLUniformLocation | null;
   texture: WebGLUniformLocation | null;
   texelSize: WebGLUniformLocation | null;
@@ -57,6 +58,7 @@ interface CardShaderInstance {
   failed: boolean;
   destruction: { from: number; startedAt: number; duration: number; to: number; resolve: () => void } | null;
   destructionProgress: number;
+  elementColor: readonly [number, number, number];
   idleMotion: IdleTiltMotion;
   painted: { destruction: number; x: number; y: number; at: number };
   material: ShaderMaterial;
@@ -79,6 +81,8 @@ interface MountCardMaterialShaderOptions {
   artLayer?: CardArtLayer | null;
   artworkSource?: string | null;
   canvas: HTMLCanvasElement;
+  /** Linear RGB of the card's element; the top materials tint their element effects with it. */
+  elementColor?: readonly [number, number, number];
   initialTilt?: CardTilt;
   materialId: string;
   onReady: (ready: boolean) => void;
@@ -111,6 +115,13 @@ const MATERIALS: Readonly<Record<string, ShaderMaterial>> = {
   gold: { metal: 1, rough: 0.06, f0: [1, 0.76, 0.33], bump: 0.85, gain: 1.25, brush: 0, kind: 3, fx: 0 },
   enamel: { metal: 0.4, rough: 0.1, f0: [0.16, 0.06, 0.06], bump: 0.9, gain: 0.9, brush: 0, kind: 4, fx: 1 },
   astronite: { metal: 1, rough: 0.26, f0: [0.27, 0.36, 0.49], bump: 1.22, gain: 0.5, brush: 0.09, kind: 5, fx: 1 },
+  // Rarity ladder candidates (uncommon to mythic); the plate only supplies the drawing.
+  // Low bump: the parchment plate's fibres would otherwise sparkle as dust on the metals.
+  "bog-oak": { metal: 0, rough: 0.5, f0: [0.05, 0.045, 0.04], bump: 0.8, gain: 0.3, brush: 0, kind: 6, fx: 1 },
+  "blued-steel": { metal: 1, rough: 0.12, f0: [0.62, 0.66, 0.78], bump: 0.55, gain: 0.8, brush: 0, kind: 7, fx: 1 },
+  "silver-engraving": { metal: 1, rough: 0.08, f0: [0.9, 0.94, 0.97], bump: 0.5, gain: 1, brush: 0, kind: 8, fx: 1 },
+  "gold-damascus": { metal: 1, rough: 0.1, f0: [1, 0.8, 0.45], bump: 0.5, gain: 1, brush: 0, kind: 9, fx: 1 },
+  "star-steel": { metal: 1, rough: 0.12, f0: [0.8, 0.8, 0.85], bump: 0.5, gain: 0.8, brush: 0, kind: 10, fx: 1 },
 };
 
 const VERTEX_SHADER = `
@@ -131,6 +142,7 @@ uniform vec2 texelSize;
 uniform vec2 tilt;
 uniform float metallic;
 uniform float destruction;
+uniform vec3 elementColor;
 uniform float bump;
 uniform float gain;
 uniform float brush;
@@ -144,7 +156,9 @@ float luminance(vec3 color) { return dot(color, vec3(0.2126, 0.7152, 0.0722)); }
 float sat(float value) { return clamp(value, 0.0, 1.0); }
 float heightAt(vec2 point) {
   vec4 texel = texture2D(cardTexture, point);
-  return 0.5 + (luminance(texel.rgb) - 0.5) * 0.57 * texel.a - 0.07 * texel.a;
+  // Blued steel is relief-engraved: the dark lines are the raised surface and the light areas are cut away.
+  float relief = kind > 6.5 && kind < 7.5 ? 0.5 - luminance(texel.rgb) : luminance(texel.rgb) - 0.5;
+  return 0.5 + relief * 0.57 * texel.a - 0.07 * texel.a;
 }
 float hash2(vec2 point) { return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123); }
 float noise2(vec2 point) {
@@ -178,6 +192,11 @@ vec3 environment(vec3 reflected, float roughness) {
   color *= 1.0 - 0.72 * rect(point, vec2(0.15, 0.35), vec2(0.074, 0.49), vec2(0.018 + soft));
   return color;
 }
+// Gold reads as gold through its value range: amber-brown in shadow, saturated yellow in the mids, near-white in the highlights.
+vec3 goldTone(float value) {
+  vec3 shadowed = mix(vec3(0.2, 0.1, 0.02), vec3(0.86, 0.58, 0.16), smoothstep(0.0, 0.55, value));
+  return mix(shadowed, vec3(1.0, 0.95, 0.74), smoothstep(0.55, 1.15, value));
+}
 
 void main() {
   vec4 texel = texture2D(cardTexture, uv);
@@ -193,12 +212,14 @@ void main() {
   float slopeY = (heightAt(uv + vec2(0.0, texelSize.y)) - heightAt(uv - vec2(0.0, texelSize.y))) * slopeScale;
   float artAlpha = 0.0;
   float backShade = 1.0;
-  if (kind > 4.5) {
+  if ((kind > 4.5 && kind < 5.5) || (kind > 6.5 && kind < 7.5) || kind > 8.5) {
     // The art sits deeper than the frame: it shifts with the tilt, is clipped by the window and shades the galaxy.
+    // Blued steel only needs to know where the art is: its engraving is cut into the plate, so it neither floats nor casts a shadow.
+    float floating = kind > 6.5 && kind < 7.5 ? 0.0 : 1.0;
     float window = rect(cardPoint, vec2(120.0, 175.5), vec2(101.0, 116.0), vec2(1.5)) * smoothstep(24.5, 26.0, distance(cardPoint, vec2(197.0, 263.0)));
-    vec2 artPoint = uv + tilt * 0.024;
+    vec2 artPoint = uv + tilt * 0.024 * floating;
     vec4 art = texture2D(artTexture, artPoint);
-    backShade = 1.0 - 0.6 * texture2D(artTexture, artPoint + tilt * 0.016 + vec2(-0.007, 0.008)).a * window;
+    backShade = 1.0 - 0.6 * floating * texture2D(artTexture, artPoint + tilt * 0.016 + vec2(-0.007, 0.008)).a * window;
     artAlpha = art.a * window;
     slopeX += (luminance(texture2D(artTexture, artPoint + vec2(texelSize.x, 0.0)).rgb) - luminance(texture2D(artTexture, artPoint - vec2(texelSize.x, 0.0)).rgb)) * artAlpha * slopeScale * 0.55;
     slopeY += (luminance(texture2D(artTexture, artPoint + vec2(0.0, texelSize.y)).rgb) - luminance(texture2D(artTexture, artPoint - vec2(0.0, texelSize.y)).rgb)) * artAlpha * slopeScale * 0.55;
@@ -213,7 +234,8 @@ void main() {
   else if (kind < 2.5) { detail = (micro - 0.5) * 0.003; grain = 0.004 * micro; }
   else if (kind < 3.5) { detail = (micro - 0.5) * 0.002; grain = 0.003 * micro; }
   else if (kind < 4.5) { detail = (micro - 0.5) * 0.006; grain = 0.005 * micro; }
-  else { detail = (mask.r - 0.5) * 0.044; grain = 0.13 * micro; }
+  else if (kind < 5.5) { detail = (mask.r - 0.5) * 0.044; grain = 0.13 * micro; }
+  else { detail = (micro - 0.5) * 0.004; grain = 0.004 * micro; }
   vec3 normal = vec3(-slopeX * bump * 2.8 + detail * 0.09 - platePoint.x * 0.14, -slopeY * bump * 2.8 + detail * 0.09 - platePoint.y * 0.12, 1.0);
   if (brush > 0.1) normal.x += (noise2(vec2(uv.y / texelSize.y * 0.7, 4.0)) - 0.5) * 0.035 * brush;
   normal = normalize(normal);
@@ -261,7 +283,7 @@ void main() {
     color += vec3(1.0, 0.9, 0.86) * glaze * 0.55 * (1.0 - goldness) * medallion * tray * fx;
     color += vec3(1.0, 0.76, 0.33) * (0.22 + flash * 0.85) * goldness * medallion * tray * fx;
   }
-  if (kind > 4.5) {
+  if (kind > 4.5 && kind < 5.5) {
     float etched = step(0.2, luminance(texel.rgb));
     float glint = 0.72 + 0.28 * sin(uv.y * 15.0 + tilt.x * 6.0 + tilt.y * 3.0);
     color += vec3(1.0, 0.62, 0.19) * mask.b * etched * 0.95 * glint * fx * tray * (1.0 - artAlpha) * smoothstep(0.15, 0.35, uv.y) * (1.0 - smoothstep(0.82, 0.94, uv.y));
@@ -276,7 +298,127 @@ void main() {
     color += (vec3(0.08, 0.15, 0.36) * nebula * 0.7 + vec3(0.18, 0.06, 0.28) * nebula * nebula * 0.9) * dark * zone * fx;
     color += (vec3(1.0, 0.93, 0.78) * nearStars * 1.5 + vec3(0.85, 0.9, 1.0) * midStars * 1.1 + vec3(0.55, 0.72, 1.0) * farStars * 0.8) * dark * zone * fx;
   }
-  if (kind > 0.5) color = color / (1.0 + color * 0.23);
+  if (kind > 5.5) {
+    // Rarity ladder candidates: the printed plate only supplies the drawing; each material relights it from scratch.
+    float lum = luminance(texel.rgb);
+    // A tight threshold keeps the parchment's darker flecks from reading as ink on the bright metals.
+    float ink = 1.0 - smoothstep(0.2, 0.42, lum);
+    float axis = reflected.x * 0.78 + reflected.y * 0.62;
+    float bands = smoothstep(0.07, 0.015, abs(axis - 0.16)) * 1.05 + smoothstep(0.03, 0.006, abs(axis + 0.2)) * 0.8 + smoothstep(0.016, 0.004, abs(axis - 0.36)) * 0.6;
+    float sheen = pow(sat(dot(reflected, normalize(vec3(-0.3, 0.5, 0.81)))), 18.0);
+    float keyLight = pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 22.0);
+    // Walls only exist along the drawn lines, not across the paper fibres.
+    float wall = sat(length(vec2(slopeX, slopeY)) * 5.0) * smoothstep(0.05, 0.4, ink) * (1.0 - smoothstep(0.6, 0.95, ink));
+    if (kind < 6.5) {
+      // Bog oak: dark satin wood with open pores and brown streaks; the matte cuts are lighter so the carving reads.
+      float warp = noise2(cardPoint * vec2(0.02, 0.006)) * 9.0;
+      float growth = 0.5 + 0.5 * sin(cardPoint.x * 0.55 + warp + noise2(cardPoint * 0.08) * 2.0);
+      float streak = smoothstep(0.55, 0.9, noise2(cardPoint * vec2(0.06, 0.012) + 4.0));
+      float pores = step(0.82, noise2(cardPoint * vec2(0.9, 0.18)));
+      float ray = smoothstep(0.78, 0.95, noise2(cardPoint * vec2(0.12, 0.5) + 9.0));
+      vec3 wood = vec3(0.11, 0.08, 0.058) * (0.8 + 0.4 * growth) + vec3(0.12, 0.07, 0.035) * streak + vec3(0.09, 0.085, 0.08) * ray * 0.5;
+      wood *= 1.0 - pores * 0.35;
+      vec3 cut = vec3(0.64, 0.49, 0.33) * (0.85 + 0.3 * growth);
+      color = mix(wood * (0.85 + 0.25 * diffuse) + vec3(0.9, 0.8, 0.65) * sheen * 0.12, cut * (0.8 + 0.3 * diffuse), ink);
+    } else if (kind < 7.5) {
+      // Blued steel in relief, like engraved gun steel: the drawing's dark lines stand proud as glossy blue-black steel,
+      // the light areas are cut away to a bright matted floor, shadowed at the foot of each wall.
+      float stipple = hash2(floor(cardPoint * 1.6));
+      vec3 matted = vec3(0.74, 0.76, 0.79) * (0.84 + 0.16 * stipple) * (0.85 + 0.2 * diffuse) * (1.0 - wall * 0.35);
+      float gloss = pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 30.0);
+      // The temper colour shifts from blue to violet with the tilt only, so no side of the card washes out.
+      vec3 temper = mix(vec3(0.16, 0.26, 0.6), vec3(0.36, 0.22, 0.52), sat(0.5 + tilt.x * 0.6));
+      vec3 blued = vec3(0.02, 0.03, 0.065) * (0.85 + 0.3 * diffuse) + temper * (bands * 0.35 + gloss * 0.8 + sheen * 0.2);
+      // The plate itself is the uncut blued surface; only the figure is engraved into it.
+      color = mix(blued * mix(1.0, 0.6, ink), mix(matted, blued, ink), artAlpha);
+    } else if (kind < 8.5) {
+      // Silver engraving, like the reference plate: polished silver; the lines are cut grooves that hold shadow and flash on their walls.
+      vec3 silverLit = vec3(0.74, 0.76, 0.79) * (0.82 + 0.22 * diffuse) + environment(reflected, 0.08) * 0.25 + vec3(0.92, 0.95, 0.98) * bands * 0.5;
+      vec3 groove = vec3(0.12, 0.12, 0.13) + vec3(1.0) * wall * keyLight * 1.2;
+      color = mix(silverLit, groove, ink);
+    } else if (kind < 9.5) {
+      // Gold Damascus (mokume-gane): flowing layers of yellow and white gold, etched so the layers read; the lines are oxidised grooves.
+      float flow = cardPoint.y * 0.11 + cardPoint.x * 0.035 + noise2(cardPoint * 0.018) * 6.0 + noise2(cardPoint * 0.06) * 1.2;
+      float layer = smoothstep(-0.25, 0.25, sin(flow * 3.14159));
+      // Light decides the colour: the layers differ in value and a touch of hue (yellow against paler white gold), never in paint.
+      // A broad soft reflection slides across the plate with the tilt; without it a flat gold plate reads as ochre paint.
+      float broad = smoothstep(0.45, 0.0, abs(axis - 0.08)) * 0.55 + (1.0 - uv.y) * 0.25;
+      float reflectedLight = 0.1 + 0.25 * diffuse + luminance(environment(reflected, 0.12)) * 0.35 + bands * 0.7 + broad * 0.55;
+      vec3 goldLit = mix(goldTone(reflectedLight * 0.6), goldTone(reflectedLight * 0.92) * vec3(0.98, 0.96, 0.88), layer);
+      vec3 groove = vec3(0.16, 0.12, 0.08) + vec3(1.0, 0.85, 0.55) * wall * keyLight;
+      vec3 plate = mix(goldLit * backShade, groove, ink);
+      // The figure floats above the Damascus as smooth polished gold, so the layers never cut through the drawing.
+      // Its lines catch the element's light when tilted, and a still glow of that light sits in its shadow.
+      vec3 polished = goldTone(0.26 + 0.28 * diffuse + luminance(environment(reflected, 0.05)) * 0.4 + bands * 0.8 + broad * 0.55);
+      vec3 lines = vec3(0.12, 0.08, 0.04) + elementColor * pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 6.0) * 0.55;
+      vec3 figure = mix(lines, polished, smoothstep(0.2, 0.45, lum));
+      color = mix(plate + elementColor * (1.0 - backShade) * 0.5, figure, artAlpha);
+    } else {
+      // Star steel: molten bismuth that crystallises into stepped hopper crystals and melts back again, on a fourteen-second loop.
+      float cycle = fract(animTime / 14.0);
+      vec2 flowPoint = cardPoint - tilt * 10.0;
+      vec3 bismuth = vec3(0.0);
+      float grown = 0.0;
+      // Two overlapping grids give big and small crystals; each one starts growing at its own moment of the loop.
+      for (int layer = 0; layer < 2; layer++) {
+        float layerIndex = float(layer);
+        vec2 crystalPoint = (flowPoint + layerIndex * vec2(17.0, 29.0)) / (layer == 0 ? 78.0 : 41.0);
+        crystalPoint.y += floor(crystalPoint.x) * 0.5;
+        vec2 crystal = floor(crystalPoint) + layerIndex * 3.1;
+        vec2 local = fract(crystalPoint) - 0.5;
+        float spin = (hash2(crystal) - 0.5) * 0.6;
+        local = mat2(cos(spin), -sin(spin), sin(spin), cos(spin)) * local;
+        float birth = hash2(crystal + 11.0) * 0.35;
+        float reach = smoothstep(birth, birth + 0.3, cycle) * (1.0 - smoothstep(0.8, 0.95, cycle)) * 0.5;
+        float square = max(abs(local.x), abs(local.y));
+        float inside = 1.0 - smoothstep(reach - 0.02, reach, square);
+        if (inside > grown) {
+          // Dense stepped terraces, each a mirror ledge with a thin dark riser, like the striations on a real crystal.
+          float steps = square * 16.0;
+          float riser = smoothstep(0.0, 0.18, fract(steps)) * (1.0 - smoothstep(0.75, 1.0, fract(steps)));
+          float film = floor(steps) * 0.045 + hash2(crystal + 5.0) * 0.7 + dot(reflected.xy, vec2(0.6, 0.4)) * 0.5 + (local.x - local.y) * 0.6;
+          vec3 oxide = 0.52 + 0.48 * cos(6.2832 * (film + vec3(0.0, 0.33, 0.67)));
+          bismuth = oxide * (0.45 + 0.4 * diffuse) * (0.35 + 0.65 * riser) + vec3(1.0) * bands * riser * 0.35;
+          grown = inside;
+        }
+      }
+      // Between the crystals the bismuth is still molten: slow silvery liquid with ripples.
+      float ripple = noise2(cardPoint * 0.05 + vec2(animTime * 0.3, -animTime * 0.2)) + noise2(cardPoint * 0.11 - vec2(animTime * 0.2, animTime * 0.35)) * 0.5;
+      vec3 molten = vec3(0.55, 0.56, 0.6) * (0.55 + 0.3 * ripple) + environment(reflected, 0.05) * 0.35 + vec3(1.0) * bands * 0.4;
+      vec3 gunmetal = vec3(0.08, 0.085, 0.1) + environment(reflected, 0.2) * 0.08;
+      // The art's own pixels and shadow belong to the hologram, so they leave the plate when it breaks up.
+      float holoShade = mix(1.0, backShade, smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.82, 0.92, cycle)));
+      vec3 plate = mix(mix(molten, bismuth, grown) * holoShade, gunmetal, ink * (1.0 - artAlpha));
+      // The figure is a hologram: it assembles block by block while the crystals grow, holds, and breaks up as they melt.
+      float assemble = smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.82, 0.92, cycle));
+      float blockSeed = hash2(floor(cardPoint / 3.0));
+      float revealed = step(blockSeed, assemble * 1.15);
+      float front = smoothstep(0.1, 0.0, abs(blockSeed - assemble * 1.15)) * step(0.01, assemble) * step(assemble, 0.99);
+      float scan = 0.72 + 0.28 * sin(cardPoint.y * 1.6 - animTime * 6.0);
+      float flicker = 0.93 + 0.07 * sin(animTime * 37.0) * sin(animTime * 13.0);
+      vec3 slick = mix(0.55 + 0.45 * cos(6.2832 * (uv.y * 1.5 + animTime * 0.08 + vec3(0.0, 0.33, 0.67))), elementColor, 0.4);
+      vec3 hologram = mix(vec3(0.04, 0.06, 0.09), vec3(0.72, 0.9, 1.0) * (0.8 + 0.3 * diffuse) + slick * 0.3, smoothstep(0.2, 0.45, lum));
+      // Red and blue copies of the figure drift apart a little, leaving the colour fringe of a projected image.
+      vec2 artPoint = uv + tilt * 0.024;
+      float fringeRed = texture2D(artTexture, artPoint + vec2(0.005, 0.0)).a;
+      float fringeBlue = texture2D(artTexture, artPoint - vec2(0.005, 0.0)).a;
+      vec3 fringe = vec3(fringeRed, 0.0, fringeBlue) * (1.0 - artAlpha) * zone * 0.45;
+      // The element's aura breathes in the figure's shadow; it reuses the shadow already computed, so it costs almost nothing.
+      float aura = (1.0 - backShade) * (0.6 + 0.4 * sin(animTime * 2.0)) * assemble;
+      float holoAlpha = artAlpha * revealed * scan * flicker * 0.92;
+      color = mix(plate + elementColor * aura * 0.9, hologram, holoAlpha) + fringe * assemble + vec3(0.7, 0.95, 1.0) * front * artAlpha * 0.9;
+    }
+    if (kind > 6.5) {
+      // The power tray and fleur-de-lis stay plain polished metal with their own light and dark; the medallion keeps its colours.
+      float trayArea = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0));
+      float medallionArea = 1.0 - smoothstep(22.0, 26.0, distance(cardPoint, vec2(197.0, 263.0)));
+      vec3 uiMetal = mix(vec3(0.85), f0, 0.55);
+      vec3 ui = mix(vec3(0.05, 0.05, 0.06), uiMetal * (0.78 + 0.25 * diffuse) + uiMetal * bands * 0.35, smoothstep(0.25, 0.6, lum));
+      color = mix(color, ui, trayArea);
+      color = mix(color, texel.rgb * (0.95 + 0.2 * diffuse), medallionArea);
+    }
+  }
+  if (kind > 0.5 && kind < 5.5) color = color / (1.0 + color * 0.23);
   color = pow(max(color, vec3(0.0)), vec3(0.94));
   vec4 surface = vec4(clamp(color, 0.0, 1.0) * texel.a, texel.a);
   if (destruction < 0.001) {
@@ -437,6 +579,7 @@ function createSharedRenderer(): SharedRenderer | null {
       animTime: gl.getUniformLocation(program, "animTime"),
       metallic: gl.getUniformLocation(program, "metallic"),
       destruction: gl.getUniformLocation(program, "destruction"),
+      elementColor: gl.getUniformLocation(program, "elementColor"),
       bump: gl.getUniformLocation(program, "bump"),
       gain: gl.getUniformLocation(program, "gain"),
       brush: gl.getUniformLocation(program, "brush"),
@@ -588,6 +731,107 @@ function createTexture(gl: WebGLRenderingContext, image: TexImageSource) {
   return texture;
 }
 
+export interface CardMaterialSurface {
+  texture: WebGLTexture;
+  animated: boolean;
+  render: (tiltX: number, tiltY: number, time: number) => void;
+  dispose: () => void;
+}
+
+let surfaceMaskPixels: Uint8Array | null = null;
+
+/** Render the same card material into a caller-owned WebGL context for a real 3D mesh. */
+export function createCardMaterialSurface(gl: WebGLRenderingContext, plate: HTMLCanvasElement, materialId: string, art?: HTMLCanvasElement): CardMaterialSurface {
+  const material = MATERIALS[materialId] ?? MATERIALS.silver;
+  const textures: WebGLTexture[] = [];
+  const shaders: WebGLShader[] = [];
+  const program = gl.createProgram(), buffer = gl.createBuffer(), framebuffer = gl.createFramebuffer();
+  const dispose = () => {
+    textures.forEach((texture) => gl.deleteTexture(texture));
+    shaders.forEach((shader) => gl.deleteShader(shader));
+    gl.deleteBuffer(buffer); gl.deleteFramebuffer(framebuffer); gl.deleteProgram(program);
+  };
+  try {
+    if (!program || !buffer || !framebuffer) throw new Error("Card material surface could not be created");
+    const precision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)?.precision ? "highp" : "mediump";
+    shaders.push(compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
+    shaders.push(compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER.replace("__PRECISION__", precision)));
+    shaders.forEach((shader) => gl.attachShader(program, shader));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || "Card material surface could not be linked");
+    function inputTexture(source: HTMLCanvasElement) {
+      const texture = createTexture(gl, source);
+      if (!texture) throw new Error("Card material texture could not be created");
+      textures.push(texture);
+      return texture;
+    }
+    gl.activeTexture(gl.TEXTURE0);
+    const source = inputTexture(plate);
+    const artSource = art ? inputTexture(art) : null;
+    const mask = gl.createTexture(), emptyArt = gl.createTexture(), output = gl.createTexture();
+    for (const texture of [mask, emptyArt, output]) {
+      if (!texture) throw new Error("Card material textures could not be created");
+      textures.push(texture);
+    }
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.bindTexture(gl.TEXTURE_2D, mask);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    surfaceMaskPixels ??= buildMaterialMask();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MASK_SIZE, MASK_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, surfaceMaskPixels);
+    gl.bindTexture(gl.TEXTURE_2D, emptyArt);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.bindTexture(gl.TEXTURE_2D, output);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, SHADER_WIDTH, SHADER_HEIGHT, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, output, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error("Card material framebuffer is unavailable");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const position = gl.getAttribLocation(program, "position");
+    const uniforms = Object.fromEntries(["cardTexture", "maskTexture", "artTexture", "texelSize", "tilt", "destruction", "rough", "kind", "fx", "animTime", "metallic", "bump", "gain", "brush", "f0"].map((name) => [name, gl.getUniformLocation(program, name)]));
+    const render = (tiltX: number, tiltY: number, time: number) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.viewport(0, 0, SHADER_WIDTH, SHADER_HEIGHT);
+      gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+      [source, mask, artSource ?? emptyArt].forEach((texture, index) => { gl.activeTexture(gl.TEXTURE0 + index); gl.bindTexture(gl.TEXTURE_2D, texture); });
+      gl.uniform1i(uniforms.cardTexture, 0); gl.uniform1i(uniforms.maskTexture, 1); gl.uniform1i(uniforms.artTexture, 2);
+      gl.uniform2f(uniforms.texelSize, 1 / plate.width, 1 / plate.height);
+      gl.uniform2f(uniforms.tilt, tiltX, tiltY);
+      gl.uniform1f(uniforms.destruction, 0);
+      gl.uniform1f(uniforms.rough, material.rough); gl.uniform1f(uniforms.kind, material.kind);
+      gl.uniform1f(uniforms.fx, material.fx); gl.uniform1f(uniforms.animTime, time);
+      gl.uniform1f(uniforms.metallic, material.metal); gl.uniform1f(uniforms.bump, material.bump);
+      gl.uniform1f(uniforms.gain, material.gain); gl.uniform1f(uniforms.brush, material.brush);
+      gl.uniform3f(uniforms.f0, ...material.f0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.activeTexture(gl.TEXTURE0);
+    };
+    render(0, 0, 0);
+    return { texture: output!, animated: (material.kind > 4.5 && material.kind < 5.5) || material.kind > 9.5, render, dispose };
+  } catch (error) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.activeTexture(gl.TEXTURE0);
+    dispose();
+    throw error;
+  }
+}
+
 async function prepareArtTexture(gl: WebGLRenderingContext, layer: CardArtLayer) {
   const cached = layer.textureKey ? await loadCardTexture(layer.textureKey) : null;
   const image = cached ?? await makeSvgImage(layer.markup, layer.artworkSource);
@@ -662,6 +906,7 @@ function paintInstance(instance: CardShaderInstance, time: number) {
   gl.uniform2f(uniforms.texelSize, 1 / SHADER_WIDTH, 1 / SHADER_HEIGHT);
   gl.uniform2f(uniforms.tilt, instance.tilt.x, instance.tilt.y);
   gl.uniform1f(uniforms.destruction, instance.destructionProgress);
+  gl.uniform3f(uniforms.elementColor, instance.elementColor[0], instance.elementColor[1], instance.elementColor[2]);
   gl.uniform1f(uniforms.rough, material.rough);
   gl.uniform1f(uniforms.kind, material.kind);
   gl.uniform1f(uniforms.fx, material.fx);
@@ -775,7 +1020,7 @@ export function getCardMaterialTilt(canvas: HTMLCanvasElement): CardTilt | null 
   return instance ? { ...instance.tilt } : null;
 }
 
-export function mountCardMaterialShader({ artLayer, artworkSource, canvas, initialTilt, materialId, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
+export function mountCardMaterialShader({ artLayer, artworkSource, canvas, elementColor, initialTilt, materialId, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
   let disposed = false;
   let visible = !("IntersectionObserver" in window);
   let creating = false;
@@ -783,7 +1028,8 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, initi
   let instance: CardShaderInstance | null = null;
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const material = MATERIALS[materialId] ?? MATERIALS.silver;
-  const animated = material.kind > 4.5;
+  // Astronite's galaxy and star steel's crystals move on their own; the other materials repaint on tilt alone.
+  const animated = (material.kind > 4.5 && material.kind < 5.5) || material.kind > 9.5;
   const cardRoot = canvas.closest<HTMLElement>(".deck-card, .duel-card, .card-detail-card, .shop-reveal__card, .limited-card-reveal__card, .campaign-boss-reward-card, .collection-card-visual, .collection-card-tile__plate, .player-profile-card-plate, .workshop-card__art, .battle-pass-card-thumbnail") ?? canvas.parentElement;
   const context = canvas.getContext("2d");
   if (!context) return () => undefined;
@@ -870,6 +1116,7 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, initi
         textureContext,
         destruction: null,
         destructionProgress: 0,
+        elementColor: elementColor ?? [0, 0, 0],
         failed: false,
         idleMotion: {
           from: { x: 0, y: 0 },

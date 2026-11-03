@@ -36,7 +36,7 @@ import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
 import { InventoryRepository } from "./inventory/inventoryRepository.js";
 import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCardsRoute.js";
-import { handleShopBundlePurchase, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
+import { handleShopBundlePurchase, handleShopCardInfo, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
 import { MailService } from "./mail/mailService.js";
@@ -237,6 +237,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isWeakPlayerCardsRoute = url.pathname === "/api/player/cards/weak";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
+  const shopCardInfoMatch = url.pathname.match(/^\/api\/shop\/cards\/info\/([^/]+)$/);
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
   const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
@@ -266,7 +267,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -568,6 +569,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       shop,
       responseHeaders: cors.headers,
     });
+    return;
+  }
+
+  if (shopCardInfoMatch) {
+    await handleShopCardInfo(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      collections,
+      players,
+      responseHeaders: cors.headers,
+    }, decodeURIComponent(shopCardInfoMatch[1]!));
     return;
   }
 

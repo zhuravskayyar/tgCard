@@ -35,7 +35,7 @@ export function WeakCardsScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDeck
 
   return (
     <section className="weak-cards-screen" ref={screenRef}>
-      <ScreenHeading onBack={onBack} title="СЛАБКІ КАРТИ" action={<strong>{state.status === "ready" ? `${state.data.totalCards} карт` : "— карт"}</strong>} />
+      <ScreenHeading onBack={onBack} title="Слабкі карти" action={<strong>{state.status === "ready" ? `${state.data.totalCards} карт` : "— карт"}</strong>} />
 
       {state.status === "loading" ? <div className="deck-state">Завантаження слабких карт…</div> : null}
       {state.status === "unavailable" ? <div className="deck-state">Карти доступні після запуску через Telegram.</div> : null}

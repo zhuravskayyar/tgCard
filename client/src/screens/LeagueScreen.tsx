@@ -18,7 +18,7 @@ export function LeagueScreen({ onBack, playerSummaryState }: LeagueScreenProps) 
 
   return (
     <section className="league-screen">
-      <ScreenHeading description={<>{rating} рейтингу · найвища: {DUEL_LEAGUE_CONFIG.leagues[highestIndex]?.name ?? "Мандрівник III"}</>} eyebrow="ПРОГРЕСІЯ" onBack={onBack} title="ДУЕЛЬНІ ЛІГИ" />
+      <ScreenHeading description={<>{rating} рейтингу · найвища: {DUEL_LEAGUE_CONFIG.leagues[highestIndex]?.name ?? "Мандрівник III"}</>} onBack={onBack} title="Дуельні ліги" />
       <div className="league-list" aria-label="Список дуельних ліг">
         {DUEL_LEAGUE_CONFIG.leagues.map((league) => {
           const isCurrent = league.index === currentIndex;

@@ -170,6 +170,36 @@
 .deck-card:focus-visible { outline: 2px solid var(--plate-edge, #f0cf84); outline-offset: 2px; }
 .card-detail-card { width: min(64vw, 224px); }
 
+.card-detail-overview .card-detail-card--gyro {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--card-tilt-x, 0deg)) rotateY(var(--card-tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 100ms cubic-bezier(.2, .72, .3, 1), box-shadow 100ms ease-out;
+  will-change: transform;
+  box-shadow: var(--card-shadow-x, 0px) var(--card-shadow-y, 7px) 18px rgb(0 0 0 / 48%);
+}
+
+.card-detail-overview .card-detail-card--gyro::after {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 72% 48% at var(--card-light-x, 50%) var(--card-light-y, 50%), rgb(255 255 255 / 34%), transparent 72%);
+  content: "";
+  mix-blend-mode: screen;
+  opacity: var(--card-glare-opacity, 0);
+  pointer-events: none;
+  transition: opacity 100ms ease-out;
+}
+
+.card-detail-overview .card-detail-card--gyro > .card-fx { transform: translateZ(5px); transform-style: preserve-3d; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-detail-overview .card-detail-card--gyro,
+  .card-detail-overview .card-detail-card--gyro::after,
+  .card-detail-overview .card-detail-card--gyro > .card-fx { transform: none; transition: none; will-change: auto; }
+}
+
 .card-detail-overview .card-detail-card {
   aspect-ratio: 10 / 13;
   overflow: visible;

@@ -97,7 +97,7 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
 
   return (
     <section className="equipment-screen eq-screen" aria-labelledby="equipment-screen-title">
-      <ScreenHeading eyebrow="ОБЛАДУНОК МАГА" onBack={onBack} title="СПОРЯДЖЕННЯ" titleId="equipment-screen-title" />
+      <ScreenHeading onBack={onBack} title="Спорядження" titleId="equipment-screen-title" />
 
       <EquipmentDoll equipped={equipped} onSlot={openSlot} />
 

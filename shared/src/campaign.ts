@@ -1,4 +1,4 @@
-import type { PlayerCardInstance } from "./card.js";
+import type { CardRarity, PlayerCardInstance } from "./card.js";
 import type {
   DuelCardSnapshot,
   DuelExchange,
@@ -9,9 +9,8 @@ import type {
 import type { CollectionCompletionNotice } from "./collection.js";
 import type { PlayerSummary } from "./player.js";
 
-export type CampaignQuestState = "locked" | "active" | "completed" | "claimed";
-export type CampaignStageState = "locked" | "active" | "completed";
-export type CampaignBossState = "locked" | "unlocked" | "completed";
+/** trials: the trials are not all claimed yet; open: the boss can be fought; passed: the boss was beaten once. */
+export type CampaignLocationState = "trials" | "open" | "passed";
 export type LariskaEmotion =
   | "neutral"
   | "happy"
@@ -48,28 +47,6 @@ export interface CampaignDialogue {
   trigger: CampaignDialogueTrigger;
 }
 
-export interface CampaignQuestView {
-  description: string;
-  dialogue: CampaignDialogue;
-  id: string;
-  navigation?: CampaignNavigationTarget;
-  progress: number;
-  reward: CampaignReward;
-  state: CampaignQuestState;
-  target: number;
-  title: string;
-}
-
-export interface CampaignStageView {
-  claimedCount: number;
-  dialogue: CampaignDialogue;
-  id: string;
-  number: number;
-  quests: CampaignQuestView[];
-  state: CampaignStageState;
-  title: string;
-}
-
 export interface AccountBoostStatus {
   active: boolean;
   expiresAt: string | null;
@@ -77,47 +54,37 @@ export interface AccountBoostStatus {
   type: "account_x2";
 }
 
-export interface CampaignBossSummary {
-  dialogue: CampaignDialogue;
-  deckSize: number;
-  hiddenCardCount: number;
+export interface CampaignBossCardDrop {
   level: number;
-  name: "Мантикора";
-  reward: CampaignReward & {
-    card: {
-      level: number;
-      name: string;
-      rarity: "rare";
-    };
-  };
-  state: CampaignBossState;
-  warning: string;
+  rarity: CardRarity;
 }
 
-export interface CampaignReferralView {
-  acceptedFriends: number;
-  code: string;
-  startParam: string;
+export interface CampaignLocationBossView {
+  /** When a passed boss respawns; null when it can be fought now. */
+  availableAt: string | null;
+  canFight: boolean;
+  drop: CampaignBossCardDrop;
+  firstWinReward: { gold: number; silver: number };
+  hp: number;
+  name: string;
+  respawnHours: number;
 }
 
-export interface CampaignView {
-  boost: AccountBoostStatus;
-  boss: CampaignBossSummary;
-  campaignId: "campaign_1";
-  completedAt: string | null;
-  referral: CampaignReferralView;
-  stages: CampaignStageView[];
-  title: string;
+export interface CampaignLocationView {
+  boss: CampaignLocationBossView;
+  claimableTrials: number;
+  name: string;
+  number: number;
+  state: CampaignLocationState;
+  trialsClaimed: number;
+  trialsTotal: number;
 }
 
-export interface CampaignQuestClaimResponse {
-  alreadyClaimed: boolean;
-  campaign: CampaignView;
-  levelUpGold: number;
-  player: PlayerSummary;
-  questId: string;
-  reachedLevels: number[];
-  reward: CampaignReward;
+/** The campaign map: the current location first, then passed ones, newest first. */
+export interface CampaignMapView {
+  activeBattleLocation: number | null;
+  locations: CampaignLocationView[];
+  totalLocations: number;
 }
 
 export interface HiddenBossCardSlot {
@@ -127,7 +94,7 @@ export interface HiddenBossCardSlot {
 
 export interface CampaignBossOpponentView {
   level: number;
-  name: "Мантикора";
+  name: string;
   photoUrl: null;
   startingHp: number;
 }
@@ -136,9 +103,16 @@ export interface CampaignBossResult {
   accountBoostMultiplier: 1 | 2;
   boostExpiresAt: string | null;
   collectionCompleted?: CollectionCompletionNotice;
+  cardIsWeak?: boolean;
   deckPower?: number;
   dialogues?: CampaignDialogue[];
+  /** True only for the first win over this location's boss: it pays the big gold and silver reward. */
+  firstWin?: boolean;
   gold: number;
+  /** Hours until this boss can be fought again after a win. */
+  respawnHours?: number;
+  /** The quest giver's thanks shown on the result plate. */
+  thanks?: string[];
   newDiscovery?: boolean;
   outcome: DuelOutcome;
   player: PlayerSummary;
@@ -151,6 +125,7 @@ export interface CampaignBossResult {
 export interface CampaignBossView {
   battleId: string;
   battleLog: DuelExchange[];
+  locationNumber: number;
   enemyActiveCards: [HiddenBossCardSlot, HiddenBossCardSlot, HiddenBossCardSlot];
   enemyHp: number;
   enemyMaxHp: number;

@@ -437,6 +437,7 @@
   isolation: isolate;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto 12px;
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   justify-items: center;
   row-gap: 2px;
@@ -505,7 +506,8 @@
   letter-spacing: 0;
   text-align: center;
   text-shadow: none;
-  white-space: nowrap;
+  text-wrap: balance;
+  max-width: calc(100% - 12px);
 }
 .home-screen .mode-tile__status {
   position: relative;
@@ -532,21 +534,6 @@
 .home-screen .mode-tile:disabled { --mode-accent: var(--home-icon-ink); --mode-saturation: 1; --mode-brightness: 1; opacity: 1; }
 .home-screen .mode-tile:disabled .mode-tile__icon,
 .home-screen .mode-tile:disabled .mode-tile__title { color: var(--home-ink) !important; opacity: 1; }
-.home-screen .mode-tile[data-mode="tournament"] .mode-tile__status {
-  position: absolute;
-  grid-area: auto;
-  top: 4px;
-  right: 3px;
-  width: auto;
-  padding: 2px 5px;
-  color: var(--action-ink);
-  font-family: var(--font-display) !important;
-  background: #332515;
-  border: 1px solid #8b6839;
-  box-shadow: 0 2px 3px rgb(45 29 13 / 30%);
-  text-transform: uppercase;
-}
-
 /* Artwork, text and state each own a column, including novice-only labels. */
 .home-screen .home-menu {
   display: grid;
@@ -576,6 +563,9 @@
   overflow: hidden;
   filter: var(--home-frame-shadow) saturate(var(--menu-saturation)) brightness(var(--menu-brightness));
   background: transparent;
+}
+:is(.home-screen .home-menu, .deck-screen .deck-actions, .weak-cards-screen .deck-actions, .card-detail-screen .card-detail-actions) .menu-row:not(:has(.menu-row__icon)) {
+  grid-template-columns: 0 auto minmax(0, 1fr) auto 14px;
 }
 /* The deck's and card's onward routes reuse the home clasp rows at the same proportions. */
 :root .app-shell :is(.deck-screen .deck-actions, .weak-cards-screen .deck-actions, .card-detail-screen .card-detail-actions) {

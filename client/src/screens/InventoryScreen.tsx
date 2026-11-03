@@ -25,7 +25,7 @@ export function InventoryScreen({ nickname, onBack, onEquippedSkinChange }: Inve
 
   return (
     <section className="inventory-screen">
-      <ScreenHeading eyebrow="Сховище мандрівника" onBack={onBack} title="ІНВЕНТАР" />
+      <ScreenHeading onBack={onBack} title="Інвентар" />
 
       <div className="inventory-tabs" role="tablist" aria-label="Розділ інвентарю">
         <button aria-selected={tab === "cosmetics"} className={tab === "cosmetics" ? "inventory-tab inventory-tab--active" : "inventory-tab"} onClick={() => setTab("cosmetics")} role="tab" type="button">

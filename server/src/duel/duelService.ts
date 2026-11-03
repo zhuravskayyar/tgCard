@@ -908,6 +908,8 @@ export class DuelService {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
           duelId,
           outcome,
+          gold: duelGoldReward,
+          duelRating: leagueProgression.ratingAfter,
           winStreak: stats.duelWinStreak,
           neutralHits,
           strongHits,

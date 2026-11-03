@@ -112,7 +112,7 @@ export function ForgeScreen({ equipped, gold, inventory, inventoryStatus, onBack
 
   return (
     <section aria-labelledby="forge-screen-title" className="forge-screen eq-screen">
-      <ScreenHeading eyebrow="ПЕРЕКОВКА СПОРЯДЖЕННЯ" onBack={() => onBack()} title="КУЗНЯ" titleId="forge-screen-title" />
+      <ScreenHeading onBack={() => onBack()} title="Кузня" titleId="forge-screen-title" />
 
       <div className={`eq-forge-scene${striking ? " eq-forge-scene--striking" : ""}`}>
         <span aria-hidden="true" className="eq-forge-scene__embers">{Array.from({ length: 9 }, (_, index) => <i key={index} style={{ "--i": index } as React.CSSProperties} />)}</span>

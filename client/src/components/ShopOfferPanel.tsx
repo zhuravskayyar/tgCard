@@ -22,20 +22,13 @@ const upgradeLabels: Record<CardRarity, string> = {
   mythic: "міфічної",
 };
 
-const rarityPlurals: Record<CardRarity, string> = {
-  common: "Звичайні",
-  uncommon: "Незвичайні",
-  rare: "Рідкісні",
-  epic: "Епічні",
-  legendary: "Легендарні",
-  mythic: "Міфічні",
-};
-
 interface ShopOfferPanelProps {
   availableBalance?: number;
   dataTutorialTarget?: string;
   disabled: boolean;
   offer: ShopOffer;
+  expanded?: boolean;
+  onDetails?: () => void;
   onPurchase: () => void;
   purchasing: boolean;
 }
@@ -45,6 +38,8 @@ export function ShopOfferPanel({
   dataTutorialTarget,
   disabled,
   offer,
+  expanded = false,
+  onDetails,
   onPurchase,
   purchasing,
 }: ShopOfferPanelProps) {
@@ -77,15 +72,15 @@ export function ShopOfferPanel({
         <div className="shop-offer__copy">
           <h3>{rarityLabels[offer.guaranteedRarity]} карта</h3>
           <p className="shop-offer__guarantee">Одна карта в пакунку</p>
-          {leadUpgrade ? (
+          {!expanded && leadUpgrade ? (
             <p className="shop-offer__chance">
               <span className="shop-offer__chance-badge">{formatPercentage(leadUpgrade.chance)}%</span>
               <span>шанс {upgradeLabels[leadUpgrade.rarity]}</span>
             </p>
           ) : null}
-          {offer.upgrades.length ? (
-            <details className="shop-offer__details">
-              <summary><span className="shop-offer__details-link">Шанси випадіння <AppIcon name="chevron" size={13} /></span></summary>
+          {expanded ? (
+            <div className="shop-offer__details">
+              <p className="shop-offer__odds-note">Ваші поточні шанси:</p>
               <p className="shop-offer__odds-note">Гарантовано: {rarityLabels[offer.guaranteedRarity].toLowerCase()} карта або вища рідкість.</p>
               <dl className="shop-offer__upgrades">
                 {offer.upgrades.map((upgrade) => (
@@ -96,27 +91,13 @@ export function ShopOfferPanel({
                   </div>
                 ))}
               </dl>
-              {leadUpgrade ? (
-                <div className="shop-offer__pity">
-                  <div><span>Накопичений шанс</span><strong>{formatPercentage(leadUpgrade.chance)}%</strong></div>
-                  <span className="shop-offer__pity-track"><span style={{ width: `${Math.min(100, Math.max(0, leadUpgrade.chance))}%` }} /></span>
-                </div>
-              ) : null}
-            </details>
+              <p className="shop-offer__odds-note">Шанс зростає, якщо вища рідкість не випала.</p>
+            </div>
           ) : null}
-          {offer.pool.length ? (
-            <details className="shop-offer__details">
-              <summary><span className="shop-offer__details-link">Детальніше <AppIcon name="chevron" size={13} /></span></summary>
-              <p className="shop-offer__odds-note">Прямо зараз у продажу:</p>
-              <div className="shop-offer__pool">
-                {offer.pool.map((group) => (
-                  <section key={group.rarity}>
-                    <h4>{rarityPlurals[group.rarity]}</h4>
-                    <ul>{group.cards.map((card) => <li data-element={card.element} key={card.id}>{card.displayName}</li>)}</ul>
-                  </section>
-                ))}
-              </div>
-            </details>
+          {onDetails ? (
+            <button className="shop-offer__details-button shop-offer__details-link" onClick={onDetails} type="button">
+              Детальніше <AppIcon name="chevron" size={13} />
+            </button>
           ) : null}
         </div>
       </div>

@@ -12625,7 +12625,6 @@ body {
 
 .shop-category-banner__copy {
   display: grid;
-  max-width: calc(100% - 35px);
   gap: 5px;
   min-width: 0;
   text-shadow: 0 2px 7px rgb(0 0 0 / 90%);

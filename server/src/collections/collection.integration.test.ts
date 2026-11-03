@@ -73,13 +73,25 @@ test("completed progress and bonus survive consuming four current instances", {
     assert.equal(after.collection.completed, true);
     assert.equal(modifiers.silverRewardPct, 0);
     assert.deepEqual(bonuses, [{
-      bonus: predators.bonus,
+      bonus: { ...predators.bonus, scope: predators.bonus.scope ?? "all_battles" },
       bonusLabel: predators.bonusLabel,
       collectionId: predators.id,
       collectionName: predators.displayName,
     }]);
     assert.deepEqual((await new PlayerRepository(pool).findSummaryById(player.id)).collectionBonuses, bonuses);
     assert.equal(after.cards.filter(({ ownedCopies }) => ownedCopies === 0).length, 4);
+
+    const preview = await repository.previewCard(player.id, predators.cards[0]!.id);
+    assert.deepEqual(preview.card, after.cards.find(({ id }) => id === predators.cards[0]!.id));
+    assert.equal(preview.card.discovered, true);
+    assert.equal(preview.card.ownedCopies, 0);
+    const memberships = COLLECTIONS.filter(({ cards }) => cards.some(({ id }) => id === preview.card.id));
+    assert.deepEqual(preview.collections.map(({ id }) => id).sort(), memberships.map(({ id }) => id).sort());
+    assert.ok(preview.collections.some(({ id, completed, bonusLabel }) => id === predators.id && completed && bonusLabel === predators.bonusLabel));
+
+    const ownedPreview = await repository.previewCard(player.id, predators.cards[4]!.id);
+    assert.equal(ownedPreview.card.ownedCopies, 1);
+    assert.ok(ownedPreview.card.strongestInstanceId);
 
     const completionRows = await pool.query<{ count: string }>(
       "SELECT count(*) FROM player_collection_completions WHERE player_id = $1 AND collection_id = $2",
@@ -88,6 +100,41 @@ test("completed progress and bonus survive consuming four current instances", {
     assert.equal(Number(completionRows.rows[0]?.count), 1);
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.end();
+  }
+});
+
+test("shop preview reads an undiscovered card without collection membership without discovering it", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const telegramId = String(BigInt(Date.now()) * 10_000n + BigInt(process.pid) + 2n);
+  const cardId = `test_shop_preview_${randomUUID()}`;
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram({
+      id: telegramId, username: null, firstName: "Shop preview test", lastName: null, photoUrl: null,
+    });
+    await pool.query(
+      `INSERT INTO cards (id, code, display_name, description, element)
+       VALUES ($1, $1, 'Undiscovered shop card', 'Preview description', 'water')`,
+      [cardId],
+    );
+    const preview = await new CollectionRepository(pool).previewCard(player.id, cardId);
+    assert.equal(preview.card.id, cardId);
+    assert.equal(preview.card.description, "Preview description");
+    assert.equal(preview.card.discovered, false);
+    assert.equal(preview.card.ownedCopies, 0);
+    assert.equal(preview.card.strongestInstanceId, null);
+    assert.equal(preview.card.collectionId, null);
+    assert.deepEqual(preview.collections, []);
+    const discoveries = await pool.query(
+      "SELECT card_id FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2", [player.id, cardId],
+    );
+    assert.equal(discoveries.rowCount, 0);
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.query("DELETE FROM cards WHERE id = $1", [cardId]);
     await pool.end();
   }
 });

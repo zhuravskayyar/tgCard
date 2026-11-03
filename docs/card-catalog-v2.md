@@ -289,8 +289,8 @@
 | Карта | Стихія | Рідкість | Опис | Також у | Код референсу | Сюжет арту |
 |---|---|---|---|---|---|---|
 | Гном-повітроплавець | Повітря | rare | Перший гном у небі й перший, хто про це пошкодував. |  | `dwarf_w_air` | dwarf pilot in goggles and scarf on a propeller craft, cannon beside him, wild battle grin |
-| Гном Рожен | Земля | rare | Смажить драконятину на тому, чим її й заколов. |  | `dwarf_w_earth` | dwarf warlock with a long roasting spear, dragon bones on the belt, smoke curling from his beard |
-| Коваль Гупало | Вогонь | rare | Половина мечів у світі колись дзвеніла під його молотом. |  | `dwarf_w_fire` | dwarf smith swinging a massive hammer on an anvil, sparks spraying, leather apron, forearms like logs |
+| Гном Рожен | Земля | rare | Смажить драконятину на тому, чим її й заколов. |  | `dwarf_w_earth` | dwarf warlock with a long roasting spear, dragon bones on the belt, smoke curling from his beard, one hand grips the spear with three curled fingers and an opposing thumb while his other hand turns a dragon-bone charm between one thumb and three naturally curled fingers |
+| Коваль Гупало | Вогонь | rare | Половина мечів у світі колись дзвеніла під його молотом. |  | `dwarf_w_fire` | dwarf smith swinging a massive hammer on an anvil, both hands gripping its handle with exactly three curled finger bands and one opposing thumb on each hand, a few crisp black-ink sparks, leather apron, forearms like logs, flat black and cream cutout with a hard clean outer silhouette, genuine transparent alpha immediately outside every contour, no glowing aura, soft haze, drop shadow, painted checkerboard or background texture |
 | Гном-пірат | Вода | rare | У портових шинках на нього вже чекає рахунок. |  | `dwarf_w_water` | dwarf pirate with an eyepatch and hook, cutlass raised, barrel under his boot, tattooed arms |
 
 ## 23. Скажена четвірка (`berserks`, карт: 4)
@@ -302,7 +302,7 @@
 | Навіжена Ґудрун | Повітря | rare | Каже, що вдає божевільну. Перевіряти охочих немає. |  | `berserk_air` | wild-eyed shieldmaiden berserker screaming, twin axes raised, braids flying, war paint on her face |
 | Вовчий Гальфдан | Земля | rare | Домовлятися з ним пробували. Гарна спроба була. |  | `berserk_earth` | feral bare-chested berserker in a wolf pelt, crouched low, clawed gauntlets, teeth bared |
 | Лютий Торгрім | Вогонь | rare | Великий, волохатий і прокидається не в гуморі. |  | `berserk_fire` | huge shaggy berserker with a great axe, bear pelt on his shoulders, roaring, sparks in his beard |
-| Сигрід із веслом | Вода | rare | Весло в неї не для човна. |  | `berserk_water` | fierce adult fisherwoman berserker in chainmail swinging a heavy oak oar like a club, wet braids |
+| Сигрід із веслом | Вода | rare | Весло в неї не для човна. |  | `berserk_water` | fierce adult fisherwoman berserker in chainmail swinging a heavy oak oar like a club, both working hands show exactly three curled finger bands and one opposing thumb around the oar, wet braids, a flat opaque black-and-cream cutout on genuine transparent alpha, no painted checkerboard pattern, no background texture, no shadow or glow outside her silhouette |
 
 ## 24. Шукачі скарбів (`treasure_hunters`, карт: 4)
 
@@ -313,7 +313,7 @@
 | Білка-шибайголова | Повітря | rare | Стрибає з вежі в бій. Вежа потім соромиться. |  | `flying_squirrel` | acrobatic warrior in a gliding squirrel-suit, baton in hand, mid-leap with outstretched arms |
 | Тролиця-жартівниця | Земля | rare | Гумор у неї такий, що мандрівники тікають без чобіт. |  | `forest_trollala` | cheeky adult troll woman with tusks and leaf-tied hair, holding a treasure map and a spade, mocking smile |
 | Гоблін Мала Гроза | Вогонь | rare | Малий на зріст, а дрібних образ не прощає. |  | `little_thunderstorm` | small vengeful goblin pirate with an oversized hat and pistols, lightning scar, furious scowl |
-| Нічна шахрайка | Вода | rare | Познайомився ввечері, вранці шукаєш гаманець. |  | `night_cheat_girl` | adult woman thief in a dark hood slipping a purse into her sleeve, dagger at her back, finger on her lips |
+| Нічна шахрайка | Вода | rare | Познайомився ввечері, вранці шукаєш гаманець. |  | `night_cheat_girl` | adult woman thief in a dark hood slipping a purse into her sleeve, dagger at her back, one index finger on her lips with exactly two other fingers curled beside one thumb on that hand, her purse hand has exactly three curled fingers and one thumb |
 
 ## 25. Приборкувачки змія (`dragon_whisperers`, карт: 4)
 
@@ -324,7 +324,7 @@
 | Лицедійка Тінь | Повітря | rare | Вдень грає в театрі погано. Вночі грає краще й без глядачів. |  | `actress_shadow` | theatre actress holding a mask on a stick, shadow behind her a different shape, hidden dagger |
 | Панна Клинків | Земля | rare | Однаково рівно ріже цибулю й супротивника. |  | `blade_master` | woman blade master in layered robes, four knives fanned between her fingers, calm exact stance |
 | Леді Запал | Вогонь | rare | Манери бездоганні, а вибух за графіком. |  | `fire_lady` | elegant lady in a high-necked gown with a folded fan, small flames at her hem, tiny polite smile |
-| Механіда 2.7 | Вода | rare | Третє оновлення, а чай досі подає в обличчя. |  | `androida` | clockwork woman of plates and rivets, glowing chest core, tea tray in one hand, blank porcelain face |
+| Механіда 2.7 | Вода | rare | Третє оновлення, а чай досі подає в обличчя. |  | `androida` | clockwork woman of plates and rivets, chest core drawn as flat warm cream enclosed by bold black ink with no coloured glow or soft gradient, blank porcelain face, one hand balances a tea tray with exactly three supporting fingers beneath it and one thumb along its rim, her other hand rests at her waist with three curled fingers and one thumb |
 
 ## 26. Друзі дракона (`dragon_fans`, карт: 4)
 
@@ -334,7 +334,7 @@
 |---|---|---|---|---|---|---|
 | Льотчик Журавель | Повітря | rare | Злетіти вміє, сісти вчиться досі. |  | `hinotori` | pilot in a flight cap and scarf strapped into a bird-shaped flying machine, wings aflame, grinning |
 | Черепанцир | Земля | rare | Ведмежа, яке хтось із магів схрестив із черепахою від нудьги. |  | `cherepanda` | round bear cub with a turtle's shell, sitting and chewing bamboo, sleepy eyes, thick claws |
-| Гоблін-динамітник | Вогонь | rare | З хімії мав п'ятірку. Зі школою покінчив швидко. |  | `goblin_bombist` | bony goblin anarchist in a long coat holding a round lit bomb, chemical flasks on the belt |
+| Гоблін-динамітник | Вогонь | rare | З хімії мав п'ятірку. Зі школою покінчив швидко. |  | `goblin_bombist` | bony goblin saboteur in a plain undecorated long coat holding a round lit bomb, chemical flasks on the belt, no emblems, symbols or writing on the coat or equipment |
 | Водяниця | Вода | rare | Бабуся попереджала про таких. Онук не слухав. |  | `vodyanka` | water-spirit woman with webbed hands and gills, seaweed hair, crouching on a river stone, side glance |
 
 ## 27. Старий заклик (`ancient_order`, карт: 6)
@@ -346,7 +346,7 @@
 | Провидиця Грому | Повітря | epic | Тиха в миру. На службі її чути за три долини. |  | `ancient_order_air_f` | hooded storm priestess with a tall staff, thunder cloud above, wide sleeves caught by the wind |
 | Вірник Блискавки | Повітря | epic | Той розряд, що вдарив тебе від дверей, був його привітанням. |  | `ancient_order_air_m` | lean lightning cult priest in a long robe, static sparks at his fingertips, hair standing up |
 | Жриця Попелу | Вогонь | epic | Батьки з першого дня ховали від неї сірники. Не допомогло. |  | `ancient_order_fire_f` | priestess in dark ceremonial armor, fire bowl raised overhead, ash on her face, stern eyes |
-| Жрець Незгасний | Вогонь | epic | Виріс серед отрутних гадів, і вони досі згадують його зі страхом. |  | `ancient_order_fire_m` | muscular fire priest with snake tattoos, flaming censer swinging on a chain, jungle leaves behind |
+| Жрець Незгасний | Вогонь | epic | Виріс серед отрутних гадів, і вони досі згадують його зі страхом. |  | `ancient_order_fire_m` | muscular fire priest with snake tattoos standing with arms folded tightly across his chest, both hands tucked out of sight under the opposite arms, a flaming censer hanging from a chain wrapped around his forearm, jungle leaves behind, stern immovable stare |
 | Черниця Тихої Води | Вода | epic | Мовчить роками. Озеро теж мовчить про те, що знає. |  | `ancient_order_water_f` | silent nun in a long veil in a dark pond, water lilies around her, hands folded around a lantern |
 | Монах Водоспаду | Вода | epic | Посвячення просте: стрибок. Інші монахи рахують, хто виплив. |  | `ancient_order_water_m` | shaved monk mid-leap into a waterfall, prayer beads flying, arms spread, serene face |
 

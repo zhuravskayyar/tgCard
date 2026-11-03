@@ -4,18 +4,20 @@
 
 This workflow has priority for every project change:
 
-1. Start the project locally on `localhost` with a real local database connected.
+1. Make changes in the local workspace. Start the local database only when database work or relevant tests require it; do not start or open the website or Telegram Mini App for pre-push verification.
 2. Make all UI, logic, API, database, and gameplay changes locally first.
-3. After changes, start the local frontend and backend/API as needed, verify the PostgreSQL connection when relevant, check console and server logs for errors, and run verification proportional to the scope and risk of the change.
-4. Show the local result for user review.
+3. Before push, inspect the diff and run static checks, builds, and targeted tests proportional to the scope and risk of the change. Website, browser, public API availability, and Telegram Mini App checks happen only after the changes have been pushed.
+4. Present the local code changes and verification results for user review; a live website or Mini App preview is not required before push.
 5. Never run `git push`, deploy to production, or change the production environment without the user's explicit command.
 6. Wait for explicit user confirmation such as `добре`, `пуш`, or `можна в прод` before proceeding.
 7. Only after confirmation, perform the final change review, create a commit, push to GitHub, wait for production deployment, and verify the production site, API, Telegram Mini App, and—when relevant—the Telegram bot/webhook.
 8. If production differs from localhost, first identify the concrete local-versus-production difference; do not make chaotic additional changes.
-9. Production must never be used for initial testing.
+9. Code checks and relevant tests must pass before push; live website and Mini App checks follow the authorized push and deployment.
 10. Never push unfinished or unverified code.
 
-The required sequence is: `LOCALHOST + LOCAL DB → changes → local verification → user confirmation → commit → push → production site → Telegram`.
+The required sequence is: `local changes → proportional code checks/tests → user confirmation → commit → push → deployment → website/API → Telegram`.
+
+Do not repeatedly open or check the application or website between edits. Inspecting an external reference requested by the user is allowed before push. This rule does not authorize a push or deployment on its own.
 
 ## Project map
 
@@ -102,17 +104,19 @@ If the full test suite was not run for an isolated, low-risk change, report:
 
 ## Required post-task verification
 
-- Before completing every task, verify that the active Telegram Mini App URL
-  serves Cardastika and that its public `/api` path reaches the local server.
+- Only after an explicitly authorized push and deployment, verify that the active
+  Telegram Mini App URL serves Cardastika and that its public `/api` path reaches
+  the deployed server.
 - For source or asset changes that warrant a production build under the
-  proportional verification rule, run the production client build and repeat
-  the Mini App/API availability check before handing off the task.
-- For changes that can affect authentication, player state, or UI data, open the
+  proportional verification rule, run the production client build before handing
+  off the code changes. Defer website and Mini App/API availability checks until after push.
+- After push, for changes that can affect authentication, player state, or UI data, open the
   Mini App through Telegram and verify that `TopHud` renders the authenticated
   player's name, level, silver, and gold without a loading or error state.
-- Do not report a task as complete when either the application or authenticated
-  player data is unavailable; fix the issue when it is in scope, otherwise state
-  the exact blocker.
+- Before push, report code verification separately and state that live checks are
+  deferred by this rule. After push, do not report live verification as complete
+  when the application or authenticated player data is unavailable; fix the issue
+  when it is in scope, otherwise state the exact blocker.
 - If Telegram shows `Помилка даних`, verify Telegram init-data authentication
   against the running server, restart the server from the same bot-token source
   used by the Mini App, and confirm that `TopHud` shows the authenticated

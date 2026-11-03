@@ -7,7 +7,7 @@ import { PlayerPersistenceError } from "../users/playerRepository.js";
 import { LeaderboardPersistenceError, type LeaderboardPage } from "./leaderboardRepository.js";
 
 interface LeaderboardLookup {
-  find(kind: LeaderboardKind, page: number): Promise<LeaderboardPage>;
+  find(kind: LeaderboardKind, page: number, viewerId: string): Promise<LeaderboardPage>;
 }
 
 interface LeaderboardRouteDependencies extends RouteAuthDependencies {
@@ -16,7 +16,7 @@ interface LeaderboardRouteDependencies extends RouteAuthDependencies {
 }
 
 function readKind(value: string | null): LeaderboardKind {
-  if (value === "duels" || value === "deck") return value;
+  if (value === "duels" || value === "arena" || value === "deck") return value;
   throw new Error("invalid_leaderboard_kind");
 }
 
@@ -35,7 +35,7 @@ function sendLeaderboardError(response: ServerResponse, error: unknown, headers:
     return true;
   }
   if (error instanceof Error && error.message === "invalid_leaderboard_kind") {
-    sendJson(response, 400, { error: { code: "invalid_leaderboard_kind", message: "kind must be duels or deck" } }, headers);
+    sendJson(response, 400, { error: { code: "invalid_leaderboard_kind", message: "kind must be duels, arena or deck" } }, headers);
     return true;
   }
   return false;
@@ -59,8 +59,8 @@ export async function handleLeaderboardRequest(
     const duelWins = player.duelWins ?? 0;
     const eligible = duelWins >= LEADERBOARD_REQUIRED_DUEL_WINS;
     const page = eligible
-      ? await dependencies.leaderboards.find(kind, readPage(url.searchParams.get("page")))
-      : { entries: [], page: 1, pageSize: 10, totalEntries: 0 };
+      ? await dependencies.leaderboards.find(kind, readPage(url.searchParams.get("page")), player.id)
+      : { entries: [], leagueIndex: null, me: null, page: 1, pageSize: 10, totalEntries: 0 };
     const body: LeaderboardResponse = {
       ...page,
       kind,

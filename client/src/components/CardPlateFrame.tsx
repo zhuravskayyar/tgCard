@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CardElement, CardRarity } from "@cardastika/shared";
-import { getBrightCutMaterialId, renderBrightCutArtLayer, renderBrightCutCard } from "../cards/brightCutModel";
+import { getBrightCutMaterialId, isLayeredBrightCutMaterial, renderBrightCutArtLayer, renderBrightCutCard } from "../cards/brightCutModel";
 import { getCardMaterialTilt, mountCardMaterialShader, updateCardMaterialShaderPower } from "../cards/cardMaterialShader";
 import { cardTextureKey } from "../cards/cardTextureCache";
 
@@ -8,6 +8,8 @@ interface CardPlateFrameProps {
   artworkLoading?: boolean;
   artworkSource?: string | null;
   element: CardElement;
+  /** Dev material lab only: shades this plate with another material than its rarity uses. */
+  material?: string;
   onArtworkError?: () => void;
   power?: number;
   rarity: CardRarity;
@@ -23,6 +25,10 @@ interface ShaderSnapshot {
 // Last shaded frame of cards that left the screen: a return visit and short-lived static copies paint it before the first frame.
 const MAX_SHADER_SNAPSHOTS = 40;
 const shaderSnapshots = new Map<string, ShaderSnapshot>();
+// The light each element casts in the top materials' effects.
+const ELEMENT_LIGHT: Readonly<Record<CardElement, readonly [number, number, number]>> = {
+  fire: [1, 0.42, 0.1], water: [0.3, 0.68, 1], earth: [0.5, 0.85, 0.28], air: [1, 0.88, 0.4],
+};
 // A slow device still gets the flat card rather than an empty slot.
 const FLAT_FALLBACK_MS = 2500;
 const FLAT_AFTER_FAILURE_MS = 150;
@@ -39,7 +45,7 @@ function rememberShaderSnapshot(key: string, source: HTMLCanvasElement) {
 }
 
 // Generate the original SVG once per combination of real card values.
-export function CardPlateFrame({ artworkLoading = false, artworkSource, element, onArtworkError, power, rarity, staticMaterial = false }: CardPlateFrameProps) {
+export function CardPlateFrame({ artworkLoading = false, artworkSource, element, material, onArtworkError, power, rarity, staticMaterial = false }: CardPlateFrameProps) {
   const id = `card-model-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const shaderCanvasRef = useRef<HTMLCanvasElement>(null);
   const markupRef = useRef("");
@@ -48,9 +54,9 @@ export function CardPlateFrame({ artworkLoading = false, artworkSource, element,
   const shaderReadyRef = useRef(false);
   shaderReadyRef.current = shaderReady;
   const [flatFallback, setFlatFallback] = useState(false);
-  const snapshotKey = `${artworkSource ?? ""}|${element}|${rarity}|${power ?? ""}`;
+  const snapshotKey = `${artworkSource ?? ""}|${element}|${rarity}|${material ?? ""}|${power ?? ""}`;
   const [snapshot] = useState(() => shaderSnapshots.get(snapshotKey) ?? null);
-  const materialId = getBrightCutMaterialId(rarity);
+  const materialId = material ?? getBrightCutMaterialId(rarity);
   const markup = useMemo(() => renderBrightCutCard({
     artworkSource,
     character: Boolean(artworkSource),
@@ -58,15 +64,16 @@ export function CardPlateFrame({ artworkLoading = false, artworkSource, element,
     power,
     rarity,
     id,
-  }), [artworkSource, element, power, rarity, id]);
-  // Astronite shades its plate and art separately so the art can float inside the frame; the flat SVG keeps them together.
-  const layeredSource = materialId === "astronite" && !staticMaterial ? artworkSource ?? null : null;
-  const plateMarkup = useMemo(() => layeredSource ? renderBrightCutCard({ character: false, element, power, rarity, id }) : markup, [layeredSource, element, power, rarity, id, markup]);
+    material,
+  }), [artworkSource, element, material, power, rarity, id]);
+  // Astronite and star steel shade plate and art separately so the art can float inside the frame; the flat SVG keeps them together.
+  const layeredSource = isLayeredBrightCutMaterial(materialId) && !staticMaterial ? artworkSource ?? null : null;
+  const plateMarkup = useMemo(() => layeredSource ? renderBrightCutCard({ character: false, element, power, rarity, id, material }) : markup, [layeredSource, element, power, rarity, id, material, markup]);
   const artLayer = useMemo(() => {
     if (!layeredSource) return null;
-    const layerMarkup = renderBrightCutArtLayer({ artworkSource: layeredSource, element, rarity, id });
+    const layerMarkup = renderBrightCutArtLayer({ artworkSource: layeredSource, element, rarity, id, material });
     return { artworkSource: layeredSource, markup: layerMarkup, textureKey: cardTextureKey(layerMarkup, id) };
-  }, [layeredSource, element, rarity, id]);
+  }, [layeredSource, element, rarity, id, material]);
   const artLayerRef = useRef(artLayer);
   artLayerRef.current = artLayer;
   const plateSource = layeredSource ? null : artworkSource;
@@ -109,6 +116,7 @@ export function CardPlateFrame({ artworkLoading = false, artworkSource, element,
       artLayer: artLayerRef.current,
       artworkSource: plateSource,
       canvas,
+      elementColor: ELEMENT_LIGHT[element],
       initialTilt: snapshotTiltRef.current,
       materialId,
       onReady: (ready) => {

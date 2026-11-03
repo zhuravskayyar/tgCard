@@ -94,3 +94,88 @@
   font-weight: 400;
 }
 :root .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot:disabled { filter: none; }
+
+/* First-visit hints on every screen: painted plate, ink text, no CSS box. */
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint {
+  padding: 4px 8px;
+  color: var(--home-ink);
+  background: none;
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint :is(span, strong, li) { color: var(--home-ink); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint__heading span { color: var(--home-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint li { font-size: var(--font-xs); }
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint li b { color: var(--home-ink); font-weight: 800; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; }
+:root[data-game-theme="light"] .app-shell .app-content .first-visit-hint button { min-width: 112px; white-space: nowrap; }
+
+/* Readability: no ink straight on the patterned page. Headings sit on the ribbon, captions on a small plate. */
+:root[data-game-theme="light"] .app-shell .app-content :is(.pf-section > h2, .guild-section-heading h2) {
+  justify-self: center;
+  width: fit-content;
+  max-width: 100%;
+  height: 40px;
+  margin: 0 auto;
+  padding: 0 52px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3a2410;
+  font: 700 16px/1 var(--font-display);
+  text-shadow: 0 1px 0 rgb(255 236 190 / 70%);
+  background: none;
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/ribbon-title-v3.webp") 0 145 0 145 fill / 0 52px / 0 stretch;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-section-heading { justify-content: center; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-section-heading > span[aria-hidden="true"] { display: none; }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-tile-caption {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  justify-self: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: 2px 8px 3px;
+  border-style: solid;
+  border-width: 8px 8px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 8px / 0 stretch;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption strong { color: #24140a; font-size: 13px; font-weight: 800; line-height: 1.1; text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption small { color: #4a3620; font-size: 11px; font-weight: 700; line-height: 1.1; text-shadow: none; }
+
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity {
+  padding: 6px 12px;
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-lobby__participants {
+  justify-self: center;
+  width: fit-content;
+  padding: 2px 10px;
+  color: #24140a;
+  text-shadow: none;
+  border-style: solid;
+  border-width: 12px 14px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+}
+
+/* Paler page: the book art keeps its drawing, but its dark lines no longer fight the text above it. */
+:root .app-shell::before { filter: contrast(.65) brightness(1.08) sepia(.35) saturate(1.05); }
+:root[data-game-theme="light"] .app-shell .app-content .campaign-locked-hub__hint {
+  justify-self: center;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 2px 12px;
+  color: #24140a;
+  font-weight: 700;
+  text-shadow: none;
+  border-style: solid;
+  border-width: 12px 14px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+}

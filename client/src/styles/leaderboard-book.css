@@ -1,0 +1,103 @@
+/* Leaderboard in the parchment book: one painted plate, ink ledger rows, no CSS boxes. */
+.leaderboard-screen {
+  --book-ink: #2d1b0e;
+  --book-ink-muted: #4a3620;
+  --book-accent: #7a2f16;
+  --leaderboard-plate: url("/assets/ui/game/text-panel-plate-v1.webp");
+}
+
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen :is(.leaderboard-lock, .leaderboard-state, .leaderboard-list-section) {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--book-ink);
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: var(--leaderboard-plate) 96 fill / 20px 18px / 0 stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* Locked state. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock { min-height: 0; gap: var(--space-2); color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock > .app-icon { color: var(--book-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock strong { color: var(--book-ink); font-size: var(--font-md); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock p { color: var(--book-ink); font-size: var(--font-sm); line-height: 1.35; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock small { color: var(--book-ink-muted); font-size: var(--font-xs); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock__progress { width: min(100%, 260px); height: 14px; overflow: hidden; border: 0; border-radius: 0; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-lock__progress span { border-radius: 0; background: var(--book-accent); box-shadow: none; }
+
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-state { min-height: 0; color: var(--book-ink); font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list-section .leaderboard-state { padding: var(--space-3) 0; border: 0; border-image: none; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-state--error { color: #8d2a18; }
+
+/* Section title: ink words between ink rules. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list-section { gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list-section__title span { background: var(--book-ink-muted); opacity: .45; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list-section__title h2 { color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+
+/* Ledger rows separated by ink lines. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list { gap: 0; overflow: visible; border: 0; border-radius: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li + li { border-top: 1px solid rgb(74 54 32 / 32%); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry,
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li:nth-child(even) .leaderboard-entry {
+  min-height: 52px;
+  padding: 4px 0;
+  grid-template-columns: 24px 40px minmax(0, 1fr) auto;
+  color: var(--book-ink);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry:is(:hover, :focus-visible) { background: none; filter: none; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry:is(:hover, :focus-visible) .leaderboard-entry__identity strong { color: var(--book-accent); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__rank { color: var(--book-ink-muted); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li:nth-child(-n + 3) .leaderboard-entry__rank { color: var(--book-accent); font-size: var(--font-md); }
+
+/* Avatar sits in the painted medallion. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__avatar { width: 40px; height: 40px; padding: 5px; color: var(--book-ink); border: 0; border-radius: 0; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; font-size: var(--font-xs); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__avatar img { border-radius: 50%; }
+
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__identity strong { color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__identity small { color: var(--book-ink-muted); font-size: var(--font-xs); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__score { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__score .app-icon { color: var(--book-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__score strong { color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; }
+
+/* Reference layout: tab title ribbon, five icon tabs, the viewer's league, own row pinned under the page. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-title {
+  justify-self: center;
+  width: fit-content;
+  height: 40px;
+  margin: 0 auto;
+  padding: 0 52px 2px;
+  display: flex;
+  align-items: center;
+  color: #3a2410;
+  font: 700 16px/1 var(--font-display);
+  text-shadow: 0 1px 0 rgb(255 236 190 / 70%);
+  border: 0 solid transparent;
+  border-image: url("/assets/ui/ribbon-title-v3.webp") 0 145 0 145 fill / 0 52px / 0 stretch;
+}
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab { display: grid; min-height: 48px; padding: 0; place-items: center; color: #2d1b0e; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab[data-coming-soon="true"] { filter: grayscale(.8) brightness(.95); opacity: .55; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab--active[data-coming-soon="true"] { opacity: .85; }
+
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-league { display: flex; align-items: center; justify-content: center; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid rgb(74 54 32 / 32%); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-league .league-badge { width: 34px; height: 34px; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-league strong { color: var(--book-ink); font: 700 16px/1.1 var(--font-display); }
+
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry,
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li:nth-child(even) .leaderboard-entry { grid-template-columns: 32px 40px minmax(0, 1fr) auto; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-entry__score { color: var(--book-ink); font: 700 15px/1 var(--font-number); }
+/* The viewer's own row: red ink, and a double rule when it is pinned below the page. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li.is-player :is(.leaderboard-entry__rank, .leaderboard-entry__identity strong, .leaderboard-entry__score) { color: var(--book-accent); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-list > li.is-player:last-child:not(:nth-child(-n + 10)) { border-top: 3px double rgb(74 54 32 / 55%); }
+/* Icon tabs: live tabs stay fully visible; the chosen one is marked with a red rule, coming-soon ones fade. */
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab:not([data-coming-soon]) { filter: none; opacity: 1; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab .app-icon { filter: brightness(.45) sepia(.4); }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab--active { box-shadow: inset 0 -3px 0 #7a2f16; }
+:root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab--active .app-icon { filter: brightness(.3) sepia(.6) saturate(2); }

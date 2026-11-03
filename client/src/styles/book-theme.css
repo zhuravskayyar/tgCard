@@ -489,10 +489,13 @@
 :root[data-game-theme="light"] .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .arena-tabs button, .guild-tabs button, .pagination button, .guild-roster__rank-tab) {
   min-height: 40px;
   color: #4b341c;
-  background: linear-gradient(180deg, #e7d2a8, #cbb287);
-  border: 1px solid #78562e;
-  border-radius: 2px;
-  box-shadow: inset 0 1px 0 rgb(255 247 222 / 70%), inset 0 -2px 3px rgb(77 49 20 / 18%);
+  /* Inactive tabs are the same painted plate, faded; no CSS gradient box. */
+  background: var(--sprite-button-secondary) center / 100% 100% no-repeat;
+  border: 1px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  filter: grayscale(.45) brightness(.97);
+  opacity: .72;
   font-weight: 700;
   text-shadow: none;
 }
@@ -502,6 +505,8 @@
   background: var(--sprite-button-secondary) center / 100% 100% no-repeat;
   border-color: transparent;
   box-shadow: none;
+  filter: none;
+  opacity: 1;
 }
 
 :root[data-game-theme="light"] .app-shell .home-screen .mode-tile {
@@ -607,4 +612,44 @@
   font: 700 clamp(14px, 3.9vw, 16px)/1 var(--font-display);
   letter-spacing: .01em;
   text-shadow: 0 1px 0 rgb(255 236 190 / 70%);
+}
+
+/* Pagination reads as ink numerals in the book; only the current page sits on the bronze tag. */
+:root .app-shell .card-pagination :is(button, span) {
+  width: auto;
+  min-width: 28px;
+  flex: 0 0 auto;
+  padding: 0 4px;
+  color: var(--home-ink-muted);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font: 700 15px/1 var(--font-number);
+}
+:root .app-shell .card-pagination button[aria-current="page"] {
+  min-width: 46px;
+  color: #f3e3c2;
+  background: url("/assets/ui/home/deck-counter-tag-v1.webp") center / 100% 100% no-repeat;
+}
+:root .app-shell .card-pagination button:disabled { opacity: .3; }
+:root .app-shell .card-pagination button .app-icon { display: block; }
+
+/* Every progress track sits in the painted bronze rail used by the arena and card upgrade. */
+:root .app-shell .app-content :is(.tasks-screen__daily-progress-track, .quest-paper__track, .shop-offer__pity-track, .workshop-card__progress-track) {
+  height: 12px;
+  overflow: hidden;
+  padding: 3px 6px;
+  /* !important: screen sheets (rewards, shop-stall) still paint flat CSS tracks with deeper selectors. */
+  background: var(--sprite-progress-rail) center / 100% 100% no-repeat !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-shell .app-content :is(.tasks-screen__daily-progress-track, .quest-paper__track, .shop-offer__pity-track, .workshop-card__progress-track) > * {
+  display: block;
+  height: 100%;
+  border-radius: 0;
+  background: #b7792f !important;
+  box-shadow: none;
 }

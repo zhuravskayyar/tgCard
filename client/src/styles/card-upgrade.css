@@ -1,6 +1,6 @@
 /* A fixed mobile composition between the shared HUD and navigation. */
 :root .app-shell .app-content:has(.card-detail-screen) {
-  padding: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 6px) 12px calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + 6px);
+  padding: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + 6px) 12px var(--space-4);
   overflow: clip;
 }
 :root .app-shell .app-screen-transition:has(> .card-detail-screen) { height: 100%; min-height: 0; }
@@ -53,7 +53,9 @@
 :root .app-shell .card-detail-screen .progression-panel__upgrade-row { display: flex; justify-content: center; padding: 0; border: 0; }
 :root .app-shell .card-detail-screen .level-up-button { display: grid; width: min(100%, 260px); height: 40px; min-height: 40px; margin: 0; padding: 2px 22px; place-items: center; color: var(--action-ink); background: transparent; border-radius: 0; filter: none; border: 0 solid transparent; border-image: var(--sprite-button-primary) 0 120 0 120 fill / 0 36px / 0 stretch; box-shadow: none; }
 :root .app-shell .card-detail-screen .level-up-button > span { position: relative; z-index: 1; color: var(--action-ink); font-family: var(--font-display) !important; font-size: 18.5px; line-height: 1; text-shadow: none; }
-:root .app-shell .card-detail-screen .level-up-button:disabled { opacity: .65; cursor: not-allowed; }
+/* Unaffordable reads as a plain parchment button, not a washed-out red one. */
+:root .app-shell .app-content .card-detail-screen .level-up-button:disabled { border-image-source: var(--sprite-button-secondary); filter: none; opacity: 1; cursor: not-allowed; }
+:root .app-shell .card-detail-screen .level-up-button:disabled > span { color: var(--home-ink-muted); }
 :root .app-shell .card-detail-screen .progression-panel__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; padding: 2px 0 0; border: 0; }
 :root .app-shell .card-detail-screen .progression-panel__facts > div { display: grid; align-content: center; justify-items: center; gap: 1px; min-height: 30px; padding: 0 4px; background: none; border: 0; }
 :root .app-shell .card-detail-screen .progression-panel__facts > div + div { border-left: 1px solid #87633166; }
@@ -728,3 +730,14 @@
 }
 :root .app-shell .card-detail-screen .absorption-grid--inline .absorption-card-slot { flex: 0 0 auto; max-width: none; aspect-ratio: auto; overflow: visible; }
 :root .app-shell .card-detail-screen .absorption-grid--inline .deck-card { height: auto; }
+
+/* Absorb button: painted plate under the label so the gain reads on the patterned page. */
+:root .app-shell .card-detail-screen .absorption-card-slot__action {
+  width: 100%;
+  min-height: 56px;
+  padding: 9px 6px 8px;
+  background: var(--sprite-button-secondary) center / 100% 100% no-repeat;
+}
+:root .app-shell .card-detail-screen .absorption-card-slot__action > span { color: #24140a; font-size: 13px; font-weight: 800; text-decoration: none; }
+:root .app-shell .card-detail-screen .absorption-card-slot__action > strong { color: #1f4d10; font: 800 16px/1 var(--font-number); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action > small { color: #3a2412; font-size: 11px; font-weight: 700; line-height: 1; }

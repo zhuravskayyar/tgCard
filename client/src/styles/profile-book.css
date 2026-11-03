@@ -92,3 +92,23 @@
 .pf-facts dd { margin: 0; color: #24140a; font-family: var(--font-number); font-size: 13px; font-weight: 800; white-space: nowrap; }
 .pf-retry { display: grid; gap: 8px; justify-items: center; }
 :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__copy .nickname-skin--standard, :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__copy .nickname-skin--standard * { color: #24140a; -webkit-text-fill-color: #24140a; text-shadow: none; }
+
+/* Another mage's profile: identity row carries the league crest on the right. */
+:root[data-game-theme="light"] body .app-shell .app-content .pf-identity--public { grid-template-columns: 72px minmax(0, 1fr) auto; }
+.pf-identity__name { overflow: hidden; color: #24140a; font-size: 20px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.pf-identity--public .league-badge { width: 52px; height: 52px; }
+.pf-elements--public { justify-self: center; width: min(100%, 320px); }
+:root[data-game-theme="light"] body .app-shell .app-content .player-profile-screen .player-profile-card-preview > span { color: #24140a; font-size: 13px; font-weight: 700; text-shadow: none; }
+
+/* Element bonuses: coloured element marks on a plate, readable while the page scrolls under them. */
+:root[data-game-theme="light"] body .app-shell .app-content .pf-elements {
+  padding: 2px 6px;
+  border-style: solid;
+  border-width: 12px 14px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+}
+.pf-elements .element-symbol--fire { color: #c2381f; }
+.pf-elements .element-symbol--water { color: #2a6fb0; }
+.pf-elements .element-symbol--air { color: #b8860b; }
+.pf-elements .element-symbol--earth { color: #4f7f2a; }
+.pf-elements .element-symbol { filter: drop-shadow(0 1px 0 rgb(255 245 220 / 80%)); }

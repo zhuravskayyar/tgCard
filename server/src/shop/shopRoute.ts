@@ -7,6 +7,7 @@ import type {
   ShopPurchaseResponse,
 } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
+import { CollectionCardMissingError, CollectionPersistenceError, type CollectionRepository } from "../collections/collectionRepository.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
@@ -31,6 +32,11 @@ interface ShopRouteDependencies extends RouteAuthDependencies {
   shop: ShopPurchaseService;
 }
 
+interface ShopCardInfoRouteDependencies extends RouteAuthDependencies {
+  collections: Pick<CollectionRepository, "previewCard">;
+  responseHeaders?: OutgoingHttpHeaders;
+}
+
 export function isShopPurchaseRequest(value: unknown): value is ShopPurchaseRequest {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
@@ -43,7 +49,7 @@ export function isShopBundlePurchaseRequest(value: unknown): value is ShopBundle
   return Object.keys(record).length === 1 && typeof record.bundleId === "string" && Boolean(record.bundleId.trim());
 }
 
-async function authenticatePlayer(request: IncomingMessage, dependencies: ShopRouteDependencies) {
+async function authenticatePlayer(request: IncomingMessage, dependencies: RouteAuthDependencies) {
   return (await authenticateRoutePlayer(request, dependencies)).player;
 }
 
@@ -64,6 +70,10 @@ function sendShopError(
   }
   if (error instanceof ShopOfferMissingError) {
     sendJson(response, 404, { error: { code: "offer_not_found", message: error.message } }, responseHeaders);
+    return;
+  }
+  if (error instanceof CollectionCardMissingError) {
+    sendJson(response, 404, { error: { code: "card_not_found", message: error.message } }, responseHeaders);
     return;
   }
   if (error instanceof ShopBundleMissingError) {
@@ -99,6 +109,7 @@ function sendShopError(
   }
   if (
     error instanceof PlayerPersistenceError ||
+    error instanceof CollectionPersistenceError ||
     error instanceof ShopPersistenceError ||
     error instanceof ShopPlayerMissingError
   ) {
@@ -113,6 +124,26 @@ function sendShopError(
   sendJson(response, 500, {
     error: { code: "internal_error", message: "Unexpected server failure" },
   }, responseHeaders);
+}
+
+export async function handleShopCardInfo(
+  request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: ShopCardInfoRouteDependencies,
+  cardId: string,
+) {
+  const responseHeaders = dependencies.responseHeaders ?? {};
+  if (request.method !== "GET") {
+    sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, responseHeaders);
+    return;
+  }
+
+  try {
+    const player = await authenticatePlayer(request, dependencies);
+    sendJson(response, 200, await dependencies.collections.previewCard(player.id, cardId), responseHeaders);
+  } catch (error) {
+    sendShopError(response, error, responseHeaders);
+  }
 }
 
 export async function handleShopCatalog(

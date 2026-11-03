@@ -20,10 +20,10 @@ import { CardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
+import { formatFullUiNumber, formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { MenuRow } from "../components/MenuRow";
 import { Lariska } from "../components/Lariska";
 import { ResourceIcon } from "../components/ResourceIcon";
-import { formatUiNumber } from "../i18n";
 import { getTelegramInitData } from "../telegram";
 import {
   DuelApiError,
@@ -93,7 +93,7 @@ export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: strin
 
 function DuelHeading({ onBack }: { onBack: () => void }) {
   return (
-    <ScreenHeading eyebrow="Зала випробувань" onBack={onBack} title="Дуель" />
+    <ScreenHeading onBack={onBack} title="Дуель" />
   );
 }
 
@@ -124,7 +124,7 @@ function AnimatedHpValue({ currentHp, maximumHp }: { currentHp: number; maximumH
     };
   }, [currentHp]);
 
-  return <strong>{displayedHp} / {maximumHp}</strong>;
+  return <strong>{formatFullUiNumber(displayedHp)} / {formatFullUiNumber(maximumHp)}</strong>;
 }
 
 function HpImpactEffect({ element, level }: { element: CardElement; level: DuelEffectLevel }) {
@@ -161,7 +161,7 @@ export function HpPanel({ currentHp, detail, maximumHp, side, tone, hit = false,
           <span>HP</span>
           <AnimatedHpValue currentHp={currentHp} maximumHp={maximumHp} />
         </div>
-        <div className="duel-hp-bar" aria-label={`HP ${currentHp} з ${maximumHp}`}>
+          <div className="duel-hp-bar" aria-label={translateUi(`HP ${formatFullUiNumber(currentHp)} з ${formatFullUiNumber(maximumHp)}`, getUiLocale())}>
           <span style={{ width: `${percentage}%` }} />
         </div>
       </div>

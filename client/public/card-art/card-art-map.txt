@@ -91,3 +91,69 @@ north_witch | Відьма Хуртовини | north_witch
 wood_mistress | Пані Пуща | wood_mistress
 fire_knight | Лицар-Головешка | fire_knight
 lakes_princess | Княжна Озерна | lakes_princess
+snow_warrior | Сніговий вояк | snow_warrior
+sandstorm | Сухий Вихор | sandstorm
+drunk_cyclop | Циклоп-гульвіса | drunk_cyclop
+ancient_turtle | Стара Черепаха | ancient_turtle
+wild_wolf | Вовчиця Ярка | wild_wolf
+forest_bride | Лісова наречена | forest_bride
+el_minotauro | Сеньйор Мінотавр | el_minotauro
+night_fury | Нічна фурія | night_fury
+heaven_mistress | Пані Висоти | heaven_mistress
+shadow_heritress | Спадкоємиця Тіні | shadow_heritress
+black_widow | Панна Каракурт | black_widow
+captain_daughter | Донька Боцмана | captain_daughter
+icarus_disciple | Послідовник Ікара | icarus_disciple
+studded_wheel | Колесо-котюга | studded_wheel
+goblin_grinder | Гоблінські жорна | goblin_grinder
+aquatank | Мідний підводник | aquatank
+sorceress_air | Чаклунка Вітру | sorceress_air
+sorceress_earth | Чаклунка Землі | sorceress_earth
+sorceress_fire | Чаклунка Вогню | sorceress_fire
+sorceress_water | Чаклунка Води | sorceress_water
+air_deer | Олень Зимородок | air_deer
+air_frost | Мороз-Тріскун | air_frost
+earth_quarrel | Білка-скандалістка | earth_quarrel
+earth_tree | Зрубана ялина | earth_tree
+fire_sledge | Гарячі санчата | fire_sledge
+water_snegurka | Снігуронька | water_snegurka
+water_snowman | Сніговик без морквини | water_snowman
+dwarf_p_air | Гном Жартун | dwarf_p_air
+dwarf_p_earth | Гном Зілляр | dwarf_p_earth
+dwarf_p_fire | Король Скнарій XI | dwarf_p_fire
+dwarf_p_water | Гном Стерновий | dwarf_p_water
+dwarf_w_air | Гном-повітроплавець | dwarf_w_air
+dwarf_w_earth | Гном Рожен | dwarf_w_earth
+dwarf_w_fire | Коваль Гупало | dwarf_w_fire
+dwarf_w_water | Гном-пірат | dwarf_w_water
+berserk_air | Навіжена Ґудрун | berserk_air
+berserk_earth | Вовчий Гальфдан | berserk_earth
+berserk_fire | Лютий Торгрім | berserk_fire
+berserk_water | Сигрід із веслом | berserk_water
+actress_shadow | Лицедійка Тінь | actress_shadow
+androida | Механіда 2.7 | androida
+blade_master | Панна Клинків | blade_master
+cherepanda | Черепанцир | cherepanda
+fire_lady | Леді Запал | fire_lady
+flying_squirrel | Білка-шибайголова | flying_squirrel
+forest_trollala | Тролиця-жартівниця | forest_trollala
+goblin_bombist | Гоблін-динамітник | goblin_bombist
+hinotori | Льотчик Журавель | hinotori
+little_thunderstorm | Гоблін Мала Гроза | little_thunderstorm
+night_cheat_girl | Нічна шахрайка | night_cheat_girl
+vodyanka | Водяниця | vodyanka
+aerum | Штормовий орнітоптер | aerum
+ancient_order_air_f | Провидиця Грому | ancient_order_air_f
+ancient_order_air_m | Вірник Блискавки | ancient_order_air_m
+ancient_order_fire_f | Жриця Попелу | ancient_order_fire_f
+ancient_order_water_f | Черниця Тихої Води | ancient_order_water_f
+basaltor | Базальтовий молот | basaltor
+beholder | Болотяне Око | beholder
+bloodthirsty_piranha | Піранья | bloodthirsty_piranha
+bearded_toad | Жаба-старійшина | bearded_toad
+ancient_order_water_m | Монах Водоспаду | ancient_order_water_m
+bronze_bird | Мідна птиця | bronze_bird
+battle_gryphon | Грифон | battle_gryphon
+dao_a_white_tiger | Сніжний тигр | dao_a_white_tiger
+dao_f_werefox | Дев'ятихвоста лисиця | dao_f_werefox
+dao_e_headless_giant | Велетень Без Голови | dao_e_headless_giant

@@ -208,7 +208,7 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury-balance > span { display: inline-flex; align-items: center; gap: 3px; color: var(--book-ink); }
 /* A closed row stays legible: the lock says it is closed, not a wash over the text. */
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled { opacity: 1; filter: none; }
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled :is(.menu-row__title, .menu-row__action) { color: var(--book-ink-muted); opacity: .78; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled :is(.menu-row__title, .menu-row__action) { color: #4a3620; opacity: 1; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .menu-row:disabled .menu-row__icon { filter: grayscale(.7); opacity: .72; }
 
 /* Announcement button holds its word. */
@@ -320,3 +320,6 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__empty strong { color: var(--book-ink); }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum-post p { font-size: var(--font-sm); line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__pager { color: var(--book-ink); }
+
+/* An empty guild-card slot shows the painted card back, not a CSS pedestal. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__empty { display: block; width: 52px; height: 78px; object-fit: contain; filter: drop-shadow(0 3px 3px rgb(45 29 13 / 35%)); }

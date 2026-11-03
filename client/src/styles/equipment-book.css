@@ -477,3 +477,20 @@
   .eq-chest__motes, .eq-sparks, .eq-forge-scene__embers { display: none; }
   .eq-chest-stage, .eq-chest-stage__chest, .eq-chest-stage__rays, .eq-card__glow { animation: none; }
 }
+
+/* Status notes and step labels sit on a plate, never straight on the page. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-note {
+  padding: 2px 10px;
+  border-style: solid;
+  border-width: 12px 14px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .eq-step small {
+  padding: 1px 6px;
+  border-style: solid;
+  border-width: 6px 7px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 6px 7px / 0 stretch;
+  text-shadow: none;
+}
+/* Disabled buttons keep readable words: the plate fades, the ink does not. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-button:disabled { opacity: 1; filter: grayscale(.55) brightness(.92); }

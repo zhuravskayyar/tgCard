@@ -1,3 +1,5 @@
+import { AppIcon } from "./AppIcon";
+
 interface PaginationProps {
   currentPage: number;
   onPageChange: (page: number) => void;
@@ -23,7 +25,7 @@ export function Pagination({ currentPage, onPageChange, totalPages }: Pagination
   if (totalPages <= 1) return null;
   return (
     <nav aria-label="Сторінки карт" className="card-pagination">
-      <button aria-label="Попередня сторінка" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} type="button">‹</button>
+      <button aria-label="Попередня сторінка" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)} type="button"><AppIcon name="back" size={18} /></button>
       {getItems(currentPage, totalPages).map((item) => typeof item === "number" ? (
         <button
           aria-current={item === currentPage ? "page" : undefined}
@@ -32,7 +34,7 @@ export function Pagination({ currentPage, onPageChange, totalPages }: Pagination
           type="button"
         >{item}</button>
       ) : <span aria-hidden="true" key={item}>…</span>)}
-      <button aria-label="Наступна сторінка" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} type="button">›</button>
+      <button aria-label="Наступна сторінка" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)} type="button"><AppIcon name="chevron" size={18} /></button>
     </nav>
   );
 }

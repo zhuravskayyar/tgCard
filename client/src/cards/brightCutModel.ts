@@ -60,10 +60,44 @@ export const BRIGHT_CUT_MATERIALS: readonly BrightCutMaterial[] =[
  {id:'silver', name:'Срібло', desc:'Полірований метал · майже дзеркальне срібло', brief:'Дзеркальна поліровка',base:['#283237','#6f828a','#a9b8bf','#e5eceb','#82959d','#d8e1e0','#627780','#222d31'],edge:'#2a353b',stroke:'#f6fdff',dark:'#46585f',light:'#f7fdff',shadow:'#1a252b',punch:'#5d7178',number:'#39505a',numLight:'#f5fbfc',metal:true,grain:.092,sheenA:.09,sheenB:.02,noiseOpacity:.05,hammerOpacity:0},
  {id:'gold', name:'Золото', desc:'Глибоке золото · теплі дзеркальні грані', brief:'Ювелірна поліровка',base:['#503015','#a26c2a','#e2b865','#fbe1a1','#d4a34f','#f9d18a','#ad7a32','#4a2c12'],edge:'#523014',stroke:'#ffe3a2',dark:'#855621',light:'#ffefba',shadow:'#412309',punch:'#9e6827',number:'#61330f',numLight:'#ffe4a1',metal:true,grain:.045,noiseOpacity:.05,hammerOpacity:0},
  {id:'enamel', name:'Рубінова емаль', desc:'Рубінове скло · золоті перегородки', brief:'Емаль на золоті',base:['#2a0306','#6a070f','#a30f1b','#c8202a','#860b16','#b01520','#5a060e','#210205'],edge:'#6b4415',stroke:'#ffe3a2',dark:'#6e0a12',light:'#ffdf9a',shadow:'#1c0203',punch:'#b98a3a',number:'#240305',numLight:'#ffe4a1',metal:true,grain:.01,sheenA:.08,sheenB:.03,noiseOpacity:.03,hammerOpacity:0},
- {id:'astronite',name:'Астроніт',desc:'Чорний зоряний метал · зорі в глибині',brief:'Зоряний метал',base:['#05090e','#0e151d','#18212b','#2d3945','#10171f','#1b2530','#0c1219','#04060b'],edge:'#111923',stroke:'#b9a178',dark:'#101923',light:'#9eacb2',shadow:'#020408',punch:'#37424c',number:'#0b1420',numLight:'#deca8d',metal:true,grain:.008,sheenA:.14,sheenB:.16,noiseOpacity:.07,hammerOpacity:.01}
+ {id:'astronite',name:'Астроніт',desc:'Чорний зоряний метал · зорі в глибині',brief:'Зоряний метал',base:['#05090e','#0e151d','#18212b','#2d3945','#10171f','#1b2530','#0c1219','#04060b'],edge:'#111923',stroke:'#b9a178',dark:'#101923',light:'#9eacb2',shadow:'#020408',punch:'#37424c',number:'#0b1420',numLight:'#deca8d',metal:true,grain:.008,sheenA:.14,sheenB:.16,noiseOpacity:.07,hammerOpacity:.01},
 ];
+// Rarity ladder candidates print on the parchment plate; the shader relights the drawing as each material.
+const EFFECT_PLATES: Readonly<Record<string, string>> = {
+  // Wood keeps the worn parchment edge; the metals get the crisp cut silver plate.
+  "bog-oak": "paper", "blued-steel": "silver", "silver-engraving": "silver", "gold-damascus": "silver", "star-steel": "silver",
+};
+function plateMaterial(rarity: CardRarity, material = RARITY_MATERIALS[rarity]) {
+  const plateId = EFFECT_PLATES[material] ?? material;
+  return BRIGHT_CUT_MATERIALS.find((candidate) => candidate.id === plateId) ?? BRIGHT_CUT_MATERIALS[0];
+}
 
-function shapePath(x=4,y=4,w=232,h=304,c=14){return `M${x+c} ${y} H${x+w-c} L${x+w} ${y+c} V${y+h-c} L${x+w-c} ${y+h} H${x+c} L${x} ${y+h-c} V${y+c} Z`}
+// Each material cuts its corners its own way: carved round wood, forged notches, engraved cartouche, gothic cusps, crystal facets.
+type FrameStyle = "bevel" | "round" | "notch" | "scallop" | "cusp" | "facet";
+const FRAME_STYLES: Readonly<Record<string, FrameStyle>> = {
+  "bog-oak": "round", "blued-steel": "notch", "silver-engraving": "scallop", "gold-damascus": "cusp", "star-steel": "facet",
+};
+// Set only for the length of one synchronous svgCard call, so every frame layer of that card shares one silhouette.
+let frameStyle: FrameStyle = "bevel";
+function withFrameStyle<T>(material: string, render: () => T): T {
+  frameStyle = FRAME_STYLES[material] ?? "bevel";
+  try { return render(); } finally { frameStyle = "bevel"; }
+}
+function shapePath(x=4,y=4,w=232,h=304,c=14){
+ // Larger corners make the silhouettes tell apart at deck size; 1.7 still clears the fleur-de-lis box.
+ if(frameStyle==='facet') c*=1.7;
+ else if(frameStyle==='round'||frameStyle==='scallop'||frameStyle==='cusp') c*=1.5;
+ // Corner K, reached at K+u*c and left at K+v*c; control points inside the plate make a corner concave.
+ const corner=(kx: number,ky: number,ux: number,uy: number,vx: number,vy: number)=>{
+  const bx=kx+vx*c, by=ky+vy*c;
+  if(frameStyle==='round') return `Q${kx} ${ky} ${bx} ${by}`;
+  if(frameStyle==='notch') return `L${kx+(ux+vx)*c} ${ky+(uy+vy)*c} L${bx} ${by}`;
+  if(frameStyle==='scallop') return `Q${kx+(ux+vx)*c*.75} ${ky+(uy+vy)*c*.75} ${bx} ${by}`;
+  if(frameStyle==='cusp'){const tx=kx+(ux+vx)*c*.18, ty=ky+(uy+vy)*c*.18; return `Q${kx+ux*c*.55+vx*c*.3} ${ky+uy*c*.55+vy*c*.3} ${tx} ${ty} Q${kx+vx*c*.55+ux*c*.3} ${ky+vy*c*.55+uy*c*.3} ${bx} ${by}`;}
+  return `L${bx} ${by}`;
+ };
+ return `M${x+c} ${y} H${x+w-c} ${corner(x+w,y,-1,0,0,1)} V${y+h-c} ${corner(x+w,y+h,0,-1,-1,0)} H${x+c} ${corner(x,y+h,1,0,0,-1)} V${y+c} ${corner(x,y,0,1,1,0)} Z`;
+}
 function gradient(stops: readonly string[]){return stops.map((c,i)=>`<stop offset="${Math.round(i/(stops.length-1)*100)}%" stop-color="${c}"/>`).join('')}
 function grainPattern(id: string,mat: BrightCutMaterial){
  if(mat.id==='wood') return `<pattern id="${id}-brush" width="9" height="23" patternUnits="userSpaceOnUse"><path d="M2 1V7 M6 11V19" stroke="${mat.shadow}" stroke-width=".5" stroke-opacity=".28"/></pattern>`;
@@ -210,33 +244,43 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
 }
 
 
-const MATERIAL_INDEX: Readonly<Record<CardRarity,number>> = {
-  common:0, uncommon:1, rare:2, epic:3, legendary:4, mythic:5,
+// The rarity ladder: parchment, bog oak, blued steel, silver engraving, gold Damascus, star steel.
+const RARITY_MATERIALS: Readonly<Record<CardRarity,string>> = {
+  common:'paper', uncommon:'bog-oak', rare:'blued-steel', epic:'silver-engraving', legendary:'gold-damascus', mythic:'star-steel',
 };
+// These materials shade the art apart from the plate, so it can be engraved into it or float above it.
+const LAYERED_MATERIALS = new Set(['astronite','blued-steel','gold-damascus','star-steel']);
 export function getBrightCutMaterialId(rarity: CardRarity) {
-  return BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[rarity]].id;
+  return RARITY_MATERIALS[rarity];
+}
+export function isLayeredBrightCutMaterial(materialId: string) {
+  return LAYERED_MATERIALS.has(materialId);
+}
+// The printed plate a rarity sits on, for code that needs its palette rather than its shader.
+export function getBrightCutPlate(rarity: CardRarity) {
+  return plateMaterial(rarity);
 }
 export function renderBrightCutCard(options: {
   element: CardElement; rarity: CardRarity; power?: number; id: string;
-  artworkSource?: string | null; character?: boolean; depth?: number;
+  artworkSource?: string | null; character?: boolean; depth?: number; material?: string;
 }): string {
-  return svgCard(BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[options.rarity]],options.power,{
+  return withFrameStyle(options.material ?? RARITY_MATERIALS[options.rarity], () => svgCard(plateMaterial(options.rarity, options.material),options.power,{
     uid:options.id, element:options.element, showArtwork:options.character ?? Boolean(options.artworkSource),
     engravingDepth:options.depth ?? 85, characterArtSource: options.artworkSource,
-  });
+  }));
 }
 
 // Astronite floats its art inside the frame, so the shader needs the art on its own.
-export function renderBrightCutArtLayer(options: { element: CardElement; rarity: CardRarity; id: string; artworkSource: string; depth?: number }): string {
-  return svgCard(BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[options.rarity]],undefined,{
+export function renderBrightCutArtLayer(options: { element: CardElement; rarity: CardRarity; id: string; artworkSource: string; depth?: number; material?: string }): string {
+  return withFrameStyle(options.material ?? RARITY_MATERIALS[options.rarity], () => svgCard(plateMaterial(options.rarity, options.material),undefined,{
     uid:options.id, element:options.element, showArtwork:true, artOnly:true,
     engravingDepth:options.depth ?? 85, characterArtSource:options.artworkSource,
-  });
+  }));
 }
 
 // The card's own element medallion, cropped from the same plate construction for standalone use.
 export function renderBrightCutElementEmblem(options: { element: CardElement; rarity: CardRarity; id: string }): string {
-  return svgCard(BRIGHT_CUT_MATERIALS[MATERIAL_INDEX[options.rarity]],undefined,{
+  return svgCard(plateMaterial(options.rarity),undefined,{
     uid:options.id, element:options.element, emblemOnly:true,
   });
 }

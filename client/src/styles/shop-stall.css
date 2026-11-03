@@ -752,6 +752,46 @@
 :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__heading { display: grid; justify-items: center; gap: 6px; animation: shop-rise-in 420ms ease-out both; }
 .shop-reveal__stage { position: relative; display: grid; place-items: center; width: 100%; padding: 8px 0; }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card { position: relative; z-index: 1; width: min(46vw, 178px); margin: 0; animation: shop-card-settle 620ms cubic-bezier(.2, 1.35, .4, 1) both; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell {
+  position: relative;
+  display: block;
+  width: min(46vw, 178px);
+  aspect-ratio: 10 / 13;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  will-change: transform;
+  animation: shop-card-physical-reveal 550ms cubic-bezier(.18, .78, .22, 1) both;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell > .shop-reveal__card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  animation: none;
+  cursor: grab;
+  filter:
+    drop-shadow(1px 0 0 color-mix(in srgb, var(--plate-edge, #e2ca9b) 80%, #382313))
+    drop-shadow(2px 1px 0 #583a20)
+    drop-shadow(3px 2px 0 color-mix(in srgb, var(--plate-edge, #e2ca9b) 72%, #382313))
+    drop-shadow(var(--card-shadow-x, 0px) var(--card-shadow-y, 7px) 10px rgb(0 0 0 / 42%));
+  touch-action: pan-y;
+  transform: perspective(900px) rotateY(var(--card-tilt-y, 0deg)) translateZ(8px);
+  transition: transform 110ms cubic-bezier(.2, .72, .3, 1);
+  transform-style: preserve-3d;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell > .shop-reveal__card:active { cursor: grabbing; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell > .shop-reveal__card::after {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  background: radial-gradient(ellipse 72% 48% at var(--card-light-x, 50%) var(--card-light-y, 50%), rgb(255 255 255 / 32%), transparent 72%);
+  content: "";
+  mix-blend-mode: screen;
+  opacity: var(--card-glare-opacity, 0);
+  pointer-events: none;
+  transition: opacity 100ms ease-out;
+}
 .shop-reveal { --reveal-light: 255 205 120; }
 .shop-reveal--uncommon { --reveal-light: 170 215 125; }
 .shop-reveal--rare { --reveal-light: 135 190 245; }
@@ -826,6 +866,11 @@
 }
 @keyframes shop-rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes shop-card-settle { from { filter: brightness(1.7); transform: scale(1.12); } to { filter: none; transform: none; } }
+@keyframes shop-card-physical-reveal {
+  0% { opacity: 0; transform: perspective(900px) rotateX(10deg) rotateY(72deg) translateY(14px) scale(.8); }
+  56% { opacity: 1; transform: perspective(900px) rotateX(-2deg) rotateY(-8deg) translateY(-4px) scale(1.04); }
+  100% { opacity: 1; transform: perspective(900px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1); }
+}
 @keyframes shop-light-in { from { opacity: 0; scale: .5; } to { opacity: 1; scale: 1; } }
 @keyframes shop-rays-turn { to { rotate: 360deg; } }
 @keyframes shop-ember {
@@ -841,6 +886,13 @@
   :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__facts,
   :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__deck-note,
   :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__actions { animation: none; }
+  :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell {
+    animation: none;
+    transform: perspective(900px) rotateX(0deg) rotateY(0deg);
+  }
+  :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__stage .shop-reveal__card-shell > .shop-reveal__card {
+    transition: none;
+  }
   .shop-reveal__embers { display: none; }
 }
 
@@ -1063,3 +1115,142 @@
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card { gap: 0; }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-offer__footer,
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__purchase { position: relative; z-index: 2; margin-top: -21px; }
+
+/* Offer details use the shop's painted ribbons and text plates. */
+.shop-offer__details-button {
+  justify-self: start;
+  min-height: 36px;
+  padding: 4px 0;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.shop-screen--detail {
+  display: grid;
+  gap: 14px;
+}
+
+.shop-card-info__collections article h3 {
+  margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.shop-card-info__collections article h3 { font-size: var(--font-sm); }
+
+.shop-screen--detail .shop-text-plate,
+.shop-screen--detail :is(.shop-state, .shop-error, .shop-inline-empty) {
+  min-width: 0;
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--home-ink, #24140a);
+  text-shadow: none;
+  background: none;
+  border: solid transparent;
+  border-width: 16px 18px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 16px 18px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.shop-screen--detail .shop-text-plate :is(p, h3) { color: inherit; }
+.shop-card-info__copy { display: grid; gap: 8px; }
+
+.shop-offer-details__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  align-items: start;
+  gap: 10px 6px;
+  margin-top: 8px;
+}
+
+.shop-offer-details__card {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  color: var(--text-primary);
+  text-align: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.shop-offer-details__card .card-artwork {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 10 / 13;
+}
+
+.shop-offer-details__card > span:last-child {
+  font-size: 11px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.shop-screen--detail .shop-offer-details__caption {
+  padding: 3px 1px;
+  border-width: 6px;
+  border-image-width: 6px;
+}
+
+.shop-offer-details__card:focus-visible,
+.shop-offer__details-button:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+}
+
+.shop-card-info__ownership { margin: 0; text-align: center; color: var(--text-secondary); }
+.shop-card-info__collections,
+.shop-card-info__actions { display: grid; gap: 10px; }
+.shop-card-info__collections p { margin: 5px 0 0; color: var(--text-secondary); text-align: center; font-size: var(--font-sm); }
+
+/* Cosmetics pack: painted plate instead of a rounded CSS card. */
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card {
+  padding: 4px 8px;
+  color: #24140a;
+  background: none;
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__visual { padding: 0 0 8px; background: none; border: 0; border-bottom: 1px solid rgb(60 35 15 / 30%); border-radius: 0; box-shadow: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__visual-heading :is(span, strong) { color: #4a3620; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__body { padding: 8px 0 0; background: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__body :is(h3, h4, p, span, strong, small) { color: #24140a; text-shadow: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item {
+  color: #24140a;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: grayscale(.35);
+  opacity: .78;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item--active,
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item--owned { filter: none; opacity: 1; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item :is(strong, small) { color: #4a3620; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item--active strong { color: #7a2f16; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__progress-track { height: 14px; overflow: hidden; border: 0; border-radius: 0; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; box-shadow: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__progress-track > span { border-radius: 0; background: #7a2f16; box-shadow: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__buy :is(span, strong) { color: var(--action-ink); }
+:root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__visual-heading { padding-inline: 4px; }
+
+/* 3D pack → reward screen: the card was already turned in 3D, so it only settles here; no second flip. */
+.shop-unbox-stage--leaving { opacity: 0; transform: scale(1.04); transition: opacity 260ms ease-in, transform 260ms ease-in; pointer-events: none; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-reveal--from-booster .shop-reveal__stage .shop-reveal__card-shell { animation: shop-card-handoff 520ms cubic-bezier(.2, .8, .25, 1) both; }
+@keyframes shop-card-handoff {
+  from { opacity: 0; transform: perspective(900px) translateY(34px) scale(1.16); filter: brightness(1.5); }
+  to { opacity: 1; transform: perspective(900px) translateY(0) scale(1); filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-unbox-stage--leaving { transition: none; }
+  :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal--from-booster .shop-reveal__stage .shop-reveal__card-shell { animation: none; }
+}

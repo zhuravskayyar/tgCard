@@ -1315,7 +1315,7 @@
   background: linear-gradient(180deg, rgb(4 44 64 / 92%), rgb(2 18 27 / 96%));
   box-shadow: inset 0 1px rgb(151 239 255 / 16%), 0 2px 5px rgb(0 0 0 / 55%);
   color: #d8edf2;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-sm);
   font-weight: 600;
   line-height: 1.35;
@@ -1340,7 +1340,7 @@
 }
 
 .guild-screen .guild-altar__activation p,
-.guild-screen .guild-altar__battle p { margin: 0; color: #ddd8cc; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-xs); font-weight: 500; line-height: 1.35; text-shadow: 0 1px 1px #000; }
+.guild-screen .guild-altar__battle p { margin: 0; color: #ddd8cc; font-family: var(--font-body) !important; font-size: var(--font-xs); font-weight: 500; line-height: 1.35; text-shadow: 0 1px 1px #000; }
 
 .guild-screen .guild-altar__activation p { color: #aaa69c; }
 
@@ -1351,7 +1351,7 @@
   border-radius: var(--radius-sm);
   background: rgb(30 56 14 / 74%);
   color: #e7e1d4;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-xs);
   font-weight: 600;
   line-height: 1.35;
@@ -1412,9 +1412,9 @@
 
 .guild-screen .guild-altar-upgrade__heading h4 { min-width: 0; margin: 0; overflow: hidden; color: #e9c96b; font-family: var(--font-display) !important; font-size: var(--font-md); font-weight: 700; line-height: 1.2; text-overflow: ellipsis; text-shadow: 0 1px 2px #000; white-space: nowrap; }
 
-.guild-screen .guild-altar-upgrade__heading small { color: #aaa69c; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif; font-size: var(--font-xs); font-weight: 500; white-space: nowrap; }
+.guild-screen .guild-altar-upgrade__heading small { color: #aaa69c; font-family: var(--font-body); font-size: var(--font-xs); font-weight: 500; white-space: nowrap; }
 
-.guild-screen .guild-altar-upgrade__body p { margin: 0; color: #ddd8cc; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-sm); font-weight: 500; line-height: 1.35; text-shadow: 0 1px 1px #000; }
+.guild-screen .guild-altar-upgrade__body p { margin: 0; color: #ddd8cc; font-family: var(--font-body) !important; font-size: var(--font-sm); font-weight: 500; line-height: 1.35; text-shadow: 0 1px 1px #000; }
 
 .guild-screen .guild-altar__buy {
   justify-self: center;
@@ -1442,8 +1442,8 @@
   filter: saturate(.82) drop-shadow(0 2px 4px #000);
 }
 
-.guild-screen .guild-altar__battle strong { color: #f0eee3; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-sm); font-weight: 700; text-shadow: 0 1px 1px #000; }
-.guild-screen .guild-altar__battle small { color: #d7d4ca; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-xs); font-weight: 500; line-height: 1.35; }
+.guild-screen .guild-altar__battle strong { color: #f0eee3; font-family: var(--font-body) !important; font-size: var(--font-sm); font-weight: 700; text-shadow: 0 1px 1px #000; }
+.guild-screen .guild-altar__battle small { color: #d7d4ca; font-family: var(--font-body) !important; font-size: var(--font-xs); font-weight: 500; line-height: 1.35; }
 .guild-screen .guild-altar__menu { display: grid; gap: 2px; margin-top: 1px; }
 
 @media (max-width: 390px) {
@@ -1494,7 +1494,7 @@
 
 .guild-screen .guild-raid__bosses > strong {
   color: #f0eee3;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-lg);
   font-weight: 700;
   line-height: 1.25;
@@ -1525,7 +1525,7 @@
   max-width: 100%;
   overflow: hidden;
   color: #f0d59b;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-micro);
   font-weight: 700;
   line-height: 1.15;
@@ -1552,7 +1552,7 @@
 }
 
 .guild-screen .guild-raid__chat { display: grid; gap: 5px; padding-top: 2px; }
-.guild-screen .guild-raid__chat h3 { margin: 0; color: #d8edf2; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-lg); font-weight: 600; text-align: center; }
+.guild-screen .guild-raid__chat h3 { margin: 0; color: #d8edf2; font-family: var(--font-body) !important; font-size: var(--font-lg); font-weight: 600; text-align: center; }
 
 .guild-screen .guild-raid__messages {
   min-height: 84px;
@@ -1562,7 +1562,7 @@
   background: rgb(5 9 11 / 80%);
 }
 
-.guild-screen .guild-raid__messages p { display: grid; gap: 2px; margin: 0; color: #ddd8cc; font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important; font-size: var(--font-sm); font-weight: 500; line-height: 1.35; }
+.guild-screen .guild-raid__messages p { display: grid; gap: 2px; margin: 0; color: #ddd8cc; font-family: var(--font-body) !important; font-size: var(--font-sm); font-weight: 500; line-height: 1.35; }
 .guild-screen .guild-raid__messages p strong { color: #e9c96b; font-size: var(--font-sm); }
 .guild-screen .guild-raid__empty { min-height: 70px; align-content: center; color: #aaa69c !important; text-align: center; }
 
@@ -1577,7 +1577,7 @@
   border-radius: var(--radius-sm);
   background: #120c08;
   color: #e7e1d4;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-sm);
   outline: none;
 }
@@ -1603,7 +1603,7 @@
   border-radius: var(--radius-sm);
   background: rgb(36 25 14 / 75%);
   color: #d7d4ca;
-  font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-body) !important;
   font-size: var(--font-xs);
   font-weight: 500;
   line-height: 1.35;

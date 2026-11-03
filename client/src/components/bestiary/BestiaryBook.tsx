@@ -111,7 +111,7 @@ export function BestiaryBook({ collectionId, onBack, onBackToContents, onOpenCar
 
   return (
     <section className="bestiary" ref={rootRef}>
-      <ScreenHeading backLabel="Назад на головну" onBack={onBack} title="КОЛЕКЦІЇ" />
+      <ScreenHeading backLabel="Назад на головну" onBack={onBack} title="Колекції" />
       {shownId === null ? (
         <div aria-label="Фільтр колекції" className="collection-filters" role="tablist">
           <button aria-selected={filter === "all"} className={filter === "all" ? "collection-filter collection-filter--active" : "collection-filter"} onClick={() => setFilter("all")} role="tab" type="button">Усі</button>

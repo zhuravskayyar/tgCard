@@ -56,7 +56,7 @@ export function TasksScreen({ onBack, onOpenTask, onPlayerSummaryChange }: { onB
 
   return (
     <div className="notice-board-screen tasks-screen">
-      <ScreenHeading eyebrow="Щоденні цілі та нагороди за виконання" onBack={onBack} title="Завдання" titleFirst />
+      <ScreenHeading onBack={onBack} title="Завдання" />
 
       <AccountProtectionTask onRewardGranted={() => {
         retry();

@@ -66,7 +66,7 @@ export function DailyLoginModal({ data, onClaim, onClose, onOpenTasks, onPlayerS
         <button className="daily-login-modal__claim" disabled={pending || !data.claimable || reward.kind !== "currencies"} onClick={handleClaim} type="button">
           {pending ? "Забираємо…" : !data.claimable ? "Сьогодні вже отримано" : "Забрати нагороду"}
         </button>
-        <button className="daily-login-modal__tasks-link" disabled={pending} onClick={onOpenTasks} type="button">Виконуй завдання й отримуй алмази <span aria-hidden="true">→</span></button>
+        <button className="daily-login-modal__tasks-link" disabled={pending} onClick={onOpenTasks} type="button">Виконуй завдання й отримуй алмази <AppIcon name="chevron" size={16} /></button>
       </section>
     </div>
   );

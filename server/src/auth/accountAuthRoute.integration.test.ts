@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import test from "node:test";
@@ -549,7 +550,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
       "SELECT gold FROM players WHERE id = $1",
       [guestBody.player.id],
     )).rows[0]?.gold) - goldBeforeLink;
-    assert.equal(await rewardBalance(), 500);
+    assert.equal(await rewardBalance(), SAVE_PROFILE_GOLD_REWARD);
 
     const rewardedIdentity = await pool.query<{ linked_provider: string; linked_provider_user_id: string }>(
       "SELECT linked_provider, linked_provider_user_id FROM player_account_link_rewards WHERE player_id = $1",
@@ -577,7 +578,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
     });
     assert.equal(googleLink.status, 200);
     assert.equal((googleLink.body as { rewardGranted: boolean }).rewardGranted, false);
-    assert.equal(await rewardBalance(), 500);
+    assert.equal(await rewardBalance(), SAVE_PROFILE_GOLD_REWARD);
 
     const completed = await requestJson(origin, "/api/auth/me", {
       headers: { Authorization: `Bearer ${guestBody.sessionToken}` },
@@ -600,7 +601,7 @@ test("guest profiles persist, reject identity conflicts, and grant the link rewa
       "SELECT slots.slot, slots.card_instance_id FROM player_decks AS decks JOIN deck_slots AS slots ON slots.deck_id = decks.id WHERE decks.player_id = $1 ORDER BY slots.slot",
       [guestBody.player.id],
     );
-    assert.deepEqual(progressAfterLink.rows, [{ ...progressBeforeLink.rows[0]!, gold: String(goldBeforeLink + 500) }]);
+    assert.deepEqual(progressAfterLink.rows, [{ ...progressBeforeLink.rows[0]!, gold: String(goldBeforeLink + SAVE_PROFILE_GOLD_REWARD) }]);
     assert.deepEqual(cardsAfterLink.rows, cardsBeforeLink.rows);
     assert.deepEqual(deckAfterLink.rows, deckBeforeLink.rows);
   } finally {

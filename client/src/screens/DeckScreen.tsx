@@ -39,8 +39,8 @@ function weakCardsCopy(count: number) {
 function deckTaskCopy(task: DailyTaskView) {
   const remaining = Math.max(0, task.target - task.progress);
   return task.id === "absorb-cards"
-    ? `Поглинь ще ${formatFullUiNumber(remaining)}, щоб виконати щоденне завдання.`
-    : "Підвищ рівень бойової карти, щоб виконати щоденне завдання.";
+    ? `Щоденне завдання: поглинь ще ${formatFullUiNumber(remaining)}.`
+    : "Щоденне завдання: підвищ рівень карти.";
 }
 
 export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onOpenShop, onOpenTasks, onOpenWeakCards, showTutorialRule = false }: DeckScreenProps) {
@@ -59,7 +59,7 @@ export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onO
 
   return (
     <section className="deck-screen">
-      <ScreenHeading backLabel="Назад на головну" onBack={onBack} title="МОЯ КОЛОДА" action={
+      <ScreenHeading backLabel="Назад на головну" onBack={onBack} title="Моя колода" action={
         <strong aria-label={state.status === "ready" ? `Загальна сила колоди: ${formatFullUiNumber(state.deck.totalPower)}` : "Загальна сила колоди недоступна"}>
           {state.status === "ready" ? formatFullUiNumber(state.deck.totalPower) : "—"}
         </strong>

@@ -1,5 +1,5 @@
 import { getCardPower, getRarityForLevel } from "@cardastika/game-core";
-import { getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
+import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getLeagueByRating, getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
 import type { Pool } from "pg";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
 
@@ -50,9 +50,15 @@ interface PublicProfileRow {
 
 export interface LeaderboardPage {
   entries: LeaderboardEntry[];
+  leagueIndex: number | null;
+  me: LeaderboardEntry | null;
   page: number;
   pageSize: number;
   totalEntries: number;
+}
+
+interface ArenaLeaderboardRow extends Omit<DuelLeaderboardRow, "duel_rating"> {
+  arena_rating: string | number;
 }
 
 function toSafeInteger(value: string | number, field: string) {
@@ -87,13 +93,16 @@ function normalizePage(page: number) {
   return Number.isSafeInteger(page) && page >= 1 ? page : 1;
 }
 
-function paginate(entries: PlayerAccumulator[], page: number): LeaderboardPage {
+function paginate(entries: PlayerAccumulator[], page: number, viewerId: string, leagueIndex: number | null = null): LeaderboardPage {
   const safePage = normalizePage(page);
   const offset = (safePage - 1) * LEADERBOARD_PAGE_SIZE;
+  const viewerIndex = entries.findIndex(({ id }) => id === viewerId);
   return {
     entries: entries
       .slice(offset, offset + LEADERBOARD_PAGE_SIZE)
       .map((entry, index) => toEntry(entry, index, offset)),
+    leagueIndex,
+    me: viewerIndex >= 0 ? toEntry(entries[viewerIndex]!, viewerIndex, 0) : null,
     page: safePage,
     pageSize: LEADERBOARD_PAGE_SIZE,
     totalEntries: entries.length,
@@ -103,11 +112,11 @@ function paginate(entries: PlayerAccumulator[], page: number): LeaderboardPage {
 export class LeaderboardRepository {
   constructor(private readonly pool: Pool) {}
 
-  async find(kind: LeaderboardKind, page: number): Promise<LeaderboardPage> {
+  async find(kind: LeaderboardKind, page: number, viewerId: string): Promise<LeaderboardPage> {
     try {
-      return kind === "duels"
-        ? await this.findDuelLeaderboard(page)
-        : await this.findDeckLeaderboard(page);
+      if (kind === "duels") return await this.findDuelLeaderboard(page, viewerId);
+      if (kind === "arena") return await this.findArenaLeaderboard(page, viewerId);
+      return await this.findDeckLeaderboard(page, viewerId);
     } catch (error) {
       if (error instanceof LeaderboardPersistenceError) throw error;
       throw new LeaderboardPersistenceError({ cause: error });
@@ -190,15 +199,18 @@ export class LeaderboardRepository {
     }
   }
 
-  private async findDuelLeaderboard(page: number): Promise<LeaderboardPage> {
+  // Duels and arena list the viewer's own league, like the reference; deck power is one global table.
+  private async findDuelLeaderboard(page: number, viewerId: string): Promise<LeaderboardPage> {
+    const viewer = await this.pool.query<{ duel_rating: string | number }>("SELECT duel_rating FROM players WHERE id = $1", [viewerId]);
+    const league = getLeagueByRating(toSafeInteger(viewer.rows[0]?.duel_rating ?? 0, "duel rating"));
     const result = await this.pool.query<DuelLeaderboardRow>(
       `
         SELECT id, nickname, username, first_name, photo_url, level, duel_rating
         FROM players
-        WHERE duel_wins >= $1
+        WHERE duel_wins >= $1 AND duel_rating >= $2 AND ($3::integer IS NULL OR duel_rating <= $3)
         ORDER BY duel_rating DESC, duel_wins DESC, id ASC
       `,
-      [LEADERBOARD_REQUIRED_DUEL_WINS],
+      [LEADERBOARD_REQUIRED_DUEL_WINS, league.minRating, league.maxRating],
     );
     return paginate(result.rows.map((row) => ({
       displayName: getDisplayName(row.nickname, row.username, row.first_name),
@@ -206,10 +218,31 @@ export class LeaderboardRepository {
       level: row.level,
       photoUrl: row.photo_url,
       score: toSafeInteger(row.duel_rating, "duel rating"),
-    })), page);
+    })), page, viewerId, league.index);
   }
 
-  private async findDeckLeaderboard(page: number): Promise<LeaderboardPage> {
+  private async findArenaLeaderboard(page: number, viewerId: string): Promise<LeaderboardPage> {
+    const viewer = await this.pool.query<{ arena_league_index: string | number }>("SELECT arena_league_index FROM players WHERE id = $1", [viewerId]);
+    const leagueIndex = toSafeInteger(viewer.rows[0]?.arena_league_index ?? getLeagueByRating(ARENA_START_RATING, ARENA_LEAGUE_CONFIG).index, "arena league");
+    const result = await this.pool.query<ArenaLeaderboardRow>(
+      `
+        SELECT id, nickname, username, first_name, photo_url, level, arena_rating
+        FROM players
+        WHERE arena_league_index = $1 AND (arena_wins > 0 OR arena_rating <> $2)
+        ORDER BY arena_rating DESC, arena_wins DESC, id ASC
+      `,
+      [leagueIndex, ARENA_START_RATING],
+    );
+    return paginate(result.rows.map((row) => ({
+      displayName: getDisplayName(row.nickname, row.username, row.first_name),
+      id: row.id,
+      level: row.level,
+      photoUrl: row.photo_url,
+      score: toSafeInteger(row.arena_rating, "arena rating"),
+    })), page, viewerId, leagueIndex);
+  }
+
+  private async findDeckLeaderboard(page: number, viewerId: string): Promise<LeaderboardPage> {
     const result = await this.pool.query<DeckLeaderboardRow>(
       `
         SELECT
@@ -251,6 +284,7 @@ export class LeaderboardRepository {
     return paginate(
       [...players.values()].sort((left, right) => right.score - left.score || left.id.localeCompare(right.id)),
       page,
+      viewerId,
     );
   }
 }

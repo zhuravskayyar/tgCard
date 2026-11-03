@@ -95,7 +95,7 @@ export function ProfileScreen({
 
   return (
     <section className="profile-screen pf-screen">
-      <ScreenHeading title="ВАШ ПРОФІЛЬ" />
+      <ScreenHeading title="Ваш профіль" />
 
       {playerSummaryState.status === "loading" ? <p className="eq-note" aria-live="polite">Завантаження профілю…</p> : null}
       {playerSummaryState.status === "unavailable" ? <p className="eq-note">Профіль доступний після входу в гру.</p> : null}

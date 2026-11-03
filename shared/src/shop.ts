@@ -1,5 +1,5 @@
 import type { CardElement, CardRarity, PlayerCard } from "./card.js";
-import type { CollectionCompletionNotice } from "./collection.js";
+import type { CollectionCompletionNotice, PlayerCollectionCard, PlayerCollectionSummary } from "./collection.js";
 
 export const SHOP_CURRENCIES = ["silver", "gold"] as const;
 
@@ -36,6 +36,11 @@ export interface ShopCatalogResponse {
   bundles: ShopBundleOffer[];
   limitedEvent?: LimitedShopEvent;
   offers: ShopOffer[];
+}
+
+export interface ShopCardInfoResponse {
+  card: PlayerCollectionCard;
+  collections: PlayerCollectionSummary[];
 }
 
 export interface ShopBundleOffer {

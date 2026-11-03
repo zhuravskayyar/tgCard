@@ -91,7 +91,7 @@ export function MailScreen({ changeNickname, claim, currentNickname, onBack, onB
 
   return (
     <section className="mail-screen">
-      <ScreenHeading eyebrow="Внутрішні повідомлення" onBack={onBack} title="ПОШТА" />
+      <ScreenHeading onBack={onBack} title="Пошта" />
 
       {state.status === "loading" ? <div className="mail-state">Завантаження пошти…</div> : null}
       {state.status === "unavailable" ? <div className="mail-state">Пошта доступна після запуску через Telegram.</div> : null}

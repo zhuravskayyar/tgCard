@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { CARD_TRANSLATIONS } from "./locales/cardTranslations";
+import { CAMPAIGN_TRANSLATIONS } from "./locales/campaignTranslations";
 import { CORE_TRANSLATIONS } from "./locales/coreTranslations";
 import { SCREEN_TRANSLATIONS } from "./locales/screenTranslations";
 import { getTelegramLanguageCode, getTelegramWebApp } from "./telegram";
@@ -424,7 +425,7 @@ const coreColumn: Readonly<Record<Exclude<UiLocale, "uk">, 1 | 2 | 3>> = { en: 1
 const coreDictionaries = new Map(UI_LOCALES.filter((locale): locale is Exclude<UiLocale, "uk"> => locale !== "uk").map((locale) => [
   locale,
   // Card text only ever matches a whole string, so its hundreds of rows stay out of the phrase search below.
-  new Map([...CORE_TRANSLATIONS, ...CARD_TRANSLATIONS, ...SCREEN_TRANSLATIONS].map((row) => [row[0], row[coreColumn[locale]]])),
+  new Map([...CORE_TRANSLATIONS, ...CARD_TRANSLATIONS, ...SCREEN_TRANSLATIONS, ...CAMPAIGN_TRANSLATIONS].map((row) => [row[0], row[coreColumn[locale]]])),
 ]));
 
 function translateRussian(value: string) {
@@ -437,7 +438,7 @@ const corePattern = new RegExp(`(?<![\\p{L}\\p{N}])(${escapedCoreSources})(?![\\
 
 // Phrases with a value: in a Ukrainian source {n} stands for a number and {s} for any text, such as a player's name.
 const placeholder = /\{[ns]\}/g;
-const countedRows = SCREEN_TRANSLATIONS.filter((row) => row[0].search(placeholder) >= 0).map((row) => {
+const countedRows = [...SCREEN_TRANSLATIONS, ...CAMPAIGN_TRANSLATIONS].filter((row) => row[0].search(placeholder) >= 0).map((row) => {
   const groups = (row[0].match(placeholder) ?? []).map((token) => (token === "{n}" ? "([\\d\\s.,]+?)" : "(.+?)"));
   const source = row[0].split(placeholder).map(escapeRegExp).reduce((joined, part, index) => joined + groups[index - 1] + part);
   return { pattern: new RegExp(`^${source}$`, "u"), prefix: row[0].split(placeholder)[0]!, row };

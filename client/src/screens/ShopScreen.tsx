@@ -4,6 +4,8 @@ import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type S
 import { AppIcon } from "../components/AppIcon";
 import { ShopOfferPanel } from "../components/ShopOfferPanel";
 import { ShopRewardReveal } from "../components/ShopRewardReveal";
+import { ShopOfferDetails } from "../components/ShopOfferDetails";
+import { ShopCardInfoScreen } from "./ShopCardInfoScreen";
 import { useShop } from "../hooks/useShop";
 import { CardArtwork } from "../components/CardArtwork";
 import { useCardWorkshop } from "../hooks/useCardWorkshop";
@@ -27,6 +29,7 @@ interface ShopScreenProps {
   onDeckPowerChange: (deckPower: number) => void;
   onEquippedSkinChange: (skinId: NicknameSkinId | null) => void;
   onOpenDeck: () => void;
+  onOpenWeakCards: () => void;
   onOpenTasks: () => void;
   onTutorialPurchase?: () => void;
   onTutorialRevealContinue?: (destination?: { cardId: string; collectionId: string | null }) => void;
@@ -52,6 +55,7 @@ interface ShopSectionHeadingProps {
 
 type ShopSection = "cards" | "workshop" | "chests" | "cosmetics" | "boosts";
 type ShopView = "categories" | "section";
+type ShopDetail = { offerId: string; card?: { id: string; rarity: CardRarity } };
 type ShopReveal =
   | { kind: "bundle"; bundleId: string; purchases: ShopPurchaseResponse[] }
   | { kind: "forge"; purchases: ShopPurchaseResponse[] }
@@ -164,7 +168,7 @@ function CardWorkshopSection({ onCrafted }: { onCrafted: (result: CardWorkshopCr
   </section>;
 }
 
-export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onOpenDeck, onOpenTasks, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
+export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange, onCollectionCompleted, onDeckPowerChange, onEquippedSkinChange, onOpenDeck, onOpenWeakCards, onOpenTasks, onPurchaseContinue, onTutorialPurchase, onTutorialRevealContinue, playerSummaryState, nickname, returnScreen }: ShopScreenProps) {
   const { catalogState, purchase, purchaseBundle, purchaseErrorCode, purchasingBundleId, purchasingOfferId, retryCatalog } = useShop();
   const [view, setView] = useState<ShopView>("categories");
   const [section, setSection] = useState<ShopSection>("cards");
@@ -172,10 +176,11 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
   const [batchPurchasing, setBatchPurchasing] = useState(false);
   const [purchaseCount, setPurchaseCount] = useState(0);
   const [reveal, setReveal] = useState<ShopReveal | null>(null);
+  const [detail, setDetail] = useState<ShopDetail | null>(null);
   const shopRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     shopRef.current?.closest<HTMLElement>(".app-content")?.scrollTo({ top: 0, behavior: "auto" });
-  }, [view, section, reveal]);
+  }, [view, section, reveal, detail]);
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const beginnerContext = returnScreen === "campaign-stage" || returnScreen === "tasks" || returnScreen === "trials";
   const continueLabel = returnScreen === "campaign-stage"
@@ -319,6 +324,30 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
     activeCategory === "magical-cards" &&
     (section === "cards" || section === "workshop");
 
+  if (detail) {
+    const offer = catalogState.status === "ready" ? catalogState.catalog.offers.find((item) => item.id === detail.offerId) : null;
+    return <section className="shop-screen shop-screen--detail" ref={shopRef}>
+      {detail.card ? <ShopCardInfoScreen
+        cardId={detail.card.id}
+        key={detail.card.id}
+        rarity={detail.card.rarity}
+        onBack={() => setDetail({ offerId: detail.offerId })}
+        onOpenDeck={onOpenDeck}
+        onOpenShop={() => setDetail(null)}
+        onOpenWeakCards={onOpenWeakCards}
+      /> : offer ? <ShopOfferDetails
+        availableBalance={player?.[offer.currency]}
+        disabled={purchasingOfferId !== null || purchasingBundleId !== null}
+        errorMessage={errorMessage}
+        offer={offer}
+        onBack={() => setDetail(null)}
+        onOpenCard={(id, rarity) => setDetail({ offerId: detail.offerId, card: { id, rarity } })}
+        onPurchase={() => void handlePurchase(offer.id)}
+        purchasing={purchasingOfferId === offer.id}
+      /> : <><ScreenHeading backLabel="До пропозицій" onBack={() => setDetail(null)} title="Пропозиція недоступна" /><p className="shop-state">Ця пропозиція більше не доступна.</p></>}
+    </section>;
+  }
+
   return (
     <section className={`shop-screen shop-screen--${view} shop-screen--${section}`} ref={shopRef}>
       <ScreenHeading backLabel={view === "section" ? "До категорій" : "Назад"} onBack={handleShopBack} title={view === "categories" ? "Магазин" : activeCategoryData?.title ?? "Магазин"} />
@@ -411,6 +440,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
                         availableBalance={player ? (offer.currency === "silver" ? player.silver : player.gold) : undefined}
                         key={offer.id}
                         offer={offer}
+                        onDetails={() => setDetail({ offerId: offer.id })}
                         onPurchase={() => void handlePurchase(offer.id)}
                         purchasing={purchasingOfferId === offer.id}
                       />

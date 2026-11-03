@@ -38,11 +38,11 @@ export const BATTLE_PASS_MILESTONES: readonly BattlePassMilestoneConfig[] = BATT
 export const DAILY_TASKS = [
   { eventType: "DUEL_WON", id: "win-duels", rewardDiamonds: 1, target: 20, title: "Виграйте 20 дуелей" },
   { eventType: "DUEL_FINISHED", id: "play-duels", rewardDiamonds: 1, target: 30, title: "Проведіть 30 дуелей" },
-  { eventType: "CARD_ACQUIRED", id: "acquire-cards", rewardDiamonds: 1, target: 3, title: "Отримайте 3 карти" },
+  { eventType: "CAMPAIGN_CARD_DROP", id: "acquire-cards", rewardDiamonds: 1, target: 3, title: "Отримайте 3 карти в кампанії" },
   { eventType: "CARD_ABSORBED", id: "absorb-cards", rewardDiamonds: 1, target: 10, title: "Поглиніть 10 карт" },
   { eventType: "SHOP_CARD_PURCHASED", id: "buy-cards", rewardDiamonds: 2, target: 5, title: "Придбайте 5 карт" },
   { eventType: "CARD_LEVEL_UP", id: "upgrade-card", rewardDiamonds: 1, target: 1, title: "Покращте бойову карту 1 раз" },
-  { eventType: "ARENA_FINISHED", id: "play-arenas", rewardDiamonds: 3, target: 10, title: "Поучаствуйте в 10 боях на арені" },
+  { eventType: "ARENA_FINISHED", id: "play-arenas", rewardDiamonds: 3, target: 10, title: "Зіграйте 10 боїв на арені" },
   { eventType: "ARENA_WON", id: "win-arenas", rewardDiamonds: 3, target: 5, title: "Виграйте 5 арен" },
 ] as const;
 

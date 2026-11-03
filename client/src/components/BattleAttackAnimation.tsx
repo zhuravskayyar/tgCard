@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { CardElement, CardRarity, DuelExchange } from "@cardastika/shared";
 import { elementSoundCue, playSound, type SoundCue } from "../audio";
-import { BRIGHT_CUT_MATERIALS, ELEMENT_FINISH, GLOW, getBrightCutMaterialId } from "../cards/brightCutModel";
+import { ELEMENT_FINISH, GLOW, getBrightCutPlate } from "../cards/brightCutModel";
 import { holdCardMaterialAnimation } from "../cards/cardMaterialShader";
 import { CardFxWrapper } from "./CardFxWrapper";
 import { CardHud } from "./CardHud";
@@ -51,7 +51,7 @@ const rgba = (hex: string, alpha: number) => {
 };
 const transform = (x: number, y: number, rotateY: number, rotateZ: number, scale: number) =>
   `perspective(900px) translate(${x}px, ${y}px) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`;
-const materialFor = (rarity: CardRarity) => BRIGHT_CUT_MATERIALS.find((material) => material.id === getBrightCutMaterialId(rarity)) ?? BRIGHT_CUT_MATERIALS[0]!;
+const materialFor = (rarity: CardRarity) => getBrightCutPlate(rarity);
 
 type ParticleKind = "glow" | "smoke" | "ember" | "spark" | "drop" | "ring" | "rock" | "leaf" | "shred" | "star" | "bolt" | "crack";
 interface Particle {

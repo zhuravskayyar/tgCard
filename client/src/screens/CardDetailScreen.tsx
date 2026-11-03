@@ -19,6 +19,7 @@ import { CardProtectionFx } from "./CardProtectionFx";
 import { getTelegramInitData } from "../telegram";
 import { absorbCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, previewCardAbsorption, toggleCardProtection } from "../telegram/playerCards";
 import { PlayerDataError } from "../telegram/playerDeck";
+import { useGyroscopeCardTilt } from "../hooks/useGyroscopeCardTilt";
 
 const ELEMENT_GENITIVE = { fire: "вогню", water: "води", earth: "землі", air: "повітря" } as const;
 const homeSprite = (name: string) => `/assets/ui/home/sprites/${name}.webp`;
@@ -48,6 +49,13 @@ function requestErrorMessage(error: unknown) {
   return "Дію не виконано. Оновіть дані та спробуйте ще раз.";
 }
 
+function formatGainPercent(value: number) {
+  if (value <= 0) return "0%";
+  if (value < 0.01) return "<0,01%";
+  const digits = value >= 10 ? 0 : value >= 1 ? 1 : 2;
+  return `${String(Number(value.toFixed(digits))).replace(".", ",")}%`;
+}
+
 export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, onGoldChange, onOpenDeck, onOpenShop, onOpenWeakCards }: CardDetailScreenProps) {
   const [detail, setDetail] = useState<DetailState>({ status: "loading" });
   const [detailAttempt, setDetailAttempt] = useState(0);
@@ -56,7 +64,6 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const [candidates, setCandidates] = useState<CandidatesState>({ status: "loading" });
   const [cardDisplayPower, setCardDisplayPower] = useState<number | null>(null);
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
-  const [absorptionCandidate, setAbsorptionCandidate] = useState<AbsorptionCandidatesResponse["cards"][number] | null>(null);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -64,6 +71,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const absorptionPanelRef = useRef<HTMLElement>(null);
   const cardDetailRef = useRef<HTMLDivElement>(null);
   const absorptionCardRefs = useRef(new Map<string, HTMLDivElement>());
+  useGyroscopeCardTilt(cardDetailRef);
 
   useEffect(() => {
     if (!actionSuccess) return;
@@ -100,7 +108,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   }, [candidateAttempt, candidatePage, cardInstanceId]);
 
   // Per-candidate progress gain from the server preview, shown under each weak card.
-  const [candidateGains, setCandidateGains] = useState<Record<string, number>>({});
+  const [candidateGains, setCandidateGains] = useState<Record<string, { percent: number }>>({});
   useEffect(() => {
     const initData = getTelegramInitData();
     if (!initData || candidates.status !== "ready" || candidates.data.cards.length === 0) {
@@ -109,7 +117,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     }
     const controller = new AbortController();
     void Promise.all(candidates.data.cards.map((candidate) => previewCardAbsorption(initData, cardInstanceId, [candidate.instanceId], controller.signal)
-      .then((preview) => [candidate.instanceId, Math.max(0, Math.round(preview.afterPercent - preview.beforePercent))] as const)
+      // Measured in elements, so a level-up (percent wrapping to 0) still shows the real gain.
+      .then((preview) => [candidate.instanceId, { percent: preview.requiredElements > 0 ? (preview.addedElements / preview.requiredElements) * 100 : 0 }] as const)
       .catch(() => null)))
       .then((entries) => {
         if (!controller.signal.aborted) setCandidateGains(Object.fromEntries(entries.filter((entry) => entry !== null)));
@@ -169,7 +178,6 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
       if (result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
-      setAbsorptionCandidate(null);
       const powerDelta = previousCard ? result.card.finalPower - previousCard.finalPower : 0;
       const rarityChanged = previousCard !== null && result.card.rarity !== previousCard.rarity;
       const levelChanged = previousCard !== null && result.card.level !== previousCard.level;
@@ -215,7 +223,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     if (actionInFlightRef.current || pendingAction) return;
     setActionError(null);
     setActionSuccess(null);
-    setAbsorptionCandidate(candidate);
+    // Weak cards are cheap and the gain is shown on the button, so absorb at once without a dialog.
+    void performAbsorption([candidate.instanceId]);
   }
 
   async function performProtectionToggle() {
@@ -267,7 +276,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
     <div className="card-detail-overview">
       <div className="card-detail-overview__main">
-        <div aria-label={`${card.displayName ?? "Карта"}, сила ${formatFullUiNumber(card.finalPower)}`} className={`card-detail-card deck-card--${card.element} deck-card--${card.rarity}`} ref={cardDetailRef} role="img">
+        <div aria-label={`${card.displayName ?? "Карта"}, сила ${formatFullUiNumber(card.finalPower)}`} className={`card-detail-card card-detail-card--gyro deck-card--${card.element} deck-card--${card.rarity}`} ref={cardDetailRef} role="img">
           <CardFxWrapper artKey={card.artKey} cardId={card.cardId} element={card.element} interactive rarity={card.rarity}>
             <CardHud element={card.element} level={card.level} power={cardDisplayPower ?? card.finalPower} rarity={card.rarity} />
           </CardFxWrapper>
@@ -317,9 +326,9 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       </section> : null}
     </div>
 
-    {typeof document !== "undefined" && (actionError && !absorptionCandidate && !levelConfirmationOpen || actionSuccess) ? createPortal(
+    {typeof document !== "undefined" && (actionError && !levelConfirmationOpen || actionSuccess) ? createPortal(
       <div className="card-detail-feedback-layer">
-        {actionError && !absorptionCandidate && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
+        {actionError && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
         {actionSuccess ? <p className="action-feedback action-feedback--success" key={actionSuccess} role="status">{actionSuccess}</p> : null}
       </div>,
       document.body,
@@ -336,7 +345,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
               <DeckCard card={candidate} disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} />
               <button className="absorption-card-slot__action" disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} type="button">
                 <span>Поглинути</span>
-                <strong>{candidateGains[candidate.instanceId] === undefined ? "…" : `+${candidateGains[candidate.instanceId]}%`}</strong>
+                <strong>{candidateGains[candidate.instanceId] === undefined ? "…" : `+${formatGainPercent(candidateGains[candidate.instanceId]!.percent)}`}</strong>
               </button>
             </div>
           ))}
@@ -348,6 +357,5 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow chevron icon="deck" iconSrc={homeSprite("mode-deck")} illustrationSrc={homeSprite("row-deck")} onClick={onOpenDeck} title="Колода" /><MenuRow chevron icon="weak-cards" attention={hasAbsorptionAction} iconSrc={homeSprite("row-icon-weak-cards")} illustrationSrc={homeSprite("row-weak-cards")} onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow chevron icon="shop" iconSrc={homeSprite("row-icon-shop")} illustrationSrc={homeSprite("row-shop")} onClick={onOpenShop} title="Магазин" /></nav>
 
     {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
-    {absorptionCandidate ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути карту" description={<p>Поглинути карту <strong>{absorptionCandidate.displayName ?? "без назви"}</strong>? Вона буде витрачена, щоб посилити цю карту.</p>} error={actionError} onCancel={() => setAbsorptionCandidate(null)} onConfirm={() => void performAbsorption([absorptionCandidate.instanceId])} restoreFocusTargetRef={absorptionPanelRef} title="Підтвердити поглинання?" /> : null}
   </section>;
 }

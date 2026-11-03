@@ -10,6 +10,7 @@ import type {
   PlayerCollectionsResponse,
   PlayerCollectionSummary,
   CollectionSource,
+  ShopCardInfoResponse,
 } from "@cardastika/shared";
 import type { Pool } from "pg";
 
@@ -195,7 +196,7 @@ export class CollectionRepository {
     }
   }
 
-  private async findCards(playerId: string, collectionId: string, cardId?: string) {
+  private async findCards(playerId: string, collectionId: string | null, cardId?: string) {
     const parameters: unknown[] = [playerId, BASE_POWER_BY_LEVEL, collectionId];
     const cardFilter = cardId ? "AND cards.id = $4" : "";
     if (cardId) parameters.push(cardId);
@@ -211,12 +212,12 @@ export class CollectionRepository {
             instances.id
           ) FILTER (WHERE instances.id IS NOT NULL))[1] AS strongest_instance_id
         FROM cards
-        INNER JOIN collection_cards members ON members.card_id = cards.id AND members.collection_id = $3
+        LEFT JOIN collection_cards members ON members.card_id = cards.id AND members.collection_id = $3
         LEFT JOIN player_card_discoveries discoveries
           ON discoveries.card_id = cards.id AND discoveries.player_id = $1
         LEFT JOIN player_card_instances instances
           ON instances.card_id = cards.id AND instances.player_id = $1
-        WHERE TRUE
+        WHERE ($3::text IS NULL OR members.collection_id IS NOT NULL)
           ${cardFilter}
         GROUP BY cards.id, discoveries.card_id, members.position
         ORDER BY members.position
@@ -224,6 +225,28 @@ export class CollectionRepository {
       parameters,
     );
     return result.rows.map(mapCard);
+  }
+
+  async previewCard(playerId: string, cardId: string): Promise<ShopCardInfoResponse> {
+    try {
+      const card = (await this.findCards(playerId, null, cardId))[0];
+      if (!card) throw new CollectionCardMissingError();
+      const result = await this.pool.query<SummaryRow>(
+        `${SUMMARY_QUERY}
+         WHERE EXISTS (
+           SELECT 1 FROM collection_cards card_membership
+           WHERE card_membership.collection_id = collections.id
+             AND card_membership.card_id = $2
+         )
+         GROUP BY collections.id, completions.completed_at
+         ORDER BY collections.position`,
+        [playerId, cardId],
+      );
+      return { card, collections: result.rows.map(mapSummary) };
+    } catch (error) {
+      if (error instanceof CollectionCardMissingError) throw error;
+      throw new CollectionPersistenceError();
+    }
   }
 
   async detail(playerId: string, collectionId: string): Promise<PlayerCollectionResponse> {

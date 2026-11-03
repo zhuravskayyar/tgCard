@@ -106,7 +106,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
           : await linkTelegramAccount(request.authData, controller.signal);
       setIdentities(result.identities);
       setTransferRequest(null);
-      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Отримано 500 золота." : ""}`);
+      setLinkNotice(`${providerLabel(request.provider)} ${result.replacedExisting ? "перенесено" : "прив'язано"} до цього профілю.${result.rewardGranted ? " Нагороду за прив’язку отримано." : ""}`);
     } catch (error) {
       if (
         request.provider === "google"
@@ -134,7 +134,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
 
   return (
     <section className="settings-screen">
-      <ScreenHeading onBack={onBack} title="НАЛАШТУВАННЯ" />
+      <ScreenHeading onBack={onBack} title="Налаштування" />
 
       <section className="settings-section" aria-labelledby="settings-account">
         <h2 id="settings-account">АКАУНТ</h2>

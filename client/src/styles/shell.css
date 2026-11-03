@@ -66,6 +66,8 @@
 .top-hud__xp-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); border-radius: inherit; }
 
 .app-content { padding-top: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + var(--space-3)); padding-bottom: calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + var(--space-5)); scroll-padding-bottom: calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + var(--space-3)); }
+/* The page sprite ends in a painted wooden edge above the nav; scrolled content must stop before that edge, not slide over it. */
+:root .app-shell .app-content.app-content:not(:has(.home-screen)) { height: calc(100dvh - var(--navigation-height) - env(safe-area-inset-bottom, 0px) - 26px); padding-bottom: var(--space-4); scroll-padding-bottom: var(--space-3); }
 
 .bottom-navigation { position: fixed; z-index: 10; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, var(--shell-width)); height: calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px)); padding: var(--space-1) var(--space-1) env(safe-area-inset-bottom, 0px); color: var(--text-secondary); border-top: 1px solid var(--border-default); background: linear-gradient(180deg, #21180f, #100c08); box-shadow: 0 -4px 12px rgb(0 0 0 / 24%); }
 .bottom-navigation__items { display: grid; height: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
