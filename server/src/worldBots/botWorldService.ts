@@ -1,13 +1,13 @@
 import { randomInt, randomUUID } from "node:crypto";
 import {
+  applyAccountXp,
   calculateEquipmentSummary,
   getBasePowerForLevel,
-  getRequiredAccountXp,
   generateStandardBonusPower,
   STARTER_EQUIPMENT_DEFINITIONS,
   type IntegerRandomSource,
 } from "@cardastika/game-core";
-import { DUEL_LEAGUE_CONFIG, type CardElement, type DuelView, type EquipmentSlot, type GuildLanguage } from "@cardastika/shared";
+import { DUEL_LEAGUE_CONFIG, getLeagueByRating, type CardElement, type CardRarity, type DuelView, type EquipmentSlot, type GuildLanguage } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { DuelService } from "../duel/duelService.js";
 import type { GuildService } from "../guild/guildService.js";
@@ -18,6 +18,7 @@ export type BotSessionWindow = "slot-1" | "slot-2" | "slot-3" | "slot-4" | "slot
 
 const DECK_ELEMENTS: readonly CardElement[] = ["fire", "fire", "fire", "water", "water", "air", "air", "earth", "earth"];
 const EQUIPMENT_SLOT_ORDER: readonly EquipmentSlot[] = ["weapon", "shield", "head", "cloak", "gloves", "boots", "amulet", "relic", "voodoo"];
+const EQUIPMENT_RARITIES: readonly CardRarity[] = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
 const SECTION_LABELS: Readonly<Record<GuildLanguage, { welcome: [string, string]; inner: [string, string] }>> = {
   uk: { welcome: ["Гостьова зала", "Новини та знайомство. Видно всім мандрівникам."], inner: ["Внутрішня зала", "Тактика, плани та розмови учасників."] },
   ru: { welcome: ["Гостевой зал", "Новости и знакомство. Видно всем путешественникам."], inner: ["Внутренний зал", "Тактика, планы и разговоры участников."] },
@@ -95,14 +96,6 @@ function equippedItemsFor(bot: WorldBotDefinition) {
   return { equipped, inventory };
 }
 
-function getAccountLifetimeXp(level: number, currentXp: number) {
-  let total = currentXp;
-  for (let completedLevel = 1; completedLevel < level; completedLevel += 1) {
-    total += getRequiredAccountXp(completedLevel);
-  }
-  return total;
-}
-
 function estimateBotDeckPower(bot: WorldBotDefinition) {
   const { equipped } = equippedItemsFor(bot);
   const equipmentSummary = calculateEquipmentSummary(
@@ -117,6 +110,45 @@ function estimateBotDeckPower(bot: WorldBotDefinition) {
   return DECK_ELEMENTS.reduce((total, element) => (
     total + expectedCardPower + equipmentSummary.elementBonuses[element]
   ), 0);
+}
+
+function getBotProgressionDefinition(bot: WorldBotDefinition, level: number, deckLevel: number): WorldBotDefinition {
+  const configuredRarityIndex = EQUIPMENT_RARITIES.indexOf(bot.equipmentRarity);
+  const unlockedRarityIndex = level >= 20 ? 5 : level >= 14 ? 4 : level >= 10 ? 3 : level >= 7 ? 2 : level >= 4 ? 1 : 0;
+  const equipmentSlots = Math.min(bot.equipmentSlots, clamp(2 + Math.floor(Math.max(0, level - 1) / 3), 2, EQUIPMENT_SLOT_ORDER.length));
+  return {
+    ...bot,
+    deckLevel: clamp(deckLevel, 1, 120),
+    equipmentRarity: EQUIPMENT_RARITIES[Math.min(configuredRarityIndex, unlockedRarityIndex)]!,
+    equipmentSlots,
+    level,
+  };
+}
+
+function getSeededDuelRecord(bot: WorldBotDefinition) {
+  const league = DUEL_LEAGUE_CONFIG.leagues[bot.duelLeagueIndex];
+  if (!league) throw new Error(`World bot ${bot.botKey} has an invalid duel league index`);
+  const maxRating = league.maxRating ?? league.minRating + DUEL_LEAGUE_CONFIG.divisionRatingStep - 1;
+  const targetRating = league.minRating + 25 + hashString(`${bot.botKey}:rating`) % 51;
+  const targetWinRate = 0.62 + (bot.avatarIndex % 6) * 0.02;
+  let best: { losses: number; rating: number; score: number; wins: number } | null = null;
+
+  for (let duels = 10; duels <= 240; duels += 1) {
+    for (let wins = 10; wins <= duels; wins += 1) {
+      const losses = duels - wins;
+      const rating = Math.max(0, wins * DUEL_LEAGUE_CONFIG.winRating + losses * DUEL_LEAGUE_CONFIG.lossRating);
+      if (rating < league.minRating || rating > maxRating) continue;
+      const winRate = wins / duels;
+      if (winRate < 0.35 || winRate > 0.85) continue;
+      const score = Math.abs(rating - targetRating) * 0.15
+        + Math.abs(winRate - targetWinRate) * 100
+        + duels * 0.002;
+      if (!best || score < best.score) best = { losses, rating, score, wins };
+    }
+  }
+
+  if (!best) throw new Error(`Could not create a realistic duel record for world bot ${bot.botKey}`);
+  return best;
 }
 
 export class BotWorldService {
@@ -180,6 +212,7 @@ export class BotWorldService {
             [profile.bot_key, day, window, completed],
           );
         }
+        await this.syncBotProgression(profile.player_id, definition);
         await this.handleGuildActivity(definition, profile);
         await this.pool.query(
           `UPDATE simulated_bot_profiles SET last_active_at = NOW(), updated_at = NOW()
@@ -242,7 +275,6 @@ export class BotWorldService {
     const client = await this.pool.connect();
     const playerId = randomUUID();
     const referralCode = playerId.replaceAll("-", "").slice(0, 12).toLowerCase();
-    const { equipped, inventory } = equippedItemsFor(bot);
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('cardastika-world-bot-seed'))");
@@ -256,21 +288,22 @@ export class BotWorldService {
         return existing.rows[0];
       }
       const leagueSeed = this.getDuelLeagueSeed(bot);
+      const seededBot = getBotProgressionDefinition(bot, leagueSeed.level, leagueSeed.deckLevel);
       await client.query(
         `INSERT INTO players (
            id, telegram_user_id, username, nickname, first_name, last_name, photo_url,
            level, account_xp, silver, gold, referral_code, tutorial_eligible, equipment, is_bot,
            duel_rating, duel_highest_league_index, duel_wins, duel_losses, rating
          ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8, 50000, 0, $9, FALSE, $10::jsonb, TRUE, $11, $12, $13, $14, $11)`,
-        [playerId, bot.username, bot.nickname, bot.firstName, bot.lastName, `bot-avatar:${String(bot.avatarIndex).padStart(2, "0")}`, bot.level, leagueSeed.accountXp, referralCode, JSON.stringify({ equipped }), leagueSeed.rating, bot.duelLeagueIndex, leagueSeed.wins, leagueSeed.losses],
+        [playerId, bot.username, bot.nickname, bot.firstName, bot.lastName, `bot-avatar:${String(bot.avatarIndex).padStart(2, "0")}`, leagueSeed.level, leagueSeed.accountXp, referralCode, JSON.stringify({ equipped: leagueSeed.equipped }), leagueSeed.rating, leagueSeed.leagueIndex, leagueSeed.wins, leagueSeed.losses],
       );
-      await this.createBotDeck(client, playerId, bot);
-      if (inventory.length) {
+      await this.createBotDeck(client, playerId, seededBot);
+      if (leagueSeed.inventory.length) {
         await client.query(
           `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
            SELECT $1, items.item_id, 1 FROM UNNEST($2::text[]) AS items(item_id)
            ON CONFLICT (player_id, item_id) DO NOTHING`,
-          [playerId, inventory],
+          [playerId, leagueSeed.inventory],
         );
       }
       await client.query(
@@ -364,18 +397,35 @@ export class BotWorldService {
   }
 
   private getDuelLeagueSeed(bot: WorldBotDefinition) {
-    const league = DUEL_LEAGUE_CONFIG.leagues[bot.duelLeagueIndex];
-    if (!league) throw new Error(`World bot ${bot.botKey} has an invalid duel league index`);
-    const accountXp = Math.floor(getRequiredAccountXp(bot.level) / 2);
-    const lifetimeXp = getAccountLifetimeXp(bot.level, accountXp);
-    const expectedDeckPower = estimateBotDeckPower(bot);
-    const estimatedDuels = Math.max(15, Math.ceil(lifetimeXp / Math.max(expectedDeckPower, 1)));
-    const expectedWinRate = 0.62 + (bot.avatarIndex % 6) * 0.02;
+    const record = getSeededDuelRecord(bot);
+    let level = 1;
+    let deckLevel = 6;
+    let accountProgress = applyAccountXp({ level: 1, xp: 0, gainedXp: 0 });
+    for (let iteration = 0; iteration < 20; iteration += 1) {
+      const progressionBot = getBotProgressionDefinition(bot, level, deckLevel);
+      const expectedDeckPower = estimateBotDeckPower(progressionBot);
+      const estimatedXp = Math.max(
+        (record.wins + record.losses) * 35,
+        Math.round(expectedDeckPower * (record.wins * 0.55 + record.losses * 0.35)),
+      );
+      accountProgress = applyAccountXp({ level: 1, xp: 0, gainedXp: estimatedXp });
+      const nextDeckLevel = clamp(accountProgress.newLevel + 5, 1, 30);
+      if (accountProgress.newLevel === level && nextDeckLevel === deckLevel) break;
+      level = accountProgress.newLevel;
+      deckLevel = nextDeckLevel;
+    }
+    const seededBot = getBotProgressionDefinition(bot, level, deckLevel);
+    const { equipped, inventory } = equippedItemsFor(seededBot);
     return {
-      rating: league.minRating + 20 + (hashString(`${bot.botKey}:rating`) % 61),
-      accountXp,
-      wins: Math.max(10, Math.round(estimatedDuels * expectedWinRate)),
-      losses: Math.max(0, estimatedDuels - Math.round(estimatedDuels * expectedWinRate)),
+      accountXp: accountProgress.remainingXp,
+      deckLevel,
+      equipped,
+      inventory,
+      leagueIndex: getLeagueByRating(record.rating).index,
+      level,
+      losses: record.losses,
+      rating: record.rating,
+      wins: record.wins,
     };
   }
 
@@ -385,7 +435,6 @@ export class BotWorldService {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('cardastika-world-bot-leagues'))");
       const seeds = WORLD_BOTS.map((bot) => {
-        const equipped = equippedItemsFor(bot);
         const progression = this.getDuelLeagueSeed(bot);
         return {
           bot_key: bot.botKey,
@@ -393,9 +442,11 @@ export class BotWorldService {
           wins: progression.wins,
           losses: progression.losses,
           account_xp: progression.accountXp,
-          league_index: bot.duelLeagueIndex,
-          equipped: equipped.equipped,
-          inventory: equipped.inventory,
+          level: progression.level,
+          deck_level: progression.deckLevel,
+          league_index: progression.leagueIndex,
+          equipped: progression.equipped,
+          inventory: progression.inventory,
         };
       });
       await client.query(
@@ -404,14 +455,17 @@ export class BotWorldService {
              duel_highest_league_index = GREATEST(player.duel_highest_league_index, seed.league_index),
              duel_wins = GREATEST(player.duel_wins, seed.wins),
              duel_losses = GREATEST(player.duel_losses, seed.losses),
+             level = GREATEST(player.level, seed.level),
              account_xp = GREATEST(player.account_xp, seed.account_xp),
-             equipment = jsonb_build_object('equipped', seed.equipped),
+             equipment = CASE WHEN profile.duel_league_seeded_at IS NULL
+               THEN jsonb_build_object('equipped', seed.equipped) ELSE player.equipment END,
              rating = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.rating ELSE player.rating END,
              updated_at = NOW()
          FROM simulated_bot_profiles AS profile
          JOIN jsonb_to_recordset($1::jsonb) AS seed(
            bot_key text, rating integer, wins integer, losses integer,
-           account_xp bigint, league_index integer, equipped jsonb
+           account_xp bigint, level integer, deck_level integer,
+           league_index integer, equipped jsonb, inventory jsonb
          ) ON seed.bot_key = profile.bot_key
          WHERE player.id = profile.player_id
            AND (
@@ -419,8 +473,8 @@ export class BotWorldService {
              OR player.duel_highest_league_index < seed.league_index
              OR player.duel_wins < seed.wins
              OR player.duel_losses < seed.losses
+             OR player.level < seed.level
              OR player.account_xp < seed.account_xp
-             OR player.equipment IS DISTINCT FROM jsonb_build_object('equipped', seed.equipped)
            )`,
         [JSON.stringify(seeds)],
       );
@@ -442,6 +496,42 @@ export class BotWorldService {
       throw error;
     } finally {
       client.release();
+    }
+  }
+
+  private async syncBotProgression(playerId: string, bot: WorldBotDefinition) {
+    const player = await this.pool.query<{ level: number }>("SELECT level FROM players WHERE id = $1", [playerId]);
+    if (!player.rows[0]) return;
+    const level = player.rows[0].level;
+    const progressionBot = getBotProgressionDefinition(bot, level, clamp(level + 5, 1, 30));
+    const { equipped, inventory } = equippedItemsFor(progressionBot);
+    const cardLevel = progressionBot.deckLevel;
+    const cardBonusPower = Math.floor(getBasePowerForLevel(cardLevel) / 10);
+    await this.pool.query(
+      `UPDATE players
+       SET equipment = jsonb_set(COALESCE(equipment, '{}'::jsonb), '{equipped}', $2::jsonb, TRUE),
+           updated_at = NOW()
+       WHERE id = $1`,
+      [playerId, JSON.stringify(equipped)],
+    );
+    await this.pool.query(
+      `UPDATE player_card_instances AS instance
+       SET level = GREATEST(instance.level, $2),
+           bonus_power = GREATEST(instance.bonus_power, $3)
+       FROM deck_slots AS slot
+       JOIN player_decks AS deck ON deck.id = slot.deck_id
+       WHERE deck.player_id = $1
+         AND instance.player_id = $1
+         AND instance.id = slot.card_instance_id`,
+      [playerId, cardLevel, cardBonusPower],
+    );
+    if (inventory.length) {
+      await this.pool.query(
+        `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
+         SELECT $1, item_id, 1 FROM UNNEST($2::text[]) AS items(item_id)
+         ON CONFLICT (player_id, item_id) DO NOTHING`,
+        [playerId, inventory],
+      );
     }
   }
 

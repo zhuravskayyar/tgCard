@@ -21,7 +21,7 @@ export interface LeaderboardResponse {
   duelWins: number;
   requiredDuelWins: number;
   eligible: boolean;
-  /** League shown for duels and arena: the viewer's own league. Null for deck power. */
+  /** League shown for arena. Duels are global and deck power has no league. */
   leagueIndex: number | null;
   /** The viewer's own row with their rank in this list, or null when not ranked. */
   me: LeaderboardEntry | null;

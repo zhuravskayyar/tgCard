@@ -207,10 +207,8 @@ export class LeaderboardRepository {
     }
   }
 
-  // Duels and arena list the viewer's own league, like the reference; deck power is one global table.
+  // Duels are a global table; arena remains scoped to the viewer's league.
   private async findDuelLeaderboard(page: number, viewerId: string): Promise<LeaderboardPage> {
-    const viewer = await this.pool.query<{ duel_rating: string | number }>("SELECT duel_rating FROM players WHERE id = $1", [viewerId]);
-    const league = getLeagueByRating(toSafeInteger(viewer.rows[0]?.duel_rating ?? 0, "duel rating"));
     const result = await this.pool.query<DuelLeaderboardRow>(
       `
         SELECT id, nickname, username, first_name, photo_url, level, duel_rating
@@ -219,10 +217,10 @@ export class LeaderboardRepository {
           SELECT 1 FROM simulated_bot_profiles AS bot
           WHERE bot.player_id = players.id AND bot.enabled = TRUE
         ))
-          AND duel_wins >= $1 AND duel_rating >= $2 AND ($3::integer IS NULL OR duel_rating <= $3)
+          AND duel_wins >= $1
         ORDER BY duel_rating DESC, duel_wins DESC, id ASC
       `,
-      [LEADERBOARD_REQUIRED_DUEL_WINS, league.minRating, league.maxRating],
+      [LEADERBOARD_REQUIRED_DUEL_WINS],
     );
     return paginate(result.rows.map((row) => ({
       displayName: getDisplayName(row.nickname, row.username, row.first_name),
@@ -230,7 +228,7 @@ export class LeaderboardRepository {
       level: row.level,
       photoUrl: row.photo_url,
       score: toSafeInteger(row.duel_rating, "duel rating"),
-    })), page, viewerId, league.index);
+    })), page, viewerId);
   }
 
   private async findArenaLeaderboard(page: number, viewerId: string): Promise<LeaderboardPage> {

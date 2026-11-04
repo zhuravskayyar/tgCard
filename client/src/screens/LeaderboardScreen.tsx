@@ -85,20 +85,14 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
       ) : null}
 
       {playerSummaryState.status !== "unavailable" && state.status !== "unavailable" ? (
-        !eligible ? (
-          <section className="leaderboard-lock" aria-label="Рейтинг заблоковано">
-            <AppIcon name="lock" size={34} />
-            <strong>Рейтинг ще не відкритий</strong>
-            <p>Виграйте ще {Math.max(0, LEADERBOARD_REQUIRED_DUEL_WINS - duelWins)} дуелей, щоб побачити найкращих гравців.</p>
-            <div className="leaderboard-lock__progress" role="progressbar" aria-valuemin={0} aria-valuemax={LEADERBOARD_REQUIRED_DUEL_WINS} aria-valuenow={Math.min(LEADERBOARD_REQUIRED_DUEL_WINS, duelWins)}>
-              <span style={{ width: `${Math.min(100, (duelWins / LEADERBOARD_REQUIRED_DUEL_WINS) * 100)}%` }} />
-            </div>
-            <small>{duelWins}/{LEADERBOARD_REQUIRED_DUEL_WINS} перемог</small>
-          </section>
-        ) : (
-          <>
+        <>
+            {tab === "duels" && !eligible ? (
+              <div className="leaderboard-state" role="status">
+                Твій рядок з’явиться після {LEADERBOARD_REQUIRED_DUEL_WINS} перемог у дуелях ({duelWins}/{LEADERBOARD_REQUIRED_DUEL_WINS}).
+              </div>
+            ) : null}
             <h2 className="leaderboard-title">{activeTab.title}</h2>
-            {tab === "duels" ? <p className="leaderboard-disclosure">У рейтингу є автоматизовані ігрові персонажі.</p> : null}
+            {tab === "duels" ? <p className="leaderboard-disclosure">Усі ліги зібрані в одному глобальному рейтингу.</p> : null}
 
             <div className="leaderboard-tabs" role="tablist" aria-label="Категорія рейтингу">
               {leaderboardTabs.map((item) => (
@@ -143,8 +137,7 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
                 {data ? <Pagination currentPage={data.page} onPageChange={setPage} totalPages={data.totalPages} /> : null}
               </section>
             )}
-          </>
-        )
+        </>
       ) : null}
     </section>
   );

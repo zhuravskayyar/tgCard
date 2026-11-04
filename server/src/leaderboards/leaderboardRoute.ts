@@ -58,9 +58,7 @@ export async function handleLeaderboardRequest(
     const { player } = await authenticateRoutePlayer(request, dependencies);
     const duelWins = player.duelWins ?? 0;
     const eligible = duelWins >= LEADERBOARD_REQUIRED_DUEL_WINS;
-    const page = eligible
-      ? await dependencies.leaderboards.find(kind, readPage(url.searchParams.get("page")), player.id)
-      : { entries: [], leagueIndex: null, me: null, page: 1, pageSize: 10, totalEntries: 0 };
+    const page = await dependencies.leaderboards.find(kind, readPage(url.searchParams.get("page")), player.id);
     const body: LeaderboardResponse = {
       ...page,
       kind,
