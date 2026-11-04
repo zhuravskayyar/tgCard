@@ -157,6 +157,15 @@ export function AuthScreen({
           {devAccounts.length > 0 ? <label className="auth-screen__dev-login">LOCAL DEV · тестовий акаунт<select aria-label="Тестовий локальний акаунт" disabled={busy} defaultValue="" onChange={(event) => { void handleDevLogin(event.target.value); }}><option value="">Обрати demo-акаунт…</option>{devAccounts.map((account) => <option key={account.key} value={account.key}>{account.label}</option>)}</select></label> : null}
           <p className="auth-screen__note">Можна грати без реєстрації. Прогрес неприв’язаного профілю можна втратити після очищення браузера або переходу на інший пристрій.</p>
         </section>
+
+        {isTelegramMiniApp ? null : (
+          <section className="auth-screen__about" aria-labelledby="auth-about-title">
+            <h2 id="auth-about-title">Cardastika — фентезійна карткова онлайн-гра</h2>
+            <p>Кардастіка — безкоштовна гра у світі Світового Дерева. Грай у браузері або Telegram без завантаження: почни нову подорож без реєстрації або повернися до збереженого акаунта.</p>
+            <p>Збери колоду з дев’яти карт, виставляй по три карти на поле та керуй стихіями вогню, води, повітря й землі. Враховуй переваги стихій і підбирай карти для перемоги в дуелях.</p>
+            <p>Відкривай нові карти, поповнюй колекції, проходь пригоди кампанії та приєднуйся до гільдії. Розвивай колоду й досліджуй фентезійний світ у власному темпі.</p>
+          </section>
+        )}
       </div>
       <p className="auth-screen__footer">CARDASTIKA · СВІТ ЧОТИРЬОХ СТИХІЙ</p>
 

@@ -550,16 +550,16 @@ function localizeDom(root: Element | Text, locale: Exclude<UiLocale, "uk">, orig
 }
 
 const PAGE_TITLES: Readonly<Record<UiLocale, string>> = {
-  en: "Cardastika — The World Tree",
-  uk: "Cardastika — Світове Дерево",
-  ru: "Cardastika — Мировое Древо",
-  de: "Cardastika — Der Weltenbaum",
+  en: "Cardastika — Free Online Fantasy Card Game",
+  uk: "Cardastika — безкоштовна фентезійна карткова онлайн-гра",
+  ru: "Cardastika — бесплатная фэнтезийная карточная онлайн-игра",
+  de: "Cardastika — Kostenloses Online-Fantasy-Kartenspiel",
 };
 const PAGE_DESCRIPTIONS: Readonly<Record<UiLocale, string>> = {
-  en: "A fantasy card game about the World Tree and the four elements.",
-  uk: "Фентезійна карткова гра про Світове Дерево та чотири стихії.",
-  ru: "Фэнтезийная карточная игра о Мировом Древе и четырёх стихиях.",
-  de: "Ein Fantasy-Kartenspiel über den Weltenbaum und die vier Elemente.",
+  en: "Cardastika is a free online fantasy card game. Build a nine-card deck, master four elements, and win duels. Play in your browser or Telegram.",
+  uk: "Cardastika (Кардастіка) — безкоштовна фентезійна карткова онлайн-гра. Збери 9 карт, опануй 4 стихії та перемагай у дуелях. Грай у браузері або Telegram.",
+  ru: "Cardastika (Кардастика) — бесплатная фэнтезийная карточная онлайн-игра. Собери 9 карт, освой 4 стихии и побеждай в дуэлях. Играй в браузере или Telegram.",
+  de: "Cardastika ist ein kostenloses Online-Fantasy-Kartenspiel. Baue ein Deck aus neun Karten, meistere vier Elemente und gewinne Duelle. Im Browser oder Telegram.",
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
