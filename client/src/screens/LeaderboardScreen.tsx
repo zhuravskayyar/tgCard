@@ -8,7 +8,7 @@ import { LeagueBadge } from "../components/LeagueBadge";
 import { Pagination } from "../components/Pagination";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import type { PlayerSummaryState } from "../types/player";
-import { formatUiNumber } from "../i18n";
+import { formatUiNumber, getUiLocale, type UiLocale } from "../i18n";
 import "../styles/leaderboard-book.css";
 
 interface LeaderboardScreenProps {
@@ -27,6 +27,30 @@ const leaderboardTabs: Array<{ icon: AppIconName; kind: LeaderboardTab; label: s
   { icon: "skull", kind: "invasion", label: "Навала", title: "Рейтинг навал" },
   { icon: "deck-power", kind: "deck", label: "Колода", title: "Рейтинг сили колоди" },
 ];
+
+type LeaderboardCopy = {
+  globalDuelInfo: string;
+  ownDuelRow: (wins: number, required: number) => string;
+};
+
+const leaderboardCopy: Readonly<Record<UiLocale, LeaderboardCopy>> = {
+  uk: {
+    globalDuelInfo: "Усі ліги зібрані в одному глобальному рейтингу.",
+    ownDuelRow: (wins, required) => `Твій рядок з’явиться після ${formatUiNumber(required)} перемог у дуелях (${formatUiNumber(wins)}/${formatUiNumber(required)}).`,
+  },
+  en: {
+    globalDuelInfo: "All leagues are combined in one global leaderboard.",
+    ownDuelRow: (wins, required) => `Your row will appear after ${formatUiNumber(required)} duel wins (${formatUiNumber(wins)}/${formatUiNumber(required)}).`,
+  },
+  de: {
+    globalDuelInfo: "Alle Ligen sind in einer globalen Rangliste vereint.",
+    ownDuelRow: (wins, required) => `Dein Platz erscheint nach ${formatUiNumber(required)} Duellsiegen (${formatUiNumber(wins)}/${formatUiNumber(required)}).`,
+  },
+  ru: {
+    globalDuelInfo: "Все лиги собраны в одном глобальном рейтинге.",
+    ownDuelRow: (wins, required) => `Твоя строка появится после ${formatUiNumber(required)} побед в дуэлях (${formatUiNumber(wins)}/${formatUiNumber(required)}).`,
+  },
+};
 
 function isLiveKind(tab: LeaderboardTab): tab is LeaderboardKind {
   return tab === "duels" || tab === "arena" || tab === "deck";
@@ -59,6 +83,7 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
   const duelWins = state.status === "ready" ? state.data.duelWins : player?.duelWins ?? 0;
   const eligible = duelWins >= LEADERBOARD_REQUIRED_DUEL_WINS;
   const activeTab = leaderboardTabs.find((item) => item.kind === tab)!;
+  const copy = leaderboardCopy[getUiLocale()];
 
   useEffect(() => {
     setPage(1);
@@ -88,11 +113,11 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
         <>
             {tab === "duels" && !eligible ? (
               <div className="leaderboard-state" role="status">
-                Твій рядок з’явиться після {LEADERBOARD_REQUIRED_DUEL_WINS} перемог у дуелях ({duelWins}/{LEADERBOARD_REQUIRED_DUEL_WINS}).
+                {copy.ownDuelRow(duelWins, LEADERBOARD_REQUIRED_DUEL_WINS)}
               </div>
             ) : null}
             <h2 className="leaderboard-title">{activeTab.title}</h2>
-            {tab === "duels" ? <p className="leaderboard-disclosure">Усі ліги зібрані в одному глобальному рейтингу.</p> : null}
+            {tab === "duels" ? <p className="leaderboard-disclosure">{copy.globalDuelInfo}</p> : null}
 
             <div className="leaderboard-tabs" role="tablist" aria-label="Категорія рейтингу">
               {leaderboardTabs.map((item) => (
