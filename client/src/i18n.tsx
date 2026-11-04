@@ -7,6 +7,7 @@ import { getTelegramLanguageCode, getTelegramWebApp } from "./telegram";
 
 export const UI_LOCALES = ["en", "uk", "ru", "de"] as const;
 export type UiLocale = (typeof UI_LOCALES)[number];
+export const UI_LOCALE_CHOICES: readonly UiLocale[] = ["en", "uk", "de"];
 export type UiNumberLocale = "en-US" | "uk-UA" | "ru-RU" | "de-DE";
 const NUMBER_LOCALES: Readonly<Record<UiLocale, UiNumberLocale>> = { en: "en-US", uk: "uk-UA", ru: "ru-RU", de: "de-DE" };
 const LOCALE_STORAGE_KEY = "cardastika.locale.v1";

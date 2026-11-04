@@ -70,6 +70,7 @@ export interface PublicPlayerProfile {
   duelWins: number;
   id: string;
   equipment?: PublicPlayerEquipment;
+  lastActiveAt: string;
   level: number;
   photoUrl: string | null;
   strongestCards: PublicPlayerCard[];

@@ -4,6 +4,8 @@ import type { Pool } from "pg";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
 
 export const LEADERBOARD_PAGE_SIZE = 10;
+const BOT_MIN_INACTIVE_MS = 2 * 60_000;
+const BOT_MAX_INACTIVE_MS = 3 * 60 * 60_000;
 
 interface DuelLeaderboardRow {
   duel_rating: string | number;
@@ -40,11 +42,14 @@ interface PublicProfileRow {
   equipment: unknown;
   first_name: string;
   id: string;
+  is_bot: boolean;
   instance_id: string | null;
   instance_level: string | number | null;
+  bot_last_active_at: Date | string | null;
   level: number;
   nickname: string | null;
   photo_url: string | null;
+  updated_at: Date | string;
   username: string | null;
 }
 
@@ -69,6 +74,31 @@ function toSafeInteger(value: string | number, field: string) {
 
 function getDisplayName(nickname: string | null, username: string | null, firstName: string) {
   return getPlayerDisplayName({ firstName, nickname, username });
+}
+
+function toIsoTimestamp(value: Date | string) {
+  return (value instanceof Date ? value : new Date(value)).toISOString();
+}
+
+function getBotLastActiveAt(playerId: string, storedValue: Date | string | null) {
+  const now = Date.now();
+  const storedTimestamp = storedValue instanceof Date
+    ? storedValue.getTime()
+    : storedValue
+      ? Date.parse(storedValue)
+      : Number.NaN;
+  const inactiveForMs = now - storedTimestamp;
+  if (Number.isFinite(storedTimestamp) && inactiveForMs >= BOT_MIN_INACTIVE_MS && inactiveForMs <= BOT_MAX_INACTIVE_MS) {
+    return new Date(storedTimestamp).toISOString();
+  }
+
+  let hash = 2_166_136_261;
+  for (let index = 0; index < playerId.length; index += 1) {
+    hash = Math.imul(hash ^ playerId.charCodeAt(index), 16_777_619);
+  }
+  const inactiveRange = BOT_MAX_INACTIVE_MS - BOT_MIN_INACTIVE_MS + 1;
+  const simulatedInactiveForMs = BOT_MIN_INACTIVE_MS + ((hash >>> 0) % inactiveRange);
+  return new Date(now - simulatedInactiveForMs).toISOString();
 }
 
 function toEntry(row: PlayerAccumulator, index: number, offset: number): LeaderboardEntry {
@@ -138,6 +168,9 @@ export class LeaderboardRepository {
             players.duel_rating,
             players.duel_highest_league_index,
             players.equipment,
+            players.is_bot,
+            players.updated_at,
+            simulated_bot_profiles.last_active_at AS bot_last_active_at,
             cards.display_name AS card_display_name,
             cards.art_key,
             cards.id AS card_id,
@@ -146,6 +179,7 @@ export class LeaderboardRepository {
             player_card_instances.level AS instance_level,
             player_card_instances.bonus_power
           FROM players
+          LEFT JOIN simulated_bot_profiles ON simulated_bot_profiles.player_id = players.id
           LEFT JOIN player_decks ON player_decks.player_id = players.id
           LEFT JOIN deck_slots ON deck_slots.deck_id = player_decks.id
           LEFT JOIN player_card_instances ON player_card_instances.id = deck_slots.card_instance_id
@@ -198,6 +232,9 @@ export class LeaderboardRepository {
         duelWins: toSafeInteger(first.duel_wins, "duel wins"),
         equipment,
         id: first.id,
+        lastActiveAt: first.is_bot
+          ? getBotLastActiveAt(first.id, first.bot_last_active_at)
+          : toIsoTimestamp(first.updated_at),
         level: first.level,
         photoUrl: first.photo_url,
         strongestCards,

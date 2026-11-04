@@ -10,7 +10,7 @@ import { AvatarImage } from "../components/AvatarImage";
 import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { EMPTY_EQUIPMENT } from "../equipment/equipmentState";
 import { usePlayerProfile } from "../hooks/usePlayerProfile";
-import { formatUiNumber } from "../i18n";
+import { formatUiNumber, getUiLocale } from "../i18n";
 
 interface PlayerProfileScreenProps {
   onBack: () => void;
@@ -36,6 +36,16 @@ function getInitials(value: string) {
 
 function winsLabel(count: number) {
   return `${formatUiNumber(count)} перемог`;
+}
+
+function formatLastActiveAt(value: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "—";
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
+  const relativeTime = new Intl.RelativeTimeFormat(getUiLocale(), { numeric: "auto" });
+  if (elapsedMinutes < 1) return relativeTime.format(0, "second");
+  if (elapsedMinutes < 60) return relativeTime.format(-elapsedMinutes, "minute");
+  return relativeTime.format(-Math.floor(elapsedMinutes / 60), "hour");
 }
 
 function Section({ children, title }: { children: React.ReactNode; title: string }) {
@@ -157,6 +167,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
 
           <Section title="Активність">
             <dl className="pf-facts">
+              <div><dt>Остання активність</dt><dd>{formatLastActiveAt(profile.lastActiveAt)}</dd></div>
               <div><dt>Рівень мага</dt><dd>{profile.level}</dd></div>
               <div><dt>Перемог у дуелях</dt><dd>{formatUiNumber(profile.duelWins)}</dd></div>
             </dl>

@@ -4,7 +4,7 @@ import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { AuthProviderIcon } from "../components/AuthProviderIcon";
 import { ElementAmbientFx } from "../components/ElementAmbientFx";
 import { setSessionToken } from "../auth/session";
-import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
+import { getUiLocale, setUiLocale, UI_LOCALE_CHOICES, type UiLocale } from "../i18n";
 
 const LOCALE_LABELS: Readonly<Record<UiLocale, string>> = { en: "EN", uk: "UA", ru: "RU", de: "DE" };
 
@@ -125,7 +125,7 @@ export function AuthScreen({
       <ElementAmbientFx />
       {isTelegramMiniApp ? null : (
         <nav aria-label="Language" className="auth-screen__languages">
-          {UI_LOCALES.map((locale) => (
+          {UI_LOCALE_CHOICES.map((locale) => (
             <button aria-pressed={locale === getUiLocale()} key={locale} onClick={() => setUiLocale(locale)} type="button">{LOCALE_LABELS[locale]}</button>
           ))}
         </nav>
