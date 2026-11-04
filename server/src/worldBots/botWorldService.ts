@@ -416,8 +416,15 @@ export class BotWorldService {
     }
     const seededBot = getBotProgressionDefinition(bot, level, deckLevel);
     const { equipped, inventory } = equippedItemsFor(seededBot);
+    const cardLevels = Array.from({ length: 9 }, (_, index) => {
+      const slot = index + 1;
+      const cardLevel = clamp(deckLevel + (slot % 5) - 2, 1, 120);
+      const basePower = getBasePowerForLevel(cardLevel);
+      return { slot, level: cardLevel, bonusPower: Math.floor(basePower / 10) };
+    });
     return {
       accountXp: accountProgress.remainingXp,
+      cardLevels,
       deckLevel,
       equipped,
       inventory,
@@ -447,16 +454,19 @@ export class BotWorldService {
           league_index: progression.leagueIndex,
           equipped: progression.equipped,
           inventory: progression.inventory,
+          card_levels: progression.cardLevels,
         };
       });
       await client.query(
         `UPDATE players AS player
          SET duel_rating = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.rating ELSE player.duel_rating END,
-             duel_highest_league_index = GREATEST(player.duel_highest_league_index, seed.league_index),
-             duel_wins = GREATEST(player.duel_wins, seed.wins),
-             duel_losses = GREATEST(player.duel_losses, seed.losses),
-             level = GREATEST(player.level, seed.level),
-             account_xp = GREATEST(player.account_xp, seed.account_xp),
+             duel_highest_league_index = CASE WHEN profile.duel_league_seeded_at IS NULL
+               THEN seed.league_index ELSE GREATEST(player.duel_highest_league_index, seed.league_index) END,
+             duel_wins = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.wins ELSE GREATEST(player.duel_wins, seed.wins) END,
+             duel_losses = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.losses ELSE GREATEST(player.duel_losses, seed.losses) END,
+             duel_win_streak = CASE WHEN profile.duel_league_seeded_at IS NULL THEN 0 ELSE player.duel_win_streak END,
+             level = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.level ELSE GREATEST(player.level, seed.level) END,
+             account_xp = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.account_xp ELSE GREATEST(player.account_xp, seed.account_xp) END,
              equipment = CASE WHEN profile.duel_league_seeded_at IS NULL
                THEN jsonb_build_object('equipped', seed.equipped) ELSE player.equipment END,
              rating = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.rating ELSE player.rating END,
@@ -465,7 +475,7 @@ export class BotWorldService {
          JOIN jsonb_to_recordset($1::jsonb) AS seed(
            bot_key text, rating integer, wins integer, losses integer,
            account_xp bigint, level integer, deck_level integer,
-           league_index integer, equipped jsonb, inventory jsonb
+           league_index integer, equipped jsonb, inventory jsonb, card_levels jsonb
          ) ON seed.bot_key = profile.bot_key
          WHERE player.id = profile.player_id
            AND (
@@ -476,6 +486,24 @@ export class BotWorldService {
              OR player.level < seed.level
              OR player.account_xp < seed.account_xp
            )`,
+        [JSON.stringify(seeds)],
+      );
+      await client.query(
+        `UPDATE player_card_instances AS instance
+         SET level = card.level,
+             bonus_power = card.bonus_power,
+             level_progress_elements = 0,
+             stored_elements = 0
+         FROM simulated_bot_profiles AS profile
+         JOIN player_decks AS deck ON deck.player_id = profile.player_id
+         JOIN deck_slots AS slot ON slot.deck_id = deck.id
+         JOIN jsonb_to_recordset($1::jsonb) AS seed(bot_key text, card_levels jsonb)
+           ON seed.bot_key = profile.bot_key
+         CROSS JOIN LATERAL jsonb_to_recordset(seed.card_levels) AS card(slot integer, level integer, bonus_power integer)
+         WHERE instance.player_id = profile.player_id
+           AND instance.id = slot.card_instance_id
+           AND slot.slot = card.slot
+           AND profile.duel_league_seeded_at IS NULL`,
         [JSON.stringify(seeds)],
       );
       await client.query(
