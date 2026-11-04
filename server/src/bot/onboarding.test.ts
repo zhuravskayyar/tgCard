@@ -35,7 +35,7 @@ test("new players receive the presentation CTA", async () => {
   };
 
   await handleTelegramUpdate(
-    { update_id: 1, message: { chat: { id: 42, type: "private" }, from: { id: 99 }, text: "/start" } },
+    { update_id: 1, message: { chat: { id: 42, type: "private" }, from: { id: 99, language_code: "uk" }, text: "/start" } },
     {
       api,
       miniAppUrl: "https://app.cardastika.org",
@@ -61,7 +61,7 @@ test("existing players receive the launch CTA without onboarding", async () => {
   };
 
   await handleTelegramUpdate(
-    { update_id: 2, message: { chat: { id: 42, type: "private" }, from: { id: 99 }, text: "/start" } },
+    { update_id: 2, message: { chat: { id: 42, type: "private" }, from: { id: 99, language_code: "uk" }, text: "/start" } },
     {
       api,
       miniAppUrl: "https://app.cardastika.org",
@@ -99,7 +99,7 @@ test("available screenshots are sent as one media group before the launch CTA", 
         update_id: 3,
         callback_query: {
           id: "callback-3",
-          from: { id: 99 },
+          from: { id: 99, language_code: "uk" },
           data: ONBOARDING_CALLBACK,
           message: { chat: { id: 42, type: "private" } },
         },
@@ -118,4 +118,30 @@ test("available screenshots are sent as one media group before the launch CTA", 
   assert.equal(mediaGroups.length, 1);
   assert.equal(mediaGroups[0]?.length, 2);
   assert.match(messages[0] ?? "", /Готовий увійти/iu);
+});
+
+test("the bot answers in the Telegram language and falls back to English", async () => {
+  const replies = new Map<string, string>();
+  for (const languageCode of ["de", "ru", "pt-br"]) {
+    await handleTelegramUpdate(
+      { update_id: 4, message: { chat: { id: 42, type: "private" }, from: { id: 99, language_code: languageCode }, text: "/start" } },
+      {
+        api: {
+          answerCallbackQuery: async () => true,
+          sendMediaGroup: async () => [],
+          sendMessage: async (_chatId: number, text: string) => {
+            replies.set(languageCode, text);
+            return { chat: { id: 42, type: "private" } };
+          },
+          sendPhoto: async () => ({ chat: { id: 42, type: "private" } }),
+        },
+        miniAppUrl: "https://app.cardastika.org",
+        players: { hasTelegramPlayer: async () => true },
+      },
+    );
+  }
+
+  assert.match(replies.get("de") ?? "", /Willkommen zurück/u);
+  assert.match(replies.get("ru") ?? "", /С возвращением/u);
+  assert.match(replies.get("pt-br") ?? "", /Welcome back/u);
 });

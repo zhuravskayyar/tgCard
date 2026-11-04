@@ -31,6 +31,7 @@ export interface ArenaParticipantView {
   kills: number;
   level: number;
   maxHp: number;
+  moves: number;
   name: string;
   photoUrl: string | null;
   placement?: number;
@@ -42,6 +43,7 @@ export interface ArenaBattleLogEntry {
   attackerId: string;
   attackerName: string;
   attackerPhotoUrl: string | null;
+  counterDamage?: number;
   damage: number;
   id: string;
   multiplier: ElementMultiplier;
@@ -53,20 +55,34 @@ export interface ArenaBattleLogEntry {
 }
 
 export interface ArenaLeagueView extends Pick<LeagueDefinition, "accentColor" | "division" | "iconKey" | "key" | "maxRating" | "minRating" | "name"> {
-  baseSilver: number;
   index: number;
+  promotionReward: number;
 }
 
 export interface ArenaRewardView {
   arenaTokens: number;
-  gold: number;
-  goldCapped: boolean;
+  counted: boolean;
+  moves: number;
   placement: number;
+  promotionSilver: number;
   ratingAfter: number;
   ratingBefore: number;
   ratingChange: number;
-  silver: number;
   status: ArenaOutcome;
+}
+
+export interface ArenaLeaderboardEntry {
+  name: string;
+  photoUrl: string | null;
+  playerId: string;
+  rank: number;
+  rating: number;
+}
+
+export interface ArenaLeaderboardResponse {
+  entries: ArenaLeaderboardEntry[];
+  league: ArenaLeagueView;
+  player: ArenaLeaderboardEntry;
 }
 
 export interface ArenaResult {
@@ -99,6 +115,7 @@ export interface ArenaProfileResponse {
   arenaTop3Count: number;
   arenaWins: number;
   cardShards: number;
+  nextArenaLeague: ArenaLeagueView | null;
   cosmetics: ArenaCosmetic[];
   equippedCosmetics: Partial<Record<ArenaCosmeticType, string>>;
 }
@@ -173,6 +190,7 @@ export interface ArenaBattleParticipantSnapshot {
   level: number;
   maxHp: number;
   modifiers: DuelBattleModifiers;
+  moves?: number;
   name: string;
   photoUrl: string | null;
   placement?: number;

@@ -4,17 +4,22 @@ import { basename, extname, relative, resolve } from "node:path";
 import {
   handleAuthMe,
   handleAuthConfig,
+  handleGuestAuth,
   handleGoogleAuth,
   handleLinkIdentity,
   handleLogout,
+  handleRefreshSession,
   handleTelegramAuth,
   handleTelegramWebAuth,
 } from "./auth/accountAuthRoute.js";
 import { PlayerAuthService } from "./auth/playerAuth.js";
 import { SessionRepository } from "./auth/sessionRepository.js";
+import { GuestCreationRateLimiter } from "./auth/guestCreationRateLimiter.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
 import { handleCampaignRequest } from "./campaign/campaignRoute.js";
+import { handleStoryTrialsRequest } from "./trials/storyTrialsRoute.js";
+import { StoryTrialsService } from "./trials/storyTrialsService.js";
 import { CampaignService } from "./campaign/campaignService.js";
 import { CampaignBossService } from "./campaign/campaignBossService.js";
 import { handleCampaignBossRequest } from "./campaign/campaignBossRoute.js";
@@ -31,7 +36,7 @@ import { getCorsPolicy } from "./http/cors.js";
 import { sendJson } from "./http/json.js";
 import { InventoryRepository } from "./inventory/inventoryRepository.js";
 import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCardsRoute.js";
-import { handleShopBundlePurchase, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
+import { handleShopBundlePurchase, handleShopCardInfo, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
 import { MailService } from "./mail/mailService.js";
@@ -48,6 +53,8 @@ import { handleCardWorkshopCatalog, handleCardWorkshopCraft } from "./shop/cardW
 import { CardWorkshopService } from "./shop/cardWorkshopService.js";
 import { handleArenaRequest } from "./arena/arenaRoute.js";
 import { ArenaService } from "./arena/arenaService.js";
+import { handleTournamentRequest } from "./tournament/tournamentRoute.js";
+import { TournamentService } from "./tournament/tournamentService.js";
 import { handleLimitedCardRedeem } from "./limited/limitedCardRoute.js";
 import { LimitedCardService } from "./limited/limitedCardService.js";
 import {
@@ -57,7 +64,8 @@ import {
   handlePlayerInventory,
 } from "./cosmetics/nicknameSkinRoute.js";
 import { NicknameSkinService } from "./cosmetics/nicknameSkinService.js";
-import { handlePlayerEquipment } from "./equipment/equipmentRoute.js";
+import { handleEquipmentChests, handlePlayerEquipment, handlePlayerEquipmentForge } from "./equipment/equipmentRoute.js";
+import { EquipmentChestService } from "./equipment/equipmentChestService.js";
 import { handleEquipmentManual } from "./equipment/equipmentManualRoute.js";
 import { EquipmentManualService } from "./equipment/equipmentManualService.js";
 import { handleGuildForumReference } from "./reference/guildForumReferenceRoute.js";
@@ -78,6 +86,7 @@ export const pool = createDatabasePool(environment.databaseUrl);
 const players = new PlayerRepository(pool);
 const sessions = new SessionRepository(pool);
 const auth = new PlayerAuthService(players, sessions, environment.telegramBotToken);
+const guestCreationRateLimiter = new GuestCreationRateLimiter(pool, environment.telegramBotToken);
 const adminAuth = new AdminAuthService(auth, players, pool, environment.adminTelegramUserIds);
 const admin = new AdminService(pool);
 const guilds = new GuildService(pool);
@@ -86,9 +95,11 @@ const guildRaids = new GuildRaidService(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const campaign = new CampaignService(pool);
+const storyTrials = new StoryTrialsService(pool);
 const campaignBoss = new CampaignBossService(pool, campaign, Math.random, undefined, guilds);
 const referrals = new ReferralService(pool, campaign);
 const limitedCards = new LimitedCardService(pool);
+const equipmentChests = new EquipmentChestService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
@@ -97,8 +108,9 @@ const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
 const duels = new DuelService(pool, Math.random, campaign, guilds);
 const dungeon = new DungeonService(pool, guilds);
-const cardWorkshop = new CardWorkshopService(pool);
+const cardWorkshop = new CardWorkshopService(pool, undefined, campaign);
 const arena = new ArenaService(pool, guilds);
+const tournaments = new TournamentService(pool);
 const equipmentManual = new EquipmentManualService();
 const guildForumReference = new GuildForumReferenceService();
 const battlePass = new BattlePassService(pool);
@@ -209,7 +221,9 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isAdminRoute = url.pathname === "/api/admin" || url.pathname.startsWith("/api/admin/");
   const isTelegramWebAuthRoute = url.pathname === "/api/auth/telegram/web";
   const isGoogleAuthRoute = url.pathname === "/api/auth/google";
+  const isGuestAuthRoute = url.pathname === "/api/auth/guest";
   const isAuthMeRoute = url.pathname === "/api/auth/me";
+  const isAuthRefreshRoute = url.pathname === "/api/auth/refresh";
   const isAuthConfigRoute = url.pathname === "/api/auth/config";
   const isAuthLinkRoute = url.pathname === "/api/auth/link";
   const isAuthLogoutRoute = url.pathname === "/api/auth/logout";
@@ -226,6 +240,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isWeakPlayerCardsRoute = url.pathname === "/api/player/cards/weak";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
+  const shopCardInfoMatch = url.pathname.match(/^\/api\/shop\/cards\/info\/([^/]+)$/);
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
   const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
@@ -242,7 +257,9 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const mailActionMatch = url.pathname.match(/^\/api\/player\/mail\/([^/]+)\/action$/);
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
   const isArenaRoute = url.pathname.startsWith("/api/arena/");
+  const isTournamentRoute = url.pathname === "/api/tournament" || url.pathname.startsWith("/api/tournament/");
   const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
+  const isStoryTrialsRoute = url.pathname.startsWith("/api/player/trials");
   const isCampaignBossRoute = url.pathname.startsWith("/api/player/campaign/boss");
   const isBattlePassRoute = url.pathname.startsWith("/api/player/battle-pass");
   const cardProgressionMatch = url.pathname.match(
@@ -254,7 +271,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || mailActionMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -299,6 +316,29 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       googleClientId: environment.googleClientId,
       players,
       referrals,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && isGuestAuthRoute) {
+    await handleGuestAuth(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      googleClientId: environment.googleClientId,
+      guestCreationRateLimiter,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && isAuthRefreshRoute) {
+    await handleRefreshSession(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      googleClientId: environment.googleClientId,
+      players,
       responseHeaders: cors.headers,
     });
     return;
@@ -399,6 +439,27 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       players,
       responseHeaders: cors.headers,
       skins: nicknameSkins,
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/shop/equipment-chests") {
+    await handleEquipmentChests(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      chests: equipmentChests,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/player/equipment/forge") {
+    await handlePlayerEquipmentForge(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
     });
     return;
   }
@@ -512,6 +573,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       shop,
       responseHeaders: cors.headers,
     });
+    return;
+  }
+
+  if (shopCardInfoMatch) {
+    await handleShopCardInfo(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      collections,
+      players,
+      responseHeaders: cors.headers,
+    }, decodeURIComponent(shopCardInfoMatch[1]!));
     return;
   }
 
@@ -678,6 +750,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
     return;
   }
 
+  if (isTournamentRoute) {
+    await handleTournamentRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      tournaments,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
   if (isArenaRoute) {
     await handleArenaRequest(request, response, {
       arena,
@@ -707,6 +790,18 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       campaign,
       players,
       responseHeaders: cors.headers,
+      trials: storyTrials,
+    });
+    return;
+  }
+
+  if (isStoryTrialsRoute) {
+    await handleStoryTrialsRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      responseHeaders: cors.headers,
+      trials: storyTrials,
     });
     return;
   }

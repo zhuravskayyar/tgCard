@@ -3,7 +3,6 @@ import test from "node:test";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
-import { CAMPAIGN_STAGES } from "../campaign/campaignConfig.js";
 import { CampaignService } from "../campaign/campaignService.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { ReferralService } from "./referralService.js";
@@ -22,7 +21,7 @@ function telegramUser(label: string): ValidatedTelegramUser {
   };
 }
 
-test("valid Telegram referral creates friendship, completes quest 2.6, and grants one exact 24h boost", {
+test("valid Telegram referral creates friendship and grants one exact 24h boost independently of campaign stages", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -36,13 +35,6 @@ test("valid Telegram referral creates friendship, completes quest 2.6, and grant
   const playerIds = [inviter.id, alternateInviter.id, invited.id];
   const now = new Date("2026-08-23T12:00:00.000Z");
   try {
-    await campaign.getCampaign(inviter.id, now);
-    await pool.query(
-      `UPDATE player_campaign_quest_progress SET progress = 100, completed_at = $2 WHERE player_id = $1 AND stage_number = 1`,
-      [inviter.id, now],
-    );
-    for (const quest of CAMPAIGN_STAGES[0]!.quests) await campaign.claim(inviter.id, quest.id, now);
-
     const codes = await pool.query<{ id: string; referral_code: string }>(
       "SELECT id, referral_code FROM players WHERE id = ANY($1::uuid[])",
       [playerIds],
@@ -82,8 +74,6 @@ test("valid Telegram referral creates friendship, completes quest 2.6, and grant
       friends: Number(persisted.rows[0]?.friends),
       boosts: Number(persisted.rows[0]?.boosts),
     }, { referrals: 1, friends: 1, boosts: 1 });
-    const quest = (await campaign.getCampaign(inviter.id, now)).stages[1]?.quests.find(({ id }) => id === "2.6");
-    assert.equal(quest?.state, "completed");
     assert.equal((await getAccountBoostStatus(pool, inviter.id, new Date(now.getTime() + 24 * 60 * 60 * 1_000 - 1))).multiplier, 2);
     assert.equal((await getAccountBoostStatus(pool, inviter.id, new Date(now.getTime() + 24 * 60 * 60 * 1_000))).multiplier, 1);
   } finally {

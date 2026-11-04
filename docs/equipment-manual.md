@@ -31,3 +31,21 @@ becomes an authority for player state, inventory, currency, or battle results.
 - кузня: `4/5/6/7/8` предметів і `5/50/500/5000/50000` золота для переходу на наступну рідкість.
 
 Інвентар зберігається сервером у `player_equipment_inventory`, а екіпірування приймається лише для предметів, якими володіє гравець.
+
+## Cardastika names
+
+The source manual only defines the mechanics. In-game names are our own:
+Каптур, Накидка, Рукавиці, Чоботи; Жало заклинателя (damage), Заслін обітниці (reduction),
+Відлунне скло (reduction and reflection), Оберіг другого подиху (revive), Лиха мотанка (curse);
+sets Єдиний гарт (same rarity, +25%) and Коло чотирьох стихій (four elements, bonus on all cards).
+
+## Forge
+
+`POST /api/player/equipment/forge` with `itemIds` spends the materials and gold in one transaction.
+Materials share rarity and category. The equipped copy of an item is never spent.
+
+## Sources
+
+- Equipment chests in the shop (`/api/shop/equipment-chests`): silver for one random item of a fixed rarity. Prices live in `server/src/equipment/equipmentChestService.ts`.
+- Treasure map: thresholds 100, 200 and 300 give one common, uncommon and rare item. Daily tasks feed the map with diamonds.
+- Arena shop.

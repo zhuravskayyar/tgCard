@@ -1,210 +1,223 @@
 # Cardastika — мапа арту карт
 #
-# Формат: card_id | нормальна назва карти | файл_без_розширення або файл_з_розширенням
+# Формат: card_id | назва карти | файл_без_розширення або файл.розширення
 #
-# Найпростіший варіант: поклади файл у цю ж папку з таким ім'ям, як ID карти:
-#   starter_01.webp
-#   predators_01.webp
-# Підтримуються webp, png, jpg і jpeg. Розширення можна не вказувати —
-# клієнт перевірить їх у цьому порядку. Якщо арт має інше ім'я, вкажи його
-# праворуч, наприклад: starter_01 = salamandra-v2.webp
+# Карта показує арт лише тоді, коли має рядок у цьому файлі; інакше вона лишається без арту.
+# Файли кладуться в цю папку. Підтримуються webp, png, jpg і jpeg; якщо розширення не вказане,
+# клієнт перевіряє їх у цьому порядку.
 #
-# Після копіювання нового файлу перезавантаж веб-сторінку або повторно відкрий
-# Mini App у Telegram. Базовий варіант нижче вже прив'язаний до ID, тому цей
-# файл не потрібно редагувати для кожної нової картинки.
-
-# Стартові карти
-starter_01 | Саламандра | starter_01
-starter_02 | Лис | starter_02
-starter_03 | Жук-бомбардир | starter_03
-starter_04 | Вугор | starter_04
-starter_05 | Щука | starter_05
-starter_06 | Ворон | starter_06
-starter_07 | Сокіл | starter_07
-starter_08 | Кріт | starter_08
-starter_09 | Вепр | starter_09
-
-# Хижаки
-predators_01 | Вовк | predators_01
-predators_02 | Рись | predators_02
-predators_03 | Росомаха | predators_03
-predators_04 | Гієна | predators_04
-predators_05 | Каракал | predators_05
-predators_06 | Мангуст | predators_06
-
-# Панцирні
-armored_01 | Броненосець | armored_01
-armored_02 | Панголін | armored_02
-armored_03 | Мечохвіст | armored_03
-armored_04 | Жук-олень | armored_04
-armored_05 | Краб-павук | armored_05
-armored_06 | Черепаха-алігатор | armored_06
-
-# Нічні
-nocturnal_01 | Пугач | nocturnal_01
-nocturnal_02 | Кажан | nocturnal_02
-nocturnal_03 | Генета | nocturnal_03
-nocturnal_04 | Тасманійський диявол | nocturnal_04
-nocturnal_05 | Фенек | nocturnal_05
-nocturnal_06 | Ай-ай | nocturnal_06
-
-# Бурекрилі
-stormwings_01 | Альбатрос | stormwings_01
-stormwings_02 | Беркут | stormwings_02
-stormwings_03 | Кондор | stormwings_03
-stormwings_04 | Сапсан | stormwings_04
-stormwings_05 | Фрегат | stormwings_05
-stormwings_06 | Буревісник | stormwings_06
-
-# Глибинники
-deepborn_01 | Мурена | deepborn_01
-deepborn_02 | Риба-вудильник | deepborn_02
-deepborn_03 | Гігантський кальмар | deepborn_03
-deepborn_04 | Наутилус | deepborn_04
-deepborn_05 | Кашалот | deepborn_05
-deepborn_06 | Латимерія | deepborn_06
-deepborn_07 | Креветка-богомол | deepborn_07
-
-# Болотники
-swampborn_01 | Алігатор | swampborn_01
-swampborn_02 | Марабу | swampborn_02
-swampborn_03 | Капібара | swampborn_03
-swampborn_04 | Піранья | swampborn_04
-swampborn_05 | Анаконда | swampborn_05
-swampborn_06 | Жаба-бик | swampborn_06
-swampborn_07 | Водяний скорпіон | swampborn_07
-
-# Печерники
-caveborn_01 | Протей | caveborn_01
-caveborn_02 | Сліпак | caveborn_02
-caveborn_03 | Печерний лев | caveborn_03
-caveborn_04 | Сольпуга | caveborn_04
-caveborn_05 | Печерний скорпіон | caveborn_05
-caveborn_06 | Сліпа тетеря | caveborn_06
-caveborn_07 | Підковоніс | caveborn_07
-
-# Грозові
-thunderborn_01 | Громоптах | thunderborn_01
-thunderborn_02 | Рух | thunderborn_02
-thunderborn_03 | Симург | thunderborn_03
-thunderborn_04 | Грифон | thunderborn_04
-thunderborn_05 | Пегас | thunderborn_05
-thunderborn_06 | Кецаль | thunderborn_06
-thunderborn_07 | Анзу | thunderborn_07
-
-# Отруйні
-venomous_01 | Мамба | venomous_01
-venomous_02 | Габона | venomous_02
-venomous_03 | Тайпан | venomous_03
-venomous_04 | Сколопендра | venomous_04
-venomous_05 | Тарантул | venomous_05
-venomous_06 | Андроктонус | venomous_06
-venomous_07 | Дереволаз | venomous_07
-venomous_08 | Синько | venomous_08
-
-# Рогаті
-horned_01 | Муфлон | horned_01
-horned_02 | Бізон | horned_02
-horned_03 | Носоріг | horned_03
-horned_04 | Буйвол | horned_04
-horned_05 | Козоріг | horned_05
-horned_06 | Сайгак | horned_06
-horned_07 | Як | horned_07
-horned_08 | Жук-носоріг | horned_08
-
-# Первозвірі
-primeval_01 | Смилодон | primeval_01
-primeval_02 | Мегатерій | primeval_02
-primeval_03 | Ентелодон | primeval_03
-primeval_04 | Аргентавіс | primeval_04
-primeval_05 | Мегаланія | primeval_05
-primeval_06 | Дунклеостей | primeval_06
-primeval_07 | Дейнотерій | primeval_07
-primeval_08 | Еласмотерій | primeval_08
-
-# Стихійні
-elementals_01 | Фенікс | elementals_01
-elementals_02 | Келпі | elementals_02
-elementals_03 | Кірін | elementals_03
-elementals_04 | Тараск | elementals_04
-elementals_05 | Амфісбена | elementals_05
-elementals_06 | Кокатріс | elementals_06
-elementals_07 | Баніп | elementals_07
-elementals_08 | Волпертінгер | elementals_08
-
-# Велетні
-giants_01 | Мамонт | giants_01
-giants_02 | Мегалодон | giants_02
-giants_03 | Титанобоа | giants_03
-giants_04 | Парацератерій | giants_04
-giants_05 | Мозазавр | giants_05
-giants_06 | Саркозух | giants_06
-giants_07 | Аргентиносавр | giants_07
-giants_08 | Меганевра | giants_08
-giants_09 | Гігантська манта | giants_09
-
-# Дракони
-dragons_01 | Віверна | dragons_01
-dragons_02 | Дрейк | dragons_02
-dragons_03 | Амфіптер | dragons_03
-dragons_04 | Ліндворм | dragons_04
-dragons_05 | Нідхегг | dragons_05
-dragons_06 | Фафнір | dragons_06
-dragons_07 | Уроборос | dragons_07
-dragons_08 | Лун | dragons_08
-dragons_09 | Зілант | dragons_09
-
-# Дикі духи
-wild_spirits_01 | Інугамі | wild_spirits_01
-wild_spirits_02 | Некомата | wild_spirits_02
-wild_spirits_03 | Камайтачі | wild_spirits_03
-wild_spirits_04 | Куда-гіцуне | wild_spirits_04
-wild_spirits_05 | Нуе | wild_spirits_05
-wild_spirits_06 | Шиса | wild_spirits_06
-wild_spirits_07 | Баргест | wild_spirits_07
-wild_spirits_08 | Пука | wild_spirits_08
-wild_spirits_09 | Татцельвурм | wild_spirits_09
-
-# Потвори
-monsters_01 | Гідра | monsters_01
-monsters_02 | Химера | monsters_02
-monsters_03 | Мантикора | monsters_03
-monsters_04 | Василіск | monsters_04
-monsters_05 | Кракен | monsters_05
-monsters_06 | Левіафан | monsters_06
-monsters_07 | Цербер | monsters_07
-monsters_08 | Орф | monsters_08
-monsters_09 | Катоблепас | monsters_09
-
-# Чумна алхімія
-plague_alchemy_01 | Моровий Алхімік | plague_alchemy_01.png
-plague_alchemy_02 | Чумний Лікар | plague_alchemy_02.png
-plague_alchemy_03 | Наречена Чуми | plague_alchemy_03.png
-plague_alchemy_04 | Щурячий Король | plague_alchemy_04.png
-plague_alchemy_05 | Мандрагора Шибеника | plague_alchemy_05.png
-plague_alchemy_06 | Гомункул | plague_alchemy_06.png
-plague_alchemy_07 | Біла Королева | plague_alchemy_07.png
-plague_alchemy_08 | Червоний Король | plague_alchemy_08.png
-plague_alchemy_09 | Філософський Камінь | plague_alchemy_09.png
-
-# Відьми
-witches_01 | Відьма Вогню | witches_01
-witches_02 | Відьма Води | witches_02
-witches_03 | Відьма Землі | witches_03
-witches_04 | Відьма Повітря | witches_04
-
-# Духи стихій
-element_spirits_01 | Дух Вогню | element_spirits_01.png
-element_spirits_02 | Дух Води | element_spirits_02.png
-element_spirits_03 | Дух Землі | element_spirits_03.png
-element_spirits_04 | Дух Повітря | element_spirits_04.png
-
-# Гоблінська братва
-goblin_brotherhood_01 | Рвач | goblin_brotherhood_01.png
-goblin_brotherhood_02 | Шнир | goblin_brotherhood_02.png
-goblin_brotherhood_03 | Порох | goblin_brotherhood_03.png
-goblin_brotherhood_04 | Батя Грум | goblin_brotherhood_04.png
-
-# Лімітовані карти
-limited_rabbit_carter | Кролик Картер | rabbit_carter.png
-limited_necrat | Некрат | necrat.png
+# Приклад:
+# predators_01 | Назва карти | predators_01
+snow_queen | Королева Заметіль | snow_queen
+horrible_kraken | Кракен Дідуган | horrible_kraken
+west_f_fire_cow | Корова з лампою | west_f_fire_cow
+balrog | Вуглезуб | balrog
+smashing_angel | Шестикрил | smashing_angel
+tremors | Гуркун | tremors
+deepsea_guard | Глибинний вартовий | deepsea_guard
+submarine_warrior | Підводний рубака | submarine_warrior
+killer_shark | Акула Безодня | killer_shark
+cruel_medusa | Пекучка | cruel_medusa
+south_swamp_hydra | Гідра з Гнилої Гаті | south_swamp_hydra
+south_sea_naga | Нага-абордажниця | south_sea_naga
+northern_vyvern | Віверна-крижанка | northern_vyvern
+ancient_leviathan | Сивий Левіафан | ancient_leviathan
+goblin_jet | Гоблін-ракетник | goblin_jet
+furious_orc | Орк-лобуряка | furious_orc
+mountain_troll | Троль-кухар | mountain_troll
+orc_raider | Орк на вовку | orc_raider
+giant_orc | Орк-шафа | giant_orc
+goblin_bomber | Гоблін-бомбометальник | goblin_bomber
+orc_shaman | Орк-духовидець | orc_shaman
+goblin_mortar | Гоблінська мортира | goblin_mortar
+wind_fairy | Вітрогонка | wind_fairy
+air_genie | Джин із глечика | air_genie
+sky_priestess | Жриця хмар | sky_priestess
+air_mage | Маг-громовик | air_mage
+sky_scout | Хмарний розвідник | sky_scout
+sky_doorkeeper | Брамник неба | sky_doorkeeper
+beautiful_valkyrie | Валькірія Сольвейг | beautiful_valkyrie
+lightning_thrower | Метальник блискавок | lightning_thrower
+pack_leader | Вовк Сіроманець | pack_leader
+stone_golem | Валун-ходун | stone_golem
+centaur_archer | Кентавр-лучник | centaur_archer
+forest_keeper | Лісовий сторож | forest_keeper
+rogue_bear | Ведмідь-безсонник | rogue_bear
+battle_unicorn | Бойовий однорог | battle_unicorn
+wise_tauren | Старий таурен | wise_tauren
+sabretoothed_tiger | Шаблезуб | sabretoothed_tiger
+water_elemental | Жива вода | water_elemental
+air_elemental | Протяг | air_elemental
+earth_elemental | Жива глина | earth_elemental
+fire_elemental | Вогник-блукач | fire_elemental
+fire_ifrit | Іфрита Жарина | fire_ifrit
+water_phantom | Привид колодязя | water_phantom
+flower_fairy | Польова фея | flower_fairy
+hungry_mermaid | Русалка-ненажера | hungry_mermaid
+red_harpy | Руда гарпія | red_harpy
+fruity_siren | Сирена Медівка | fruity_siren
+river_naiad | Наяда Ставка | river_naiad
+forest_dryad | Дріада Вербичка | forest_dryad
+fire_witch | Купальська відьма | fire_witch
+elvish_princess | Ельфійка Аелін | elvish_princess
+carefree_hobbit | Невисоклик Пиріжок | carefree_hobbit
+elvish_scout | Ельф-слідопит | elvish_scout
+black_raven | Ворон-пересмішник | black_raven
+mountain_eagle | Гірський орел | mountain_eagle
+salamander | Вогнянка | salamander
+impetuous_lizard | Ящірка-блискавка | impetuous_lizard
+crabman | Крабоїд | crabman
+giant_dragonfly | Бабка-велетка | giant_dragonfly
+thickskinned_dwarf | Гном Шкураток | thickskinned_dwarf
+gloomy_wayfarer | Похмурий мандрівник | gloomy_wayfarer
+war_archangel | Архангел у латах | war_archangel
+fire_titan | Титан із горна | fire_titan
+fire_dragon | Змій Смолич | fire_dragon
+north_dragon | Змій із-за Перевалу | north_dragon
+silver_dragon | Срібний Лускач | silver_dragon
+feathered_dragon | Пернатий змій | feathered_dragon
+underground_dragon | Сліпий Полоз | underground_dragon
+black_dragon | Чорний Гад | black_dragon
+sea_dragon | Морський Змій | sea_dragon
+flying_monkey | Крилата мавпа | flying_monkey
+gloomy_rhino | Носоріг-брила | gloomy_rhino
+furious_rat | Скажена щурка | furious_rat
+merry_croco | Крокодил-веселун | merry_croco
+air_serpent | Небесний полоз | air_serpent
+mamukrajua | Мамонт-магараджа | mamukrajua
+eternal_phoenix | Птах-Попелець | eternal_phoenix
+sage_basilisk | Василіск Книжник | sage_basilisk
+north_witch | Відьма Хуртовини | north_witch
+wood_mistress | Пані Пуща | wood_mistress
+fire_knight | Лицар-Головешка | fire_knight
+lakes_princess | Княжна Озерна | lakes_princess
+snow_warrior | Сніговий вояк | snow_warrior
+sandstorm | Сухий Вихор | sandstorm
+drunk_cyclop | Циклоп-гульвіса | drunk_cyclop
+ancient_turtle | Стара Черепаха | ancient_turtle
+wild_wolf | Вовчиця Ярка | wild_wolf
+forest_bride | Лісова наречена | forest_bride
+el_minotauro | Сеньйор Мінотавр | el_minotauro
+night_fury | Нічна фурія | night_fury
+heaven_mistress | Пані Висоти | heaven_mistress
+shadow_heritress | Спадкоємиця Тіні | shadow_heritress
+black_widow | Панна Каракурт | black_widow
+captain_daughter | Донька Боцмана | captain_daughter
+icarus_disciple | Послідовник Ікара | icarus_disciple
+studded_wheel | Колесо-котюга | studded_wheel
+goblin_grinder | Гоблінські жорна | goblin_grinder
+aquatank | Мідний підводник | aquatank
+sorceress_air | Чаклунка Вітру | sorceress_air
+sorceress_earth | Чаклунка Землі | sorceress_earth
+sorceress_fire | Чаклунка Вогню | sorceress_fire
+sorceress_water | Чаклунка Води | sorceress_water
+air_deer | Олень Зимородок | air_deer
+air_frost | Мороз-Тріскун | air_frost
+earth_quarrel | Білка-скандалістка | earth_quarrel
+earth_tree | Зрубана ялина | earth_tree
+fire_sledge | Гарячі санчата | fire_sledge
+water_snegurka | Снігуронька | water_snegurka
+water_snowman | Сніговик без морквини | water_snowman
+dwarf_p_air | Гном Жартун | dwarf_p_air
+dwarf_p_earth | Гном Зілляр | dwarf_p_earth
+dwarf_p_fire | Король Скнарій XI | dwarf_p_fire
+dwarf_p_water | Гном Стерновий | dwarf_p_water
+dwarf_w_air | Гном-повітроплавець | dwarf_w_air
+dwarf_w_earth | Гном Рожен | dwarf_w_earth
+dwarf_w_fire | Коваль Гупало | dwarf_w_fire
+dwarf_w_water | Гном-пірат | dwarf_w_water
+berserk_air | Навіжена Ґудрун | berserk_air
+berserk_earth | Вовчий Гальфдан | berserk_earth
+berserk_fire | Лютий Торгрім | berserk_fire
+berserk_water | Сигрід із веслом | berserk_water
+actress_shadow | Лицедійка Тінь | actress_shadow
+androida | Механіда 2.7 | androida
+blade_master | Панна Клинків | blade_master
+cherepanda | Черепанцир | cherepanda
+fire_lady | Леді Запал | fire_lady
+flying_squirrel | Білка-шибайголова | flying_squirrel
+forest_trollala | Тролиця-жартівниця | forest_trollala
+goblin_bombist | Гоблін-динамітник | goblin_bombist
+hinotori | Льотчик Журавель | hinotori
+little_thunderstorm | Гоблін Мала Гроза | little_thunderstorm
+night_cheat_girl | Нічна шахрайка | night_cheat_girl
+vodyanka | Водяниця | vodyanka
+aerum | Штормовий орнітоптер | aerum
+ancient_order_air_f | Провидиця Грому | ancient_order_air_f
+ancient_order_air_m | Вірник Блискавки | ancient_order_air_m
+ancient_order_fire_f | Жриця Попелу | ancient_order_fire_f
+ancient_order_water_f | Черниця Тихої Води | ancient_order_water_f
+basaltor | Базальтовий молот | basaltor
+beholder | Болотяне Око | beholder
+bloodthirsty_piranha | Піранья | bloodthirsty_piranha
+bearded_toad | Жаба-старійшина | bearded_toad
+ancient_order_water_m | Монах Водоспаду | ancient_order_water_m
+bronze_bird | Мідна птиця | bronze_bird
+battle_gryphon | Грифон | battle_gryphon
+dao_a_white_tiger | Сніжний тигр | dao_a_white_tiger
+dao_f_werefox | Дев'ятихвоста лисиця | dao_f_werefox
+dao_e_headless_giant | Велетень Без Голови | dao_e_headless_giant
+ancient_order_fire_m | Жрець Незгасний | ancient_order_fire_m
+diamond_brotherhood_air | Панна Кришталь | diamond_brotherhood_air
+don_juan | Дон Ель Фуего | don_juan
+dripstone | Кораловий дредноут | dripstone
+diamond_brotherhood_fire | Гарячий юнак | diamond_brotherhood_fire
+diamond_brotherhood_water | Герцогиня Перлина | diamond_brotherhood_water
+drmagic_earth | Обвал | drmagic_earth
+drmagic_air | Смерч | drmagic_air
+dao_w_sea_doubletail | Морська двохвоста | dao_w_sea_doubletail
+drmagic_heal_earth | Цілюща омела | drmagic_heal_earth
+fleuro | Іскровий візок | fleuro
+drmagic_heal_water | Теплий дощ | drmagic_heal_water
+drmagic_fire | Верхова пожежа | drmagic_fire
+diamond_brotherhood_earth | Кулак Самоцвіт | diamond_brotherhood_earth
+lord_of_the_winds | Майстер вітрів | lord_of_the_winds
+goblin_mechanic | Гоблін-майстер | goblin_mechanic
+drmagic_water | Вир | drmagic_water
+fire_servant | Служник вогню | fire_servant
+mirror_tide_witch | Відьма Припливу | mirror_tide_witch
+mirror_inquisitor | Інквізитор Попелу | mirror_inquisitor
+great_rivers_sorcerer | Заклинателька Річок | great_rivers_sorcerer
+drmagic_heal_air | Північне сяйво | drmagic_heal_air
+zodiac_earth_taurus | Телець | zodiac_earth_taurus
+zodiac_air_aquarius | Водолій | zodiac_air_aquarius
+zodiac_air_libra | Терези | zodiac_air_libra
+zodiac_earth_virgo | Діва | zodiac_earth_virgo
+zodiac_air_gemini | Близнюки | zodiac_air_gemini
+zodiac_earth_capricorn | Козеріг | zodiac_earth_capricorn
+zodiac_fire_aries | Овен | zodiac_fire_aries
+zodiac_fire_leo | Лев | zodiac_fire_leo
+nile_e_scarab | Скарабей-сонцекат | nile_e_scarab
+zodiac_fire_sagittarius | Стрілець | zodiac_fire_sagittarius
+wedge_storm_knight | Лицар Алебарди | wedge_storm_knight
+shamans_daughter | Шаманова донька | shamans_daughter
+zodiac_water_scorpio | Скорпіон | zodiac_water_scorpio
+zodiac_water_pisces | Риби | zodiac_water_pisces
+zodiac_water_cancer | Рак | zodiac_water_cancer
+maridel | Парова помпа | maridel
+nile_a_hor_ur | Сокіл Гор-Ур | nile_a_hor_ur
+thirtieth_a_nightingale | Соловей-Свистун | thirtieth_a_nightingale
+geobot | Кварцовий бур | geobot
+vortex | Вихровий гвинт | vortex
+nile_f_nadjem | Кицька Нефру | nile_f_nadjem
+thirtieth_e_baiyun | Кіт-Воркотун | thirtieth_e_baiyun
+nile_w_taweret | Пані Бегемотиха | nile_w_taweret
+thirtieth_f_3headdragon | Змій Триголовий | thirtieth_f_3headdragon
+thirtieth_w_merman | Водяник Лупатий | thirtieth_w_merman
+west_a_thunderbird | Птах-Буря | west_a_thunderbird
+west_e_sasquatch | Бігфут Великоступ | west_e_sasquatch
+west_w_underwater_panther | Підводна пума | west_w_underwater_panther
+incendium | Ходяча піч | incendium
+tideflow | Паровий ковзун | tideflow
+terraxis | Залізний таран | terraxis
+stratos | Механічний сокіл | stratos
+stalaktion | Кам'яний копер | stalaktion
+wedge_strelets | Засічний стрілець | wedge_strelets
+wedge_brodex_valk | Рудоволоса Сокирниця | wedge_brodex_valk
+wedge_yarl | Ярл Крига | wedge_yarl
+mirror_scaldmaer | Скальдиня Туману | mirror_scaldmaer
+mirror_teuton | Лицар Глухого Щита | mirror_teuton
+drmagic_heal_fire | Вогнище на стоянці | drmagic_heal_fire
+the_bat | Кажан-горищанин | the_bat
+wild_boar | Вепр | wild_boar
+winged_hound | Крилатий пес | winged_hound

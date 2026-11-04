@@ -20,14 +20,14 @@ export async function hasCompletedCollection(
     `
       SELECT COUNT(*) > 0
         AND COUNT(*) = (
-          SELECT COUNT(*) FROM cards required
+          SELECT COUNT(*) FROM collection_cards required
           WHERE required.collection_id = $2
         ) AS completed
       FROM player_card_discoveries discoveries
-      INNER JOIN cards
-        ON cards.id = discoveries.card_id
+      INNER JOIN collection_cards members
+        ON members.card_id = discoveries.card_id
       WHERE discoveries.player_id = $1
-        AND cards.collection_id = $2
+        AND members.collection_id = $2
     `,
     [playerId, collectionId],
   );
@@ -79,41 +79,29 @@ export async function recordCardDiscovery(
   const newDiscovery = discovery.rowCount === 1;
   if (!newDiscovery) return { newDiscovery: false };
 
-  const cardResult = await database.query<CardCollectionRow>(
-    "SELECT collection_id FROM cards WHERE id = $1",
-    [cardId],
-  );
-  const collectionId = cardResult.rows[0]?.collection_id;
-  if (!collectionId) return { newDiscovery: true };
-
-  const progress = await database.query<ProgressRow>(
-    `
-      SELECT
-        COUNT(cards.id) AS total,
-        COUNT(player_card_discoveries.card_id) AS discovered
-      FROM cards
-      LEFT JOIN player_card_discoveries
-        ON player_card_discoveries.card_id = cards.id
-        AND player_card_discoveries.player_id = $1
-      WHERE cards.collection_id = $2
-    `,
-    [playerId, collectionId],
-  );
-  const row = progress.rows[0];
-  if (!row || Number(row.total) === 0 || Number(row.discovered) !== Number(row.total)) {
-    return { newDiscovery: true };
-  }
-
+  // One card can finish several collections at once; all are recorded and the first is announced.
   const completion = await database.query<{ collection_id: string }>(
     `
       INSERT INTO player_collection_completions (player_id, collection_id)
-      VALUES ($1, $2)
+      SELECT players.id, mine.collection_id
+      FROM players
+      INNER JOIN collection_cards mine ON mine.card_id = $2
+      WHERE players.id = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM collection_cards required
+          WHERE required.collection_id = mine.collection_id
+            AND NOT EXISTS (
+              SELECT 1 FROM player_card_discoveries found
+              WHERE found.player_id = players.id AND found.card_id = required.card_id
+            )
+        )
       ON CONFLICT (player_id, collection_id) DO NOTHING
       RETURNING collection_id
     `,
-    [playerId, collectionId],
+    [playerId, cardId],
   );
-  if (completion.rowCount !== 1) return { newDiscovery: true };
+  const collectionId = completion.rows[0]?.collection_id;
+  if (!collectionId) return { newDiscovery: true };
 
   const collection = await database.query<CompletionRow>(
     `
@@ -184,13 +172,12 @@ export async function backfillCardDiscoveries(pool: Pool) {
     const completions = await client.query(
       `
         INSERT INTO player_collection_completions (player_id, collection_id)
-        SELECT discoveries.player_id, cards.collection_id
+        SELECT discoveries.player_id, memberships.collection_id
         FROM player_card_discoveries discoveries
-        INNER JOIN cards ON cards.id = discoveries.card_id
-        WHERE cards.collection_id IS NOT NULL
-        GROUP BY discoveries.player_id, cards.collection_id
+        INNER JOIN collection_cards memberships ON memberships.card_id = discoveries.card_id
+        GROUP BY discoveries.player_id, memberships.collection_id
         HAVING COUNT(DISTINCT discoveries.card_id) = (
-          SELECT COUNT(*) FROM cards members WHERE members.collection_id = cards.collection_id
+          SELECT COUNT(*) FROM collection_cards members WHERE members.collection_id = memberships.collection_id
         )
         ON CONFLICT (player_id, collection_id) DO NOTHING
       `,

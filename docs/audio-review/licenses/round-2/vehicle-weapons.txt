@@ -1,0 +1,17 @@
+Weapons and Apparel SFX Library
+
+Distributed under Creative Commons Zero:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Contact Information:
+    jan.schupke@gmail.com
+    http://www.vehiclemusic.eu
+
+
+Source: https://opengameart.org/content/fantasy-weapons-and-apparel-sfx-library
+Title: Fantasy Weapons and Apparel SFX
+Author: Vehicle / Jan Schupke
+License: CC0-1.0
+https://creativecommons.org/publicdomain/zero/1.0/
+Prepared for Cardastika audition: trimmed edge silence, peak adjusted, short edge fades, transcoded to MP3; no pitch/speed change.
+Source verified: 2026-11-02. This source record does not replace the original license.

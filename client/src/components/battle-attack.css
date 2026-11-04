@@ -1,25 +1,61 @@
-.battle-attack { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+/* Layout only: motion, particles and the damage float are scripted in BattleAttackAnimation. */
+.battle-attack {
+  position: absolute;
+  z-index: 15;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
 [data-attack-covered="true"] { visibility: hidden; }
-.battle-attack .battle-attack__card { position: absolute; margin: 0; pointer-events: none; overflow: visible; }
-.battle-attack__card--player { z-index: 2; animation: battle-player-strike var(--attack-duration) ease-in-out both; }
-.battle-attack__card--enemy { z-index: 1; animation: battle-enemy-impact var(--attack-duration) ease-out both; }
-.battle-attack__damage { position: absolute; z-index: 4; top: 10%; left: 50%; color: #ffdbb4; font-weight: 800; font-size: 22px; text-shadow: 0 2px 4px #000; animation: battle-damage var(--attack-duration) ease-out both; }
-@keyframes battle-player-strike {
-  0%, 12% { transform: translate(0, 0); }
-  44%, 53% { transform: translate(var(--attack-x), var(--attack-y)); }
-  85%, 100% { transform: translate(0, 0); }
+
+.battle-attack .battle-attack__card {
+  position: absolute;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform;
 }
-@keyframes battle-enemy-impact {
-  0%, 43%, 76%, 100% { transform: translate(0, 0); filter: none; }
-  48%, 60% { transform: translate(3px, -4px); filter: brightness(1.5); }
-  54%, 66% { transform: translate(-3px, 2px); }
+.battle-attack__card--enemy { z-index: 1; }
+.battle-attack__card--player { z-index: 2; }
+
+.battle-attack__fx {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
-@keyframes battle-damage {
-  0%, 43% { opacity: 0; transform: translate(-50%, 0); }
-  50%, 75% { opacity: 1; transform: translate(-50%, -12px); }
-  100% { opacity: 0; transform: translate(-50%, -24px); }
+
+.battle-attack__damage {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  font-family: var(--font-display);
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #000, 0 0 10px #000;
+  pointer-events: none;
+  animation: battle-damage-float 1200ms ease-out both;
 }
+.battle-attack__damage b { color: #fff; font-size: 30px; }
+.battle-attack__damage small { color: #eadfc4; font: 600 12px/1.2 var(--font-body); letter-spacing: .04em; }
+.battle-attack__damage--strong b { color: #ffe08a; font-size: 44px; text-shadow: 0 0 14px #ff9a1f, 0 3px 0 #5a2a00; }
+.battle-attack__damage--strong small { color: #ffd27a; }
+.battle-attack__damage--weak b { color: #cfe0ff; font-size: 22px; }
+.battle-attack__damage--weak small { color: #a9bad6; }
+.battle-attack__damage--counter b { color: #ffc0a8; font-size: 22px; }
+
+@keyframes battle-damage-float {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
+  18% { opacity: 1; transform: translate(-50%, -100%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -210%) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .battle-attack .battle-attack__card { animation: none; }
-  .battle-attack__damage { animation: none; transform: translateX(-50%); }
+  .battle-attack__damage { animation: none; transform: translate(-50%, -100%); }
 }

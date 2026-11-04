@@ -7,8 +7,6 @@ test("first discovery completes the final missing collection card exactly once",
   const responses = [
     { rowCount: 1, rows: [{ card_id: "predators_06" }] },
     { rowCount: 1, rows: [{ collection_id: "collection_predators" }] },
-    { rowCount: 1, rows: [{ total: "6", discovered: "6" }] },
-    { rowCount: 1, rows: [{ collection_id: "collection_predators" }] },
     { rowCount: 1, rows: [{ id: "collection_predators", display_name: "Хижаки", buff_type: "battle_damage_pct", buff_value: 3, buff_element: null, bonus_label: "+3% шкоди" }] },
   ];
   const database = { query: async () => responses.shift()! } as unknown as PoolClient;

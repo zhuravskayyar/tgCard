@@ -1,52 +1,43 @@
 import { getCardPower } from "@cardastika/game-core";
-import type { CardDefinition, CardElement } from "@cardastika/shared";
-import { getCardDescription } from "../cards/cardDescriptions.js";
+import type { CardDefinition } from "@cardastika/shared";
+import { COLLECTION_CARDS } from "../collections/collectionCatalog.js";
 
-export const STARTER_CARD_COUNT = 9;
+export const STARTER_DECK_SIZE = 9;
 
-// Explicit canonical content configuration; deck balance is enforced in game-core.
-export const STARTER_CARD_SEED_CONFIG = Object.freeze({
-  cards: Object.freeze([
-    { displayName: "Саламандра", description: getCardDescription("starter_01"), element: "fire" },
-    { displayName: "Лис", description: getCardDescription("starter_02"), element: "fire" },
-    { displayName: "Жук-бомбардир", description: getCardDescription("starter_03"), element: "fire" },
-    { displayName: "Вугор", description: getCardDescription("starter_04"), element: "water" },
-    { displayName: "Щука", description: getCardDescription("starter_05"), element: "water" },
-    { displayName: "Ворон", description: getCardDescription("starter_06"), element: "air" },
-    { displayName: "Сокіл", description: getCardDescription("starter_07"), element: "air" },
-    { displayName: "Кріт", description: getCardDescription("starter_08"), element: "earth" },
-    { displayName: "Вепр", description: getCardDescription("starter_09"), element: "earth" },
-  ] as const satisfies readonly { description: string; displayName: string; element: CardElement }[]),
-});
+interface StarterCardGrant {
+  bonusPower: number;
+  code: string;
+  level: number;
+}
 
-export const STARTER_INSTANCE_DEFAULTS = Object.freeze({
-  level: 1,
-  bonusPower: 2,
-  finalPower: getCardPower({ level: 1, bonusPower: 2 }),
-});
+// Mirrors the reference start: nine deck cards of the shared catalog plus two weak ones.
+export const STARTER_CARD_GRANTS: readonly StarterCardGrant[] = Object.freeze([
+  { code: "wind_fairy", level: 5, bonusPower: 14 },
+  { code: "black_raven", level: 1, bonusPower: 2 },
+  { code: "salamander", level: 1, bonusPower: 2 },
+  { code: "impetuous_lizard", level: 1, bonusPower: 2 },
+  { code: "carefree_hobbit", level: 1, bonusPower: 2 },
+  { code: "mountain_eagle", level: 1, bonusPower: 2 },
+  { code: "fire_ifrit", level: 1, bonusPower: 2 },
+  { code: "river_naiad", level: 1, bonusPower: 2 },
+  { code: "elvish_scout", level: 1, bonusPower: 2 },
+  { code: "crabman", level: 1, bonusPower: 0 },
+  { code: "giant_dragonfly", level: 1, bonusPower: 0 },
+].map((grant) => Object.freeze(grant)));
 
-export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(
-  Array.from({ length: STARTER_CARD_COUNT }, (_, index) => {
-    const sequence = String(index + 1).padStart(2, "0");
-    const id = `starter_${sequence}`;
-    const content = STARTER_CARD_SEED_CONFIG.cards[index];
+export const STARTER_CARD_COUNT = STARTER_CARD_GRANTS.length;
 
-    if (!content) {
-      throw new Error(`Missing content configuration for ${id}`);
-    }
+const catalogByCode = new Map(COLLECTION_CARDS.map((card) => [card.code, card]));
 
-    return Object.freeze({
-      id,
-      code: id,
-      displayName: content.displayName,
-      description: content.description,
-      artKey: null,
-      element: content.element,
-      collectionId: null,
-      minRarity: "common",
-      shopEligible: false,
-    });
-  }),
-);
+export const STARTER_CARDS: readonly CardDefinition[] = Object.freeze(STARTER_CARD_GRANTS.map(({ code }) => {
+  const card = catalogByCode.get(code);
+  if (!card) throw new Error(`Starter card ${code} is missing from the catalog`);
+  return card;
+}));
 
-export const STARTER_CARD_CODES = Object.freeze(STARTER_CARDS.map(({ code }) => code));
+export const STARTER_CARD_CODES = Object.freeze(STARTER_CARD_GRANTS.map(({ code }) => code));
+export const STARTER_DECK_CODES = Object.freeze(STARTER_CARD_CODES.slice(0, STARTER_DECK_SIZE));
+
+export function getStarterGrantPower({ bonusPower, level }: StarterCardGrant) {
+  return getCardPower({ level, bonusPower });
+}

@@ -59,7 +59,7 @@ export class InventoryRepository {
   async findWeakPageByPlayerId(
     playerId: string,
     page: number,
-    pageSize: 9,
+    pageSize: number,
     element?: CardElement,
     excludeInstanceId?: string,
   ): Promise<{ cards: PlayerCardInstance[]; totalCards: number }> {

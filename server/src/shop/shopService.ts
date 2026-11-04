@@ -1,3 +1,4 @@
+import { getShopOfferPoolGroups } from "./shopPools.js";
 import {
   getCardPower,
   getDeckPower,
@@ -73,6 +74,7 @@ type ShopRewardSelector = (
   client: PoolClient,
   rarity: CardRarity,
   rng: ShopRandomSource,
+  offerId?: string,
 ) => Promise<SelectedShopRewardDefinition>;
 
 interface ShopServiceDependencies {
@@ -186,6 +188,7 @@ function toPlayerFacingOffer(
     price: offer.price,
     guaranteedRarity: offer.guaranteedRarity,
     canAfford: balance[offer.currency] >= offer.price,
+    pool: getShopOfferPoolGroups(offer.id),
     upgrades: offer.upgrades.map((upgrade) => ({
       rarity: upgrade.rarity,
       chance: basisPointsToPercent(chanceByRarity.get(upgrade.rarity) ?? upgrade.initialChanceBasisPoints),
@@ -444,7 +447,7 @@ export class ShopService {
       );
       const currentChances = readOfferChances(offer, chanceResult.rows);
       const rarityResolution = this.resolveRarity(offer, currentChances, this.rng);
-      const selectedDefinition = await this.selectReward(client, rarityResolution.rarity, this.rng);
+      const selectedDefinition = await this.selectReward(client, rarityResolution.rarity, this.rng, offer.id);
       if (selectedDefinition.targetRarity !== rarityResolution.rarity) {
         throw new Error("Shop reward pool does not match the resolved rarity");
       }

@@ -1,91 +1,89 @@
-# Campaign 1
+# Кампанія і пригоди
 
-Campaign 1 is a server-authoritative path of 6 sequential stages with exactly 6
-quests each. The 36 quest definitions and Ukrainian copy live in
-`server/src/campaign/campaignConfig.ts`. Quests inside the active stage can be
-completed in any order; the next stage opens only after all six rewards are
-claimed. The final boss is a separate battle and unlocks only after 36 claims.
-The Campaign overview renders only the current active stage; completed and future
-stages stay out of the menu. Once all 36 rewards are claimed, completed Stage 6
-remains as the final campaign anchor above the boss entry.
+Стан локальної реалізації: 2 листопада 2026. Джерело правил — elem.mobi, тема та власні українські назви — Cardastika. Усі десять колод босів перенесені з довідника. Для карт босів використовуються картки каталогу з потрібним балансом стихій 3/2/2/2; їхні лицьові сторони гравець не бачить, а фінальна сила кожної картки дорівнює значенню з довідника.
 
-## Quest state and progress
+## Послідовність пригод
 
-Every quest moves through `locked → active → completed → claimed`.
-`completed` means the server condition is satisfied; rewards are granted only by
-the authenticated claim route. Claim locks campaign progress and the player row
-in one transaction, applies fixed XP/silver, records `claimed_at`, and is
-idempotent on retry. Campaign XP can trigger the existing account-level Gold
-reward, but Campaign never grants Gold directly.
+Кампанія має десять локацій. На карті показано поточну пригоду та пройдені локації у зворотному порядку. Щоб відкрити боса, треба забрати нагороди за всі випробування поточної локації. Перша перемога над босом записує пригоду як пройдену та відкриває наступну локацію.
 
-Progress is derived from persisted server events and current authoritative
-state. Deck/card/collection opens are recorded after a successful owned-resource
-response. Shop purchase, discovery, absorption, level-up and Duel events are
-recorded inside their owning transaction. Current-card-level, collection ratio,
-owned-element and weak-card thresholds are queried from inventory state. No
-client counter is accepted.
+Після перемоги бос відновлюється через 2, 4, 10 годин у локаціях 1–3 і через 20 годин у локаціях 4–10. Повторно доступні тільки три останні пройдені локації. Час береться від останньої перемоги.
 
-Routes:
+Кожне забране випробування дає винагороду своєї локації:
 
-- `GET /api/player/campaign`
-- `GET /api/player/campaign/stages/:stageId`
-- `POST /api/player/campaign/quests/:questId/claim`
-- `POST /api/player/campaign/boss/start`
-- `GET /api/player/campaign/boss/active`
-- `GET /api/player/campaign/boss/:battleId`
-- `POST /api/player/campaign/boss/:battleId/action`
+| Локація | Золото | Срібло |
+| --- | ---: | ---: |
+| 1 | 1 | 100 |
+| 2 | 2 | 200 |
+| 3 | 3 | 300 |
+| 4 | 4 | 400 |
+| 5 | 5 | 500 |
+| 6 | 6 | 600 |
+| 7 | 7 | 700 |
+| 8 | 8 | 800 |
+| 9 | 9 | 900 |
+| 10 | 10 | 1 000 |
 
-## Лариска and dialogue data
+Перша перемога над босом додатково дає задані для нього золото, срібло й випадкову придатну для магазину карту заданого рівня. Повторна перемога дає випадкову карту та звичайний досвід за завдану шкоду, без першої грошової нагороди. Кожне випадіння записує події `CARD_ACQUIRED` і `CAMPAIGN_CARD_DROP`. Щоденне завдання «Отримай 3 карти в кампанії» рахує другу подію. Карти боса приховані; у бою беруть участь лише три активні карти зі слота.
 
-Лариска is the non-playable fairy mascot and is never a card. Dialogues are
-configuration records with trigger, mascot, emotion, paragraphs and an optional
-navigation target. The client uses one reusable dialogue view and one
-centralized `Lariska` portrait component. Its six supported emotions are
-`neutral`, `happy`, `angry`, `sad`, `surprised` and `sly`.
+## Локації
 
-The supplied transparent sprites live in
-`client/public/assets/mascot/lariska/` and are selected through
-`client/src/components/Lariska.tsx`. The same dialogue component and mascot
-mapping are used in the Campaign overview, stage screens, boss story and Duel
-results.
+Назви й імена — робоча українська локалізація для узгодження, а не перекладена копія назв elem.mobi.
 
-## Referral, friendship and boost
+| № | Локація | Відправниця/відправник | Випробування | Бос | Сила боса | Відновлення | Перша перемога: золото / срібло | Карта |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| 1 | Печери гоблінів | Лариска | Перша перемога в дуелі; 10 дуелей; 4 придбання карт у магазині; 3 покращення карт; захист профілю | Гоблін Кривозуб | 1 436 | 2 год | 10 / 2 000 | рівень 14, рідкісна |
+| 2 | Ущелина вітрів | Орлина | Колекція «Елементалі»; 50 перемог у дуелях; 10 золота з дуелей; 9 епічних карт у колоді; 12 забраних щоденних завдань | Буревій Безкрил | **5 972** | 4 год | 20 / 5 000 | рівень 20, епічна |
+| 3 | Гора пращурів | Рудана | Сила колоди 14 000; 9 легендарних карт у колоді; рейтинг дуелей 1 800; 20 кампанійних карт | Король Кремінь | **17 336** | 10 год | 30 / 10 000 | рівень 40, легендарна |
+| 4 | Озеро туманів | Зорекрила | 300 перемог у дуелях; 400 отриманих карт; сила колоди 22 000; рейтинг 2 250; 1 000 заробленого золота — **Скоро** | Княгиня Водокоса | 25 001 | 20 год | 40 / 25 000 | рівень 53, легендарна |
+| 5 | Вежа громовика | Вербиця | 500 000 заробленого срібла — **Скоро**; поглинути 1 000 карт; рейтинг 2 850; 9 міфічних карт у колоді; колекція «Древні дракони» | Архімаг Громолист | 40 646 | 20 год | 50 / 50 000 | рівень 65, міфічна |
+| 6 | Ороча засідка | Листана | Колекція «Міфічні створіння»; сила 44 000; рейтинг 3 200; рівень 60; витратити 500 діамантів — **Скоро**; ще 20 рейдових чудовиськ — **Скоро**; заробити 2 000 діамантів — **Скоро** | Грум Чорнокіготь | **55 711** | 20 год | 60 / 100 000 | рівень 70, міфічна |
+| 7 | Безмовний вир | Росава | Рівень 70; 100 млн гільдійського досвіду; внести 100 000 елементів у картку гільдії; 7 млн заробленого срібла — **Скоро**; 12 000 золота — **Скоро**; рейтинг 3 600; колекція «Рідкісні дракони» | Гідра Тиховодна | 70 230 | 20 год | 70 / 250 000 | рівень 75, міфічна |
+| 8 | Драконова твердиня | Іскрина | 50 подарунків — **Скоро**; 5 000 золота в казну гільдії; рейтинг арени 3 600; рейтинг дуелей 3 900; кубок міфічного турніру — **Скоро**; 10 000 діамантів — **Скоро**; колекція «Вищі маги» | Златокрил Величний | **85 072** | 20 год | 80 / 500 000 | рівень 80, міфічна |
+| 9 | Гоблінська ливарня | Мідниця | Рівень 90; рейтинг 4 300 **після попередньої перемоги**; ще одна 15-та скриня — **Скоро**; ще одна перемога в турнірі майстрів — **Скоро**; 9 млн шкоди на арені гільдії — **Скоро**; 99 млн шкоди у вторгненні — **Скоро**; одна карта колекції «Відьми» | Гоблінський Костолам | 101 878 | 20 год | 90 / 1 000 000 | рівень 85, міфічна |
+| 10 | Колюче нагір’я | Кремена | Ще 300 діамантів у тижневих марафонах — **Скоро**; колекція «Генерали Урфіна»; дві карти «Відьом»; кубок майстрів або медаль 1/4–1/8 — **Скоро**; рейтинг 4 400 **після попередньої перемоги**; ще 5 карт зі шкоди вторгнення — **Скоро**; самотужки пройти всіх драконів рейду гільдії — **Скоро** | Троль Каменерев | 116 105 | 20 год | 100 / 2 000 000 | рівень 90, міфічна |
 
-Each player receives a stable, public, non-secret referral code. A Telegram
-`start_param` of `ref_<code>` is trusted only after the whole `initData` payload
-passes Telegram signature and age validation. Acceptance rejects self-referral,
-requires two real player rows, and is unique by invited player. It atomically
-creates one canonical symmetric friend pair and one inviter `account_x2` boost.
+**Розбіжності в HP джерела.** Відкриті сторінки elem.mobi показують відмінні від суми дев’яти карт значення для локацій 2, 3, 6 і 8. За правилом кампанії локальний HP завжди дорівнює сумі сил карт: відповідно **5 972**, **17 336**, **55 711** і **85 072**. Інші шість сум збігаються з указаним HP. Дев’ять сил і джерельні значення записані в [довіднику кампаній](reference-elem-campaigns.md).
 
-The boost runs on server time from acceptance through exactly 24 hours. For Duel
-and Campaign battle earnings the order is base reward, collection reward
-modifier, account ×2, final rounding. It never changes fixed quest rewards,
-Gold, Shop state, rarity odds, card power, HP or damage. `VITE_TELEGRAM_BOT_USERNAME`
-enables the client to form the shareable `https://t.me/<bot>?startapp=ref_<code>`
-link without exposing the bot token or raw `initData`.
+## Як рахуються випробування
 
-## Secret Мантикора battle
+Загальні правила: звичайні лічильники враховують події від початку гри, навіть якщо вони відбулись до відкриття локації. Лише вимоги зі словами «ще» та рейтингові вимоги локацій 9–10 починаються з `first_win_at` попередньої локації. Прогрес обмежується цільовим значенням, винагороду можна забрати один раз. Карта рідкісності в колоді зараховується також для кожної вищої рідкості.
 
-The boss is a server-owned `campaign_boss` Duel snapshot built from nine existing
-collection card codes with a valid 3/2/2/2 element mix. It is persisted in the
-existing `duels` table and resolved by the same `resolveDuelExchange` core,
-cyclic pools, HP, element matrix, counterattack, mutual-KO and version checks.
+| Тип випробування | Джерело й правило |
+| --- | --- |
+| Перемоги/зіграні дуелі | Кількість `DUEL_WON` або `DUEL_FINISHED` у `player_campaign_events`. |
+| Купівля/отримання карт | `SHOP_CARD_PURCHASED` або `CARD_ACQUIRED`; для кампанійних карт — лише `CAMPAIGN_CARD_DROP`. |
+| Покращення/поглинання | Кількість `CARD_LEVEL_UP`; поглинання сумує `payload.absorbedCards` з `CARD_ABSORBED`. |
+| Колекція | `player_collection_completions`, колекція визначається за `collections.code`. Відповідність: Елементалі `elementals`, Древні дракони `dragons`, Міфічні створіння `mythic`, Рідкісні дракони `dragons2`, Вищі маги `wizards`, Відьми `sorceresses`, Генерали Урфіна `ugenerals`. |
+| Карти певної колекції | Поточна кількість екземплярів гравця у `player_card_instances`, з’єднана з кодом колекції. |
+| Сила колоди | Сума справжньої сили `finalPower` карт у `deck_slots`. |
+| Рідкість у колоді | 9 слотів із рідкістю не нижче потрібної за рівнем карти. |
+| Золото з дуелей | Сума `payload.gold` подій `DUEL_FINISHED`, де записується саме золото за дуель, без нагороди за підвищення рівня. |
+| Рейтинг дуелей/арени | Поточні `players.duel_rating` та `players.arena_rating`. Для локацій 9–10 — найбільший рейтинг у `DUEL_FINISHED` після попередньої першої перемоги. |
+| Рівень | Поточний `players.level`. |
+| Щоденні завдання | Кількість забраних записів у `player_daily_task_claims`. |
+| Досвід гільдії | Сума `guild_xp_contributions.xp` гравця. |
+| Внесок у гільдію | Сума `guild_treasury_contributions.amount` за типом `gold` або `card_elements`. |
+| Захист профілю | Чинна перевірка `auth_identities` і `player_account_link_rewards`; нагорода та спосіб отримання залишаються наявними в грі. |
 
-Player-facing start/resume state contains three `{ hidden: true, slotIndex }`
-placeholders. It does not contain the boss active/reserve cards, card names, art,
-elements, levels, powers, rarities or pair multipliers. An action accepts only
-`slotIndex` and `expectedVersion`; its completed exchange reveals the actual used
-boss card in the persistent Duel battle log, while the replacement slot is
-redacted again.
+Системи, для яких рахунок ще не існує, показуються як «Скоро» й не дають прогресу, навіть коли інші числа гравця перевищують ціль:
 
-The first victory transaction grants base 600 XP and 1000 silver through battle
-modifiers/boost, creates one standard Lv15 Rare Мантикора instance, records
-discovery and collection completion, recalculates the automatic deck, and marks
-Campaign 1 complete. The campaign-state guard and locked Duel row prevent reward
-duplication on reload or retry.
+| Вимога | Потрібне джерело, коли з’явиться система |
+| --- | --- |
+| Заробити золото/срібло загалом | Новий незмінний ledger на кожне зарахування валюти; рахувати суму позитивних грантів із початку гри. Поточний баланс не годиться, бо гравець витрачає валюту. |
+| Витратити/заробити діаманти | Події доходу/витрати, окремо від щоденних і сезонних нагород. |
+| Подарунки | Подія успішно відправленого подарунка, один на кожного отримувача. |
+| Рейдові чудовиська | Подія перемоги над рейдовим монстром. Вимога «ще 20» починається з попередньої першої перемоги. |
+| Кубки, турніри, медалі | Події завершення відповідного турніру, кубка або здобуття медалі потрібного рівня. |
+| Арена гільдій, вторгнення | Подія із сумою нанесеної шкоди; рахувати шкоду, не кількість боїв. |
+| Скриня 15-го рівня | Подія відкриття саме однієї скрині 15-го рівня. |
+| Гільдійський рейд соло | Подія повного проходження всіх потрібних драконів одним гравцем. |
 
-The Campaign overview does not render a locked boss preview. After all 36 quest
-rewards are claimed, Stage 6 becomes completed and a compact `Фінальне
-випробування` entry opens a dedicated Мантикора presentation. Starting or
-resuming the battle remains an explicit action from that screen; completing the
-boss keeps the entry visible with a completed state.
+## Перенесення старого прогресу
+
+Старі `player_campaign_state` і `player_campaign_quest_progress` збережені. Екран і сервер більше не використовують їх для нової послідовності. Отримані до переходу нагороди не відкликаються. Уже забрані випробування Лариски — включно зі збереженням профілю через `player_account_link_rewards` — лишаються забраними. Нові перемоги записуються у `player_campaign_locations`; історія нагород лежить у `player_story_trial_claims`.
+
+Профіль гільдії/гравця та старі кампанійні квести не можуть самостійно відкрити нову локацію: потрібні саме наявні claims випробувань локації 1 або нова перемога над босом.
+
+## Локальна перевірка
+
+Локальна БД: PostgreSQL `127.0.0.1:5432/cardastika`. Vite preview: `http://localhost:5173`; API: `http://127.0.0.1:3000`. Застосовувати лише `069_campaign_locations.sql`: повний міграційний скрипт може зупинитися на давній захисній умові перезапуску даних. Виробниче середовище не чіпати без прямої команди власника.

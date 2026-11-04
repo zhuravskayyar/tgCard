@@ -1,6 +1,7 @@
 import type {
   ArenaActionRequest,
   ActiveArenaResponse,
+  ArenaLeaderboardResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
   ArenaShopCatalogResponse,
@@ -88,4 +89,8 @@ export function loadArenaShop(initData: string, signal?: AbortSignal) {
 
 export function purchaseArenaShopItem(initData: string, body: ArenaShopPurchaseRequest, signal?: AbortSignal) {
   return request<ArenaShopPurchaseResponse>(initData, "/api/arena/shop/purchase", { method: "POST", body, signal });
+}
+
+export function loadArenaLeaderboard(initData: string, signal?: AbortSignal) {
+  return request<ArenaLeaderboardResponse>(initData, "/api/arena/leaderboard", { signal });
 }

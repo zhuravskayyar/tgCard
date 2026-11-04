@@ -43,11 +43,11 @@ test("weak cards endpoint uses the authenticated player and returns derived inst
   };
   const weakCard: PlayerCardInstance = {
     instanceId: "instance-weak",
-    cardId: "starter_01",
-    code: "starter_01",
-    displayName: "Саламандра",
-    artKey: null,
-    element: "fire",
+    cardId: "starter_v5_01",
+    code: "starter_v5_01",
+    displayName: "Борсук",
+    artKey: "new-cards/starter_v2_01",
+    element: "earth",
     level: 1,
     levelProgressElements: 0,
     protectedFromAbsorption: false,

@@ -8,6 +8,10 @@ import { DeckRepository } from "../decks/deckRepository.js";
 import { recalculateAutomaticDeckForPlayer } from "../decks/automaticDeckService.js";
 import { InventoryRepository } from "../inventory/inventoryRepository.js";
 import { STARTER_CARDS } from "../inventory/starterCards.js";
+
+// The starter deck holds three air cards (fairy, raven, eagle) and two fire cards (salamander, ifrit).
+const AIR_TRIO = ["wind_fairy", "black_raven", "mountain_eagle"];
+const FIRE_PAIR = ["salamander", "fire_ifrit"];
 import { PlayerRepository } from "../users/playerRepository.js";
 import { CardProgressionDomainError, CardProgressionService } from "./cardProgressionService.js";
 
@@ -58,17 +62,17 @@ test("absorption validates ownership, weak membership and element while preservi
     );
     const byCode = new Map(starterRows.rows.map((row) => [row.code, row.id]));
     const targetId = randomUUID();
-    const activeFireId = byCode.get("starter_02")!;
-    const displacedFireId = byCode.get("starter_03")!;
+    const activeAirId = byCode.get("wind_fairy")!;
+    const retainedStarterId = byCode.get("black_raven")!;
     await pool.query(
-      `UPDATE player_card_instances SET level = 15
+      `UPDATE player_card_instances SET level = 15, bonus_power = CASE WHEN card_id = $3 THEN 0 ELSE 2 END
        WHERE player_id = $1 AND card_id = ANY($2::text[])`,
-      [owner.id, STARTER_CARDS.slice(0, 3).map(({ id }) => id)],
+      [owner.id, AIR_TRIO, STARTER_CARDS[0]!.id],
     );
     await pool.query(
       `UPDATE player_card_instances SET level = 14
        WHERE player_id = $1 AND card_id = ANY($2::text[])`,
-      [owner.id, STARTER_CARDS.slice(3, 5).map(({ id }) => id)],
+      [owner.id, FIRE_PAIR],
     );
     const validFodderId = randomUUID();
     const secondValidId = randomUUID();
@@ -92,7 +96,7 @@ test("absorption validates ownership, weak membership and element while preservi
         targetId,
         owner.id,
         STARTER_CARDS[0]!.id,
-        STARTER_CARDS[3]!.id,
+        STARTER_CARDS[2]!.id,
         levelOneTargetId,
         levelOneFodderId,
       ],
@@ -128,7 +132,7 @@ test("absorption validates ownership, weak membership and element while preservi
 
     await expectCode(progression.absorb(owner.id, targetId, [targetId]), "target_is_fodder");
     await expectCode(progression.absorb(owner.id, targetId, [differentElementId]), "different_element");
-    await expectCode(progression.absorb(owner.id, targetId, [activeFireId]), "fodder_in_deck");
+    await expectCode(progression.absorb(owner.id, targetId, [activeAirId]), "fodder_in_deck");
     await expectCode(progression.absorb(owner.id, targetId, [otherFireId]), "fodder_not_owned");
     await expectCode(progression.absorb(owner.id, targetId, [secondValidId, differentElementId]), "different_element");
     assert.equal(Number((await pool.query<{ count: string }>(
@@ -162,9 +166,9 @@ test("absorption validates ownership, weak membership and element while preservi
     assert.equal(upgraded.deckPower, deck.totalPower);
     assert.ok(deck.cards.some(({ instanceId }) => instanceId === targetId));
     const weakAfterUpgrade = await inventory.findWeakByPlayerId(owner.id);
-    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === byCode.get("starter_01")));
-    assert.ok(!weakAfterUpgrade.some(({ instanceId }) => instanceId === displacedFireId));
-    assert.deepEqual(countDeckElements(deck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.ok(weakAfterUpgrade.some(({ instanceId }) => instanceId === activeAirId));
+    assert.ok(!weakAfterUpgrade.some(({ instanceId }) => instanceId === retainedStarterId));
+    assert.deepEqual(countDeckElements(deck.cards), { earth: 2, fire: 2, water: 2, air: 3 });
     assert.equal(deck.totalPower, deck.cards.reduce((total, card) => total + card.finalPower, 0));
   } finally {
     await cleanupPlayers(pool, [ownerUser.id, otherUser.id]);
@@ -182,7 +186,8 @@ test("weak pagination returns the 17-card complement as 9 then 8 in deterministi
   const user = createTelegramUser("pagination");
   try {
     const player = await players.findOrCreateFromTelegram(user);
-    const ids = Array.from({ length: 17 }, () => randomUUID());
+    // Fifteen extra cards plus the two weak starters make the 17-card complement.
+    const ids = Array.from({ length: 15 }, () => randomUUID());
     await pool.query(
       `INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
        SELECT input.id, $1, $2, 1, input.bonus

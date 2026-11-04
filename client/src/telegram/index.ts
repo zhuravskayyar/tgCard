@@ -38,6 +38,14 @@ function normalizeLanguageCode(languageCode: string | undefined) {
  * language is checked first; Telegram's user language is a fallback for
  * clients that do not expose navigator language information.
  */
+/** The Telegram account language, as a bare code such as "en", or null outside Telegram. */
+export function getTelegramLanguageCode() {
+  const webApp = getTelegramWebApp();
+  if (!webApp) return null;
+  const code = webApp.initDataUnsafe?.user?.language_code ?? navigator.language;
+  return code ? code.toLowerCase().split(/[-_]/)[0] ?? null : null;
+}
+
 export function isRussianTelegramLanguage() {
   const webApp = getTelegramWebApp();
   if (!webApp) return false;

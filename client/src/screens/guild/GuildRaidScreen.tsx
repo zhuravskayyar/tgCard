@@ -1,3 +1,4 @@
+import { hideMissingCardArt } from "../../components/cardArtSource";
 import { useBattleExchange, useBattleResultReady } from "../../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../../components/BattleAttackAnimation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -72,7 +73,7 @@ function RaidBossIdentity({ boss, slot, selected, onSelect, disabled }: {
   return (
     <button aria-pressed={selected} className={`guild-raid-battle__boss-select${selected ? " is-selected" : ""}${defeated ? " is-defeated" : ""}`} disabled={disabled || defeated} onClick={onSelect} type="button">
       <span className="guild-raid__portrait">
-        <img alt={`${boss.displayName}, стихія ${ELEMENT_LABELS[boss.element]}`} src={`/card-art/${boss.artKey}.png`} />
+        <img alt={`${boss.displayName}, стихія ${ELEMENT_LABELS[boss.element]}`} onError={hideMissingCardArt} src={`/card-art/${boss.artKey}.png`} />
       </span>
       <strong className={`guild-raid__boss-name guild-raid__boss-name--${boss.element}`}>{boss.displayName}</strong>
       <span className="guild-raid-battle__boss-hp">{formatRaidNumber(boss.currentHealth)} / {formatRaidNumber(boss.health)}</span>
@@ -133,7 +134,7 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
           <div className="guild-raid-battle__target-header">
             <div className="guild-raid-battle__target-identity">
               <span className="guild-raid__portrait guild-raid-battle__target-portrait">
-                <img alt={`${selectedBoss.displayName}, стихія ${ELEMENT_LABELS[selectedBoss.element]}`} src={`/card-art/${selectedBoss.artKey}.png`} />
+                <img alt={`${selectedBoss.displayName}, стихія ${ELEMENT_LABELS[selectedBoss.element]}`} onError={hideMissingCardArt} src={`/card-art/${selectedBoss.artKey}.png`} />
               </span>
               <div><strong className={`guild-raid__boss-name guild-raid__boss-name--${selectedBoss.element}`}>{selectedBoss.displayName}</strong></div>
             </div>
@@ -170,7 +171,7 @@ function RaidBattle({ raid, playerName, playerLevel, playerPhotoUrl, pending, ta
 function RaidReward({ participant }: { participant: GuildRaidResultParticipantView }) {
   if (participant.reward.card) {
     const card = participant.reward.card;
-    return <span className="guild-raid-result__reward guild-raid-result__reward--card"><img alt="" src={`/card-art/${card.artKey ?? card.code}.png`} /><span>У пошті · {card.displayName ?? card.code}</span></span>;
+    return <span className="guild-raid-result__reward guild-raid-result__reward--card"><img alt="" onError={hideMissingCardArt} src={`/card-art/${card.artKey ?? card.code}.png`} /><span>У пошті · {card.displayName ?? card.code}</span></span>;
   }
   if (participant.reward.gold > 0 || participant.reward.silver > 0) {
     return <span className="guild-raid-result__reward guild-raid-result__reward--currency"><span><CurrencyIcon kind="gold" size={15} />+{formatRaidNumber(participant.reward.gold)}</span><span><CurrencyIcon kind="silver" size={15} />+{formatRaidNumber(participant.reward.silver)}</span>{participant.reward.percentage < 100 ? <small>{participant.reward.percentage}% від базової</small> : null}</span>;
@@ -205,9 +206,9 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
   return <section aria-label="Підсумок поразки івенту гільдії" className="guild-raid-result guild-raid-result--defeat">
     <div className="guild-raid-result__banner"><h3>ВАША КОМАНДА<br />ПЕРЕМОЖЕНА</h3></div>
     <div aria-label="Відьми івенту" className="guild-raid-result__bosses">
-      {bosses[0] ? <span className="guild-raid-result__boss"><img alt={`${bosses[0].displayName}, стихія ${ELEMENT_LABELS[bosses[0].element]}`} src={`/card-art/${bosses[0].artKey}.png`} /></span> : <span />}
+      {bosses[0] ? <span className="guild-raid-result__boss"><img alt={`${bosses[0].displayName}, стихія ${ELEMENT_LABELS[bosses[0].element]}`} onError={hideMissingCardArt} src={`/card-art/${bosses[0].artKey}.png`} /></span> : <span />}
       <p>Відьми насміхаються<br />над цими магами…</p>
-      {bosses[1] ? <span className="guild-raid-result__boss"><img alt={`${bosses[1].displayName}, стихія ${ELEMENT_LABELS[bosses[1].element]}`} src={`/card-art/${bosses[1].artKey}.png`} /></span> : <span />}
+      {bosses[1] ? <span className="guild-raid-result__boss"><img alt={`${bosses[1].displayName}, стихія ${ELEMENT_LABELS[bosses[1].element]}`} onError={hideMissingCardArt} src={`/card-art/${bosses[1].artKey}.png`} /></span> : <span />}
     </div>
     <div className="guild-raid-result__defeat-copy"><p>Ніхто нічого не отримав.</p><p>Поточний рівень алтаря гільдії — <strong>{altarLevel}</strong></p></div>
     <p className="guild-raid-result__leaders-title">Лідери за шкодою</p>
@@ -221,7 +222,7 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
     </ol>
     <p className="guild-raid-result__participants">Всього учасників: {participantCount}</p>
     <div className="guild-raid-result__retry"><p>Ще спроба?</p><button className="guild-raid__button guild-raid__button--green" disabled={pending} onClick={onRetry} type="button">Повторити бій</button></div>
-    <figure className="guild-raid-result__battle-art"><img alt="" src="/assets/guild/guild-altar-battle.png" /><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного івенту: {nextLevel}</small></figcaption></figure>
+    <figure className="guild-raid-result__battle-art"><figcaption><strong>Битви з відьмами</strong><span>Записано магів: {participantCount}</span><small>Рівень наступного івенту: {nextLevel}</small></figcaption></figure>
   </section>;
 }
 
@@ -258,7 +259,7 @@ function RaidLobby({ altarLevel, raid, pending, onEnrollment, onStart, onBattle 
 }
 
 function RaidBossPreview({ boss, side }: { boss: GuildRaidBossView; side: "left" | "right" }) {
-  return <div className="guild-raid__boss"><span className={`guild-raid__portrait guild-raid__portrait--${side}`}><img alt={`${boss.displayName}, стихія ${ELEMENT_LABELS[boss.element]}`} src={`/card-art/${boss.artKey}.png`} /></span><strong className={`guild-raid__boss-name guild-raid__boss-name--${boss.element}`}>{boss.displayName}</strong></div>;
+  return <div className="guild-raid__boss"><span className={`guild-raid__portrait guild-raid__portrait--${side}`}><img alt={`${boss.displayName}, стихія ${ELEMENT_LABELS[boss.element]}`} onError={hideMissingCardArt} src={`/card-art/${boss.artKey}.png`} /></span><strong className={`guild-raid__boss-name guild-raid__boss-name--${boss.element}`}>{boss.displayName}</strong></div>;
 }
 
 export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: GuildRaidScreenProps) {
@@ -359,7 +360,7 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
   const currentBattle = raid && raid.battle?.raidLevel === raid.level ? raid.battle : null;
   const currentResult = raid && raid.lastResult?.level === raid.level ? raid.lastResult : null;
   const battleFinished = Boolean(currentBattle && (currentBattle.status !== "active" || raid?.status !== "active"));
-  const resultReady = useBattleResultReady(currentBattle?.status === "active" && raid?.status === "active", battleFinished);
+  const resultReady = useBattleResultReady(currentBattle?.status === "active" && raid?.status === "active", battleFinished, currentBattle?.status === "won" ? "win" : currentBattle?.status === "lost" ? "loss" : null);
   const battleVisible = Boolean(currentBattle) && !resultReady;
   const resultVisible = Boolean(currentResult || currentBattle?.status === "lost");
   return <section className="guild-raid" aria-labelledby="guild-raid-title" data-raid-id={raid?.id}>
@@ -379,6 +380,6 @@ export function GuildRaidScreen({ profile, onMembers, onForum, onDirectory }: Gu
     </section> : null}
 
     {raidState.status === "ready" ? <p className="guild-raid__status" role="status">{notice}</p> : null}
-    {!battleVisible && !resultVisible ? <div className="guild-raid__menu guild-menu-list" aria-label="Розділи гільдії"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact detail="Розмови гільдії" icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact detail="Каталог" icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div> : null}
+    {!battleVisible && !resultVisible ? <div className="guild-raid__menu guild-menu-list" aria-label="Розділи гільдії"><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div> : null}
   </section>;
 }

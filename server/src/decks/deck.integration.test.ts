@@ -4,7 +4,7 @@ import test from "node:test";
 import { countDeckElements } from "@cardastika/game-core";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
-import { STARTER_CARDS } from "../inventory/starterCards.js";
+import { STARTER_DECK_CODES } from "../inventory/starterCards.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import {
   recalculateAutomaticDeck,
@@ -30,7 +30,7 @@ async function cleanupPlayers(pool: Pool, telegramUserIds: string[]) {
   await pool.query("DELETE FROM players WHERE telegram_user_id = ANY($1::bigint[])", [telegramUserIds]);
 }
 
-test("bootstrap keeps one automatic balanced 108-power starter deck without changing economy", {
+test("bootstrap keeps one automatic balanced 180-power starter deck without changing economy", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -50,15 +50,15 @@ test("bootstrap keeps one automatic balanced 108-power starter deck without chan
     );
 
     assert.equal(firstPlayer.id, secondPlayer.id);
-    assert.equal(firstPlayer.silver, 1_500);
+    assert.equal(firstPlayer.silver, 0);
     assert.equal(firstPlayer.gold, 0);
     assert.equal(secondPlayer.silver, firstPlayer.silver);
     assert.equal(secondPlayer.gold, firstPlayer.gold);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
-    assert.equal(firstDeck.totalPower, 108);
-    assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 3, water: 2, air: 2, earth: 2 });
-    assert.deepEqual(firstDeck.cards.map(({ code }) => code), STARTER_CARDS.map(({ code }) => code));
+    assert.equal(firstDeck.totalPower, 180);
+    assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 2, water: 2, air: 3, earth: 2 });
+    assert.deepEqual(new Set(firstDeck.cards.map(({ code }) => code)), new Set(STARTER_DECK_CODES));
     assert.deepEqual(secondDeck, firstDeck);
   } finally {
     await cleanupPlayers(pool, [user.id]);
@@ -151,7 +151,7 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
     assert.ok(after.cards.some(({ cardId }) => cardId === bonusCardId));
     assert.ok(after.cards.some(({ instanceId }) => instanceId === bonusInstanceId));
     assert.equal(after.baseBattleHp, after.totalPower);
-    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.deepEqual(countDeckElements(after.cards), { fire: 2, water: 2, air: 3, earth: 2 });
     assert.equal(unchangedResult.status, "unchanged");
     assert.deepEqual(updatedAtAfterUnchangedCheck.rows[0], updatedAtBeforeUnchangedCheck.rows[0]);
   } finally {

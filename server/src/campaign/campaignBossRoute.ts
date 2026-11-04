@@ -19,7 +19,7 @@ interface BossOperations {
   action(playerId: string, battleId: string, input: DuelActionRequest): Promise<CampaignBossView>;
   findActive(playerId: string): Promise<CampaignBossView | null>;
   findById(playerId: string, battleId: string): Promise<CampaignBossView>;
-  start(playerId: string): Promise<CampaignBossView>;
+  start(playerId: string, location: number): Promise<CampaignBossView>;
 }
 
 interface CampaignBossRouteDependencies extends RouteAuthDependencies {
@@ -47,7 +47,9 @@ export async function handleCampaignBossRequest(
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
     if (request.method === "POST" && url.pathname === "/api/player/campaign/boss/start") {
-      sendJson(response, 201, await dependencies.boss.start(player.id), headers);
+      const body = await readJsonBody(request) as { location?: unknown } | null;
+      if (!body || !Number.isInteger(body.location) || Number(body.location) < 1 || Number(body.location) > 10) throw new HttpRequestError(400, "invalid_campaign_location", "location must be an integer from 1 to 10");
+      sendJson(response, 201, await dependencies.boss.start(player.id, Number(body.location)), headers);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/player/campaign/boss/active") {

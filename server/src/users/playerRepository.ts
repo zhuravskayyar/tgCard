@@ -1,17 +1,19 @@
-import { randomUUID } from "node:crypto";
-import { getPlayerCollectionModifiers, getRequiredAccountXp } from "@cardastika/game-core";
+import { randomInt, randomUUID } from "node:crypto";
+import { getEquipmentForgeRecipe, getPlayerCollectionModifiers, getRequiredAccountXp, resolveEquipmentForgeResult, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { VerifiedIdentity } from "../auth/identity.js";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
+import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { getCompletedCollectionBonuses } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { grantStarterCards } from "../inventory/starterCardGrant.js";
 import { NEW_PLAYER_DEFAULTS } from "./playerDefaults.js";
-import { EquipmentValidationError, parseStoredEquipment, serializeEquipment, toPublicPlayerEquipment, validateEquipmentUpdate } from "../equipment/equipmentState.js";
+import { EquipmentForgeError, EquipmentValidationError, parseStoredEquipment, serializeEquipment, toPublicPlayerEquipment, validateEquipmentUpdate } from "../equipment/equipmentState.js";
 
 interface PlayerRow {
+  created_at?: Date | string;
   arena_league_index: number;
   arena_rating: number;
   arena_tokens: string | number;
@@ -95,7 +97,7 @@ function playerColumns() {
     players.duel_rating, players.duel_highest_league_index, players.arena_rating,
     players.arena_league_index, players.arena_wins, players.arena_top3_count,
     players.arena_tokens, players.equipped_nickname_skin, players.tutorial_eligible,
-    players.equipment, players.nickname`;
+    players.equipment, players.nickname, players.created_at`;
 }
 
 function playerReturningColumns() {
@@ -104,7 +106,7 @@ function playerReturningColumns() {
     rating, account_xp, card_shards, duel_wins, duel_rating,
     duel_highest_league_index, arena_rating, arena_league_index, arena_wins,
     arena_top3_count, arena_tokens, equipped_nickname_skin, tutorial_eligible,
-    equipment, nickname`;
+    equipment, nickname, created_at`;
 }
 
 function toEquippedNicknameSkin(value: string | null | undefined): NicknameSkinId | null {
@@ -127,6 +129,7 @@ function toPlayerSummary(
     arenaWins: toSafeNumber(row.arena_wins, "arenaWins"),
     cardShards: toSafeNumber(row.card_shards, "cardShards"),
     collectionBonuses: [...collectionBonuses],
+    ...(row.created_at ? { daysInGame: Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 86_400_000)) } : {}),
     duelHighestLeagueIndex: toSafeNumber(row.duel_highest_league_index, "duelHighestLeagueIndex"),
     duelRating: toSafeNumber(row.duel_rating, "duelRating"),
     duelWins: toSafeNumber(row.duel_wins, "duelWins"),
@@ -198,6 +201,45 @@ export class PlayerRepository {
   private async bootstrapPlayer(client: PoolClient, playerId: string) {
     await grantStarterCards(client, playerId);
     await recalculateAutomaticDeck(client, playerId);
+  }
+
+  async createGuestProfile(transactionClient?: PoolClient): Promise<PlayerSummary> {
+    const ownsClient = transactionClient === undefined;
+    let client = transactionClient;
+    try {
+      client ??= await this.pool.connect();
+      if (ownsClient) await client.query("BEGIN");
+      const playerId = randomUUID();
+      const inserted = await client.query<PlayerRow>(
+        `
+          INSERT INTO players (
+            id, telegram_user_id, username, nickname, first_name, last_name, photo_url,
+            level, silver, gold, referral_code, tutorial_eligible
+          )
+          VALUES ($1, NULL, NULL, NULL, $2, NULL, NULL, $3, $4, $5, $6, TRUE)
+          RETURNING ${playerReturningColumns()}
+        `,
+        [
+          playerId,
+          `Сірий маг #${randomInt(10_000, 100_000)}`,
+          NEW_PLAYER_DEFAULTS.level,
+          NEW_PLAYER_DEFAULTS.silver,
+          NEW_PLAYER_DEFAULTS.gold,
+          playerId.replaceAll("-", "").slice(0, 12).toLowerCase(),
+        ],
+      );
+      const row = inserted.rows[0];
+      if (!row) throw new Error("Guest player insert returned no row");
+      await this.bootstrapPlayer(client, row.id);
+      const summary = await this.toSummary(client, row);
+      if (ownsClient) await client.query("COMMIT");
+      return summary;
+    } catch (error) {
+      if (ownsClient) await client?.query("ROLLBACK").catch(() => undefined);
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      if (ownsClient) client?.release();
+    }
   }
 
   private async persistIdentity(client: PoolClient, playerId: string, identity: VerifiedIdentity) {
@@ -442,6 +484,73 @@ export class PlayerRepository {
     }
   }
 
+  /** Spends materials and gold, then adds one item of the next rarity. Equipped copies stay untouched. */
+  async forgeEquipment(playerId: string, itemIds: readonly string[]) {
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const row = await client.query<{ equipment: unknown; gold: string | number }>("SELECT equipment, gold FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      if (!row.rows[0]) throw new Error("Player does not exist");
+      const inventory = await client.query<{ item_id: string; quantity: number }>(
+        "SELECT item_id, quantity FROM player_equipment_inventory WHERE player_id = $1 FOR UPDATE",
+        [playerId],
+      );
+      const quantities = new Map(inventory.rows.map(({ item_id, quantity }) => [item_id, quantity]));
+      const equippedItemIds = new Set(Object.values(parseStoredEquipment(playerId, row.rows[0].equipment).equipped));
+      const needed = new Map<string, number>();
+      for (const itemId of itemIds) needed.set(itemId, (needed.get(itemId) ?? 0) + 1);
+      for (const [itemId, count] of needed) {
+        const free = (quantities.get(itemId) ?? 0) - (equippedItemIds.has(itemId) ? 1 : 0);
+        if (count > free) throw new EquipmentForgeError("invalid_forge", "Forge materials are not available");
+      }
+      const definitions = itemIds.map((itemId) => {
+        const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === itemId);
+        if (!definition) throw new EquipmentForgeError("invalid_forge", "Unknown forge material");
+        return definition;
+      });
+      const recipe = definitions[0] ? getEquipmentForgeRecipe(definitions[0].rarity) : null;
+      if (!recipe) throw new EquipmentForgeError("invalid_forge", "This rarity cannot be forged");
+      let result;
+      try {
+        result = resolveEquipmentForgeResult(definitions);
+      } catch (error) {
+        if (error instanceof RangeError) throw new EquipmentForgeError("invalid_forge", error.message);
+        throw error;
+      }
+      const updated = await client.query<{ gold: string | number }>(
+        "UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1 AND gold >= $2 RETURNING gold",
+        [playerId, recipe.goldCost],
+      );
+      if (!updated.rows[0]) throw new EquipmentForgeError("not_enough_gold", "Not enough gold");
+      for (const [itemId, count] of needed) {
+        await client.query(
+          "UPDATE player_equipment_inventory SET quantity = quantity - $3, updated_at = NOW() WHERE player_id = $1 AND item_id = $2 AND quantity > $3",
+          [playerId, itemId, count],
+        );
+        await client.query(
+          "DELETE FROM player_equipment_inventory WHERE player_id = $1 AND item_id = $2 AND quantity = $3",
+          [playerId, itemId, count],
+        );
+      }
+      await client.query(
+        `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
+         VALUES ($1, $2, 1)
+         ON CONFLICT (player_id, item_id)
+         DO UPDATE SET quantity = player_equipment_inventory.quantity + 1, updated_at = NOW()`,
+        [playerId, result.id],
+      );
+      await client.query("COMMIT");
+      return { gold: Number(updated.rows[0].gold), resultItemId: result.id };
+    } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
+      if (error instanceof EquipmentForgeError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
+    }
+  }
+
   async getEquipmentInventory(playerId: string): Promise<PlayerEquipmentInventory[]> {
     try {
       const result = await this.pool.query<{ item_id: string; quantity: number }>(
@@ -466,16 +575,31 @@ export class PlayerRepository {
     }));
   }
 
+  async hasAccountProtectionReward(playerId: string) {
+    try {
+      const result = await this.pool.query(
+        "SELECT 1 FROM player_account_link_rewards WHERE player_id = $1",
+        [playerId],
+      );
+      return result.rowCount === 1;
+    } catch (error) {
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
   async linkIdentity(
     playerId: string,
     identity: VerifiedIdentity,
-    options: { replaceExisting?: boolean } = {},
-  ): Promise<{ identities: AuthIdentityView[]; replacedExisting: boolean }> {
+    options: { grantAccountProtectionReward?: boolean; replaceExisting?: boolean; allowExistingIdentityTransfer?: boolean } = {},
+  ): Promise<{ identities: AuthIdentityView[]; rewardGranted: boolean; replacedExisting: boolean }> {
     let client: PoolClient | undefined;
     let replacedExisting = false;
+    let rewardGranted = false;
     try {
       client = await this.pool.connect();
       await client.query("BEGIN");
+      const playerLock = await client.query("SELECT id FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      if (playerLock.rowCount !== 1) throw new Error("Player to link identity was not found");
       const current = await client.query(
         "SELECT provider FROM auth_identities WHERE player_id = $1 AND provider = $2 FOR UPDATE",
         [playerId, identity.provider],
@@ -488,7 +612,7 @@ export class PlayerRepository {
       const previousOwnerId = owner.rows[0]?.player_id;
       if (previousOwnerId && previousOwnerId !== playerId) {
         if (identity.provider === "telegram") throw new TelegramIdentityAuthoritativeError();
-        if (!options.replaceExisting) throw new AuthIdentityConflictError();
+        if (!options.replaceExisting || options.allowExistingIdentityTransfer === false) throw new AuthIdentityConflictError();
         replacedExisting = true;
         await client.query(
           `UPDATE auth_identities
@@ -512,8 +636,28 @@ export class PlayerRepository {
           if (linkedOwner.rows[0]?.player_id !== playerId) throw new AuthIdentityConflictError();
         }
       }
+      if (options.grantAccountProtectionReward) {
+        const rewardInsert = await client.query(
+          `
+            INSERT INTO player_account_link_rewards (
+              player_id, diamonds_awarded, gold_awarded, linked_provider, linked_provider_user_id
+            )
+            VALUES ($1, 0, $4, $2, $3)
+            ON CONFLICT DO NOTHING
+            RETURNING player_id
+          `,
+          [playerId, identity.provider, identity.providerUserId, SAVE_PROFILE_GOLD_REWARD],
+        );
+        rewardGranted = rewardInsert.rowCount === 1;
+        if (rewardGranted) {
+          await client.query(
+            "UPDATE players SET gold = gold + $2, updated_at = NOW() WHERE id = $1",
+            [playerId, SAVE_PROFILE_GOLD_REWARD],
+          );
+        }
+      }
       await client.query("COMMIT");
-      return { identities: await this.listAuthIdentities(playerId), replacedExisting };
+      return { identities: await this.listAuthIdentities(playerId), rewardGranted, replacedExisting };
     } catch (error) {
       await client?.query("ROLLBACK").catch(() => undefined);
       if (

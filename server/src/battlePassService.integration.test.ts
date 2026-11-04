@@ -52,6 +52,11 @@ test("battle pass grants a 24h currency boost and a card at the lowest deck leve
     assert.equal(boost.battlePass.currencyBoost.multiplier, 2);
     assert.equal(boost.battlePass.currencyBoost.expiresAt, "2026-08-24T12:00:00.000Z");
 
+    const equipmentReward = await battlePass.claimMilestone(player.id, "circle-1-100", now);
+    assert.equal(equipmentReward.reward.kind, "equipment");
+    assert.ok(equipmentReward.equipmentItemId?.endsWith("_common"));
+    await battlePass.claimMilestone(player.id, "circle-1-200", now);
+    await battlePass.claimMilestone(player.id, "circle-1-300", now);
     await battlePass.claimMilestone(player.id, "circle-1-150", now);
     await battlePass.claimMilestone(player.id, "circle-1-250", now);
     const cardReward = await battlePass.claimMilestone(player.id, "circle-1-400", now);

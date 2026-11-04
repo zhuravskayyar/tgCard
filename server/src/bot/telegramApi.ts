@@ -3,6 +3,7 @@ import { basename } from "node:path";
 
 export interface TelegramUser {
   id: number;
+  language_code?: string;
 }
 
 export interface TelegramChat {

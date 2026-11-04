@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ShopCategory } from "../shop/shopCategories";
+import { AppIcon } from "./AppIcon";
 
 interface ShopCategoryBannerProps {
   category: ShopCategory;
@@ -8,6 +9,14 @@ interface ShopCategoryBannerProps {
 
 type ShopCategoryBannerStyle = CSSProperties & {
   "--shop-category-art"?: string;
+};
+
+const CATEGORY_ICONS: Record<ShopCategory["id"], string> = {
+  "ready-bundles": "/assets/ui/battle-pass-map/chest-ready-v1.webp",
+  "magical-cards": "/assets/ui/home/sprites/mode-deck.webp",
+  "equipment-chests": "/assets/ui/battle-pass-map/chest-ready-v1.webp",
+  "cosmetics": "/assets/ui/home/sprites/row-icon-equipment.webp",
+  "boosts": "/assets/ui/shop/boosts/boost-veteran-1h.png",
 };
 
 export function ShopCategoryBanner({ category, onSelect }: ShopCategoryBannerProps) {
@@ -23,11 +32,12 @@ export function ShopCategoryBanner({ category, onSelect }: ShopCategoryBannerPro
       style={style}
       type="button"
     >
+      <img alt="" aria-hidden="true" className="shop-category-banner__item" src={CATEGORY_ICONS[category.id]} />
       <span className="shop-category-banner__copy">
         <strong>{category.title}</strong>
         <span>{category.subtitle}</span>
       </span>
-      <span aria-hidden="true" className="shop-category-banner__arrow">→</span>
+      <span aria-hidden="true" className="shop-category-banner__arrow"><AppIcon name="chevron" size={22} /></span>
     </button>
   );
 }

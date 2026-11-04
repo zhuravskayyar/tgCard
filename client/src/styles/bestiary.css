@@ -1,0 +1,361 @@
+/* Collections bestiary: every surface is a painted sprite, CSS only lays out and slices them. */
+.bestiary {
+  --book-ink: #2d1b0e;
+  --book-ink-muted: #51391f;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The shared tab styles draw a CSS tray and an inactive gradient; here both stay painted. */
+:root[data-game-theme="light"] .app-shell .app-content .bestiary .collection-filters {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+:root[data-game-theme="light"] .app-shell .app-content .bestiary .collection-filter:not(.collection-filter--active) {
+  background: var(--sprite-button-secondary) center / 100% 100% no-repeat;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* The warmer plate marks the selected tab. */
+:root[data-game-theme="light"] .app-shell .app-content .bestiary .collection-filter.collection-filter--active {
+  background: url("/assets/ui/auth/parchment/button-parchment-v1.webp") center / 100% 100% no-repeat;
+}
+
+.bestiary-book {
+  min-width: 0;
+}
+
+.bestiary-leaf {
+  position: relative;
+  min-width: 0;
+}
+
+/* A parchment sheet sweeps across the screen; the content swaps at the midpoint, while fully covered. */
+.bestiary-turn {
+  position: fixed;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bestiary-turn__sheet {
+  --turn-from: 62.5%;
+  --turn-mid: -25%;
+  --turn-to: -100%;
+  --turn-bend: -7deg;
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  left: 0;
+  width: 160%;
+  animation: bestiary-turn 380ms cubic-bezier(.45, .05, .55, .95) both;
+  will-change: transform;
+}
+
+/* The sprite holds the page, its curled edge and the shadow it throws ahead. */
+.bestiary-turn__sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/bestiary/turn-sheet-v1.webp") center / 100% 100% no-repeat;
+}
+
+.bestiary-turn__sheet--back {
+  --turn-from: -100%;
+  --turn-mid: -12.5%;
+  --turn-to: 62.5%;
+  --turn-bend: 7deg;
+}
+
+.bestiary-turn__sheet--back::before { transform: scaleX(-1); }
+
+@keyframes bestiary-turn {
+  from { transform: translateX(var(--turn-from)) skewX(var(--turn-bend)); }
+  50% { transform: translateX(var(--turn-mid)) skewX(0deg); }
+  to { transform: translateX(var(--turn-to)) skewX(calc(var(--turn-bend) * -1)); }
+}
+
+.bestiary-state {
+  min-height: 180px;
+  color: var(--book-ink);
+  text-align: center;
+}
+
+/* Collection covers echo the three-across reference grid while keeping the book page. */
+.bestiary-contents {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) clamp(7px, 2.6vw, 12px);
+}
+
+.app-content .bestiary-entry {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  color: var(--book-ink);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bestiary-entry__plate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1.18 / 1;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 8px solid transparent;
+  border-image: url("/assets/ui/equipment/slot-v1.webp") 42 fill / 8px stretch;
+}
+
+.bestiary-entry__art {
+  position: absolute;
+  inset: 7%;
+  display: block;
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  opacity: .72;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 60%));
+  transition: opacity 140ms ease-out, filter 140ms ease-out, transform 140ms ease-out;
+}
+
+.bestiary-entry__fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.bestiary-entry__fallback .bestiary-emblem { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.app-content .bestiary-entry:active .bestiary-entry__art,
+.app-content .bestiary-entry:hover .bestiary-entry__art,
+.app-content .bestiary-entry:focus-visible .bestiary-entry__art { opacity: 1; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 70%)) brightness(1.08); transform: scale(1.04); }
+.bestiary-entry--completed .bestiary-entry__art { opacity: .92; }
+
+.bestiary-emblem {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  transform: translateX(-50%);
+  background: url("/assets/ui/game/nav-medallion-v1.webp") center / contain no-repeat;
+}
+
+.bestiary-emblem .app-icon { width: 58%; height: 58%; color: #513b25; }
+
+.bestiary-seal {
+  position: absolute;
+  right: -2px;
+  bottom: -6px;
+  width: 38px;
+  height: 36px;
+  overflow: hidden;
+  background: url("/assets/ui/bestiary/seal-gold-v1.webp") center / contain no-repeat;
+  mask: url("/assets/ui/bestiary/seal-gold-v1.webp") center / contain no-repeat;
+}
+
+/* One brief glint when the seal appears, then it rests. */
+.bestiary-seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/bestiary/seal-glint-v1.webp") center / 100% 100% no-repeat;
+  transform: translateX(-110%);
+  animation: bestiary-seal-glint 800ms ease-out 260ms 1 both;
+}
+
+@keyframes bestiary-seal-glint {
+  to { transform: translateX(110%); }
+}
+
+.bestiary-entry__caption {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  border: 6px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 6px stretch;
+}
+
+.bestiary-entry__name {
+  width: 100%;
+  min-height: 2.1em;
+  padding: 0;
+  overflow-wrap: break-word;
+  font-family: var(--font-display, inherit);
+  font-size: clamp(12px, 3vw, 14px);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--book-ink);
+  text-align: center;
+}
+
+.bestiary-entry__progress {
+  font-size: clamp(11px, 2.8vw, 12px);
+  font-weight: 700;
+  color: var(--book-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bestiary-entry .bestiary-seal { right: -7px; bottom: -7px; width: 27px; height: 26px; }
+
+/* Collection page */
+.bestiary-page { display: grid; gap: var(--space-3); min-width: 0; }
+
+.bestiary-page__back,
+.bestiary-page__shop { justify-self: center; width: min(100%, 240px); min-height: 44px; }
+
+.bestiary-page__header {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  width: min(100%, 460px);
+  box-sizing: border-box;
+  justify-self: center;
+  padding: 6px 9px;
+  text-align: center;
+  color: var(--book-ink);
+  border: 8px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 8px stretch;
+}
+
+.bestiary-page__crest { position: relative; display: block; width: 66px; height: 66px; }
+.bestiary-page__crest .bestiary-emblem { top: 0; width: 66px; height: 66px; }
+.bestiary-page__crest .bestiary-seal { right: -16px; bottom: -4px; }
+
+.bestiary-page__header h2 {
+  margin: 0;
+  font-size: clamp(20px, 6vw, 24px);
+  line-height: 1.1;
+  color: var(--book-ink);
+}
+
+.bestiary-page__progress { margin: 0; font-size: var(--font-md); font-weight: 700; color: var(--book-ink-muted); }
+.bestiary-page__bonus { margin: 0; font-size: var(--font-xs); color: var(--book-ink-muted); text-align: center; }
+.bestiary-page__source {
+  width: min(100%, 380px);
+  justify-self: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px 7px;
+  color: var(--book-ink-muted);
+  font-size: var(--font-xs);
+  text-align: center;
+  border: 7px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 7px stretch;
+}
+
+.bestiary-page__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) clamp(10px, 4vw, 18px);
+}
+
+.app-content .bestiary-card {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  color: var(--book-ink);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bestiary-card__plate {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+}
+
+.bestiary-card__plate .card-artwork { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.bestiary-card__name {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.1em;
+  padding: 3px 6px;
+  overflow-wrap: anywhere;
+  font-size: clamp(13px, 3.6vw, 15px);
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  border: 7px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 7px stretch;
+}
+
+.bestiary-card--locked .bestiary-card__name { color: var(--book-ink-muted); font-weight: 500; }
+
+.bestiary-card__unknown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-style: solid;
+  border-width: 14px;
+  border-image: url("/assets/ui/equipment/slot-v1.webp") 42 fill / 14px stretch;
+}
+
+/* The art's own outline, blacked out; the slot sprite shows around it. */
+.bestiary-card__silhouette {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  filter: brightness(0) drop-shadow(0 0 1px rgb(255 214 150 / 85%)) drop-shadow(0 0 3px rgb(255 214 150 / 35%));
+}
+
+.collection-card-title { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The screen's background is a busy engraving, so the description sits on the painted text plate. */
+:root[data-game-theme="light"] .app-shell .app-content .collection-card-screen .collection-card-description {
+  margin: 0;
+  padding: 0;
+  color: #2d1b0e;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  border-style: solid;
+  border-width: 20px 18px;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
+}
+
+.bestiary-card__unknown i {
+  font-style: normal;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: #a98450;
+}
+
+.collection-card-screen { animation: bestiary-card-appear 220ms ease-out both; }
+
+@keyframes bestiary-card-appear {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-card-screen,
+  .bestiary-seal::after { animation: none; }
+  .bestiary-seal::after { display: none; }
+  .bestiary-entry__art { transition: none; }
+}

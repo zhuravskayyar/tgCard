@@ -1,0 +1,449 @@
+client/src/cards/brightCutModel.ts	Сила ${amount ?? ''}
+client/src/components/bestiary/CollectionEntry.tsx	{}, {} із {}{}
+client/src/components/DeckCard.tsx	, доступне безкоштовне підвищення
+client/src/components/DeckCard.tsx	, золотий рівень — підвищення за золото
+client/src/components/EquipmentBook.tsx	{}, кількість {}{}
+client/src/components/LeagueProgressCard.tsx	{}{} рейтингу
+client/src/screens/ArenaScreen.tsx	0 ? `Лінія $
+client/src/screens/BattlePassScreen.tsx	, отримано
+client/src/screens/BattlePassScreen.tsx	{}, {} діамантів{}
+client/src/screens/DeckScreen.tsx	її
+client/src/screens/DeckScreen.tsx	їх
+client/src/screens/DeckScreen.tsx	У тебе {} {} — поглинь {}, щоб посилити бойову колоду.
+client/src/screens/DeckScreen.tsx	14) ? "слабкі карти" : "слабких карт";
+  return `У тебе $
+client/src/screens/guild/GuildHub.tsx	Поповнив спільний прогрес{}${activity ?
+client/src/screens/guild/GuildProfile.tsx	Date.now()) entryMessage = `Заявку відхилено. Наступна спроба — $
+client/src/screens/guild/GuildRaidScreen.tsx	(null);
+  const [notice, setNotice] = useState("Івент гільдії готується до запису.");
+  const [draft, setDraft] = useState("");
+  const [messages, setMessages] = useState
+client/src/screens/guild/GuildTreasuryScreen.tsx	Внески відкриються через ${days ?
+client/src/screens/guild/GuildTreasuryScreen.tsx	: ""}{} год.
+client/src/screens/GuildScreen.tsx	Виключити
+client/src/screens/GuildScreen.tsx	з гільдії?
+client/src/screens/GuildScreen.tsx	Вийти з гільдії? Вступ до іншої буде доступний через
+client/src/screens/GuildScreen.tsx	години.
+client/src/screens/GuildScreen.tsx	? Ви втратите права лідера.
+client/src/screens/GuildScreen.tsx	Моя гільдія:
+client/src/screens/GuildScreen.tsx	Заявку до «
+client/src/screens/GuildScreen.tsx	» відхилено.
+client/src/screens/GuildScreen.tsx	Наступна спроба —
+client/src/screens/GuildScreen.tsx	Термін заявки до «
+client/src/screens/GuildScreen.tsx	» минув. Можна подати нову.
+client/src/screens/LeagueScreen.tsx	Мандрівник III
+client/src/screens/SettingsScreen.tsx	{} {} до цього профілю.{}
+client/src/screens/SettingsScreen.tsx	Прогрес і ресурси поточного профілю залишаться без змін. Старий профіль не видаляється, але його активні
+client/src/screens/TasksScreen.tsx	0 ? `ще $
+client/src/screens/TasksScreen.tsx	1
+      ? "Сьогодні платять більше. Не змусь мене нагадувати двічі."
+      : "У мене для тебе кілька дрібних справ. За них платять.";
+  const dailyReset = state.status === "ready" ? getDailyReset(state.data.daily.taskDate) : null;
+  const nextRewardMultiplier = state.status === "ready"
+    ? Math.min(3, state.data.daily.currentRewardMultiplier + 1)
+    : 1;
+
+  return (
+client/src/screens/TasksScreen.tsx	Завтра множник: ×
+client/src/screens/WeakCardsScreen.tsx	слабка карта, яку
+client/src/screens/WeakCardsScreen.tsx	слабкі карти, які
+client/src/screens/WeakCardsScreen.tsx	слабких карт, які
+client/src/screens/WeakCardsScreen.tsx	У тебе {} {} можна витратити на покращення карт бойової колоди.
+client/src/screens/WeakCardsScreen.tsx	14) ? "слабкі карти, які" : "слабких карт, які";
+  return `У тебе $
+client/src/telegram/shop.ts	;
+  if (
+    !isPlayerCard(value.reward) ||
+    value.message !== "Лімітовану карту отримано" ||
+    typeof value.deckChanged !== "boolean" ||
+    (value.deckPower !== undefined && !isNonNegativeInteger(value.deckPower)) ||
+    (value.previousDeckPower !== undefined && !isNonNegativeInteger(value.previousDeckPower))
+  )
+game-core/src/equipment.ts	`Збільшує вихідний урон на $
+game-core/src/equipment.ts	`Зменшує вхідний урон на $
+game-core/src/equipment.ts	`Зменшує урон на $
+game-core/src/equipment.ts	`Після смерті відроджує з $
+game-core/src/equipment.ts	`Після смерті зменшує поточне HP вбивці на $
+game-core/src/equipmentManual.ts	обычная
+game-core/src/equipmentManual.ts	обычное
+game-core/src/equipmentManual.ts	обычный
+game-core/src/equipmentManual.ts	обычные
+game-core/src/equipmentManual.ts	обычных
+game-core/src/equipmentManual.ts	необычная
+game-core/src/equipmentManual.ts	необычное
+game-core/src/equipmentManual.ts	необычный
+game-core/src/equipmentManual.ts	необычные
+game-core/src/equipmentManual.ts	необычных
+game-core/src/equipmentManual.ts	редкая
+game-core/src/equipmentManual.ts	редкое
+game-core/src/equipmentManual.ts	редкий
+game-core/src/equipmentManual.ts	редкие
+game-core/src/equipmentManual.ts	редких
+game-core/src/equipmentManual.ts	эпическая
+game-core/src/equipmentManual.ts	эпическое
+game-core/src/equipmentManual.ts	эпический
+game-core/src/equipmentManual.ts	эпические
+game-core/src/equipmentManual.ts	эпических
+game-core/src/equipmentManual.ts	легендарная
+game-core/src/equipmentManual.ts	легендарное
+game-core/src/equipmentManual.ts	легендарный
+game-core/src/equipmentManual.ts	легендарные
+game-core/src/equipmentManual.ts	легендарных
+game-core/src/equipmentManual.ts	мифическая
+game-core/src/equipmentManual.ts	мифическое
+game-core/src/equipmentManual.ts	мифический
+game-core/src/equipmentManual.ts	мифические
+game-core/src/equipmentManual.ts	мифических
+game-core/src/equipmentManual.ts	Копье мага
+game-core/src/equipmentManual.ts	Копьё мага
+game-core/src/equipmentManual.ts	Щит мага
+game-core/src/equipmentManual.ts	Зеркало магии
+game-core/src/equipmentManual.ts	Амулет жизни
+game-core/src/equipmentManual.ts	Кукла Вуду
+game-core/src/equipmentManual.ts	Увеличение силы зависит от редкости вещи
+game-core/src/equipmentManual.ts	Существует два типа комплектов вещей
+game-core/src/equipmentManual.ts	Единая редкость
+game-core/src/equipmentManual.ts	Школа всех стихий
+game-core/src/equipmentManual.ts	Виды артефактов
+game-core/src/equipmentManual.ts	Если в бой взяты Амулет жизни
+game-core/src/equipmentManual.ts	уменьшение урона
+game-core/src/equipmentManual.ts	отражение урона
+game-core/src/equipmentManual.ts	восстановление ОЗ
+game-core/src/equipmentManual.ts	эффект, %
+game-core/src/equipmentManual.ts	редкость
+game-core/src/equipmentManual.ts	Увеличение урона
+game-core/src/equipmentManual.ts	Уменьшение урона
+game-core/src/equipmentManual.ts	Уменьшение и отражение урона
+game-core/src/equipmentManual.ts	Восполняемые ОЗ
+game-core/src/equipmentManual.ts	Уменьшение ОЗ
+game-core/src/equipmentManual.ts	Правила создания вещей и артефактов
+game-core/src/equipmentManual.ts	Если у Вас на складе достаточно
+game-core/src/equipmentManual.ts	Мануал: снаряжение
+game-core/src/equipmentManual.ts	Надетая вещь усиливает карты своей стихии и здоровье игрока.
+game-core/src/equipmentManual.ts	Бонус вещей сначала добавляется к силе карты, затем применяются процентные бонусы мага.
+game-core/src/equipmentManual.ts	Артефакты работают на Арене, в Турнире и в Войне гильдий.
+game-core/src/equipmentManual.ts	Ежедневные задания
+game-core/src/equipmentManual.ts	Лавка сундуков
+game-core/src/equipmentManual.ts	Алмазные награды
+game-core/src/equipmentManual.ts	Новогодние сундуки
+game-core/src/equipmentManual.ts	Турнир
+game-core/src/equipmentManual.ts	Война гильдий
+game-core/src/equipmentManual.ts	4 вещи одинаковой редкости увеличивают бонус каждой вещи на {}%.
+game-core/src/equipmentManual.ts	= 0 ? setSectionStart : undefined);
+  const rarityPowerRows = requireMatch(parseRarityRows(raritySection, 1), "Equipment rarity bonuses are missing");
+
+  const sameRarityPercent = parseRequiredNumber(
+    normalizedText,
+    /Наденьте\s+4\s+вещи\s+одинаковой\s+редкости[^.]*?вырастет\s+на\s+(\d+)%/iu,
+    "Single-rarity set bonus is missing",
+  );
+  const allElementsSetText = requireMatch(
+    normalizedText.match(/Наденьте\s+4\s+вещи\s+4\s+разных\s+стихий[^.]*\./iu)?.[0],
+    "All-elements set rule is missing",
+  );
+  const setRules: EquipmentManualSetRule[] = [
+game-core/src/guildForumReference.ts	Модераторы
+game-core/src/guildForumReference.ts	Создавать новые темы могут
+game-core/src/guildForumReference.ts	Информация о гильдии
+game-core/src/guildForumReference.ts	Достижения гильдии
+game-core/src/guildForumReference.ts	Доступен всем
+game-core/src/guildForumReference.ts	line.startsWith("Создавать новые темы могут")) ?? null;
+  return
+game-core/src/guildForumReference.ts	([\d\s]+)/i)?.[1]);
+  const cardLevel = parseNumber(pageText.match(/(\d+)\s*ур\./iu)?.[1]);
+  const relevant = relevantLinks(html, sourceUrl);
+  return
+game-core/src/guildForumReference.ts	\s*([\d\s]+)\s*шт\.?/gi))
+server/src/arena/arenaCatalog.ts	25 загальних осколків
+server/src/arena/arenaCatalog.ts	50 загальних осколків
+server/src/arena/arenaCatalog.ts	100 загальних осколків
+server/src/arena/arenaCatalog.ts	250 загальних осколків
+server/src/arena/arenaService.ts	COALESCE(NULLIF(nickname, ''), NULLIF(first_name, ''), username, 'Гравець')
+server/src/arena/arenaService.ts	, playerId);
+    const leagueIndex = toSafeInteger(player.arena_league_index, "arena league");
+    const name = "COALESCE(NULLIF(nickname, ''), NULLIF(first_name, ''), username, 'Гравець')";
+    const top = await this.pool.query
+server/src/battlePassConfig.ts	3,5 млн срібла
+server/src/battlePassConfig.ts	350 золота
+server/src/battlePassConfig.ts	Виграйте 20 дуелей
+server/src/battlePassConfig.ts	Проведіть 30 дуелей
+server/src/battlePassConfig.ts	Отримайте 3 карти
+server/src/battlePassConfig.ts	Поглиніть 10 карт
+server/src/battlePassConfig.ts	Придбайте 5 карт
+server/src/battlePassConfig.ts	Покращте бойову карту 1 раз
+server/src/battlePassConfig.ts	Поучаствуйте в 10 боях на арені
+server/src/battlePassConfig.ts	Виграйте 5 арен
+server/src/bot/botTexts.ts	Про гру
+server/src/bot/botTexts.ts	Почати знайомство
+server/src/bot/botTexts.ts	ГРАТИ
+server/src/bot/botTexts.ts	Об игре
+server/src/bot/botTexts.ts	Твоё приключение начинается здесь\n\nРазвивай героя, собирай ресурсы и выбирай, куда отправиться дальше.
+server/src/bot/botTexts.ts	Собирай свою колоду\n\nКарты четырёх стихий различаются редкостью и силой. Находи сильные карты и улучшай их.
+server/src/bot/botTexts.ts	Испытай колоду в бою\n\nСражайся с другими игроками, используй преимущества стихий и поднимайся в рейтинге.
+server/src/bot/botTexts.ts	Играй вместе\n\nВступай в гильдию, получай её бонусы и открывай дополнительные возможности.
+server/src/bot/botTexts.ts	Развивай своего героя\n\nСнаряжение, карты и уровень постепенно усиливают твой аккаунт.
+server/src/bot/botTexts.ts	Cardastika — это коллекционная fantasy-игра о картах четырёх стихий.\n\nСобирай коллекцию, составляй колоду, развивай героя, сражайся и играй вместе с гильдией.
+server/src/bot/botTexts.ts	Готовы войти в Cardastika?\n\nТвоя первая колода уже ждёт.
+server/src/bot/botTexts.ts	Начать знакомство
+server/src/bot/botTexts.ts	ИГРАТЬ
+server/src/bot/botTexts.ts	С возвращением в Cardastika.\n\nТвоя колода уже ждёт следующего боя.
+server/src/bot/botTexts.ts	Cardastika\n\nКоллекционная fantasy-игра прямо в Telegram.\n\nСобирай карты четырёх стихий, усиливай колоду, сражайся с другими игроками и открывай новые возможности своего героя.\n\nБез долгих объяснений: собрал колоду — и в бой.
+server/src/bot/onboarding.ts	Твоя пригода починається тут\n\nРозвивай героя, збирай ресурси та обирай, куди вирушити далі.
+server/src/bot/onboarding.ts	Збирай свою колоду\n\nКарти чотирьох стихій мають різну рідкість та силу. Знаходь сильні карти й покращуй їх.
+server/src/bot/onboarding.ts	Випробуй колоду в бою\n\nБийся з іншими гравцями, використовуй переваги стихій та піднімайся в рейтингу.
+server/src/bot/onboarding.ts	Грай разом\n\nВступай у гільдію, отримуй її бонуси та відкривай додаткові можливості.
+server/src/bot/onboarding.ts	Розвивай свого героя\n\nСпорядження, карти та рівень поступово посилюють твій акаунт.
+server/src/bot/onboarding.ts	Колекційна fantasy-гра прямо в Telegram.
+server/src/bot/onboarding.ts	Збирай карти чотирьох стихій, посилюй свою колоду, бийся з іншими гравцями та відкривай нові можливості свого героя.
+server/src/bot/onboarding.ts	Без довгих пояснень — зібрав колоду і в бій.
+server/src/bot/onboarding.ts	З поверненням у Cardastika.
+server/src/bot/onboarding.ts	Твоя колода вже чекає на наступний бій.
+server/src/bot/onboarding.ts	Cardastika — це колекційна fantasy-гра про карти чотирьох стихій.
+server/src/bot/onboarding.ts	Збирай колекцію, складай колоду, розвивай героя, бийся та грай разом із гільдією.
+server/src/bot/onboarding.ts	Готовий увійти у Cardastika?
+server/src/bot/onboarding.ts	Твоя перша колода вже чекає.
+server/src/campaign/campaignBossService.ts	Lv15 Мантикора must derive Rare rarity
+server/src/campaign/campaignConfig.ts	Рівень 10
+server/src/cards/cardDescriptions.ts	Вовк працює в команді, але рахунок за вечерю чомусь завжди ділить не порівну.
+server/src/cards/cardDescriptions.ts	Рись рухається тихо, дивиться холодно і зникає раніше, ніж ти встигаєш сказати: «Киця».
+server/src/cards/cardDescriptions.ts	Росомаха виглядає так, ніби прокинулась злою. Насправді вона просто ще не починала бути злою.
+server/src/cards/cardDescriptions.ts	Гієна сміється останньою. Не тому, що перемогла — просто їй усе це від початку здавалося смішним.
+server/src/cards/cardDescriptions.ts	Каракал має вуха з пензликами й характер без пензликів. Погладити можна. Один раз.
+server/src/cards/cardDescriptions.ts	Мангуст бачить змію й думає не «небезпека», а «о, сьогодні доставка сама приїхала».
+server/src/cards/cardDescriptions.ts	Броненосець носить броню від народження. Жодних квестів, крафту й донату — просто пощастило.
+server/src/cards/cardDescriptions.ts	Панголін згортається в кулю. Ідеальна тактика, коли розмова раптом стала занадто серйозною.
+server/src/cards/cardDescriptions.ts	Мечохвіст має меч у назві, щит на спині й вигляд того, хто прийшов на бій підготовленим ще 400 млн років тому.
+server/src/cards/cardDescriptions.ts	Жук-олень має роги, але не олень. Жук, але не просто жук. Коротше, документи краще не перевіряти.
+server/src/cards/cardDescriptions.ts	Краб-павук виглядає так, ніби краб і павук програли суперечку й тепер мусять жити в одному тілі.
+server/src/cards/cardDescriptions.ts	Черепаха-алігатор не поспішає. Коли в тебе є панцир, щелепи й терпіння — поспішати має хтось інший.
+server/src/cards/cardDescriptions.ts	Пугач дивиться так, ніби знає, хто о третій ночі сказав: «Ще одне відео — і спати».
+server/src/cards/cardDescriptions.ts	Кажан спить догори ногами. Бо звичайно спати — це для тих, кому нічого доводити.
+server/src/cards/cardDescriptions.ts	Генета схожа на кота, тхора й питання «а це хто?». Відповідь проста: та, кого краще не ловити.
+server/src/cards/cardDescriptions.ts	Тасманійський диявол отримав ім’я не за добру поведінку. І дуже пишається брендингом.
+server/src/cards/cardDescriptions.ts	Фенек має такі великі вуха, що чує, як ти ще тільки збираєшся сказати щось нерозумне.
+server/src/cards/cardDescriptions.ts	Ай-ай виглядає так, ніби природа натиснула «випадковий персонаж» і вирішила нічого не змінювати.
+server/src/cards/cardDescriptions.ts	Альбатрос може летіти дуже далеко. Особливо далеко від тих, хто питає: «Ну що, коли вже приземлишся?»
+server/src/cards/cardDescriptions.ts	Беркут не падає з неба. Він просто дуже швидко приходить перевірити, хто тут розслабився.
+server/src/cards/cardDescriptions.ts	Кондор ширяє високо й економить сили. Розумний: хай проблеми самі втомляться першими.
+server/src/cards/cardDescriptions.ts	Сапсан — це коли природа подивилась на швидкість і сказала: «Можна ще швидше».
+server/src/cards/cardDescriptions.ts	Фрегат може годинами бути в повітрі. Посадка? Це вже проблема тих, хто любить землю.
+server/src/cards/cardDescriptions.ts	Буревісник летить туди, звідки інші тікають. Погана погода для нього — просто декорація.
+server/src/cards/cardDescriptions.ts	Мурена посміхається не тому, що рада тебе бачити. У неї просто такий дуже переконливий оскал.
+server/src/cards/cardDescriptions.ts	Риба-вудильник носить власний ліхтарик. Нарешті хтось у темряві не питає: «У кого є зарядка?»
+server/src/cards/cardDescriptions.ts	Гігантський кальмар має десять кінцівок і все одно виглядає так, ніби справ по горло.
+server/src/cards/cardDescriptions.ts	Наутилус живе у спіральній мушлі. Ідеально: квартира завжди з тобою, сусіди — ніколи.
+server/src/cards/cardDescriptions.ts	Кашалот пірнає глибоко. Дуже глибоко. Приблизно туди, куди ти ховаєш невдалі рішення.
+server/src/cards/cardDescriptions.ts	Латимерія пережила епохи, катастрофи й науковців, які давно записали її в минуле. Ніяково вийшло.
+server/src/cards/cardDescriptions.ts	Креветка-богомол б’є так швидко, що вода не встигає зрозуміти, за що їй прилетіло.
+server/src/cards/cardDescriptions.ts	Алігатор лежить нерухомо годинами. Не лінь — стратегічне очікування доставки.
+server/src/cards/cardDescriptions.ts	Марабу має вигляд суворого бухгалтера болота. І, судячи з обличчя, у тебе не сходиться баланс.
+server/src/cards/cardDescriptions.ts	Капібара настільки спокійна, що поруч із нею навіть хаос сідає й перестає нервувати.
+server/src/cards/cardDescriptions.ts	Піранья маленька, але впевнена. Комплекси щодо розміру закінчуються там, де починаються зуби.
+server/src/cards/cardDescriptions.ts	Анаконда не сперечається. Вона просто поступово звужує простір для твоїх аргументів.
+server/src/cards/cardDescriptions.ts	Жаба-бик звучить так, ніби болото завело собі сабвуфер і викрутило бас на максимум.
+server/src/cards/cardDescriptions.ts	Водяний скорпіон не скорпіон і живе у воді. Назву придумував хтось, хто дуже поспішав.
+server/src/cards/cardDescriptions.ts	Протей живе в темряві й нікуди не поспішає. Сонце, дедлайни, понеділки — це все міфи з поверхні.
+server/src/cards/cardDescriptions.ts	Сліпак не бачить дороги, але впевнено йде вперед. Чиста віра в навігацію.
+server/src/cards/cardDescriptions.ts	Печерний лев не любить гостей. Особливо тих, хто заходить зі словами: «О, яка затишна печера».
+server/src/cards/cardDescriptions.ts	Сольпуга виглядає так, ніби павук забув, що він павук, і почав імпровізувати.
+server/src/cards/cardDescriptions.ts	Печерний скорпіон не любить світло. В темряві просто важче побачити, наскільки це погана зустріч.
+server/src/cards/cardDescriptions.ts	Сліпа тетеря нічого не бачить, але плаває впевнено. Можливо, це і є справжній дзен.
+server/src/cards/cardDescriptions.ts	Підковоніс носить підкову на носі. На щастя чи ні — залежить від того, з якого боку ти стоїш.
+server/src/cards/cardDescriptions.ts	Громоптах не гримить дверима. Він гримить небом — масштаб характеру трохи інший.
+server/src/cards/cardDescriptions.ts	Рух настільки великий у легендах, що слово «великий» поруч із ним просить підвищення.
+server/src/cards/cardDescriptions.ts	Симург бачив стільки епох, що твоє «це довга історія» для нього — короткий вступ.
+server/src/cards/cardDescriptions.ts	Грифон узяв найкраще від лева й орла. Скромність у комплект, очевидно, не входила.
+server/src/cards/cardDescriptions.ts	Пегас довів, що коням бракувало не швидкості. Їм просто потрібні були крила.
+server/src/cards/cardDescriptions.ts	Кецаль виглядає так святково, ніби кожен його виліт — офіційне відкриття фестивалю.
+server/src/cards/cardDescriptions.ts	Анзу вкрав Таблиці Долі. Коли не хочеш читати правила гри — забери самі правила.
+server/src/cards/cardDescriptions.ts	Мамба не любить довгих знайомств. Її стиль спілкування — швидко, чітко й без другого повідомлення.
+server/src/cards/cardDescriptions.ts	Габона лежить тихо й виглядає декоративно. Декор, який краще не переставляти.
+server/src/cards/cardDescriptions.ts	Тайпан не погрожує. Йому достатньо репутації, решту доробить твоя уява.
+server/src/cards/cardDescriptions.ts	Сколопендра має стільки ніг, що будь-яка втеча виглядає як командна робота.
+server/src/cards/cardDescriptions.ts	Тарантул великий, волохатий і абсолютно не розуміє, чому це ти раптом виліз на стілець.
+server/src/cards/cardDescriptions.ts	Андроктонус перекладається приблизно як «той, хто псує день». Дуже чесна назва.
+server/src/cards/cardDescriptions.ts	Дереволаз яскравий, маленький і отруйний. Природа теж любить упаковку з попередженням.
+server/src/cards/cardDescriptions.ts	Синько красивий настільки, щоб підійти ближче. І небезпечний саме настільки, щоб не треба.
+server/src/cards/cardDescriptions.ts	Муфлон дивиться на гору й бачить маршрут. Ти дивишся на ту саму гору й бачиш причину залишитися вдома.
+server/src/cards/cardDescriptions.ts	Бізон не обходить перешкоди. Він дає їм шанс відійти самостійно.
+server/src/cards/cardDescriptions.ts	Носоріг погано бачить, зате дуже добре пояснює напрямок руху всім навколо.
+server/src/cards/cardDescriptions.ts	Буйвол спокійний, поки його не чіпають. Це не характер — це умови користування.
+server/src/cards/cardDescriptions.ts	Козоріг стоїть там, де ти боїшся навіть дивитися вниз. І ще робить вигляд, що це звичайний вівторок.
+server/src/cards/cardDescriptions.ts	Сайгак має ніс, який природа явно тестувала в бета-версії. Дивно, але працює відмінно.
+server/src/cards/cardDescriptions.ts	Привіт, Як! — Як як? — Як як як. — А ти як? Після цього навіть гори роблять вигляд, що нічого не чули.
+server/src/cards/cardDescriptions.ts	Жук-носоріг — доказ, що ріг працює навіть тоді, коли весь носоріг не помістився.
+server/src/cards/cardDescriptions.ts	Смилодон мав такі ікла, що посмішка автоматично ставала аргументом.
+server/src/cards/cardDescriptions.ts	Мегатерій — лінивець розміром із проблему, яку ти занадто довго відкладав.
+server/src/cards/cardDescriptions.ts	Ентелодон виглядає як свиня, яка дізналася, що її назвали свинею, і прийшла поговорити.
+server/src/cards/cardDescriptions.ts	Аргентавіс був таким великим птахом, що тінь від нього могла мати власний прогноз погоди.
+server/src/cards/cardDescriptions.ts	Мегаланія — це варан, якому хтось випадково поставив масштаб 200%.
+server/src/cards/cardDescriptions.ts	Дунклеостей не мав нормальних зубів. Йому вистачало щелеп, які самі були поганою новиною.
+server/src/cards/cardDescriptions.ts	Дейнотерій мав бивні вниз. Бо звичайні слони вже зайняли всі стандартні налаштування.
+server/src/cards/cardDescriptions.ts	Еласмотерій — носоріг із рогом, який явно компенсував відсутність драконячого статусу.
+server/src/cards/cardDescriptions.ts	Фенікс перетворив «згоріти на роботі» на повноцінну стратегію відновлення.
+server/src/cards/cardDescriptions.ts	Келпі виглядає як кінь. Саме на цьому хороші новини зазвичай і закінчуються.
+server/src/cards/cardDescriptions.ts	Кірін ступає так легко, ніби земля сама просить його не залишати слідів.
+server/src/cards/cardDescriptions.ts	Тараск — це коли місто бачить ящера й одразу починає згадувати, чи оплачена страховка.
+server/src/cards/cardDescriptions.ts	Амфісбена має голову з обох кінців. Нарешті істота, яка може сперечатися сама з собою без пауз.
+server/src/cards/cardDescriptions.ts	Кокатріс не любить дивитися в очі. Точніше, це іншим краще не дивитися в його.
+server/src/cards/cardDescriptions.ts	Баніп живе там, де вода темна, очерет шурхотить, а фраза «та я тільки гляну» звучить особливо нерозумно.
+server/src/cards/cardDescriptions.ts	Волпертінгер виглядає так, ніби хтось зібрав міфічну істоту з деталей, що залишилися після інших.
+server/src/cards/cardDescriptions.ts	Мамонт — це слон, який додав шерсть, бивні й упевненість, що льодовиковий період — нормальна погода.
+server/src/cards/cardDescriptions.ts	Мегалодон — причина, чому фраза «у морі щось велике» ніколи не звучить заспокійливо.
+server/src/cards/cardDescriptions.ts	Титанобоа настільки велика, що слово «змія» звучить як образливе применшення.
+server/src/cards/cardDescriptions.ts	Парацератерій — носоріг без рогу, зате розміром із аргумент, проти якого важко сперечатися.
+server/src/cards/cardDescriptions.ts	Мозазавр дивиться на океан як на персональну їдальню з дуже повільним обслуговуванням.
+server/src/cards/cardDescriptions.ts	Саркозух — крокодил, якому звичайного розміру здалося недостатньо переконливо.
+server/src/cards/cardDescriptions.ts	Аргентиносавр був настільки великим, що крок уперед міг виглядати як локальна міграція.
+server/src/cards/cardDescriptions.ts	Меганевра — бабка розміром із причину більше ніколи не казати: «Та це просто комаха».
+server/src/cards/cardDescriptions.ts	Гігантська манта пливе так велично, ніби океан — це її особистий плащ.
+server/src/cards/cardDescriptions.ts	Віверна має дві ноги, крила й нуль бажання слухати лекції про те, чим вона відрізняється від дракона.
+server/src/cards/cardDescriptions.ts	Дрейк не літає — і що? Коли ти дракон, відсутність крил легко компенсується ставленням.
+server/src/cards/cardDescriptions.ts	Амфіптер вирішив, що ноги переоцінені. Крила, зміїне тіло й жодного зайвого багажу.
+server/src/cards/cardDescriptions.ts	Ліндворм довгий, лютий і дуже переконливо пояснює, чому дороги через його територію тимчасово закриті.
+server/src/cards/cardDescriptions.ts	Нідхегг гризе коріння світу. У кожного свій антистрес.
+server/src/cards/cardDescriptions.ts	Фафнір колись мав скарб. Потім скарб почав мати Фафніра. Класична історія про власність.
+server/src/cards/cardDescriptions.ts	Уроборос їсть власний хвіст. Вічний цикл, або дуже дивний спосіб не замовляти доставку.
+server/src/cards/cardDescriptions.ts	Лун не просто летить — він пливе крізь небо так, ніби хмари орендував особисто.
+server/src/cards/cardDescriptions.ts	Зілант має крила, зміїне тіло й репутацію, якої достатньо, щоб не пояснювати решту.
+server/src/cards/cardDescriptions.ts	Інугамі — собачий дух із пам’яттю на образи. Кісточку забуде. Твою помилку — ні.
+server/src/cards/cardDescriptions.ts	Некомата — кішка з двома хвостами. Один для рівноваги, другий — щоб скидати зі столу вдвічі більше речей.
+server/src/cards/cardDescriptions.ts	Камайтачі пролітає так швидко, що спочатку бачиш поріз, а вже потім думаєш: «Звідки вітер?»
+server/src/cards/cardDescriptions.ts	Куда-гіцуне настільки мала, що може жити в трубці. Ідеальний дух для тих, хто каже: «Місця ще багато».
+server/src/cards/cardDescriptions.ts	Нуе зібране з кількох тварин. Видно, навіть міфологія іноді не могла визначитися з фінальним дизайном.
+server/src/cards/cardDescriptions.ts	Шиса охороняє дім. Один гарчить із відкритою пащею, другий — із закритою. Система безпеки 2.0.
+server/src/cards/cardDescriptions.ts	Баргест — чорний пес, якого краще не кликати словами «хто хороший хлопчик?».
+server/src/cards/cardDescriptions.ts	Пука може змінювати подобу. Дуже зручно, коли після пригод треба сказати: «Це був не я».
+server/src/cards/cardDescriptions.ts	Татцельвурм — кіт, змія й дракон посперечалися, хто страшніший. Компроміс вийшов дивний, але переконливий.
+server/src/cards/cardDescriptions.ts	Гідрі відрубали одну голову — стало більше роботи. Рідкісний випадок, коли багф офіційно став механікою.
+server/src/cards/cardDescriptions.ts	Химера — лев, коза й змія в одному наборі. Навіть міфи іноді продавали комплектацію «все включено».
+server/src/cards/cardDescriptions.ts	Мантикора — це коли лев, хвіст зі зброєю й поганий характер потрапили в один дизайн і ніхто не натиснув «скасувати».
+server/src/cards/cardDescriptions.ts	Василіск настільки небезпечний поглядом, що режим «не дивитися в очі» тут не соціальна незручність, а тактика.
+server/src/cards/cardDescriptions.ts	Кракен не стукає у двері корабля. У нього для цього надто багато рук.
+server/src/cards/cardDescriptions.ts	Левіафан настільки великий, що слово «морське чудовисько» звучить як дуже скромне резюме.
+server/src/cards/cardDescriptions.ts	Цербер має три голови. Одна гавкає, друга кусає, третя стежить, щоб перші дві не халтурили.
+server/src/cards/cardDescriptions.ts	Орф — двоголовий пес. Бо після Цербера хтось вирішив трохи зекономити на головах.
+server/src/cards/cardDescriptions.ts	Катоблепас дивиться вниз не від сорому. Просто всім навколо так безпечніше.
+server/src/cards/cardDescriptions.ts	Моровий Алхімік змішав ртуть, могильну землю й мор, але сам став частиною своєї реторти.
+server/src/cards/cardDescriptions.ts	Чумний Лікар збирає заражену кров у срібні колби; його ліки лікують лише тих, хто вже помер.
+server/src/cards/cardDescriptions.ts	Наречена Чуми приходить із білим туманом і залишає попіл у легенях тих, хто почув її дзвони.
+server/src/cards/cardDescriptions.ts	Щурячий Король править підземеллями міста, де кожен тунель веде до нової могили.
+server/src/cards/cardDescriptions.ts	Мандрагора Шибеника проросла крізь землю, ввібравши останній крик кожного повішеного.
+server/src/cards/cardDescriptions.ts	Гомункул зібраний із ртуті, крові й чужих спогадів, які досі ворушаться в його прозорому тілі.
+server/src/cards/cardDescriptions.ts	Біла Королева зупиняє гниття разом із кров’ю, диханням і самим життям.
+server/src/cards/cardDescriptions.ts	Червоний Король спалює стару плоть, щоб народити нову — або залишити від неї лише попіл.
+server/src/cards/cardDescriptions.ts	Філософський Камінь — живе серце Великого Діяння, у якому зійшлися холод Королеви й жар Короля.
+server/src/cards/cardDescriptions.ts	Відьма Вогню тримає полум’я в долоні, ніби це звичайна свічка. Полум’я з цим не погоджується, але слухається.
+server/src/cards/cardDescriptions.ts	Відьма Води крутить вир у повітрі й дивиться на нього так, ніби це лише перша сторінка значно глибшого закляття.
+server/src/cards/cardDescriptions.ts	Відьма Землі будить камінь одним дотиком. Після цього навіть гори поводяться обережніше.
+server/src/cards/cardDescriptions.ts	Відьма Повітря не залишає слідів — тільки рух пір’я, іскру в небі та відчуття, що буря вже поруч.
+server/src/cards/cardDescriptions.ts	Чистий дух вогню, що тримається в повітрі як живе полум’я.
+server/src/cards/cardDescriptions.ts	Чистий дух води, що змінює форму разом із кожною хвилею.
+server/src/cards/cardDescriptions.ts	Чистий дух землі, зібраний із каменю, пилу й глибокої тиші.
+server/src/cards/cardDescriptions.ts	Чистий дух повітря, помітний лише за рухом, який він залишає після себе.
+server/src/cards/cardDescriptions.ts	Рвач бере силою й не визнає перешкод, які не можна проломити напролом.
+server/src/cards/cardDescriptions.ts	Шнир прослизає крізь будь-яку метушню раніше, ніж хтось встигає його помітити.
+server/src/cards/cardDescriptions.ts	Пороху достатньо однієї іскри, щоб гоблінська витівка стала справжнім вибухом.
+server/src/cards/cardDescriptions.ts	Батя Грум спокійно переживає будь-який гармидер і повертає його проти суперника.
+server/src/dailyRewardsConfig.ts	{} срібла · {} золота · {} {}
+server/src/database/devGuildSeed.ts	До десятого
+server/src/database/devGuildSeed.ts	+{} XP до спільного прогресу
+server/src/dev/devAuthRoute.ts	Гравець до 10 рівня
+server/src/guild/guildRaidService.ts	ла
+server/src/guild/guildRaidService.ts	Ти посів{} {} місце у рейді на відьом. Забери свою карту в пошті.
+server/src/guild/guildRaidService.ts	Ти посів{} {} місце у рейді на відьом. Забери нагороду в пошті.
+server/src/guild/guildRaidService.ts	(
+          `INSERT INTO player_mail
+             (id, player_id, subject, body, silver, gold, card_id, card_level, source_key)
+           VALUES ($1, $2, $3, $4, 0, 0, $5, $6, $7)
+           ON CONFLICT (source_key) WHERE source_key IS NOT NULL
+           DO UPDATE SET source_key = EXCLUDED.source_key
+           RETURNING id`,
+          [
+            mailId,
+            participant.player_id,
+            "Нагорода за рейд",
+            `Ти посів$
+server/src/guild/guildRaidService.ts	(
+            `INSERT INTO player_mail
+               (id, player_id, subject, body, silver, gold, source_key)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (source_key) WHERE source_key IS NOT NULL
+             DO UPDATE SET source_key = EXCLUDED.source_key
+             RETURNING id`,
+            [
+              mailId,
+              participant.player_id,
+              "Нагорода за рейд",
+              `Ти посів$
+server/src/guild/guildRaidService.ts	(
+      `SELECT participants.player_id, participants.damage_total,
+          players.photo_url, players.duel_rating,
+          COALESCE(NULLIF(BTRIM(players.username), ''), NULLIF(BTRIM(players.first_name), ''), 'Гравець') AS display_name
+       FROM guild_witch_raid_participants participants
+       INNER JOIN guild_members members
+         ON members.guild_id = $2 AND members.player_id = participants.player_id
+       INNER JOIN players ON players.id = participants.player_id
+       WHERE participants.raid_id = $1
+       ORDER BY participants.damage_total DESC, participants.joined_at ASC, participants.player_id ASC`,
+      [raid.id, raid.guild_id],
+    );
+    const leader = await this.loadLeader(client, raid.id, raid.guild_id);
+    const participant = viewerId ? await this.loadParticipant(client, raid.id, raid.guild_id, viewerId) : null;
+    const battle = viewerId ? await this.loadBattle(client, raid.id, viewerId) : null;
+    const lastResult = raid.status === "open" ? await this.loadLatestRaidResult(client, raid) : null;
+    const enrollment: GuildRaidEnrollmentView =
+server/src/guild/guildService.ts	= target,
+      description: "Грайте разом: кожна перемога наповнює спільний прогрес.",
+      id: `$
+server/src/reference/guildForumReferenceService.ts	Вступление/создание доступно с 10 уровня
+server/src/reference/guildForumReferenceService.ts	Стоимость создания обнаружена в публичном тексте; значение нужно подтвердить
+server/src/reference/guildForumReferenceService.ts	Ограничение состава обнаружено; точное значение извлечь из совпадения
+server/src/reference/guildForumReferenceService.ts	Гильдия имеет обязательную стихийную принадлежность
+server/src/reference/guildForumReferenceService.ts	themeElement необязателен и декоративен, без боевого бонуса
+server/src/reference/guildForumReferenceService.ts	Опыт гильдии связан с дуэлями
+server/src/reference/guildForumReferenceService.ts	Завершенные активности: дуэль, кампания, подземелье, арена; дневной cap 300
+server/src/reference/guildForumReferenceService.ts	Уровень гильдии дает бонусы к серебру и опыту
+server/src/reference/guildForumReferenceService.ts	В MVP боевых/экономических бонусов нет
+server/src/reference/guildForumReferenceService.ts	У гильдии есть казна для общих расходов
+server/src/reference/guildForumReferenceService.ts	Казна не входит в MVP
+server/src/reference/guildForumReferenceService.ts	Магистр → маршалы → архимаги → боевые маги → адепты → неофиты
+server/src/reference/guildForumReferenceService.ts	У гильдии есть отдельный форум с разделами и темами
+server/src/reference/guildForumReferenceService.ts	Форум отложен после MVP
+server/src/reference/guildForumReferenceService.ts	Есть отдельная карта гильдии: сила, верность, усиление и ограничение на поглощение
+server/src/reference/guildForumReferenceService.ts	Гильдийная карта и ее боевые модификаторы не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Есть казна, взносы и статистика пополнений
+server/src/reference/guildForumReferenceService.ts	Казна и взносы не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Алтарь дает временные усиления для войн/турниров; доступна одна выбранная опция
+server/src/reference/guildForumReferenceService.ts	Гильдийные усиления не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Война идет по дням: дуэли добывают ключи, затем проходят массовые сражения
+server/src/reference/guildForumReferenceService.ts	Войны гильдий не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Гильдийная арена формирует союзы/пятерки и начисляет рейтинговые очки
+server/src/reference/guildForumReferenceService.ts	Арена гильдий не входит в MVP
+server/src/reference/guildForumReferenceService.ts	Є окремі рейди гільдії на драконів і відьом
+server/src/reference/guildForumReferenceService.ts	Рейды не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Есть общие и личные награды за вклад/активность гильдии
+server/src/reference/guildForumReferenceService.ts	Гильдийные награды не входят в MVP
+server/src/reference/guildForumReferenceService.ts	Есть журнал событий гильдии с фильтрами по типу события
+server/src/reference/guildForumReferenceService.ts	Журнал событий не входит в MVP
+server/src/reference/guildForumReferenceService.ts	Есть чат гильдии и отдельный чат союза с постраничной историей
+server/src/reference/guildForumReferenceService.ts	Гильдийний чат не входить у MVP; форум запланований окремо
+server/src/reference/guildForumReferenceService.ts	К боевой колоде добавляются дополнительные гильдийные/союзные карты
+server/src/reference/guildForumReferenceService.ts	В MVP нет гильдийных боевых бонусов и дополнительных карт
+server/src/reference/guildForumReferenceService.ts	Есть отдельные правила сообщества и модерации
+server/src/reference/guildForumReferenceService.ts	Нужен отдельный policy/moderation документ, не часть Guild MVP
+server/src/reference/guildForumReferenceService.ts	Не найдено в загруженных публичных страницах
+server/src/reference/guildForumReferenceService.ts	Вступление/создание доступно с {} уровня
+server/src/reference/guildForumReferenceService.ts	{} серебра
+server/src/reference/guildForumReferenceService.ts	{} учасників на старті
+server/src/reference/guildForumReferenceService.ts	80
+    && !/слишком\s+много\s+запрос|сервер\s+перегружен|осталось\s+около/iu.test(page.textPreview),
+  );
+  if (snapshot.scope === "full" && !hasUsefulPublicPage)
+server/src/reference/guildForumReferenceService.ts	page.kind === "guild-war" || /войн[\s\S]
+server/src/reference/guildForumReferenceService.ts	page.kind === "guild-arena" || /арен[\s\S]
+server/src/reference/guildForumReferenceService.ts	page.kind === "guild-raids" || /рейд[\s\S]
+server/src/trials/storyTrialsConfig.ts	Зіграй 10 дуелей
+server/src/trials/storyTrialsConfig.ts	Купи 4 карти в магазині
+server/src/trials/storyTrialsConfig.ts	Покращ карти 3 рази
+shared/src/guild.ts	A-Za-zАБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя

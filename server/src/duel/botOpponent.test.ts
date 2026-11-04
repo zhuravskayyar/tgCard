@@ -141,19 +141,20 @@ test("different server RNG produces different bot identities, cards, and total s
   );
 });
 
-test("bot deck generator rejects an incomplete canonical element catalog", () => {
+test("bot deck uses the only element catalog that can supply three distinct templates", () => {
   const incomplete = templates.filter(({ element }) => element !== "fire").concat(
     templates.filter(({ element }) => element === "fire").slice(0, 2),
   );
-  assert.throws(
-    () => createBotOpponentSnapshot(
-      challenger,
-      getMatchmakingRange(challenger.effectiveDeckPower, 0),
-      incomplete,
-      () => 0,
-    ),
-    /at least 3 alternative fire templates/,
+  const bot = createBotOpponentSnapshot(
+    challenger,
+    getMatchmakingRange(challenger.effectiveDeckPower, 0),
+    incomplete,
+    () => 0,
   );
+
+  assert.equal(validateDeckElementBalance(bot.cards).valid, true);
+  assert.equal(bot.cards.filter(({ element }) => element === "fire").length, 2);
+  assert.equal(bot.cards.filter(({ element }) => element === "water").length, 3);
 });
 
 test("bot generators reject invalid random sources", () => {

@@ -1,8 +1,49 @@
-import { useEffect, useState } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ErrorInfo, type ReactNode } from "react";
 import type { CardElement, CardRarity, ShopPurchaseResponse } from "@cardastika/shared";
+import { playSound, preloadSounds, revealSoundCue, REWARD_SOUND_CUES } from "../audio";
 import { CardNameBadge } from "./CardNameBadge";
 import { CardHud } from "./CardHud";
 import { CardFxWrapper } from "./CardFxWrapper";
+import { useGyroscopeCardTilt } from "../hooks/useGyroscopeCardTilt";
+
+const BoosterOpening = lazy(() => import("./BoosterOpening").then(({ BoosterOpening }) => ({ default: BoosterOpening })));
+
+class BoosterOpeningBoundary extends Component<{ children: ReactNode; onError: (error: Error) => void }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, _info: ErrorInfo) {
+    this.props.onError(error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+interface ShopRewardCardSurfaceProps {
+  ariaLabel?: string;
+  children: ReactNode;
+  className: string;
+  interactive?: boolean;
+  onClick?: () => void;
+}
+
+function ShopRewardCardSurface({ ariaLabel, children, className, interactive = false, onClick }: ShopRewardCardSurfaceProps) {
+  const cardRef = useRef<HTMLElement | null>(null);
+  const attachCard = useCallback((card: HTMLElement | null) => { cardRef.current = card; }, []);
+  useGyroscopeCardTilt(cardRef);
+  const classes = `shop-reveal__card${interactive ? " shop-reveal__card--interactive" : ""} ${className}`;
+
+  return interactive ? (
+    <button aria-label={ariaLabel} className={classes} onClick={onClick} ref={attachCard} type="button">{children}</button>
+  ) : (
+    <div aria-label={ariaLabel} className={classes} ref={attachCard} role="img">{children}</div>
+  );
+}
 
 const elementLabels: Record<CardElement, string> = {
   fire: "Вогонь",
@@ -20,13 +61,31 @@ const rarityLabels: Record<CardRarity, string> = {
   mythic: "Міфічна",
 };
 
+type UnboxStage = "idle" | "fallback" | "shake" | "tear" | "rise" | "forge" | "handoff" | "done";
+const UNBOX_NEXT_STAGE: Partial<Record<UnboxStage, { after: number; next: UnboxStage }>> = {
+  shake: { after: 650, next: "tear" },
+  tear: { after: 420, next: "rise" },
+  rise: { after: 1_050, next: "done" },
+  forge: { after: 1_250, next: "done" },
+  // The 3D pack fades out before the reward screen takes over the same card.
+  handoff: { after: 280, next: "done" },
+};
+const PAPER_SCRAPS = 12;
+const REVEAL_EMBERS = 10;
+
+function prefersReducedMotion() {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 interface ShopRewardRevealProps {
   canBuyTen?: boolean;
   continueLabel?: string;
+  forged?: boolean;
   errorMessage?: string | null;
   onBuyAgain?: () => void;
   onBuyTen?: () => void;
   onContinue: () => void;
+  packRarity?: CardRarity;
   purchasing?: boolean;
   purchases: readonly ShopPurchaseResponse[];
 }
@@ -34,15 +93,43 @@ interface ShopRewardRevealProps {
 export function ShopRewardReveal({
   canBuyTen = false,
   continueLabel = "Продовжити",
+  forged = false,
   errorMessage,
   onBuyAgain,
   onBuyTen,
   onContinue,
+  packRarity,
   purchasing = false,
   purchases,
 }: ShopRewardRevealProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  useEffect(() => setActiveIndex(0), [purchases]);
+  const [unboxStage, setUnboxStage] = useState<UnboxStage>(() => !forged ? "idle" : prefersReducedMotion() ? "done" : "forge");
+  const [fromBooster, setFromBooster] = useState(false);
+  const revealRef = useRef<HTMLElement>(null);
+  const useStandardUnbox = useCallback(() => setUnboxStage("fallback"), []);
+
+  useEffect(() => {
+    const step = UNBOX_NEXT_STAGE[unboxStage];
+    if (!step) return;
+    const timeout = window.setTimeout(() => setUnboxStage(step.next), step.after);
+    return () => window.clearTimeout(timeout);
+  }, [unboxStage]);
+
+  useEffect(() => { preloadSounds(REWARD_SOUND_CUES); }, []);
+
+  const revealRarity = (purchases[activeIndex] ?? purchases[0])?.reward.rarity;
+  useEffect(() => {
+    if (unboxStage === "shake") playSound("pack-shake");
+    else if (unboxStage === "tear") playSound("pack-tear");
+    else if (unboxStage === "rise" && revealRarity) playSound(revealSoundCue(revealRarity));
+    else if (unboxStage === "forge") playSound("forge-strike");
+  }, [revealRarity, unboxStage]);
+
+  useLayoutEffect(() => {
+    if (unboxStage !== "idle" && unboxStage !== "fallback" && unboxStage !== "done") return;
+    revealRef.current?.focus({ preventScroll: true });
+    revealRef.current?.closest<HTMLElement>(".app-content")?.scrollTo({ top: 0, behavior: "auto" });
+  }, [unboxStage]);
 
   const activePurchase = purchases[activeIndex] ?? purchases[0];
   if (!activePurchase) return null;
@@ -54,7 +141,7 @@ export function ShopRewardReveal({
     && deckPower > previousDeckPower;
 
   function showNextCard() {
-    if (hasNextCard) setActiveIndex((current) => current + 1);
+    if (hasNextCard) setActiveIndex((current) => Math.min(current + 1, purchases.length - 1));
   }
 
   const rewardCard = (
@@ -63,10 +150,84 @@ export function ShopRewardReveal({
     </CardFxWrapper>
   );
 
+  if (unboxStage === "forge") {
+    return (
+      <section aria-label="Створення карти" className={`shop-forge shop-forge--${reward.rarity}`} ref={revealRef} tabIndex={-1}>
+        <span aria-hidden="true" className="shop-forge__light" />
+        <span aria-hidden="true" className={`shop-reveal__card shop-forge__card deck-card--${reward.element} deck-card--${reward.rarity}`}>{rewardCard}</span>
+        <img alt="" aria-hidden="true" className="shop-forge__anvil" src="/assets/ui/shop/shop-workshop-anvil.png" />
+        <span aria-hidden="true" className="shop-forge__sparks">
+          {Array.from({ length: PAPER_SCRAPS }, (_, index) => <i key={index} style={{ "--fx-index": index } as CSSProperties} />)}
+        </span>
+        <button className="shop-unbox-stage__skip" onClick={() => setUnboxStage("done")} type="button">Пропустити анімацію</button>
+      </section>
+    );
+  }
+
+  // A single card gets the full 3D pack; batches keep the quick 2D unboxing so ten packs need no ten cuts.
+  if ((unboxStage === "idle" || unboxStage === "handoff") && !isBatch && !prefersReducedMotion()) {
+    return (
+      <section className={`shop-unbox-stage shop-unbox-stage--3d${unboxStage === "handoff" ? " shop-unbox-stage--leaving" : ""}`} ref={revealRef} tabIndex={-1}>
+        <header className="shop-reveal__heading"><span>Пакунок придбано</span></header>
+        <BoosterOpeningBoundary onError={useStandardUnbox}>
+          <Suspense fallback={null}>
+            <BoosterOpening
+              autoFinishOnReveal
+              card={reward}
+              onDone={() => { setFromBooster(true); setUnboxStage("handoff"); }}
+              onFallback={useStandardUnbox}
+              packRarity={packRarity ?? reward.rarity}
+            />
+          </Suspense>
+        </BoosterOpeningBoundary>
+      </section>
+    );
+  }
+
+  if (unboxStage !== "done") {
+    const visibleUnboxStage = unboxStage === "fallback" ? "idle" : unboxStage;
+    const packLayers = packRarity ? <><span className={`shop-pack-foil shop-pack-foil--${packRarity}`} /><span className={`shop-pack-gilt shop-pack-gilt--${packRarity}`} /></> : null;
+    const sealClass = `shop-pack-seal ${packRarity ? `shop-pack-seal--${packRarity}` : ""} shop-unbox__seal`;
+    return (
+      <section aria-label="Відкриття пакунка" className="shop-unbox-stage" ref={revealRef} tabIndex={-1}>
+        <header className="shop-reveal__heading"><span>Пакунок придбано</span></header>
+        <button
+          aria-label="Відкрити пакунок"
+          aria-disabled={visibleUnboxStage !== "idle"}
+          className={`shop-unbox shop-unbox--${visibleUnboxStage} shop-unbox--${reward.rarity}`}
+          data-sound="none"
+          onClick={() => {
+            if (visibleUnboxStage !== "idle") return;
+            if (prefersReducedMotion()) playSound(revealSoundCue(reward.rarity));
+            setUnboxStage(prefersReducedMotion() ? "done" : "shake");
+          }}
+          type="button"
+        >
+          <span aria-hidden="true" className="shop-unbox__flash" />
+          <span aria-hidden="true" className="shop-unbox__pack">
+            {unboxStage === "rise" ? <span className={`shop-reveal__card shop-unbox__card deck-card--${reward.element} deck-card--${reward.rarity}`}>{rewardCard}</span> : null}
+            <span className="shop-pack-body">
+              <span className="shop-unbox__half shop-unbox__half--bottom">{packLayers}</span>
+              <span className="shop-unbox__half shop-unbox__half--top">{packLayers}</span>
+              <img alt="" className={`${sealClass} shop-unbox__seal--left`} src="/assets/ui/shop/stall/pack-seal-v2.webp" />
+              <img alt="" className={`${sealClass} shop-unbox__seal--right`} src="/assets/ui/shop/stall/pack-seal-v2.webp" />
+            </span>
+            {unboxStage === "tear" || unboxStage === "rise" ? (
+              <span className="shop-unbox__scraps">
+                {Array.from({ length: PAPER_SCRAPS }, (_, index) => <i key={index} style={{ "--fx-index": index } as CSSProperties} />)}
+              </span>
+            ) : null}
+          </span>
+        </button>
+        {unboxStage === "idle" || unboxStage === "fallback" ? <p className="shop-unbox-stage__hint" role="status">Торкнися пакунка, щоб відкрити</p> : null}
+      </section>
+    );
+  }
+
   return (
-    <section className="shop-reveal" aria-live="polite" data-tutorial-target="shop-reveal">
+    <section aria-label="Отримана карта" className={`shop-reveal shop-reveal--${reward.rarity}${fromBooster && activeIndex === 0 ? " shop-reveal--from-booster" : ""}`} aria-live="polite" data-tutorial-target="shop-reveal" ref={revealRef} tabIndex={-1}>
       <header className="shop-reveal__heading">
-        <span>Отримано карту</span>
+        <span>{forged ? "Карту викувано" : activePurchase.newDiscovery ? "Відкрито нову карту" : "Отримано карту"}</span>
         {reward.displayName ? (
           <CardNameBadge name={reward.displayName} />
         ) : (
@@ -74,16 +235,22 @@ export function ShopRewardReveal({
         )}
       </header>
 
-      {hasNextCard ? (
-        <button
-          aria-label={`Переглянути карту ${activeIndex + 1} з ${purchases.length}`}
-          className={`shop-reveal__card shop-reveal__card--interactive deck-card--${reward.element} deck-card--${reward.rarity}`}
-          onClick={showNextCard}
-          type="button"
-        >
-          {rewardCard}
-        </button>
-      ) : <div className={`shop-reveal__card deck-card--${reward.element} deck-card--${reward.rarity}`}>{rewardCard}</div>}
+      <div className="shop-reveal__stage" key={`stage-${reward.instanceId}`}>
+        <span aria-hidden="true" className="shop-reveal__light" />
+        <span aria-hidden="true" className="shop-reveal__embers">
+          {Array.from({ length: REVEAL_EMBERS }, (_, index) => <i key={index} style={{ "--fx-index": index } as CSSProperties} />)}
+        </span>
+        <div className="shop-reveal__card-shell" key={reward.instanceId}>
+          <ShopRewardCardSurface
+            ariaLabel={hasNextCard ? `Наступна карта, ${activeIndex + 2} з ${purchases.length}` : "Карта нагороди. Проведи пальцем або мишею, щоб повернути."}
+            className={`deck-card--${reward.element} deck-card--${reward.rarity}`}
+            interactive={hasNextCard}
+            onClick={hasNextCard ? showNextCard : undefined}
+          >
+            {rewardCard}
+          </ShopRewardCardSurface>
+        </div>
+      </div>
 
       {isBatch ? (
         <p className="shop-reveal__batch-summary">
@@ -93,11 +260,11 @@ export function ShopRewardReveal({
         </p>
       ) : null}
 
+      <p className={`shop-reveal__rarity-line shop-reveal__rarity-line--${reward.rarity}`}>{rarityLabels[reward.rarity]} · {elementLabels[reward.element]}</p>
+
       <dl className="shop-reveal__facts">
         <div><dt>Рівень</dt><dd>{reward.level}</dd></div>
         <div><dt>Сила</dt><dd>{reward.finalPower}</dd></div>
-        <div><dt>Стихія</dt><dd>{elementLabels[reward.element]}</dd></div>
-        <div><dt>Рідкість</dt><dd>{rarityLabels[reward.rarity]}</dd></div>
       </dl>
       {deckImproved ? (
         <p className="shop-reveal__deck-note">Колода посилилась: {previousDeckPower} → {deckPower}</p>
@@ -105,6 +272,7 @@ export function ShopRewardReveal({
       {collectionCompleted ? <aside className="shop-collection-complete"><span>КОЛЕКЦІЮ ЗІБРАНО</span><strong>{collectionCompleted.name}</strong><p>{collectionCompleted.bonusLabel}</p></aside> : null}
       {errorMessage ? <p className="shop-error" role="alert">{errorMessage}</p> : null}
       <div className="shop-reveal__actions">
+        {hasNextCard ? <button className="shop-reveal__next" onClick={showNextCard} type="button">Наступна карта · {activeIndex + 2} / {purchases.length}</button> : null}
         <button className="shop-reveal__continue" data-tutorial-target="shop-continue" disabled={purchasing} onClick={onContinue} type="button">{continueLabel}</button>
         {onBuyAgain ? <button className="shop-reveal__buy-again" disabled={purchasing} onClick={onBuyAgain} type="button">{purchasing ? "Купуємо…" : "Купити ще"}</button> : null}
         {canBuyTen && onBuyTen ? <button className="shop-reveal__buy-batch" disabled={purchasing || hasNextCard} onClick={onBuyTen} type="button">{purchasing ? "Купуємо 10…" : "Купити 10"}</button> : null}

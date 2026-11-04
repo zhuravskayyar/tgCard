@@ -13,7 +13,7 @@ export const EQUIPMENT_RARITY_CLASSES: Readonly<Record<CardRarity, string>> = {
 };
 
 export function getEquipmentSpritePath(definition: Pick<EquipmentDefinition, "assetKey" | "category">) {
-  const folder = definition.category === "artifacts" ? "artifacts" : "items";
+  const folder = definition.category === "artifacts" ? "artifacts-v2" : "items-v2";
   return `${EQUIPMENT_ASSET_ROOT}/${folder}/${definition.assetKey}${EQUIPMENT_SPRITE_EXTENSION}`;
 }
 

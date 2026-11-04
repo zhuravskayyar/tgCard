@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CollectionCompletionNotice, PlayerNicknameUpdateResponse, PlayerSummary } from "@cardastika/shared";
-import { getRawTelegramInitData, getTelegramInitData } from "../telegram";
-import { authenticateTelegramPlayer, loadCurrentPlayer, PlayerBootstrapError } from "../telegram/authenticatePlayer";
+import { getTelegramInitData } from "../telegram";
+import { loadCurrentPlayer, PlayerBootstrapError } from "../telegram/authenticatePlayer";
 import { updatePlayerNickname } from "../telegram/nickname";
 import { getSessionToken } from "../auth/session";
 import type { PlayerSummaryState } from "../types/player";
@@ -54,8 +54,7 @@ export function usePlayerSummary() {
   }, []);
 
   useEffect(() => {
-    const initData = getRawTelegramInitData();
-    if (!initData && !getSessionToken()) {
+    if (!getSessionToken()) {
       setState({ status: "unauthenticated" });
       return;
     }
@@ -64,10 +63,7 @@ export function usePlayerSummary() {
     let active = true;
     setState({ status: "loading" });
 
-    const authentication = initData
-      ? authenticateTelegramPlayer(initData, controller.signal)
-      : loadCurrentPlayer(controller.signal);
-    void authentication
+    void loadCurrentPlayer(controller.signal)
       .then((data) => {
         if (active) setState({ status: "ready", data });
       })

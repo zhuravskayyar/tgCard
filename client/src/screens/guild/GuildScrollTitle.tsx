@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import type { CardElement } from "@cardastika/shared";
 import { GuildEmblem } from "./GuildUi";
 
 interface GuildScrollTitleProps {
   name: string;
+  element: CardElement | null;
   emblemId: string;
   heroRef: RefObject<HTMLElement | null>;
 }
 
-export function GuildScrollTitle({ name, emblemId, heroRef }: GuildScrollTitleProps) {
+export function GuildScrollTitle({ name, element, emblemId, heroRef }: GuildScrollTitleProps) {
   const titleRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -40,6 +42,6 @@ export function GuildScrollTitle({ name, emblemId, heroRef }: GuildScrollTitlePr
   }, [heroRef]);
 
   return <div className="guild-scroll-title" ref={titleRef} data-visible={visible} aria-hidden={!visible}>
-    <div><GuildEmblem emblemId={emblemId} /><span>{name}</span></div>
+    <div><GuildEmblem element={element} emblemId={emblemId} /><span>{name}</span></div>
   </div>;
 }

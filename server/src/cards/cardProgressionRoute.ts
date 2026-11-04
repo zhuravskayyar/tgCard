@@ -32,9 +32,9 @@ interface CardProgressionRouteDependencies extends RouteAuthDependencies {
 function readPage(request: IncomingMessage) {
   const url = new URL(request.url ?? "/", "http://localhost");
   const page = Number(url.searchParams.get("page") ?? "1");
-  const limit = Number(url.searchParams.get("limit") ?? "9");
-  if (!Number.isSafeInteger(page) || page < 1 || limit !== 9) {
-    throw new HttpRequestError(400, "invalid_pagination", "Absorption candidates use positive pages of exactly 9 cards");
+  const limit = Number(url.searchParams.get("limit") ?? "5");
+  if (!Number.isSafeInteger(page) || page < 1 || limit !== 5) {
+    throw new HttpRequestError(400, "invalid_pagination", "Absorption candidates use positive pages of exactly 5 cards");
   }
   return page;
 }

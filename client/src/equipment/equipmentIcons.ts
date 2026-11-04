@@ -1,17 +1,19 @@
 import type { CardElement, EquipmentSlot } from "@cardastika/shared";
 
 const EQUIPMENT_ICON_BASE = "/assets/ui/world-tree/game-icons";
+const SLOT_ICON_BASE = "/assets/ui/icons";
 
+// Painted slot icons.
 export const EQUIPMENT_SLOT_ICON_SOURCES: Readonly<Record<EquipmentSlot, string>> = {
-  head: `${EQUIPMENT_ICON_BASE}/equipment-pointy-hat.svg`,
-  cloak: `${EQUIPMENT_ICON_BASE}/equipment-robe.svg`,
-  gloves: `${EQUIPMENT_ICON_BASE}/equipment-gauntlet.svg`,
-  boots: `${EQUIPMENT_ICON_BASE}/equipment-boots.svg`,
-  weapon: `${EQUIPMENT_ICON_BASE}/equipment-crossed-swords.svg`,
-  shield: `${EQUIPMENT_ICON_BASE}/equipment-shield.svg`,
-  amulet: `${EQUIPMENT_ICON_BASE}/equipment-gem-pendant.svg`,
-  relic: `${EQUIPMENT_ICON_BASE}/equipment-polar-star.svg`,
-  voodoo: `${EQUIPMENT_ICON_BASE}/equipment-voodoo.svg`,
+  head: `${SLOT_ICON_BASE}/slot-head-v1.webp`,
+  cloak: `${SLOT_ICON_BASE}/slot-cloak-v1.webp`,
+  gloves: `${SLOT_ICON_BASE}/slot-gloves-v1.webp`,
+  boots: `${SLOT_ICON_BASE}/slot-boots-v1.webp`,
+  weapon: `${SLOT_ICON_BASE}/slot-weapon-v1.webp`,
+  shield: `${SLOT_ICON_BASE}/slot-shield-v1.webp`,
+  amulet: `${SLOT_ICON_BASE}/slot-amulet-v1.webp`,
+  relic: `${SLOT_ICON_BASE}/slot-relic-v1.webp`,
+  voodoo: `${SLOT_ICON_BASE}/slot-charm-v1.webp`,
 };
 
 export const EQUIPMENT_UI_ICON_SOURCES = {

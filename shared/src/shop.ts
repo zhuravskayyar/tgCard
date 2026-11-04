@@ -1,5 +1,5 @@
 import type { CardElement, CardRarity, PlayerCard } from "./card.js";
-import type { CollectionCompletionNotice } from "./collection.js";
+import type { CollectionCompletionNotice, PlayerCollectionCard, PlayerCollectionSummary } from "./collection.js";
 
 export const SHOP_CURRENCIES = ["silver", "gold"] as const;
 
@@ -11,11 +11,23 @@ export interface ShopUpgradeChance {
   rarity: CardRarity;
 }
 
+export interface ShopPoolCard {
+  displayName: string;
+  element: CardElement;
+  id: string;
+}
+
+export interface ShopPoolGroup {
+  cards: ShopPoolCard[];
+  rarity: CardRarity;
+}
+
 export interface ShopOffer {
   canAfford: boolean;
   currency: ShopCurrency;
   guaranteedRarity: CardRarity;
   id: string;
+  pool: ShopPoolGroup[];
   price: number;
   upgrades: ShopUpgradeChance[];
 }
@@ -24,6 +36,11 @@ export interface ShopCatalogResponse {
   bundles: ShopBundleOffer[];
   limitedEvent?: LimitedShopEvent;
   offers: ShopOffer[];
+}
+
+export interface ShopCardInfoResponse {
+  card: PlayerCollectionCard;
+  collections: PlayerCollectionSummary[];
 }
 
 export interface ShopBundleOffer {
@@ -121,7 +138,13 @@ export interface CardWorkshopCraftRequest {
 export interface CardWorkshopCraftResponse {
   cardId: string;
   cardShards: number;
+  collectionCompleted?: CollectionCompletionNotice;
+  deckChanged: boolean;
+  deckPower?: number;
+  newDiscovery: boolean;
+  previousDeckPower?: number;
   quantity: number;
+  reward: PlayerCard;
   shardsSpent: number;
   success: true;
 }

@@ -1,0 +1,102 @@
+.campaign-adventures { display: grid; gap: 12px; padding-bottom: 16px; }
+
+.adventure-route-map {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 983 / 337;
+  background: url("/assets/ui/trials/campaign-map-v1.webp") center / 100% 100% no-repeat;
+}
+.adventure-route-map h2 {
+  position: absolute;
+  top: 8%;
+  left: 27%;
+  display: grid;
+  place-items: center;
+  width: 46%;
+  height: 17%;
+  margin: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  color: var(--home-ink);
+  font-size: clamp(10px, 3.2vw, 15px);
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adventure-plate {
+  border: 14px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 18px / 0 stretch;
+  color: var(--home-ink);
+  padding: 8px 6px;
+  text-align: center;
+}
+.adventure-plate h2 { margin: 0 0 8px; font-size: 21px; line-height: 1.15; }
+.adventure-plate p { margin: 6px 0; line-height: 1.35; }
+
+.adventure-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  width: min(100%, 260px);
+  margin-top: 8px;
+  padding: 8px 22px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.adventure-button:disabled { opacity: .6; cursor: default; }
+.adventure-button:focus-visible { outline: 2px solid #895821; outline-offset: 2px; }
+
+.adventure-map { list-style: none; margin: 0; padding: 0 0 0 46px; display: grid; gap: 12px; }
+.adventure-location { position: relative; min-width: 0; }
+.adventure-location:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 40px;
+  bottom: -16px;
+  border-left: 2px dashed #8a6535;
+  z-index: 0;
+}
+.adventure-location__marker {
+  position: absolute;
+  left: -46px;
+  top: 8px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #2d1b0e;
+  font-size: 14px;
+  font-weight: 800;
+  background: url("/assets/ui/game/nav-medallion-v1.webp") center / contain no-repeat;
+  z-index: 1;
+}
+.adventure-location--open .adventure-location__marker { filter: drop-shadow(0 0 4px rgb(176 125 54 / 65%)); }
+.adventure-location--passed .adventure-location__marker { filter: saturate(.62); opacity: .82; }
+.adventure-location__reward { font-size: 14px; }
+.adventure-location__reward svg, .campaign-adventure-result svg { display: inline-block; vertical-align: middle; }
+
+.campaign-giver { display: flex; align-items: center; gap: 12px; text-align: left; }
+.campaign-giver__portrait {
+  display: grid;
+  place-items: center;
+  flex: 0 0 82px;
+  width: 82px;
+  aspect-ratio: 1;
+  padding: 10px;
+  background: url("/assets/ui/game/nav-medallion-v1.webp") center / 100% 100% no-repeat;
+}
+.campaign-giver__portrait img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.campaign-giver > div { min-width: 0; }
+.campaign-adventure-result .campaign-boss-reward { display: grid; justify-items: center; gap: 10px; }
+
+@media (max-width: 360px) {
+  .adventure-map { padding-left: 42px; }
+  .adventure-location__marker { left: -42px; width: 36px; height: 36px; }
+  .adventure-location:not(:last-child)::after { left: -23px; }
+  .campaign-giver__portrait { flex-basis: 72px; width: 72px; padding: 9px; }
+}

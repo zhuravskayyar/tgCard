@@ -7,6 +7,7 @@ import type {
 import type { Pool, PoolClient } from "pg";
 import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
+import { STARTER_CARD_CODES } from "../inventory/starterCards.js";
 
 interface RaidCardRow {
   art_key: string | null;
@@ -18,7 +19,7 @@ interface RaidCardRow {
   id: string;
   limited: boolean;
   min_rarity: CardRarity;
-  source: "raid";
+  source: "standard";
 }
 
 export class RaidCardUnavailableError extends Error {
@@ -67,10 +68,10 @@ export class RaidCardService {
           SELECT id, code, display_name, art_key, element, collection_id,
             description, limited, min_rarity, source
           FROM cards
-          WHERE id = $1 AND source = 'raid'
+          WHERE id = $1 AND id = ANY($2::text[]) AND source = 'standard' AND limited = FALSE
           FOR SHARE
         `,
-        [cardId],
+        [cardId, STARTER_CARD_CODES],
       );
       const row = result.rows[0];
       if (!row) throw new RaidCardUnavailableError(cardId);

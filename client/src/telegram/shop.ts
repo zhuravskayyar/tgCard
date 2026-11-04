@@ -8,11 +8,13 @@ import {
   type ShopBundleOffer,
   type ShopBundlePurchaseResponse,
   type ShopCatalogResponse,
+  type ShopCardInfoResponse,
   type ShopOffer,
   type ShopPurchaseResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
+import { isCard as isCollectionCard, isSummary as isCollectionSummary } from "./collections";
 
 export class ShopApiError extends Error {
   constructor(
@@ -81,6 +83,24 @@ function isShopOffer(value: unknown): value is ShopOffer {
     typeof offer.guaranteedRarity === "string" &&
     CARD_RARITIES.some((rarity) => rarity === offer.guaranteedRarity) &&
     typeof offer.canAfford === "boolean" &&
+    Array.isArray(offer.pool) &&
+    offer.pool.every((value) => {
+      if (!value || typeof value !== "object") return false;
+      const group = value as Record<string, unknown>;
+      return (
+        typeof group.rarity === "string" &&
+        CARD_RARITIES.some((rarity) => rarity === group.rarity) &&
+        Array.isArray(group.cards) &&
+        group.cards.every((value) => {
+          if (!value || typeof value !== "object") return false;
+          const card = value as Record<string, unknown>;
+          return typeof card.id === "string" &&
+            typeof card.displayName === "string" &&
+            typeof card.element === "string" &&
+            CARD_ELEMENTS.some((element) => element === card.element);
+        })
+      );
+    }) &&
     Array.isArray(offer.upgrades) &&
     offer.upgrades.length > 0 &&
     offer.upgrades.every((value) => {
@@ -194,6 +214,21 @@ export async function loadShopCatalog(initData: string, signal: AbortSignal) {
   });
   if (!response.ok) return parseError(response);
   return parseCatalog(await response.json());
+}
+
+export async function loadShopCardInfo(initData: string, cardId: string, signal?: AbortSignal): Promise<ShopCardInfoResponse> {
+  const response = await fetch(getApiEndpoint(`/api/shop/cards/info/${encodeURIComponent(cardId)}`), {
+    headers: { Authorization: getPlayerAuthHeader(initData) },
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<ShopCardInfoResponse> | null;
+  if (!isCollectionCard(value?.card) || !Array.isArray(value?.collections) || !value.collections.every(isCollectionSummary)) {
+    throw new ShopApiError(502, "invalid_response");
+  }
+  return value as ShopCardInfoResponse;
 }
 
 export async function purchaseShopOffer(initData: string, offerId: string, signal: AbortSignal) {

@@ -53,12 +53,12 @@ test("completed progress and bonus survive consuming four current instances", {
 
     const repository = new CollectionRepository(pool);
     const before = await repository.detail(player.id, predators.id);
-    assert.equal(before.collection.discoveredCards, 6);
+    assert.equal(before.collection.discoveredCards, predators.cards.length);
     assert.equal(before.collection.completed, true);
     const collectionWithoutCover = COLLECTIONS.find(({ coverArtKey }) => coverArtKey === null);
     assert.ok(collectionWithoutCover);
     const fallbackCover = await repository.detail(player.id, collectionWithoutCover.id);
-    assert.equal(fallbackCover.collection.coverArtKey, collectionWithoutCover.cards[0]?.artKey);
+    assert.equal(fallbackCover.collection.coverArtKey, collectionWithoutCover.cards[0]?.artKey ?? collectionWithoutCover.cards[0]?.code);
     assert.ok(before.cards.every(({ description }) => description.trim().length > 0));
 
     await pool.query(
@@ -69,17 +69,29 @@ test("completed progress and bonus survive consuming four current instances", {
     const after = await repository.detail(player.id, predators.id);
     const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(pool, player.id));
     const bonuses = await getCompletedCollectionBonuses(pool, player.id);
-    assert.equal(after.collection.discoveredCards, 6);
+    assert.equal(after.collection.discoveredCards, predators.cards.length);
     assert.equal(after.collection.completed, true);
-    assert.equal(modifiers.battleDamagePct, 3);
+    assert.equal(modifiers.silverRewardPct, 0);
     assert.deepEqual(bonuses, [{
-      bonus: predators.bonus,
+      bonus: { ...predators.bonus, scope: predators.bonus.scope ?? "all_battles" },
       bonusLabel: predators.bonusLabel,
       collectionId: predators.id,
       collectionName: predators.displayName,
     }]);
     assert.deepEqual((await new PlayerRepository(pool).findSummaryById(player.id)).collectionBonuses, bonuses);
     assert.equal(after.cards.filter(({ ownedCopies }) => ownedCopies === 0).length, 4);
+
+    const preview = await repository.previewCard(player.id, predators.cards[0]!.id);
+    assert.deepEqual(preview.card, after.cards.find(({ id }) => id === predators.cards[0]!.id));
+    assert.equal(preview.card.discovered, true);
+    assert.equal(preview.card.ownedCopies, 0);
+    const memberships = COLLECTIONS.filter(({ cards }) => cards.some(({ id }) => id === preview.card.id));
+    assert.deepEqual(preview.collections.map(({ id }) => id).sort(), memberships.map(({ id }) => id).sort());
+    assert.ok(preview.collections.some(({ id, completed, bonusLabel }) => id === predators.id && completed && bonusLabel === predators.bonusLabel));
+
+    const ownedPreview = await repository.previewCard(player.id, predators.cards[4]!.id);
+    assert.equal(ownedPreview.card.ownedCopies, 1);
+    assert.ok(ownedPreview.card.strongestInstanceId);
 
     const completionRows = await pool.query<{ count: string }>(
       "SELECT count(*) FROM player_collection_completions WHERE player_id = $1 AND collection_id = $2",
@@ -88,6 +100,41 @@ test("completed progress and bonus survive consuming four current instances", {
     assert.equal(Number(completionRows.rows[0]?.count), 1);
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.end();
+  }
+});
+
+test("shop preview reads an undiscovered card without collection membership without discovering it", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const telegramId = String(BigInt(Date.now()) * 10_000n + BigInt(process.pid) + 2n);
+  const cardId = `test_shop_preview_${randomUUID()}`;
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram({
+      id: telegramId, username: null, firstName: "Shop preview test", lastName: null, photoUrl: null,
+    });
+    await pool.query(
+      `INSERT INTO cards (id, code, display_name, description, element)
+       VALUES ($1, $1, 'Undiscovered shop card', 'Preview description', 'water')`,
+      [cardId],
+    );
+    const preview = await new CollectionRepository(pool).previewCard(player.id, cardId);
+    assert.equal(preview.card.id, cardId);
+    assert.equal(preview.card.description, "Preview description");
+    assert.equal(preview.card.discovered, false);
+    assert.equal(preview.card.ownedCopies, 0);
+    assert.equal(preview.card.strongestInstanceId, null);
+    assert.equal(preview.card.collectionId, null);
+    assert.deepEqual(preview.collections, []);
+    const discoveries = await pool.query(
+      "SELECT card_id FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2", [player.id, cardId],
+    );
+    assert.equal(discoveries.rowCount, 0);
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.query("DELETE FROM cards WHERE id = $1", [cardId]);
     await pool.end();
   }
 });
@@ -105,8 +152,21 @@ test("a four-card collection completes after its fourth discovery", {
     lastName: null,
     photoUrl: null,
   };
-  const elementalSpirits = COLLECTIONS.find(({ code }) => code === "element_spirits");
-  assert.ok(elementalSpirits);
+  // This small collection is a fixture: active collections now all contain ten cards.
+  const fixtureCode = `test_four_${Date.now()}`;
+  const elementalSpirits = { id: `collection_${fixtureCode}`, cards: Array.from({ length: 4 }, (_, index) => ({ id: `${fixtureCode}_${index}` })) };
+  await pool.query(
+    "INSERT INTO collections (id, code, display_name, buff_type, buff_value, buff_scope, bonus_label, position) VALUES ($1, $2, 'Test collection', 'none', 0, 'all_battles', '', 999)",
+    [elementalSpirits.id, fixtureCode],
+  );
+  for (const card of elementalSpirits.cards) await pool.query(
+    "INSERT INTO cards (id, code, display_name, element, collection_id) VALUES ($1, $1, 'Test collection card', 'fire', $2)",
+    [card.id, elementalSpirits.id],
+  );
+  for (const [index, card] of elementalSpirits.cards.entries()) await pool.query(
+    "INSERT INTO collection_cards (collection_id, card_id, position) VALUES ($1, $2, $3)",
+    [elementalSpirits.id, card.id, index + 1],
+  );
 
   try {
     const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
@@ -143,6 +203,8 @@ test("a four-card collection completes after its fourth discovery", {
     });
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.query("DELETE FROM cards WHERE collection_id = $1", [elementalSpirits.id]);
+    await pool.query("DELETE FROM collections WHERE id = $1", [elementalSpirits.id]);
     await pool.end();
   }
 });

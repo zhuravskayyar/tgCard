@@ -1,6 +1,8 @@
-export type ShopCategoryId = "ready-bundles" | "magical-cards" | "cosmetics" | "boosts";
-export type ShopCategoryTheme = "bundles" | "cards" | "cosmetics" | "boosts";
-export type ShopCategoryDestination = "bundles" | "cards" | "cosmetics" | "boosts";
+import { SHOP_BUNDLES } from "./shopBundles";
+
+export type ShopCategoryId = "ready-bundles" | "magical-cards" | "equipment-chests" | "cosmetics" | "boosts";
+export type ShopCategoryTheme = "bundles" | "cards" | "chests" | "cosmetics" | "boosts";
+export type ShopCategoryDestination = "bundles" | "cards" | "chests" | "cosmetics" | "boosts";
 
 export interface ShopCategory {
   id: ShopCategoryId;
@@ -12,7 +14,7 @@ export interface ShopCategory {
   placeholderArt: string | null;
 }
 
-export const SHOP_CATEGORIES: readonly ShopCategory[] = [
+const ALL_SHOP_CATEGORIES: readonly ShopCategory[] = [
   {
     id: "ready-bundles",
     title: "Готові набори",
@@ -28,6 +30,14 @@ export const SHOP_CATEGORIES: readonly ShopCategory[] = [
     theme: "cards",
     destination: "cards",
     placeholderArt: "/assets/ui/shop/categories/shop-category-cards.png",
+  },
+  {
+    id: "equipment-chests",
+    title: "Скрині спорядження",
+    subtitle: "Випадкові речі й артефакти за срібло",
+    theme: "chests",
+    destination: "chests",
+    placeholderArt: null,
   },
   {
     id: "cosmetics",
@@ -46,3 +56,6 @@ export const SHOP_CATEGORIES: readonly ShopCategory[] = [
     placeholderArt: "/assets/ui/shop/categories/shop-category-boosts.png",
   },
 ];
+
+// Ready bundles stay hidden until bundles from the new catalog exist.
+export const SHOP_CATEGORIES = ALL_SHOP_CATEGORIES.filter(({ id }) => id !== "ready-bundles" || SHOP_BUNDLES.length > 0);

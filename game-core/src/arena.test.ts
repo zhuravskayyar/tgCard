@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { DuelBattleModifiers, DuelCardSnapshot } from "@cardastika/shared";
+import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getArenaLeagueIndexAfter, getLeagueByRating, type DuelBattleModifiers, type DuelCardSnapshot } from "@cardastika/shared";
 import {
   calculateArenaDamage,
+  calculateArenaRatingChange,
   getArenaCardChangeCost,
-  getArenaReward,
+  getArenaTokenReward,
 } from "@cardastika/game-core";
 
 const modifiers: DuelBattleModifiers = {
@@ -41,13 +42,28 @@ test("Arena card change costs are free three times, then progressive", () => {
   assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(getArenaCardChangeCost), [0, 0, 0, 1, 2, 4, 6, 8, 10, 10]);
 });
 
-test("Arena currency boost doubles silver and expands the gold cap", () => {
-  assert.deepEqual(getArenaReward(1, 5, 0, 2), { arenaTokens: 30, gold: 18, goldCapped: false, silver: 1_800, ratingChange: 25 });
-  assert.deepEqual(getArenaReward(1, 5, 89, 2), { arenaTokens: 30, gold: 1, goldCapped: true, silver: 1_800, ratingChange: 25 });
+const evenFight = { averageDamage: 100, averageOpponentRating: 1_400, damageDealt: 100, playerRating: 1_400 };
+
+test("Arena rating follows the place in an even fight", () => {
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 1 }), 24);
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 6 }), -14);
 });
 
-test("Arena rewards are tripled while preserving the daily Gold cap", () => {
-  assert.deepEqual(getArenaReward(1, 5, 0), { arenaTokens: 30, gold: 9, goldCapped: false, silver: 900, ratingChange: 25 });
-  assert.deepEqual(getArenaReward(1, 5, 44), { arenaTokens: 30, gold: 1, goldCapped: true, silver: 900, ratingChange: 25 });
-  assert.deepEqual(getArenaReward(6, 20, 45), { arenaTokens: 3, gold: 0, goldCapped: false, silver: 1_500, ratingChange: -20 });
+test("Arena rating rewards strong opposition and high damage, within limits", () => {
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 1, averageOpponentRating: 1_480 }), 26);
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 1, damageDealt: 200 }), 28);
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 1, damageDealt: 10_000, averageOpponentRating: 9_000 }), 38);
+  assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 3, damageDealt: 0, averageOpponentRating: 0 }), 0);
+});
+
+test("Arena tokens follow the place", () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(getArenaTokenReward), [30, 24, 18, 9, 6, 3]);
+});
+
+test("Arena has its own league scale and a demotion buffer", () => {
+  assert.equal(getLeagueByRating(ARENA_START_RATING, ARENA_LEAGUE_CONFIG).index, 6);
+  assert.equal(getLeagueByRating(4_200, ARENA_LEAGUE_CONFIG).index, 20);
+  assert.equal(getArenaLeagueIndexAfter(1_600, 6), 7);
+  assert.equal(getArenaLeagueIndexAfter(1_301, 6), 6);
+  assert.equal(getArenaLeagueIndexAfter(1_300, 6), 5);
 });

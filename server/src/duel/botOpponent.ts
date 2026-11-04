@@ -125,20 +125,34 @@ function selectBotCardTemplates(
   random: RandomSource,
 ): BotCardTemplate[] {
   const challengerCardIds = new Set(challenger.cards.map(({ cardId }) => cardId));
-  const threeCardElement = CARD_ELEMENTS[randomIndex(CARD_ELEMENTS.length, random)]!;
+  const availableTemplates = CARD_ELEMENTS.map((element) => ({
+    element,
+    templates: templates.filter((template) => template.element === element && !template.limited),
+  }));
+  const threeCardOptions = availableTemplates.filter(({ templates: pool }) => pool.length >= 3);
+  const threeCardElement = threeCardOptions.length
+    ? threeCardOptions[randomIndex(threeCardOptions.length, random)]!.element
+    : CARD_ELEMENTS[randomIndex(CARD_ELEMENTS.length, random)]!;
   const selected: BotCardTemplate[] = [];
 
   for (const element of CARD_ELEMENTS) {
     const required = element === threeCardElement ? 3 : 2;
-    const pool = templates.filter((template) => (
-      template.element === element && !template.limited && !challengerCardIds.has(template.cardId)
-    ));
-    if (pool.length < required) {
-      throw new RangeError(`Bot card catalog needs at least ${required} alternative ${element} templates`);
+    const allElementTemplates = availableTemplates.find((entry) => entry.element === element)!.templates;
+    const distinctTemplates = allElementTemplates.filter((template) => !challengerCardIds.has(template.cardId));
+    // Small catalogs may only contain the cards a new player already owns.
+    // Allow shared card types; if the catalog itself is short, reuse a type
+    // only after every available type has been used once.
+    const pool = (distinctTemplates.length >= required ? distinctTemplates : allElementTemplates).slice();
+    if (!pool.length) {
+      throw new RangeError(`Bot card catalog needs at least one ${element} template`);
     }
     for (let count = 0; count < required; count += 1) {
-      const index = randomIndex(pool.length, random);
-      selected.push(pool.splice(index, 1)[0]!);
+      if (pool.length) {
+        const index = randomIndex(pool.length, random);
+        selected.push(pool.splice(index, 1)[0]!);
+      } else {
+        selected.push(allElementTemplates[randomIndex(allElementTemplates.length, random)]!);
+      }
     }
   }
 

@@ -1,9 +1,7 @@
 import type {
   ActiveCampaignBossResponse,
   CampaignBossView,
-  CampaignQuestClaimResponse,
-  CampaignStageView,
-  CampaignView,
+  CampaignMapView,
   DuelActionRequest,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
@@ -46,31 +44,15 @@ async function request<T>(
 }
 
 export function loadCampaign(initData: string, signal?: AbortSignal) {
-  return request<CampaignView>(initData, "/api/player/campaign", { signal });
-}
-
-export function loadCampaignStage(initData: string, stageId: string, signal?: AbortSignal) {
-  return request<CampaignStageView>(
-    initData,
-    `/api/player/campaign/stages/${encodeURIComponent(stageId)}`,
-    { signal },
-  );
-}
-
-export function claimCampaignQuest(initData: string, questId: string, signal?: AbortSignal) {
-  return request<CampaignQuestClaimResponse>(
-    initData,
-    `/api/player/campaign/quests/${encodeURIComponent(questId)}/claim`,
-    { method: "POST", signal },
-  );
+  return request<CampaignMapView>(initData, "/api/player/campaign", { signal });
 }
 
 export function loadActiveCampaignBoss(initData: string, signal?: AbortSignal) {
   return request<ActiveCampaignBossResponse>(initData, "/api/player/campaign/boss/active", { signal });
 }
 
-export function startCampaignBoss(initData: string, signal?: AbortSignal) {
-  return request<CampaignBossView>(initData, "/api/player/campaign/boss/start", { method: "POST", signal });
+export function startCampaignBoss(initData: string, location: number, signal?: AbortSignal) {
+  return request<CampaignBossView>(initData, "/api/player/campaign/boss/start", { method: "POST", body: { location }, signal });
 }
 
 export function loadCampaignBoss(initData: string, battleId: string, signal?: AbortSignal) {

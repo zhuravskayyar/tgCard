@@ -8,3 +8,6 @@ dist/
 token.env
 *.log
 .runtime/
+playwright-report/
+test-results/
+.codex-remote-attachments/

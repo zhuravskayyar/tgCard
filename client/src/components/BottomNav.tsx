@@ -1,18 +1,17 @@
-import { AppIcon, type AppIconName } from "./AppIcon";
-
 export type BottomNavItem = "home" | "profile" | "guild";
 
 interface NavigationItem {
-  icon: AppIconName;
   id: BottomNavItem;
   label: string;
 }
 
 const navigationItems: NavigationItem[] = [
-  { id: "home", label: "Головна", icon: "home" },
-  { id: "profile", label: "Профіль", icon: "profile" },
-  { id: "guild", label: "Гільдія", icon: "guild" },
+  { id: "home", label: "Головна" },
+  { id: "profile", label: "Профіль" },
+  { id: "guild", label: "Гільдія" },
 ];
+
+const navigationIcon = (id: BottomNavItem) => `/assets/ui/home/nav-icon-${id}.webp`;
 
 interface BottomNavProps {
   activeItem: BottomNavItem;
@@ -30,11 +29,12 @@ export function BottomNav({ activeItem, onSelect }: BottomNavProps) {
             <button
               aria-current={isActive ? "page" : undefined}
               className="bottom-navigation__item"
+              data-sound="nav-page"
               key={item.id}
               onClick={() => onSelect?.(item.id)}
               type="button"
             >
-              <AppIcon name={item.icon} size={24} />
+              <img alt="" aria-hidden="true" className="bottom-navigation__icon" src={navigationIcon(item.id)} />
               <span>{item.label}</span>
             </button>
           );

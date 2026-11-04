@@ -26,6 +26,13 @@ function emptyEquipment(playerId: string): PlayerEquipment {
   };
 }
 
+export class EquipmentForgeError extends Error {
+  constructor(readonly code: "invalid_forge" | "not_enough_gold", message: string) {
+    super(message);
+    this.name = "EquipmentForgeError";
+  }
+}
+
 export function parseStoredEquipment(playerId: string, value: unknown): PlayerEquipment {
   const equipment = emptyEquipment(playerId);
   const storedEquipped = isRecord(value) && isRecord(value.equipped) ? value.equipped : null;

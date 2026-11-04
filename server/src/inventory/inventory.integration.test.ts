@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { backfillStarterCards } from "./starterCardGrant.js";
-import { STARTER_CARDS, STARTER_CARD_COUNT } from "./starterCards.js";
+import { STARTER_CARDS, STARTER_CARD_COUNT, STARTER_CARD_GRANTS, getStarterGrantPower } from "./starterCards.js";
 import { InventoryRepository } from "./inventoryRepository.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -44,14 +44,13 @@ test("new player receives nine starters and a second login does not duplicate th
     const firstPlayer = await players.findOrCreateFromTelegram(user);
     const firstInventory = await inventory.findByPlayerId(firstPlayer.id);
     assert.equal(firstInventory.length, STARTER_CARD_COUNT);
-    assert.ok(firstInventory.every(({ level, basePower, bonusPower, finalPower, rarity }) => (
-      level === 1 && basePower === 10 && bonusPower === 2 && finalPower === 12 && rarity === "common"
-    )));
     assert.deepEqual(
-      firstInventory.map(({ displayName }) => displayName),
-      STARTER_CARDS.map(({ displayName }) => displayName),
+      [...firstInventory].map(({ code, level, bonusPower, finalPower }) => ({ code, level, bonusPower, finalPower }))
+        .sort((left, right) => left.code.localeCompare(right.code)),
+      STARTER_CARD_GRANTS.map((grant) => ({ code: grant.code, level: grant.level, bonusPower: grant.bonusPower, finalPower: getStarterGrantPower(grant) }))
+        .sort((left, right) => left.code.localeCompare(right.code)),
     );
-    assert.ok(firstInventory.every((card) => card.artKey === null));
+    assert.ok(firstInventory.every((card) => card.artKey === STARTER_CARDS.find(({ id }) => id === card.cardId)?.artKey));
 
     const secondPlayer = await players.findOrCreateFromTelegram(user);
     const secondInventory = await inventory.findByPlayerId(secondPlayer.id);
@@ -80,7 +79,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
       `SELECT player_card_instances.id
        FROM player_card_instances
        INNER JOIN cards ON cards.id = player_card_instances.card_id
-       WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+       WHERE player_card_instances.player_id = $1 AND cards.code = 'salamander'`,
       [player.id],
     )).rows[0];
     assert.ok(starter);
@@ -97,7 +96,7 @@ test("a consumed starter is not re-granted on the next authenticated request", {
         `SELECT COUNT(*) AS count
          FROM player_card_instances
          INNER JOIN cards ON cards.id = player_card_instances.card_id
-         WHERE player_card_instances.player_id = $1 AND cards.code = 'starter_01'`,
+         WHERE player_card_instances.player_id = $1 AND cards.code = 'salamander'`,
         [player.id],
       )).rows[0]?.count),
       0,

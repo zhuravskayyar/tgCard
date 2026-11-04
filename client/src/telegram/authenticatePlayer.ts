@@ -5,6 +5,8 @@ import {
   EQUIPMENT_SLOTS,
   PLAYER_NICKNAME_MAX_LENGTH,
   type AuthIdentityView,
+  type AccountProtectionTaskView,
+  type AuthSessionProvider,
   type AuthSessionResponse,
   type LinkIdentityRequest,
   type LinkIdentityResponse,
@@ -105,7 +107,19 @@ function isAuthSessionResponse(value: unknown): value is AuthSessionResponse {
   const response = value as Record<string, unknown>;
   return typeof response.sessionToken === "string"
     && isPlayerSummary(response.player)
-    && Array.isArray(response.identities);
+    && Array.isArray(response.identities)
+    && isAuthSessionProvider(response.sessionProvider);
+}
+
+function isAuthSessionProvider(value: unknown): value is AuthSessionProvider {
+  return value === "guest" || value === "google" || value === "telegram";
+}
+
+function isAccountProtectionTask(value: unknown): value is AccountProtectionTaskView {
+  if (!value || typeof value !== "object") return false;
+  const task = value as Record<string, unknown>;
+  return task.rewardGold === 500
+    && (task.status === "locked" || task.status === "available" || task.status === "completed" || task.status === "not_applicable");
 }
 
 async function readAuthResponse(response: Response) {
@@ -146,6 +160,10 @@ export function authenticateGooglePlayer(credential: string, signal: AbortSignal
   return authenticateExternal("/api/auth/google", { credential }, signal);
 }
 
+export function authenticateGuestPlayer(signal: AbortSignal) {
+  return authenticateExternal("/api/auth/guest", {}, signal);
+}
+
 export function authenticateTelegramWebPlayer(authData: Record<string, string>, signal: AbortSignal) {
   return authenticateExternal("/api/auth/telegram/web", { authData }, signal);
 }
@@ -157,6 +175,17 @@ export async function loadCurrentPlayer(signal: AbortSignal) {
 export async function loadCurrentAuth(signal: AbortSignal) {
   const token = getSessionToken();
   if (!token) throw new PlayerBootstrapError(401);
+  const refresh = await fetch(getApiEndpoint("/api/auth/refresh"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!refresh.ok) {
+    if (refresh.status === 401) clearSessionToken();
+    throw new PlayerBootstrapError(refresh.status);
+  }
   const response = await fetch(getApiEndpoint("/api/auth/me"), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
@@ -168,10 +197,22 @@ export async function loadCurrentAuth(signal: AbortSignal) {
     throw new PlayerBootstrapError(response.status);
   }
   const value: unknown = await response.json();
-  if (!value || typeof value !== "object" || !isPlayerSummary((value as Record<string, unknown>).player) || !Array.isArray((value as Record<string, unknown>).identities)) {
+  if (
+    !value
+    || typeof value !== "object"
+    || !isPlayerSummary((value as Record<string, unknown>).player)
+    || !Array.isArray((value as Record<string, unknown>).identities)
+    || !isAuthSessionProvider((value as Record<string, unknown>).sessionProvider)
+    || !isAccountProtectionTask((value as Record<string, unknown>).accountProtection)
+  ) {
     throw new PlayerBootstrapError(502);
   }
-  return value as { player: PlayerSummary; identities: AuthIdentityView[] };
+  return value as {
+    accountProtection: AccountProtectionTaskView;
+    identities: AuthIdentityView[];
+    player: PlayerSummary;
+    sessionProvider: AuthSessionProvider;
+  };
 }
 
 export async function linkGoogleAccount(credential: string, signal: AbortSignal, replaceExisting = false) {
@@ -180,6 +221,10 @@ export async function linkGoogleAccount(credential: string, signal: AbortSignal,
 
 export async function linkTelegramAccount(authData: Record<string, string>, signal: AbortSignal) {
   return linkIdentity({ provider: "telegram", authData }, signal);
+}
+
+export async function linkTelegramMiniAppAccount(initData: string, signal: AbortSignal) {
+  return linkIdentity({ provider: "telegram", initData }, signal);
 }
 
 async function linkIdentity(body: LinkIdentityRequest, signal: AbortSignal): Promise<LinkIdentityResponse> {
@@ -204,7 +249,13 @@ async function linkIdentity(body: LinkIdentityRequest, signal: AbortSignal): Pro
       typeof details?.message === "string" ? details.message : "Не вдалося прив'язати цей спосіб входу.",
     );
   }
-  if (!value || typeof value !== "object" || !Array.isArray((value as Record<string, unknown>).identities) || typeof (value as Record<string, unknown>).replacedExisting !== "boolean") {
+  if (
+    !value
+    || typeof value !== "object"
+    || !Array.isArray((value as Record<string, unknown>).identities)
+    || typeof (value as Record<string, unknown>).replacedExisting !== "boolean"
+    || typeof (value as Record<string, unknown>).rewardGranted !== "boolean"
+  ) {
     throw new AccountLinkError(502, "invalid_account_link_response", "Сервер повернув некоректну відповідь.");
   }
   return value as LinkIdentityResponse;

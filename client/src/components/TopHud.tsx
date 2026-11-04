@@ -1,8 +1,11 @@
+import { useRef } from "react";
 import type { PlayerSummaryState } from "../types/player";
 import { getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CurrencyDisplay } from "./CurrencyDisplay";
+import { ExperienceVine } from "./ExperienceVine";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
+import { useExperienceFly } from "../hooks/useExperienceFly";
 import { NicknameSkinPreview } from "./NicknameSkinPreview";
 
 interface TopHudProps {
@@ -37,9 +40,11 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
     typeof accountXpRequired === "number" &&
     accountXpRequired >= 0
   );
-  const experiencePercent = hasExperience
-    ? accountXpRequired === 0 ? 100 : Math.min(100, Math.max(0, (accountXp / accountXpRequired) * 100))
-    : 0;
+  const experienceTrackRef = useRef<HTMLDivElement>(null);
+  const experienceProgress = useExperienceFly(
+    player && hasExperience ? { level: player.level, required: accountXpRequired, xp: accountXp } : null,
+    experienceTrackRef,
+  );
 
   return (
     <header className="top-hud" aria-busy={isLoading}>
@@ -52,6 +57,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
               <span>{displayName ? getInitials(displayName) : <AppIcon name="profile" />}</span>
             ) : null}
             {!isLoading && !player ? <AppIcon name="profile" size={21} /> : null}
+            <span aria-hidden="true" className="player-avatar__frame" />
           </div>
 
           <div className="player-identity">
@@ -74,8 +80,9 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
             {!isLoading && state.status !== "error" ? (
               player ? (
                 <span className="player-deck-power" aria-label={`Сила колоди: ${deckPower ?? "недоступна"}. Рівень: ${player.level}`}>
-                  <AppIcon name="deck-power" size={14} />
-                  <span>{deckPower ?? "—"} · Рів. {player.level}</span>
+                  <AppIcon name="fleur-de-lis" size={14} />
+                  <span className="player-deck-power__value">{deckPower ?? "—"}</span>
+                  <span className="player-deck-power__level"><span>Рів.</span><strong>{player.level}</strong></span>
                 </span>
               ) : <span>{fallbackSubtitle}</span>
             ) : null}
@@ -94,9 +101,10 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
           aria-valuemin={hasExperience ? 0 : undefined}
           aria-valuenow={hasExperience ? accountXp : undefined}
           className="top-hud__xp-track"
+          ref={experienceTrackRef}
           role="progressbar"
         >
-          <span className="top-hud__xp-fill" style={{ width: `${experiencePercent}%` }} />
+          {player ? <ExperienceVine level={player.level} progress={experienceProgress} /> : null}
         </div>
       </div>
     </header>

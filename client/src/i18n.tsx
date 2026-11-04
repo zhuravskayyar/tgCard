@@ -1,8 +1,15 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
-import { getTelegramWebApp, isRussianTelegramLanguage } from "./telegram";
+import { CARD_TRANSLATIONS } from "./locales/cardTranslations";
+import { CAMPAIGN_TRANSLATIONS } from "./locales/campaignTranslations";
+import { CORE_TRANSLATIONS } from "./locales/coreTranslations";
+import { SCREEN_TRANSLATIONS } from "./locales/screenTranslations";
+import { getTelegramLanguageCode, getTelegramWebApp } from "./telegram";
 
-export type UiLocale = "uk" | "ru";
-export type UiNumberLocale = "uk-UA" | "ru-RU";
+export const UI_LOCALES = ["en", "uk", "ru", "de"] as const;
+export type UiLocale = (typeof UI_LOCALES)[number];
+export type UiNumberLocale = "en-US" | "uk-UA" | "ru-RU" | "de-DE";
+const NUMBER_LOCALES: Readonly<Record<UiLocale, UiNumberLocale>> = { en: "en-US", uk: "uk-UA", ru: "ru-RU", de: "de-DE" };
+const LOCALE_STORAGE_KEY = "cardastika.locale.v1";
 
 const phraseTranslations = new Map<string, string>([
   ["КАРДАСТІКА", "КАРДАСТИКА"],
@@ -358,44 +365,116 @@ const phrasePattern = new RegExp([...phraseTranslations.keys()].sort((a, b) => b
 const wordTranslationMap = new Map(wordTranslations);
 const wordPattern = new RegExp(`(?<!\\p{L})(${wordTranslations.map(([source]) => escapeRegExp(source)).sort((a, b) => b.length - a.length).join("|")})(?!\\p{L})`, "gu");
 
+const isUiLocale = (value: string | null | undefined): value is UiLocale => UI_LOCALES.includes(value as UiLocale);
+
+/** A language picked in the game wins; otherwise Telegram players get their Telegram language, everyone else English. */
 export function getUiLocale(): UiLocale {
-  return isRussianTelegramLanguage() ? "ru" : "uk";
+  try {
+    const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (isUiLocale(saved)) return saved;
+  } catch {
+    // Without storage there is simply no saved choice.
+  }
+  if (!getTelegramWebApp()) return "en";
+  const code = getTelegramLanguageCode();
+  return isUiLocale(code) ? code : "en";
+}
+
+/** The page reloads so every screen, number format and translated node starts from one language. */
+export function setUiLocale(locale: UiLocale) {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Without storage the choice simply lasts until this reload ends.
+  }
+  window.location.reload();
 }
 
 export function getUiNumberLocale(): UiNumberLocale {
-  return getUiLocale() === "ru" ? "ru-RU" : "uk-UA";
+  return NUMBER_LOCALES[getUiLocale()];
 }
 
-const COMPACT_NUMBER_UNITS = [
-  { suffix: "трлн", value: 1_000_000_000_000 },
-  { suffix: "млрд", value: 1_000_000_000 },
-  { suffix: "м", value: 1_000_000 },
-  { suffix: "к", value: 1_000 },
-] as const;
+const COMPACT_NUMBER_SUFFIXES: Readonly<Record<UiLocale, readonly [string, string, string, string]>> = {
+  en: ["T", "B", "M", "K"],
+  de: ["Bio", "Mrd", "Mio", "T"],
+  uk: ["трлн", "млрд", "м", "к"],
+  ru: ["трлн", "млрд", "м", "к"],
+};
+const COMPACT_NUMBER_VALUES = [1_000_000_000_000, 1_000_000_000, 1_000_000, 1_000] as const;
 
 export function formatUiNumber(value: number) {
   if (!Number.isFinite(value)) return String(value);
   const absoluteValue = Math.abs(value);
-  const unitIndex = COMPACT_NUMBER_UNITS.findIndex(({ value: unitValue }) => absoluteValue >= unitValue);
+  let unitIndex = COMPACT_NUMBER_VALUES.findIndex((unitValue) => absoluteValue >= unitValue);
   if (unitIndex === -1) return new Intl.NumberFormat(getUiNumberLocale()).format(value);
 
-  let unit = COMPACT_NUMBER_UNITS[unitIndex]!;
-  let scaled = value / unit.value;
+  let scaled = value / COMPACT_NUMBER_VALUES[unitIndex]!;
   if (Math.abs(scaled) >= 999.5 && unitIndex > 0) {
-    unit = COMPACT_NUMBER_UNITS[unitIndex - 1]!;
-    scaled = value / unit.value;
+    unitIndex -= 1;
+    scaled = value / COMPACT_NUMBER_VALUES[unitIndex]!;
   }
 
-  return `${new Intl.NumberFormat(getUiNumberLocale(), { maximumFractionDigits: 1 }).format(scaled)}${unit.suffix}`;
+  return `${new Intl.NumberFormat(getUiNumberLocale(), { maximumFractionDigits: 1 }).format(scaled)}${COMPACT_NUMBER_SUFFIXES[getUiLocale()][unitIndex]}`;
 }
 
 export function formatFullUiNumber(value: number) {
   return new Intl.NumberFormat(getUiNumberLocale()).format(value);
 }
 
-export function translateRussian(value: string) {
-  let translated = value.replace(phrasePattern, (match) => phraseTranslations.get(match) ?? match);
+const coreColumn: Readonly<Record<Exclude<UiLocale, "uk">, 1 | 2 | 3>> = { en: 1, de: 2, ru: 3 };
+const coreDictionaries = new Map(UI_LOCALES.filter((locale): locale is Exclude<UiLocale, "uk"> => locale !== "uk").map((locale) => [
+  locale,
+  // Card text only ever matches a whole string, so its hundreds of rows stay out of the phrase search below.
+  new Map([...CORE_TRANSLATIONS, ...CARD_TRANSLATIONS, ...SCREEN_TRANSLATIONS, ...CAMPAIGN_TRANSLATIONS].map((row) => [row[0], row[coreColumn[locale]]])),
+]));
+
+function translateRussian(value: string) {
+  const translated = value.replace(phrasePattern, (match) => phraseTranslations.get(match) ?? match);
   return translated.replace(wordPattern, (match) => wordTranslationMap.get(match) ?? match);
+}
+
+const escapedCoreSources = CORE_TRANSLATIONS.map((row) => row[0]).sort((a, b) => b.length - a.length).map(escapeRegExp).join("|");
+const corePattern = new RegExp(`(?<![\\p{L}\\p{N}])(${escapedCoreSources})(?![\\p{L}\\p{N}])`, "gu");
+
+// Phrases with a value: in a Ukrainian source {n} stands for a number and {s} for any text, such as a player's name.
+const placeholder = /\{[ns]\}/g;
+const countedRows = [...SCREEN_TRANSLATIONS, ...CAMPAIGN_TRANSLATIONS].filter((row) => row[0].search(placeholder) >= 0).map((row) => {
+  const groups = (row[0].match(placeholder) ?? []).map((token) => (token === "{n}" ? "([\\d\\s.,]+?)" : "(.+?)"));
+  const source = row[0].split(placeholder).map(escapeRegExp).reduce((joined, part, index) => joined + groups[index - 1] + part);
+  return { pattern: new RegExp(`^${source}$`, "u"), prefix: row[0].split(placeholder)[0]!, row };
+  // The longest literal text goes first, so "Сила {s}" cannot swallow "Сила колоди: {s}".
+}).sort((left, right) => right.row[0].replace(placeholder, "").length - left.row[0].replace(placeholder, "").length);
+
+/** A translation of the string as a whole, without falling back to translating the phrases inside it. */
+function translateWhole(trimmed: string, locale: Exclude<UiLocale, "uk">): string | undefined {
+  const dictionary = coreDictionaries.get(locale)!;
+  const exact = dictionary.get(trimmed);
+  if (exact !== undefined) return exact;
+  for (const { pattern, prefix, row } of countedRows) {
+    // The prefix check keeps hundreds of rows cheap for the many text nodes that match none of them.
+    const match = trimmed.startsWith(prefix) ? pattern.exec(trimmed) : null;
+    if (match) {
+      let next = 1;
+      return row[coreColumn[locale]].replace(placeholder, () => {
+        const captured = match[next++]!;
+        return translateUi(captured, locale);
+      });
+    }
+  }
+  return undefined;
+}
+
+/** Whole strings and known phrases; anything without a translation stays in the Ukrainian source. */
+export function translateUi(value: string, locale: UiLocale): string {
+  if (locale === "uk" || !value.trim()) return value;
+  const dictionary = coreDictionaries.get(locale)!;
+  const trimmed = value.trim();
+  const whole = translateWhole(trimmed, locale);
+  if (whole !== undefined) return value.replace(trimmed, () => whole);
+  // Summary lines join separately translated parts with a dot.
+  if (trimmed.includes(" · ")) return value.replace(trimmed, () => trimmed.split(" · ").map((part) => translateUi(part, locale)).join(" · "));
+  const replaced = value.replace(corePattern, (match) => dictionary.get(match) ?? match);
+  return locale === "ru" ? translateRussian(replaced) : replaced;
 }
 
 const translatableAttributes = ["aria-label", "alt", "placeholder", "title"] as const;
@@ -405,41 +484,85 @@ function shouldSkipTextNode(node: Text) {
   return !parent || ["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) || parent.isContentEditable;
 }
 
-function localizeDom(root: HTMLElement, locale: UiLocale, originalTexts: WeakMap<Text, string>, originalAttributes: WeakMap<Element, Map<string, string>>) {
+/**
+ * JSX like `{rarity} карта` renders separate text nodes, which only make sense translated together.
+ * The whole phrase goes into the first node and the others are emptied; `merged` remembers what was written
+ * so that a later React update of any node is recognised and the phrase is rebuilt from its originals.
+ */
+function localizeSplitText(element: Element, locale: Exclude<UiLocale, "uk">, originalTexts: WeakMap<Text, string>, merged: WeakMap<Text, string>) {
+  const nodes = [...element.childNodes];
+  if (nodes.length < 2 || !nodes.every((node) => node instanceof Text)) return;
+  const texts = nodes as Text[];
+  const source = texts.map((node) => originalTexts.get(node) ?? node.nodeValue ?? "").join("");
+  const whole = source.trim() ? translateWhole(source.replace(/\s+/g, " ").trim(), locale) : undefined;
+  texts.forEach((node, index) => {
+    const original = originalTexts.get(node) ?? node.nodeValue ?? "";
+    const next = whole === undefined ? translateUi(original, locale) : index === 0 ? whole : "";
+    if (whole === undefined) merged.delete(node);
+    else merged.set(node, next);
+    if (node.nodeValue !== next) node.nodeValue = next;
+  });
+}
+
+function localizeDom(root: Element | Text, locale: Exclude<UiLocale, "uk">, originalTexts: WeakMap<Text, string>, originalAttributes: WeakMap<Element, Map<string, string>>, merged: WeakMap<Text, string>) {
   const textWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let textNode = textWalker.nextNode() as Text | null;
+  // A walker never yields its own root, so a directly mutated text node is visited here.
+  let textNode = (root instanceof Text ? root : textWalker.nextNode()) as Text | null;
   while (textNode) {
     if (!shouldSkipTextNode(textNode)) {
       const current = textNode.nodeValue ?? "";
+      if (merged.get(textNode) === current) {
+        textNode = textWalker.nextNode() as Text | null;
+        continue;
+      }
+      merged.delete(textNode);
       const savedOriginal = originalTexts.get(textNode);
-      const original = savedOriginal !== undefined && (current === savedOriginal || current === translateRussian(savedOriginal))
+      const original = savedOriginal !== undefined && (current === savedOriginal || current === translateUi(savedOriginal, locale))
         ? savedOriginal
         : current;
       originalTexts.set(textNode, original);
-      const next = locale === "ru" ? translateRussian(original) : original;
+      const next = translateUi(original, locale);
       if (current !== next) textNode.nodeValue = next;
     }
     textNode = textWalker.nextNode() as Text | null;
   }
 
-  root.querySelectorAll<HTMLElement>("*").forEach((element) => {
+  if (root instanceof Text) {
+    if (root.parentElement && !shouldSkipTextNode(root)) localizeSplitText(root.parentElement, locale, originalTexts, merged);
+    return;
+  }
+  [root, ...root.querySelectorAll("*")].forEach((element) => {
+    if (!["SCRIPT", "STYLE", "NOSCRIPT"].includes(element.tagName)) localizeSplitText(element, locale, originalTexts, merged);
     const saved = originalAttributes.get(element) ?? new Map<string, string>();
     translatableAttributes.forEach((attribute) => {
       if (!element.hasAttribute(attribute)) return;
       const current = element.getAttribute(attribute) ?? "";
       const savedOriginal = saved.get(attribute);
-      const original = savedOriginal !== undefined && (current === savedOriginal || current === translateRussian(savedOriginal))
+      const original = savedOriginal !== undefined && (current === savedOriginal || current === translateUi(savedOriginal, locale))
         ? savedOriginal
         : current;
       saved.set(attribute, original);
-      const next = locale === "ru" ? translateRussian(original) : original;
+      const next = translateUi(original, locale);
       if (current !== next) element.setAttribute(attribute, next);
     });
     originalAttributes.set(element, saved);
   });
 }
 
-export function RussianLanguageProvider({ children }: { children: ReactNode }) {
+const PAGE_TITLES: Readonly<Record<UiLocale, string>> = {
+  en: "Cardastika — Free Online Fantasy Card Game",
+  uk: "Cardastika — безкоштовна фентезійна карткова онлайн-гра",
+  ru: "Cardastika — бесплатная фэнтезийная карточная онлайн-игра",
+  de: "Cardastika — Kostenloses Online-Fantasy-Kartenspiel",
+};
+const PAGE_DESCRIPTIONS: Readonly<Record<UiLocale, string>> = {
+  en: "Cardastika is a free online fantasy card game. Build a nine-card deck, master four elements, and win duels. Play in your browser or Telegram.",
+  uk: "Cardastika (Кардастіка) — безкоштовна фентезійна карткова онлайн-гра. Збери 9 карт, опануй 4 стихії та перемагай у дуелях. Грай у браузері або Telegram.",
+  ru: "Cardastika (Кардастика) — бесплатная фэнтезийная карточная онлайн-игра. Собери 9 карт, освой 4 стихии и побеждай в дуэлях. Играй в браузере или Telegram.",
+  de: "Cardastika ist ein kostenloses Online-Fantasy-Kartenspiel. Baue ein Deck aus neun Karten, meistere vier Elemente und gewinne Duelle. Im Browser oder Telegram.",
+};
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<UiLocale>(() => getUiLocale());
 
   useEffect(() => {
@@ -448,45 +571,40 @@ export function RussianLanguageProvider({ children }: { children: ReactNode }) {
       const nextLocale = getUiLocale();
       setLocale((current) => current === nextLocale ? current : nextLocale);
       checks += 1;
-      if (checks >= 12 || nextLocale === "ru") window.clearInterval(timer);
+      if (checks >= 12) window.clearInterval(timer);
     }, 250);
     return () => window.clearInterval(timer);
   }, []);
 
   useLayoutEffect(() => {
     document.documentElement.lang = locale;
-    document.title = locale === "ru" ? "Cardastika — Мировое Древо" : "Cardastika — Світове Дерево";
+    document.title = PAGE_TITLES[locale];
     const root = document.getElementById("root");
-    if (!root) return;
+    // Source strings are Ukrainian, so that locale never rewrites the DOM.
+    if (!root || locale === "uk") return;
 
     const originalTexts = new WeakMap<Text, string>();
     const originalAttributes = new WeakMap<Element, Map<string, string>>();
-    let scheduled = false;
-    const apply = () => {
-      scheduled = false;
-      localizeDom(root, locale, originalTexts, originalAttributes);
-    };
-    const schedule = () => {
-      if (scheduled) return;
-      scheduled = true;
-      window.queueMicrotask(apply);
-    };
+    const merged = new WeakMap<Text, string>();
 
-    apply();
-    const observer = new MutationObserver(schedule);
+    localizeDom(root, locale, originalTexts, originalAttributes, merged);
+    // Only what changed is revisited: animated screens mutate the DOM many times a second.
+    const observer = new MutationObserver((records) => {
+      const changed = new Set<Node>();
+      for (const record of records) {
+        if (record.type === "childList") record.addedNodes.forEach((node) => changed.add(node));
+        else changed.add(record.target);
+      }
+      for (const node of changed) {
+        if (node.isConnected && (node instanceof Element || node instanceof Text)) localizeDom(node, locale, originalTexts, originalAttributes, merged);
+      }
+    });
     observer.observe(root, { attributes: true, attributeFilter: [...translatableAttributes], characterData: true, childList: true, subtree: true });
     return () => observer.disconnect();
   }, [locale]);
 
   useEffect(() => {
-    const webApp = getTelegramWebApp();
-    if (!webApp) return;
-    document.querySelector('meta[name="description"]')?.setAttribute(
-      "content",
-      locale === "ru"
-        ? "Фэнтезийная карточная игра о Мировом Древе и четырёх стихиях."
-        : "Фентезійна карткова гра про Світове Дерево та чотири стихії.",
-    );
+    document.querySelector('meta[name="description"]')?.setAttribute("content", PAGE_DESCRIPTIONS[locale]);
   }, [locale]);
 
   return <>{children}</>;

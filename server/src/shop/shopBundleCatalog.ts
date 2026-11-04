@@ -7,30 +7,8 @@ export interface ShopBundleDefinition {
   price: number;
 }
 
-export const SHOP_BUNDLES: readonly ShopBundleDefinition[] = [
-  {
-    id: "elemental-spirits",
-    currency: "gold",
-    price: 60,
-    cardIds: [
-      "element_spirits_01",
-      "element_spirits_02",
-      "element_spirits_03",
-      "element_spirits_04",
-    ],
-  },
-  {
-    id: "goblin-brotherhood",
-    currency: "gold",
-    price: 60,
-    cardIds: [
-      "goblin_brotherhood_01",
-      "goblin_brotherhood_02",
-      "goblin_brotherhood_03",
-      "goblin_brotherhood_04",
-    ],
-  },
-];
+// Old collection bundles stay hidden until a new shop card pool exists.
+export const SHOP_BUNDLES: readonly ShopBundleDefinition[] = Object.freeze([]);
 
 export function findShopBundle(id: string) {
   return SHOP_BUNDLES.find((bundle) => bundle.id === id);

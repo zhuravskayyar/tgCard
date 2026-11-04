@@ -31,8 +31,8 @@ import type {
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { DuelDeckInvalidError, loadDuelParticipant } from "../duel/duelService.js";
+import { STARTER_CARD_CODES } from "../inventory/starterCards.js";
 
-const WITCHES_COLLECTION_ID = "collection_witches";
 const WITCH_RAID_LEVEL = 1;
 const MAX_WITCH_RAID_LEVEL = 25;
 const MAX_BATTLE_LOG_ENTRIES = 10;
@@ -380,11 +380,11 @@ export class GuildRaidService {
       `SELECT id AS card_id, code, display_name, art_key, element,
           1 AS slot, 450000 AS max_health, 450000 AS current_health, '[]'::jsonb AS witch_deck
        FROM cards
-       WHERE source = 'raid' AND collection_id = $1 AND limited = FALSE
+       WHERE id = ANY($1::text[]) AND source = 'standard' AND limited = FALSE
          ${excludedCardIds.length ? "AND NOT (id = ANY($2::text[]))" : ""}
        ORDER BY random()
        LIMIT 2`,
-      excludedCardIds.length ? [WITCHES_COLLECTION_ID, excludedCardIds] : [WITCHES_COLLECTION_ID],
+      excludedCardIds.length ? [STARTER_CARD_CODES, excludedCardIds] : [STARTER_CARD_CODES],
     );
     if (result.rows.length !== 2 || result.rows[0]?.card_id === result.rows[1]?.card_id) {
       throw new GuildRaidDomainError("raid_unavailable", "Two Witch raid bosses are not available", 503);
@@ -552,10 +552,10 @@ export class GuildRaidService {
       `SELECT id, code, display_name, art_key, element, collection_id,
           description, limited, min_rarity, shop_eligible
        FROM cards
-       WHERE source = 'raid' AND collection_id = $1 AND limited = FALSE
+       WHERE id = ANY($1::text[]) AND source = 'standard' AND limited = FALSE
        ORDER BY random()
        LIMIT 1`,
-      [WITCHES_COLLECTION_ID],
+      [STARTER_CARD_CODES],
     );
     const card = result.rows[0];
     if (!card) throw new GuildRaidDomainError("raid_unavailable", "Raid reward cards are not available", 503);

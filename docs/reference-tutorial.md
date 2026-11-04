@@ -42,22 +42,96 @@ Source checked on 2026-08-30: [elem.mobi](https://elem.mobi/start/).
 
 ## Cardastika application
 
-Cardastika now follows the reference order for the mandatory onboarding:
+Cardastika follows the reference order for onboarding:
 
-1. A new eligible player is sent directly to the first duel.
-2. The first card is the only enabled action. The dialogue says:
-   `Твої карти внизу. Карти суперника — вгорі. Атакуй своєю картою!`
-3. After the first exchange, only the second card is enabled. The dialogue
-   says: `Критичні удари в 1,5 раза сильніші! Атакуй!`
-4. After the second exchange, all cards are enabled. The dialogue says:
-   `Добий ворога будь-якою картою!`
-5. The victory CTA is `ЗА НАГОРОДОЮ` and opens the Campaign route. There is no
-   numbered step counter and no intermediate mandatory shop or collection
-   screen.
+1. A new eligible player is sent directly to the first duel. The first card is
+   the only enabled action, then only the second, then all of them.
+2. The victory CTA is `За нагородою`. It ends the mandatory tutorial and opens
+   the story trials at `/trials`. There is no step counter, and the player can
+   move freely afterwards.
+3. Five server-owned trials are defined in `server/src/trials/storyTrialsConfig.ts`.
+   Progress comes from `player_campaign_events`; rewards go through
+   `POST /api/player/trials/:id/claim`, once per player.
+4. `Збережи ігровий профіль` pays 500 gold when a guest links Google or Telegram.
+   A player who already has an identity claims it on the trials screen. A player
+   who received the old 5 diamond reward sees it as claimed and gets no gold.
+5. The campaign stays closed until all five rewards are claimed: `/campaign`
+   shows the locked hub and `POST /api/player/campaign/quests/:id/claim` returns
+   `409 campaign_locked`. Players who have already claimed a campaign quest keep
+   access. The inside of the campaign is still the existing six stages.
 
-The duel dialogue uses the reference presentation: a dark navy panel, a
-readable yellow sentence, the NPC portrait, and one highlighted current
-target. During the mandatory route, navigation and direct URLs return the
-player to the current duel. Once the Campaign starts, deck, Duel, shop, weak
-cards, and collections are available as campaign actions; unrelated modes are
-redirected back to Campaign. Campaign completion ends the mandatory route.
+## Walkthrough recorded on 2026-10-30
+
+A fresh guest profile, created automatically by `/tutorial/` with no form and no
+personal data. Not registered, so everything behind `Сохранить` is unobserved.
+
+### Opening duel
+
+| Step | Enemy HP | Player HP | Available cards | Dialogue |
+| --- | --- | --- | --- | --- |
+| Start | 35 | 180 | 1, middle, arrow | Cards below, enemy above, attack |
+| After hit 1 | 23 | 168 | 1, left, arrow | Crits are 1.5x stronger |
+| After hit 2 | 5 | 162 | 3, any | Finish with any card |
+
+All cards have power 12, except one that appears at the last step with 84. That
+card guarantees the player sees a big number. Victory gives 100 silver and 35
+rating, `Побед в дуэлях: 1`, one dialogue line and the single CTA `За наградой`.
+
+### Story screen `/story/` (title `Помогите феям!`)
+
+Fairy portrait with a two-line story: goblins captured her sister, beat the Goblin
+Champion to free her. Below it: `Прогресс испытаний: N из 5` with a bar, and the
+rule that all trials must be passed to enter the Goblin Caves.
+
+| # | Trial | Reward | Button |
+| --- | --- | --- | --- |
+| 1 | Win the first duel | 1 gold, 100 silver | `Забрать награду` |
+| 2 | Play 10 duels | 1 gold, 100 silver | `Дуэли` |
+| 3 | Buy 4 cards in the shop | 1 gold, 100 silver | `Магазин` |
+| 4 | Upgrade cards 3 times | 1 gold, 100 silver | `Боевая колода` |
+| 5 | Save the game profile | 500 gold | `Сохранить` |
+
+- The active trial is a parchment plate with a gold or green CTA and a progress
+  bar. The others are dark plates with a blue CTA.
+- A claimed trial disappears from the list, and the next one becomes the
+  parchment plate. Claiming did not change `1 из 5` until the next trial is done.
+- Reward counters change in the top bar immediately after the claim.
+- `Сыграйте 10 дуэлей` went up by one per finished duel. All three were wins, so
+  whether losses count is unobserved. An unfinished duel did not count.
+
+### Campaign hub `/dungeon/#last`
+
+Available straight after the first claim, as a link under the trials. It holds a
+painted map plate with the Goblin Caves icon, the line `Пройдите испытания!` and
+one green `Испытания` button that returns to `/story/`, then a `Задания` row. The
+campaign itself stays closed until all 5 trials are done.
+
+### Save profile `/register/`
+
+Title `Сохранение игрового профиля`. Fields: in-game name, password, e-mail, plus
+two required consent checkboxes (licence and privacy, personal data processing),
+and `Сохранить` stays disabled until filled. It promises 500 gold for saving and
+another 500 gold through a link sent to the e-mail. A warning explains that the
+e-mail is only for password recovery, and recovery is impossible without it.
+The home screen also repeats the 500 gold offer as a hint at the bottom.
+
+### Surrounding screens
+
+- **Duel `/duel/`:** enemy silhouette, name and HP, `Напасть` and `Искать еще`,
+  10 duels available. Regular duels give 100 silver and 68-70 rating on a win. The
+  result screen has `Еще дуэль` and a short `Итоги боя` log.
+- **Shop `/shop/cards/`:** a one-time set of 4 cards for 20 gold, then single cards:
+  legendary 150 gold, epic 50 gold, uncommon 500 silver, each with a stated chance
+  of the next rarity. The chance grows with each purchase.
+- **Deck `/deck/`:** 9 cards in a 3x3 grid, three locked bonus slots (ally, guild,
+  goblin), a line pointing at the daily task and a count of weak cards.
+- **Card `/card/:id/`:** `Поднять уровень` costs 1 gold for +10 power and asks for
+  `Да!` / `Нет` first. A weak card can be absorbed to cut the price, +16% here.
+- **Home `/`:** the trial is a large tile beside duels and the deck. Locked modes
+  such as tournament and arena are shown dimmed rather than hidden.
+
+### Not observed
+
+- Trial completion after trial 1, and what appears at `5 из 5`.
+- Inside the Goblin Caves: stages, battles, the Goblin Champion, rewards.
+- Anything after registering, including the e-mail bonus.

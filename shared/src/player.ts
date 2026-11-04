@@ -32,6 +32,7 @@ export interface PlayerSummary {
   arenaWins?: number;
   cardShards?: number;
   collectionBonuses?: PlayerCollectionBonus[];
+  daysInGame?: number;
   experienceRewardPct?: number;
   firstName: string;
   gold: number;

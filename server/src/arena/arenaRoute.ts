@@ -2,6 +2,7 @@ import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:
 import type {
   ArenaActionRequest,
   ActiveArenaResponse,
+  ArenaLeaderboardResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
   ArenaShopCatalogResponse,
@@ -30,6 +31,7 @@ interface ArenaOperations {
   changeCards(playerId: string, matchId: string, input: ArenaVersionRequest): Promise<ArenaView>;
   changeTarget(playerId: string, matchId: string, input: ArenaVersionRequest): Promise<ArenaView>;
   findActive(playerId: string): Promise<ActiveArenaResponse>;
+  getLeaderboard(playerId: string): Promise<ArenaLeaderboardResponse>;
   getProfile(playerId: string): Promise<ArenaProfileResponse>;
   getShopCatalog(): Promise<ArenaShopCatalogResponse>;
   joinQueue(playerId: string): Promise<ArenaQueueResponse>;
@@ -108,6 +110,10 @@ export async function handleArenaRequest(
     const player = await authenticate(request, dependencies);
     if (request.method === "GET" && url.pathname === "/api/arena/profile") {
       sendJson(response, 200, await dependencies.arena.getProfile(player.id), headers);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/arena/leaderboard") {
+      sendJson(response, 200, await dependencies.arena.getLeaderboard(player.id), headers);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/arena/active") {

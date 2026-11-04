@@ -1,4 +1,4 @@
-import type { PlayerCardInstance } from "./card.js";
+import type { CardRarity, PlayerCardInstance } from "./card.js";
 import type {
   LariskaDailyRewardClaimResponse,
   LariskaDailyRewardView,
@@ -9,7 +9,8 @@ export type BattlePassReward =
   | { durationHours: 24; kind: "boost"; label: string; multiplier: 2 }
   | { amount: number; kind: "silver"; label: string }
   | { amount: number; kind: "gold"; label: string }
-  | { kind: "card"; label: string; levelSource: "lowest_deck" };
+  | { kind: "card"; label: string; levelSource: "lowest_deck" }
+  | { kind: "equipment"; label: string; rarity: CardRarity };
 
 export interface CurrencyBoostStatus {
   active: boolean;
@@ -69,6 +70,7 @@ export interface BattlePassPageResponse {
 
 export interface BattlePassClaimResponse extends BattlePassPageResponse {
   card?: PlayerCardInstance;
+  equipmentItemId?: string;
   reward: BattlePassReward;
   updatedBalance?: PlayerBalance;
 }

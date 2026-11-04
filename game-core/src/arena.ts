@@ -3,20 +3,17 @@ import type { CardElement, DuelBattleModifiers, DuelCardSnapshot, ElementMultipl
 
 export const ARENA_PARTICIPANT_COUNT = 6;
 export const ARENA_ACTIVE_CARD_COUNT = 3;
-export const ARENA_QUEUE_DURATION_MS = 30_000;
+export const ARENA_QUEUE_DURATION_MS = 15_000;
 export const ARENA_SLOT_COOLDOWN_MS = 9_000;
-export const ARENA_BOT_ACTION_INTERVAL_MS = 1_200;
-export const ARENA_REWARD_MULTIPLIER = 3;
-export const ARENA_GOLD_DAILY_CAP = 15 * ARENA_REWARD_MULTIPLIER;
+// Half a cycle: a bot strikes once in the first cycle, then twice in every later one.
+export const ARENA_BOT_ACTION_INTERVAL_MS = 4_500;
+export const ARENA_MIN_COUNTED_MOVES = 3;
+export const ARENA_UNCOUNTED_RATING_CHANGE = -3;
+export const ARENA_IDLE_FINISH_MS = 180_000;
+export const ARENA_NO_WINNERS_ALIVE_COUNT = 4;
 
-export const ARENA_RATING_CHANGES = Object.freeze([25, 18, 10, -8, -14, -20]);
+export const ARENA_RATING_CHANGES = Object.freeze([24, 18, 12, -6, -10, -14]);
 export const ARENA_TOKEN_REWARDS = Object.freeze([30, 24, 18, 9, 6, 3]);
-export const ARENA_GOLD_REWARDS = Object.freeze([9, 6, 3, 0, 0, 0]);
-export const ARENA_SILVER_MULTIPLIERS = Object.freeze([1, 0.8, 0.65, 0.4, 0.3, 0.2]);
-export const ARENA_BASE_SILVER_BY_LEAGUE = Object.freeze([
-  100, 120, 150, 200, 250, 300, 400, 450, 500, 600, 650,
-  700, 800, 850, 900, 1_000, 1_200, 1_500, 2_000, 2_200, 2_500,
-]);
 
 export const ARENA_CARD_CHANGE_COSTS = Object.freeze([0, 0, 0, 1, 2, 4, 6, 8, 10]);
 
@@ -60,30 +57,26 @@ export function compareArenaResults(
     || right.remainingHp - left.remainingHp;
 }
 
-export function getArenaRatingChange(placement: number) {
-  if (!Number.isSafeInteger(placement) || placement < 1 || placement > ARENA_PARTICIPANT_COUNT) {
-    throw new RangeError("Arena placement must be between 1 and 6");
-  }
-  return ARENA_RATING_CHANGES[placement - 1]!;
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
-export function getArenaReward(placement: number, leagueIndex: number, availableDailyGold: number, rewardMultiplier: 1 | 2 = 1) {
-  if (!Number.isSafeInteger(leagueIndex) || leagueIndex < 0 || leagueIndex >= ARENA_BASE_SILVER_BY_LEAGUE.length) {
-    throw new RangeError("Arena league index is outside the configured range");
+// Rating depends on place, on how strong the opposition was and on the damage dealt.
+export function calculateArenaRatingChange(input: {
+  averageDamage: number;
+  averageOpponentRating: number;
+  damageDealt: number;
+  placement: number;
+  playerRating: number;
+}) {
+  if (!Number.isSafeInteger(input.placement) || input.placement < 1 || input.placement > ARENA_PARTICIPANT_COUNT) {
+    throw new RangeError("Arena placement must be between 1 and 6");
   }
-  if (!Number.isSafeInteger(availableDailyGold) || availableDailyGold < 0) {
-    throw new RangeError("Available daily gold must be a non-negative integer");
-  }
-  if (rewardMultiplier !== 1 && rewardMultiplier !== 2) {
-    throw new RangeError("Arena reward multiplier must be 1 or 2");
-  }
-  const goldBeforeCap = (ARENA_GOLD_REWARDS[placement - 1] ?? 0) * rewardMultiplier;
-  const gold = Math.min(goldBeforeCap, Math.max(0, ARENA_GOLD_DAILY_CAP * rewardMultiplier - availableDailyGold));
-  return {
-    arenaTokens: ARENA_TOKEN_REWARDS[placement - 1] ?? 0,
-    gold,
-    goldCapped: gold < goldBeforeCap,
-    silver: Math.round(ARENA_BASE_SILVER_BY_LEAGUE[leagueIndex]! * (ARENA_SILVER_MULTIPLIERS[placement - 1] ?? 0) * ARENA_REWARD_MULTIPLIER * rewardMultiplier),
-    ratingChange: getArenaRatingChange(placement),
-  };
+  const opposition = clamp((input.averageOpponentRating - input.playerRating) / 40, -8, 8);
+  const damage = input.averageDamage > 0 ? clamp((input.damageDealt / input.averageDamage - 1) * 4, -4, 6) : 0;
+  return ARENA_RATING_CHANGES[input.placement - 1]! + Math.round(opposition + damage);
+}
+
+export function getArenaTokenReward(placement: number) {
+  return ARENA_TOKEN_REWARDS[placement - 1] ?? 0;
 }

@@ -1,0 +1,164 @@
+/* Painted sprites keep their drawn proportions. Frames scale their edges by the
+   same factor as their width, so ornaments on an edge are never squashed; only
+   plain middle areas stretch or repeat. Fixed sprites use their real aspect ratio.
+   --u is one design pixel of the 390px layout; the game column stops at 430px. */
+:root { --u: calc(min(100vw, 430px) / 390); }
+
+/* Quest plate 996x261, slice 62. */
+:root body .notice-board-screen .tasks-screen__mascot,
+:root body .notice-board-screen .tasks-screen__marathon,
+:root body .notice-board-screen .tasks-screen__account-protection,
+:root body .story-trials-screen .campaign-dialogue,
+:root body .app-shell .tutorial-dialog.tutorial-dialog--reference-duel,
+:root body .app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue,
+:root body .daily-login-modal .daily-login-modal__dialogue,
+:root body .auth-screen--guest .auth-screen__hero .auth-screen__subtitle {
+  border-width: calc(23 * var(--u));
+  border-image-source: var(--sprite-panel-frame);
+  border-image-slice: 62 fill;
+  border-image-width: calc(23 * var(--u));
+  border-image-repeat: stretch round;
+}
+
+/* Lists of notices use the same quest plate as the rest of the game. */
+:root body .notice-board {
+  gap: calc(8 * var(--u));
+  border: 0;
+  border-image: none;
+}
+:root body .notice-board > * { margin-inline: 0; }
+:root body .app-shell .app-content .notice-board > .notice-board__plaque {
+  width: min(100%, calc(280 * var(--u)));
+  display: grid;
+  place-items: center;
+  min-height: calc(38 * var(--u));
+  margin: 0 0 calc(2 * var(--u));
+  padding: 4px 12px;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(12 * var(--u)) stretch;
+}
+
+/* Notice rows share the same framed parchment; no torn-paper or rotating variants. */
+:root body .app-shell .app-content .notice-board-screen .quest-paper {
+  padding: calc(10 * var(--u)) calc(12 * var(--u));
+  background: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: calc(14 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(14 * var(--u)) stretch;
+  filter: none;
+  transform: none;
+}
+:root body .app-shell .app-content .notice-board-screen .quest-paper:nth-of-type(even) {
+  border-image-source: var(--sprite-panel-frame);
+  transform: none;
+}
+:root body .app-shell .app-content .notice-board-screen .quest-paper.story-notice--official {
+  padding-left: calc(12 * var(--u));
+  border-width: calc(14 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(14 * var(--u)) stretch;
+}
+:root body .app-shell .app-content .notice-board-screen .story-notice__nail { display: none; }
+
+/* Fixed sprites: real aspect ratio, no free stretching. */
+:root body .app-shell .app-content .notice-board-screen .quest-paper__button:not(.quest-paper__button--claim) {
+  width: 158px;
+  min-width: 158px;
+  height: 39px;
+  min-height: 0;
+}
+:root body .app-shell .app-content .notice-board-screen .quest-paper__button--claim {
+  width: 190px;
+  min-width: 190px;
+  height: 40px;
+  min-height: 0;
+}
+:root body .auth-screen--guest .auth-screen__start-button,
+:root body .daily-login-modal .daily-login-modal__claim,
+:root body .app-shell .app-content .duel-result--tutorial .tutorial-result__button {
+  width: min(100%, 290px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 800 / 169;
+  padding: 0 34px;
+}
+:root body .auth-screen--guest .auth-screen__return-button,
+:root body .auth-screen--guest .auth-screen__dialog-cancel {
+  width: min(100%, 290px);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 800 / 176;
+  padding: 0 34px;
+}
+:root body .auth-screen--guest .auth-screen__hero h1,
+:root body .daily-login-modal .daily-login-modal__title { aspect-ratio: 996 / 261; }
+:root body .auth-screen--guest .auth-screen__hero .auth-screen__eyebrow {
+  width: 240px;
+  aspect-ratio: 800 / 117;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Login copy uses the same framed panel as the rest of the game. */
+:root body .auth-screen--guest .auth-screen__login-panel {
+  border-width: calc(23 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(23 * var(--u)) stretch;
+  padding: 0;
+}
+
+/* Letter 800x1056, slices 150 90 90 90: the seal keeps its round shape. */
+:root body .auth-screen--guest .auth-screen__account-dialog,
+:root body .daily-login-modal .daily-login-modal__dialog {
+  --letter-width: min(100vw - 20px, 390px);
+  width: var(--letter-width);
+  border-width: calc(var(--letter-width) * .1875) calc(var(--letter-width) * .1125) calc(var(--letter-width) * .1125);
+  border-image: url("/assets/ui/auth/parchment/letter-v1.webp") 150 90 90 90 fill / calc(var(--letter-width) * .1875) calc(var(--letter-width) * .1125) calc(var(--letter-width) * .1125) stretch round;
+  padding: 0;
+}
+:root body .daily-login-modal .daily-login-modal__close { top: calc(var(--letter-width) * -.1875 + 6px); right: calc(var(--letter-width) * -.1125 + 6px); }
+
+@media (min-width: 800px) {
+  /* The landing column and letters have fixed desktop widths. */
+  :root body .auth-screen--guest { --u: 1px; }
+}
+
+/* Daily reward letter: one centered column, same width and even spacing for every row. */
+:root body .daily-login-modal .daily-login-modal__dialog {
+  --row-gap: clamp(4px, 1.1dvh, 11px);
+  gap: var(--row-gap);
+  border-image-repeat: stretch;
+}
+:root body .daily-login-modal .daily-login-modal__dialog > * { box-sizing: border-box; justify-self: center; }
+:root body .daily-login-modal .daily-login-modal__title,
+:root body .daily-login-modal .daily-login-modal__currency-slots,
+:root body .daily-login-modal .daily-login-modal__dialogue,
+:root body .daily-login-modal .daily-login-modal__series-rule,
+:root body .daily-login-modal .daily-login-modal__claim { width: 100%; margin: 0; }
+:root body .daily-login-modal .daily-login-modal__mascot {
+  width: clamp(88px, 19dvh, 164px);
+  height: clamp(88px, 19dvh, 164px);
+}
+:root body .daily-login-modal .daily-login-modal__reward-ring { width: clamp(58px, 9dvh, 76px); height: clamp(58px, 9dvh, 76px); }
+:root body .daily-login-modal .daily-login-modal__currency-slots { justify-items: center; }
+:root body .daily-login-modal .daily-login-modal__dialogue { text-align: center; }
+:root body .daily-login-modal .daily-login-modal__dialogue,
+:root body .daily-login-modal .daily-login-modal__dialogue p { justify-items: center; }
+:root body .daily-login-modal .daily-login-modal__tasks-link { min-height: 26px; }
+/* The close button sits exactly on the letter's top-right corner stud. */
+:root body .daily-login-modal .daily-login-modal__close {
+  top: calc(var(--letter-width) * .03 - 21px);
+  right: calc(var(--letter-width) * -.04375 - 21px);
+}
+:root body .daily-login-modal .daily-login-modal__dialog { overflow: visible; }
+@media (max-height: 660px) {
+  :root body .daily-login-modal .daily-login-modal__dialog { overflow: hidden auto; }
+  :root body .daily-login-modal .daily-login-modal__close { top: 0; right: 0; }
+}
+@media (max-height: 780px) {
+  :root body .daily-login-modal .daily-login-modal__series-rule { display: none; }
+  :root body .daily-login-modal .daily-login-modal__mascot { width: clamp(76px, 15dvh, 120px); height: clamp(76px, 15dvh, 120px); }
+  :root body .daily-login-modal .daily-login-modal__title { width: 86%; }
+}
+:root body .daily-login-modal .daily-login-modal__dialog { grid-auto-rows: max-content; }

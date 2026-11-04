@@ -450,7 +450,7 @@ export async function loadDuelParticipant(
   };
 }
 
-async function loadBotCardTemplates(client: PoolClient): Promise<BotCardTemplate[]> {
+export async function loadBotCardTemplates(client: PoolClient): Promise<BotCardTemplate[]> {
   const result = await client.query<BotCardRow>(
     "SELECT id, code, display_name, art_key, element FROM cards WHERE limited = FALSE AND source = 'standard' ORDER BY element, id",
   );
@@ -908,6 +908,8 @@ export class DuelService {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
           duelId,
           outcome,
+          gold: duelGoldReward,
+          duelRating: leagueProgression.ratingAfter,
           winStreak: stats.duelWinStreak,
           neutralHits,
           strongHits,

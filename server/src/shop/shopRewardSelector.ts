@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import type { CardDefinition, CardRarity } from "@cardastika/shared";
 import type { PoolClient } from "pg";
 import type { ShopRandomSource } from "./shopChancePolicy.js";
+import { getShopOfferPool } from "./shopPools.js";
 
 interface CanonicalCardRow {
   art_key: string | null;
@@ -37,7 +38,10 @@ export async function selectCanonicalShopReward(
   client: PoolClient,
   rarity: CardRarity,
   rng: ShopRandomSource,
+  offerId?: string,
 ): Promise<SelectedShopRewardDefinition> {
+  // A banner sells only its own list at each rarity, as shown under "Детальніше".
+  const pool = offerId ? getShopOfferPool(offerId, rarity) : null;
   const result = await client.query<CanonicalCardRow>(
     `
       SELECT
@@ -62,10 +66,11 @@ export async function selectCanonicalShopReward(
           ARRAY['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']::text[],
           $1::text
         )
+        ${pool ? "AND cards.id = ANY($2::text[])" : ""}
       ORDER BY cards.code, cards.id
       FOR SHARE OF cards
     `,
-    [rarity],
+    pool ? [rarity, pool] : [rarity],
   );
   if (!result.rows.length) throw new ShopRewardUnavailableError(rarity);
 

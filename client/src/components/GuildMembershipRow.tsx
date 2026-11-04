@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { GUILD_CONFIG, GUILD_ROLE_LABELS, type GuildMineResponse } from "@cardastika/shared";
+import { GUILD_CONFIG, GUILD_ROLE_LABELS, type CardElement, type GuildMineResponse } from "@cardastika/shared";
 import { loadMyGuild } from "../telegram/guild";
 import { GuildEmblem } from "../screens/guild/GuildUi";
 
-function GuildShield({ emblemId }: { emblemId?: string }) {
-  return <span className="profile-guild-card__shield" aria-hidden="true"><GuildEmblem emblemId={emblemId ?? "shield-1"} /></span>;
+function GuildShield({ element, emblemId }: { element?: CardElement | null; emblemId?: string }) {
+  return <span className="profile-guild-card__shield" aria-hidden="true"><GuildEmblem element={element} emblemId={emblemId} /></span>;
 }
 
 export function GuildMembershipRow({ level, onOpen }: { level: number; onOpen: () => void }) {
@@ -23,5 +23,5 @@ export function GuildMembershipRow({ level, onOpen }: { level: number; onOpen: (
   const role = guild?.viewer.member?.role;
   const name = guild?.guild.name ?? (level < GUILD_CONFIG.unlockLevel ? `Гільдія · з ${GUILD_CONFIG.unlockLevel} рівня` : state.data.activeApplication ? "Заявка в гільдію" : "Знайти гільдію");
   const rank = role ? GUILD_ROLE_LABELS[role] : state.data.activeApplication ? "На розгляді" : "Переглянути каталог";
-  return <button className="profile-guild-card" aria-label={`${name}, ${rank}. Відкрити гільдію`} onClick={onOpen} type="button"><GuildShield emblemId={guild?.guild.emblemId} /><span className="profile-guild-card__copy"><strong>{name}</strong><span>{rank}</span></span></button>;
+  return <button className="profile-guild-card" aria-label={`${name}, ${rank}. Відкрити гільдію`} onClick={onOpen} type="button"><GuildShield element={guild?.guild.themeElement} emblemId={guild?.guild.emblemId} /><span className="profile-guild-card__copy"><strong>{name}</strong><span>{rank}</span></span></button>;
 }

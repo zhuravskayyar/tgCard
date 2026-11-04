@@ -1,39 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getRarityForLevel } from "@cardastika/game-core";
-import { CARD_ELEMENTS } from "@cardastika/shared";
+import { getRarityForLevel, validateDeckElementBalance } from "@cardastika/game-core";
 import {
   STARTER_CARDS,
   STARTER_CARD_COUNT,
-  STARTER_INSTANCE_DEFAULTS,
+  STARTER_CARD_GRANTS,
+  STARTER_DECK_CODES,
+  getStarterGrantPower,
 } from "./starterCards.js";
 
-test("starter definitions are canonical and unique", () => {
+test("starters mirror the reference start with shared catalog cards", () => {
   assert.deepEqual(
-    STARTER_CARDS.map(({ code, displayName, element }) => ({ code, displayName, element })),
+    STARTER_CARD_GRANTS.map((grant) => [grant.code, getStarterGrantPower(grant)]),
     [
-      { code: "starter_01", displayName: "Саламандра", element: "fire" },
-      { code: "starter_02", displayName: "Лис", element: "fire" },
-      { code: "starter_03", displayName: "Жук-бомбардир", element: "fire" },
-      { code: "starter_04", displayName: "Вугор", element: "water" },
-      { code: "starter_05", displayName: "Щука", element: "water" },
-      { code: "starter_06", displayName: "Ворон", element: "air" },
-      { code: "starter_07", displayName: "Сокіл", element: "air" },
-      { code: "starter_08", displayName: "Кріт", element: "earth" },
-      { code: "starter_09", displayName: "Вепр", element: "earth" },
+      ["wind_fairy", 84],
+      ["black_raven", 12],
+      ["salamander", 12],
+      ["impetuous_lizard", 12],
+      ["carefree_hobbit", 12],
+      ["mountain_eagle", 12],
+      ["fire_ifrit", 12],
+      ["river_naiad", 12],
+      ["elvish_scout", 12],
+      ["crabman", 10],
+      ["giant_dragonfly", 10],
     ],
   );
-  assert.equal(STARTER_CARDS.length, STARTER_CARD_COUNT);
-  assert.equal(STARTER_CARD_COUNT, 9);
+  assert.equal(STARTER_CARD_COUNT, 11);
   assert.equal(new Set(STARTER_CARDS.map(({ id }) => id)).size, STARTER_CARD_COUNT);
-  assert.equal(new Set(STARTER_CARDS.map(({ code }) => code)).size, STARTER_CARD_COUNT);
+  assert.deepEqual(STARTER_CARDS.map(({ code }) => code), STARTER_CARD_GRANTS.map(({ code }) => code));
+  assert.equal(getRarityForLevel(STARTER_CARD_GRANTS[0]!.level), "uncommon");
+  assert.ok(STARTER_CARD_GRANTS.slice(1).every(({ level }) => getRarityForLevel(level) === "common"));
+});
 
-  for (const card of STARTER_CARDS) {
-    assert.equal(card.collectionId, null);
-    assert.ok(card.displayName);
-    assert.equal(card.artKey, null);
-    assert.ok(CARD_ELEMENTS.includes(card.element));
-  }
-  assert.deepEqual(STARTER_INSTANCE_DEFAULTS, { level: 1, bonusPower: 2, finalPower: 12 });
-  assert.equal(getRarityForLevel(STARTER_INSTANCE_DEFAULTS.level), "common");
+test("the nine starter deck cards form a valid 3/2/2/2 deck", () => {
+  const deck = STARTER_CARDS.filter(({ code }) => STARTER_DECK_CODES.includes(code));
+  assert.equal(deck.length, 9);
+  assert.equal(validateDeckElementBalance(deck).valid, true);
 });
