@@ -13,7 +13,7 @@ import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
 import { Pagination } from "../components/Pagination";
-import { formatFullUiNumber } from "../i18n";
+import { formatFullUiNumber, getUiNumberLocale } from "../i18n";
 import { playCardDestructionFx, playCardPowerFx } from "./cardProgressionFx";
 import { CardProtectionFx } from "./CardProtectionFx";
 import { getTelegramInitData } from "../telegram";
@@ -21,7 +21,12 @@ import { absorbCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, pre
 import { PlayerDataError } from "../telegram/playerDeck";
 import { useGyroscopeCardTilt } from "../hooks/useGyroscopeCardTilt";
 
-const ELEMENT_GENITIVE = { fire: "вогню", water: "води", earth: "землі", air: "повітря" } as const;
+const EMPTY_ELEMENT_ABSORPTION_MESSAGE = {
+  fire: "Немає слабких карт стихії вогню",
+  water: "Немає слабких карт стихії води",
+  earth: "Немає слабких карт стихії землі",
+  air: "Немає слабких карт стихії повітря",
+} as const;
 const homeSprite = (name: string) => `/assets/ui/home/sprites/${name}.webp`;
 
 const elementLabels = { fire: "Вогонь", water: "Вода", air: "Повітря", earth: "Земля" } as const;
@@ -51,9 +56,10 @@ function requestErrorMessage(error: unknown) {
 
 function formatGainPercent(value: number) {
   if (value <= 0) return "0%";
-  if (value < 0.01) return "<0,01%";
+  const numberLocale = getUiNumberLocale();
+  if (value < 0.01) return `<${new Intl.NumberFormat(numberLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(0.01)}%`;
   const digits = value >= 10 ? 0 : value >= 1 ? 1 : 2;
-  return `${String(Number(value.toFixed(digits))).replace(".", ",")}%`;
+  return `${new Intl.NumberFormat(numberLocale, { maximumFractionDigits: digits }).format(value)}%`;
 }
 
 export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, onGoldChange, onOpenDeck, onOpenShop, onOpenWeakCards }: CardDetailScreenProps) {
@@ -334,7 +340,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       document.body,
     ) : null}
 
-    {candidates.status === "ready" && candidates.data.totalCards === 0 ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />Немає слабких карт стихії {ELEMENT_GENITIVE[card.element]}</p> : null}
+    {candidates.status === "ready" && candidates.data.totalCards === 0 ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />{EMPTY_ELEMENT_ABSORPTION_MESSAGE[card.element]}</p> : null}
     {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
     {hasAbsorptionAction && candidates.status === "ready" ? (
       <section aria-label="Слабкі карти для поглинання" className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>

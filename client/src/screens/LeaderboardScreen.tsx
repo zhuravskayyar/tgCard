@@ -2,6 +2,7 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useState } from "react";
 import { ARENA_LEAGUE_CONFIG, DUEL_LEAGUE_CONFIG, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "../components/AppIcon";
+import { AvatarImage } from "../components/AvatarImage";
 import { FirstVisitHint } from "../components/FirstVisitHint";
 import { LeagueBadge } from "../components/LeagueBadge";
 import { Pagination } from "../components/Pagination";
@@ -31,23 +32,13 @@ function isLiveKind(tab: LeaderboardTab): tab is LeaderboardKind {
   return tab === "duels" || tab === "arena" || tab === "deck";
 }
 
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 function LeaderboardRow({ entry, mine, onOpen }: { entry: LeaderboardEntry; mine: boolean; onOpen: (id: string) => void }) {
   return (
     <li className={mine ? "is-player" : undefined}>
       <button className="leaderboard-entry" onClick={() => onOpen(entry.id)} type="button">
         <span className="leaderboard-entry__rank">{entry.rank}</span>
         <span className="leaderboard-entry__avatar">
-          {entry.photoUrl ? <img alt={`Аватар ${entry.displayName}`} src={entry.photoUrl} /> : getInitials(entry.displayName)}
+          <AvatarImage alt={`Аватар ${entry.displayName}`} name={entry.displayName} photoUrl={entry.photoUrl} />
         </span>
         <span className="leaderboard-entry__identity">
           <strong>{entry.displayName}</strong>
@@ -107,6 +98,7 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
         ) : (
           <>
             <h2 className="leaderboard-title">{activeTab.title}</h2>
+            {tab === "duels" ? <p className="leaderboard-disclosure">У рейтингу є автоматизовані ігрові персонажі.</p> : null}
 
             <div className="leaderboard-tabs" role="tablist" aria-label="Категорія рейтингу">
               {leaderboardTabs.map((item) => (

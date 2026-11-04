@@ -105,7 +105,15 @@ interface BotCardRow {
 interface SearchRow {
   opponent_id: string | null;
   opponent_kind: "bot" | "real";
-  opponent_snapshot: DuelSideSnapshot | null;
+  opponent_snapshot: StoredBotOpponentSnapshot | null;
+}
+
+interface StoredBotOpponentSnapshot extends DuelSideSnapshot {
+  botGuildCardSnapshot?: DuelCardSnapshot | null;
+}
+
+interface PersistentBotRow {
+  player_id: string;
 }
 
 interface DuelRow {
@@ -471,6 +479,38 @@ export class DuelService {
     private readonly guildActivity?: GuildActivityRecorder,
   ) {}
 
+  private async selectPersistentBot(
+    client: PoolClient,
+    challengerId: string,
+    range: ReturnType<typeof getMatchmakingRange>,
+  ) {
+    const result = await client.query<PersistentBotRow>(
+      `SELECT player_id FROM simulated_bot_profiles
+       WHERE enabled = TRUE AND player_id <> $1 ORDER BY bot_key`,
+      [challengerId],
+    );
+    const candidates = result.rows.slice();
+    for (let index = candidates.length - 1; index > 0; index -= 1) {
+      const roll = this.random();
+      if (!Number.isFinite(roll) || roll < 0 || roll >= 1) {
+        throw new Error("Duel matchmaking RNG must return a value from 0 inclusive to 1 exclusive");
+      }
+      const swapIndex = Math.floor(roll * (index + 1));
+      [candidates[index], candidates[swapIndex]] = [candidates[swapIndex]!, candidates[index]!];
+    }
+    for (const candidate of candidates) {
+      const participant = await loadDuelParticipant(client, candidate.player_id);
+      if (!isDeckPowerInMatchmakingRange(participant.snapshot.effectiveDeckPower, range)) continue;
+      const roll = this.random();
+      if (!Number.isFinite(roll) || roll < 0 || roll >= 1) {
+        throw new Error("Duel matchmaking RNG must return a value from 0 inclusive to 1 exclusive");
+      }
+      if (roll < 0.72) return participant;
+      break;
+    }
+    return null;
+  }
+
   async search(challengerId: string): Promise<DuelSearchResponse> {
     const client = await this.pool.connect();
     try {
@@ -483,12 +523,16 @@ export class DuelService {
         challenger.snapshot.effectiveDeckPower,
         challenger.player.duel_win_streak,
       );
-      const opponentSnapshot = createBotOpponentSnapshot(
+      const persistentOpponent = await this.selectPersistentBot(client, challengerId, range);
+      const opponentSnapshot = persistentOpponent?.snapshot ?? createBotOpponentSnapshot(
         challenger.snapshot,
         range,
         await loadBotCardTemplates(client),
         this.random,
       );
+      const storedOpponentSnapshot: StoredBotOpponentSnapshot = persistentOpponent
+        ? { ...opponentSnapshot, botGuildCardSnapshot: persistentOpponent.guildCard }
+        : opponentSnapshot;
 
       const searchId = randomUUID();
       await client.query(
@@ -507,7 +551,7 @@ export class DuelService {
           challengerId,
           null,
           "bot",
-          JSON.stringify(opponentSnapshot),
+          JSON.stringify(storedOpponentSnapshot),
           new Date(Date.now() + SEARCH_LIFETIME_MS),
         ],
       );
@@ -553,9 +597,12 @@ export class DuelService {
       const tutorialMode = tutorial && challenger.player.tutorial_eligible;
       let opponentSnapshot: DuelSideSnapshot;
       let opponentParticipant: LoadedParticipant | null = null;
+      let persistentBotGuildCard: DuelCardSnapshot | null = null;
       if (search.opponent_kind === "bot") {
         if (!search.opponent_snapshot || search.opponent_id) throw new DuelSearchInvalidError();
-        opponentSnapshot = search.opponent_snapshot;
+        const { botGuildCardSnapshot, ...snapshot } = search.opponent_snapshot;
+        opponentSnapshot = snapshot;
+        persistentBotGuildCard = botGuildCardSnapshot ?? null;
       } else {
         if (!search.opponent_id || search.opponent_snapshot) throw new DuelSearchInvalidError();
         opponentParticipant = await loadDuelParticipant(client, search.opponent_id);
@@ -580,7 +627,7 @@ export class DuelService {
         ? createTutorialPool(resolvedOpponentSnapshot.cards)
         : initializeCyclicCardPool(resolvedOpponentSnapshot.cards, this.random);
       const playerGuildCard = tutorialMode ? null : toGuildDuelCard(challenger.guildCard);
-      const enemyGuildCard = tutorialMode ? null : toGuildDuelCard(opponentParticipant?.guildCard);
+      const enemyGuildCard = tutorialMode ? null : toGuildDuelCard(opponentParticipant?.guildCard) ?? persistentBotGuildCard;
       const duelId = randomUUID();
       const inserted = await client.query<DuelRow>(
         `

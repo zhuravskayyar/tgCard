@@ -207,7 +207,11 @@ export class LeaderboardRepository {
       `
         SELECT id, nickname, username, first_name, photo_url, level, duel_rating
         FROM players
-        WHERE duel_wins >= $1 AND duel_rating >= $2 AND ($3::integer IS NULL OR duel_rating <= $3)
+        WHERE (is_bot = FALSE OR EXISTS (
+          SELECT 1 FROM simulated_bot_profiles AS bot
+          WHERE bot.player_id = players.id AND bot.enabled = TRUE
+        ))
+          AND duel_wins >= $1 AND duel_rating >= $2 AND ($3::integer IS NULL OR duel_rating <= $3)
         ORDER BY duel_rating DESC, duel_wins DESC, id ASC
       `,
       [LEADERBOARD_REQUIRED_DUEL_WINS, league.minRating, league.maxRating],
@@ -228,7 +232,7 @@ export class LeaderboardRepository {
       `
         SELECT id, nickname, username, first_name, photo_url, level, arena_rating
         FROM players
-        WHERE arena_league_index = $1 AND (arena_wins > 0 OR arena_rating <> $2)
+        WHERE is_bot = FALSE AND arena_league_index = $1 AND (arena_wins > 0 OR arena_rating <> $2)
         ORDER BY arena_rating DESC, arena_wins DESC, id ASC
       `,
       [leagueIndex, ARENA_START_RATING],
@@ -259,6 +263,7 @@ export class LeaderboardRepository {
         LEFT JOIN player_decks ON player_decks.player_id = players.id
         LEFT JOIN deck_slots ON deck_slots.deck_id = player_decks.id
         LEFT JOIN player_card_instances ON player_card_instances.id = deck_slots.card_instance_id
+        WHERE players.is_bot = FALSE
         ORDER BY players.id, deck_slots.slot
       `,
     );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { DuelSearchResponse } from "@cardastika/shared";
 import { BattleSwordIcon } from "../components/BattleSwordIcon";
+import { AvatarImage } from "../components/AvatarImage";
 import { cardArtAvatarClassName } from "../components/avatarBackdrop";
 
 export type DuelSearchExperiencePhase = "loading" | "searching" | "preview" | "no-opponent" | "error" | "cancelled";
@@ -50,6 +51,7 @@ function estimatePlayerPower(opponentPower: number, powerDifferencePct: number) 
 function DuelOpponentPortrait({ name, photoUrl }: { name: string; photoUrl: string | null }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [photoUrl]);
+  if (photoUrl?.startsWith("bot-avatar:")) return <AvatarImage alt="" name={name} photoUrl={photoUrl} />;
   if (photoUrl && !failed) {
     return <img alt="" className={cardArtAvatarClassName(photoUrl)} onError={() => setFailed(true)} src={photoUrl} />;
   }

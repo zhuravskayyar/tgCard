@@ -3,6 +3,7 @@ import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, STARTER_EQUIPMENT_
 import type { EquippedEquipment } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
+import { AvatarImage } from "../components/AvatarImage";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
 import { LeagueBadge } from "../components/LeagueBadge";
@@ -110,7 +111,7 @@ export function ProfileScreen({
         <>
           <section aria-label="Гравець" className="eq-plate pf-identity">
             <span className="eq-frame pf-portrait">
-              {player.photoUrl ? <img alt={`Аватар ${displayName}`} src={player.photoUrl} /> : <span>{getInitials(displayName)}</span>}
+              <AvatarImage alt={`Аватар ${displayName}`} name={displayName} photoUrl={player.photoUrl} />
             </span>
             <div className="pf-identity__copy">
               <NicknameSkinPreview nickname={displayName} skinId={player.equippedNicknameSkin} />

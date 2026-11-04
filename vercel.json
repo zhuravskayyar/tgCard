@@ -8,6 +8,20 @@
     { "source": "/about.html", "destination": "/", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true }
   ],
+  "crons": [
+    { "path": "/api/cron/world-bots/slot-1", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/world-bots/slot-2", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/world-bots/slot-3", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/world-bots/slot-4", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/world-bots/slot-5", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/world-bots/slot-6", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/world-bots/slot-7", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/world-bots/slot-8", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/world-bots/slot-9", "schedule": "0 16 * * *" },
+    { "path": "/api/cron/world-bots/slot-10", "schedule": "0 18 * * *" },
+    { "path": "/api/cron/world-bots/slot-11", "schedule": "0 20 * * *" },
+    { "path": "/api/cron/world-bots/slot-12", "schedule": "0 22 * * *" }
+  ],
   "headers": [
     {
       "source": "/:section(admin|api|arena|battle-pass|campaign|cards|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|players|profile|settings|shop|tasks|trials)/:path*",

@@ -80,6 +80,7 @@ import { GuildRaidService } from "./guild/guildRaidService.js";
 import { AdminAuthService } from "./admin/adminAuth.js";
 import { handleAdminRequest } from "./admin/adminRoute.js";
 import { AdminService } from "./admin/adminService.js";
+import { BotWorldService, type BotSessionWindow } from "./worldBots/botWorldService.js";
 
 export const environment = getServerEnvironment();
 export const pool = createDatabasePool(environment.databaseUrl);
@@ -107,6 +108,7 @@ const leaderboards = new LeaderboardRepository(pool);
 const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
 const duels = new DuelService(pool, Math.random, campaign, guilds);
+export const worldBots = new BotWorldService(pool, duels, guilds, guildForum);
 const dungeon = new DungeonService(pool, guilds);
 const cardWorkshop = new CardWorkshopService(pool, undefined, campaign);
 const arena = new ArenaService(pool, guilds);
@@ -196,6 +198,12 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
     const normalizedPath = rewrittenApiPath.replace(/^\/+/, "");
     url.pathname = normalizedPath ? `/api/${normalizedPath}` : "/api";
     url.searchParams.delete("__cardastika_api_path");
+  }
+
+  const botWindow = getBotCronWindow(url.pathname);
+  if (botWindow) {
+    await handleBotCronRequest(request, response, botWindow);
+    return;
   }
 
   const cors = getCorsPolicy(request.headers.origin, environment.clientOrigin);
@@ -818,6 +826,33 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   }
 
   sendJson(response, 404, { error: { code: "not_found", message: "Route not found" } }, cors.headers);
+}
+
+function getBotCronWindow(pathname: string): BotSessionWindow | null {
+  const match = pathname.match(/^\/api\/cron\/world-bots\/(slot-(?:[1-9]|1[0-2]))$/);
+  return match?.[1] as BotSessionWindow | undefined ?? null;
+}
+
+async function handleBotCronRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  window: BotSessionWindow,
+) {
+  if (request.method !== "GET") {
+    sendJson(response, 405, { error: "method_not_allowed" });
+    return;
+  }
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret || request.headers.authorization !== `Bearer ${secret}`) {
+    sendJson(response, 401, { error: "unauthorized" });
+    return;
+  }
+  try {
+    sendJson(response, 200, { ok: true, ...(await worldBots.runWindow(window)) });
+  } catch (error) {
+    console.error("Scheduled world-bot activity failed", error);
+    sendJson(response, 500, { error: "bot_world_run_failed" });
+  }
 }
 
 export async function handleRequest(request: IncomingMessage, response: ServerResponse) {
