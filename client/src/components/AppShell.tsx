@@ -4,7 +4,7 @@ import { useScreenReveal } from "../hooks/useScreenReveal";
 import type { PlayerSummaryState } from "../types/player";
 import { BottomNav, type BottomNavItem } from "./BottomNav";
 import { loadCardArtManifest } from "./cardArtSource";
-import { preloadScreenLoader, ScreenLoader } from "./ScreenLoader";
+import { ScreenLoader } from "./ScreenLoader";
 import { TopHud } from "./TopHud";
 
 interface AppShellProps {
@@ -41,7 +41,6 @@ export function AppShell({
   // Prepared after the first paint, so the first screen with cards has nothing left to compile or fetch.
   useEffect(() => {
     void loadCardArtManifest();
-    preloadScreenLoader();
     const timer = window.setTimeout(warmCardMaterialRenderer, 200);
     return () => window.clearTimeout(timer);
   }, []);

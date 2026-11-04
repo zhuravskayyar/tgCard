@@ -51,10 +51,10 @@
   justify-self: center;
   width: min(100%, 320px);
   aspect-ratio: 800 / 117;
-  color: #fff3d6;
+  color: #24140a;
   font-size: 15px;
   font-weight: 700;
-  text-shadow: 0 1px 0 rgb(255 245 220 / 60%);
+  text-shadow: none;
   background: none;
   border: 10px solid transparent;
   border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;

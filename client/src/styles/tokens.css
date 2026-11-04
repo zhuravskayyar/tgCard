@@ -1,6 +1,6 @@
 /* Cardastika: shared warm stone, wood and bronze tokens. */
 :root {
-  --font-body: "Alegreya Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Alegreya", Georgia, "Times New Roman", serif;
   --font-display: "Lugatype", "Alegreya Sans", Georgia, serif;
   --font-number: "Cardastika Numbers", Georgia, "Times New Roman", serif;
   --font-label: "Alegreya Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;

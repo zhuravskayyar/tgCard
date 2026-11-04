@@ -21,7 +21,7 @@ test("boss requires this location's trials, resumes safely and hides enemy cards
   assert.deepEqual(action.enemyActiveCards,started.enemyActiveCards);
 }));
 
-test("first win pays exact currency and a standard random card; repeat pays only card and damage XP", { skip: !databaseUrl }, () => withCampaignPlayer(async (pool,id) => {
+test("boss rewards are granted only when the result is opened, then remain idempotent", { skip: !databaseUrl }, () => withCampaignPlayer(async (pool,id) => {
   const campaign = new CampaignService(pool);
   const service = new CampaignBossService(pool,campaign,()=>0,{nextInt:()=>0});
   await unlockTrials(pool,id);
@@ -29,20 +29,26 @@ test("first win pays exact currency and a standard random card; repeat pays only
   const now = new Date("2026-11-02T12:00:00Z");
   const first = await service.start(id,1,now);
   await pool.query("UPDATE duels SET enemy_hp=1 WHERE id=$1",[first.battleId]);
-  const won = await service.action(id,first.battleId,{slotIndex:0,expectedVersion:first.version},now);
-  assert.equal(won.status,"won");
+  const finished = await service.action(id,first.battleId,{slotIndex:0,expectedVersion:first.version},now);
+  assert.equal(finished.status,"won");
+  assert.equal(finished.rewardsGranted,false);
+  assert.equal(finished.result,undefined);
+  await assert.rejects(service.action(id,first.battleId,{slotIndex:0,expectedVersion:first.version},now),CampaignBossBattleConflictError);
+  const won = await service.claimRewards(id,first.battleId,now);
   assert.equal(won.result!.firstWin,true);
   assert.equal(won.result!.silver,2000);
   assert.equal(won.result!.gold,10);
   assert.equal(won.result!.rewardCard!.rarity,"rare");
   assert.equal(won.result!.rewardCard!.level,14);
   assert.ok(won.result!.rewardCard!.finalPower >=250 && won.result!.rewardCard!.finalPower<=300);
-  await assert.rejects(service.action(id,first.battleId,{slotIndex:0,expectedVersion:first.version},now),CampaignBossBattleConflictError);
+  assert.deepEqual((await service.claimRewards(id,first.battleId,now)).result,won.result);
   await assert.rejects(service.start(id,1,new Date(now.getTime()+2*3600000-1)),CampaignBossAlreadyCompletedError);
   const later = new Date(now.getTime()+2*3600000);
   const second = await service.start(id,1,later);
   await pool.query("UPDATE duels SET enemy_hp=1 WHERE id=$1",[second.battleId]);
-  const repeat = await service.action(id,second.battleId,{slotIndex:0,expectedVersion:second.version},later);
+  const repeatFinished = await service.action(id,second.battleId,{slotIndex:0,expectedVersion:second.version},later);
+  assert.equal(repeatFinished.rewardsGranted,false);
+  const repeat = await service.claimRewards(id,second.battleId,later);
   assert.equal(repeat.result!.firstWin,false);
   assert.equal(repeat.result!.silver,0);
   assert.equal(repeat.result!.gold,0);
@@ -60,9 +66,14 @@ test("loss gives damage XP, no location win, no currency or card drop", { skip: 
   await unlockTrials(pool,id);
   const started = await service.start(id,1);
   await pool.query("UPDATE duels SET player_hp=1 WHERE id=$1",[started.battleId]);
-  const lost = await service.action(id,started.battleId,{slotIndex:0,expectedVersion:started.version});
-  assert.equal(lost.status,"lost");
+  const finished = await service.action(id,started.battleId,{slotIndex:0,expectedVersion:started.version});
+  assert.equal(finished.status,"lost");
+  assert.equal(finished.rewardsGranted,false);
+  assert.equal(finished.result,undefined);
+  const lost = await service.claimRewards(id,started.battleId);
   assert.equal(lost.result!.silver,0);
+  assert.equal(lost.result!.gold,0);
+  assert.ok(lost.result!.xp>0);
   assert.equal(lost.result!.rewardCard,undefined);
   assert.equal((await pool.query("SELECT COUNT(*) FROM player_campaign_locations WHERE player_id=$1",[id])).rows[0].count,"0");
 }));

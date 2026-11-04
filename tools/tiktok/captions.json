@@ -1,0 +1,46 @@
+{
+  "uk": {
+    "hook": "Одна карта. Один удар. 💥",
+    "collections": "213 карт. 50 колекцій.",
+    "deck": "4 стихії. Колода з 9 карт.",
+    "duel": "Б'єш сильніше — ростеш швидше",
+    "arena": "Арена: 6 гравців, перемагають троє",
+    "guild": "Гільдії. Боси. Секретні бої.",
+    "pack": "Збери свою легенду",
+    "cta": "Грай безкоштовно 👉",
+    "telegram": "Працює просто в Telegram"
+  },
+  "en": {
+    "hook": "One card. One strike. 💥",
+    "collections": "213 cards. 50 collections.",
+    "deck": "4 elements. A 9-card deck.",
+    "duel": "Hit harder, level up faster",
+    "arena": "Arena: 6 players, top 3 win",
+    "guild": "Guilds. Bosses. Secret battles.",
+    "pack": "Build your legend",
+    "cta": "Play free 👉",
+    "telegram": "Plays right inside Telegram"
+  },
+  "ru": {
+    "hook": "Одна карта. Один удар. 💥",
+    "collections": "213 карт. 50 коллекций.",
+    "deck": "4 стихии. Колода из 9 карт.",
+    "duel": "Бьёшь сильнее — растёшь быстрее",
+    "arena": "Арена: 6 игроков, побеждают трое",
+    "guild": "Гильдии. Боссы. Секретные бои.",
+    "pack": "Собери свою легенду",
+    "cta": "Играй бесплатно 👉",
+    "telegram": "Работает прямо в Telegram"
+  },
+  "de": {
+    "hook": "Eine Karte. Ein Schlag. 💥",
+    "collections": "213 Karten. 50 Sammlungen.",
+    "deck": "4 Elemente. Ein Deck aus 9 Karten.",
+    "duel": "Härter zuschlagen, schneller aufsteigen",
+    "arena": "Arena: 6 Spieler, die Top 3 gewinnen",
+    "guild": "Gilden. Bosse. Geheime Kämpfe.",
+    "pack": "Erschaffe deine Legende",
+    "cta": "Kostenlos spielen 👉",
+    "telegram": "Läuft direkt in Telegram"
+  }
+}

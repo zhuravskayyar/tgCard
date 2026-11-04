@@ -1,0 +1,1994 @@
+{
+  "role": "independent_art_qa",
+  "date": "2026-11-03",
+  "browserAvailableToAgent": false,
+  "generationRequestsSubmitted": 0,
+  "promptManifest": "tmp/card-art-2026-11-03/agent-b-prompts.json",
+  "measurementScript": "tmp/card-art-2026-11-03/measure.cjs",
+  "reviews": [
+    {
+      "code": "ancient_order_fire_m",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\ancient_order_fire_m.png",
+      "sourceSha256": "58c6b95f4f5b4720425953dbf0a9bc0339be44e4309aca714269d3eea4b33b3b",
+      "reviewedAt": "2026-11-03T12:07:46.456Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Both hands concealed by crossed forearms; natural adult anatomy and censer chain.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\ancient_order_fire_m.png",
+        "code": "ancient_order_fire_m",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1696054,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 61.24,
+        "darkPct": 40.33,
+        "solidInteriorPct": 93.46,
+        "bboxPct": [
+          16.41,
+          83.2,
+          6.25,
+          96.88
+        ],
+        "medallionPct": 7.96,
+        "failures": [
+          "medallion_fill_above_5pct"
+        ],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\ancient_order_fire_m.png",
+        "code": "ancient_order_fire_m",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1683203,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 63.49,
+        "darkPct": 40.19,
+        "solidInteriorPct": 93.19,
+        "bboxPct": [
+          15.63,
+          80.86,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 2.39,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "diamond_brotherhood_air",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_air.png",
+      "sourceSha256": "b1cb58862ef2053ae7161b6256c9e630ade47683f9a9b3ded52db5fad055e84a",
+      "reviewedAt": "2026-11-03T12:07:46.588Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Sceptre grip has3 curled bands+opposing thumb; hanging hand3 long fingers+thumb.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_air.png",
+        "code": "diamond_brotherhood_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1506963,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 63.75,
+        "darkPct": 40.21,
+        "solidInteriorPct": 93.29,
+        "bboxPct": [
+          8.2,
+          91.41,
+          10.55,
+          94.92
+        ],
+        "medallionPct": 6.71,
+        "failures": [
+          "medallion_fill_above_5pct"
+        ],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_air.png",
+        "code": "diamond_brotherhood_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1545668,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 64.84,
+        "darkPct": 40.33,
+        "solidInteriorPct": 93.26,
+        "bboxPct": [
+          9.77,
+          91.8,
+          10.55,
+          93.75
+        ],
+        "medallionPct": 4.25,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "don_juan",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\don_juan.png",
+      "sourceSha256": "a255dffd75d96f0176655dd3af2dd0ee36d173e60617dcf7ea0dc59ffa7e9675",
+      "reviewedAt": "2026-11-03T12:07:46.698Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Torch grip3 curled bands+thumb, gesture3 fingers+thumb; energetic adult leap.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\don_juan.png",
+        "code": "don_juan",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1311270,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 70.99,
+        "darkPct": 50.74,
+        "solidInteriorPct": 90.18,
+        "bboxPct": [
+          6.64,
+          81.25,
+          4.69,
+          98.44
+        ],
+        "medallionPct": 0.32,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\don_juan.png",
+        "code": "don_juan",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1227792,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 74.59,
+        "darkPct": 50.75,
+        "solidInteriorPct": 89.64,
+        "bboxPct": [
+          12.89,
+          82.42,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "dripstone",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\dripstone.png",
+      "sourceSha256": "9b6099a37b4fefc02f387a9c9e191a986609bf267b26037bb89b68611493cd86",
+      "reviewedAt": "2026-11-03T12:07:46.784Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Open mechanical hand3 fingers+thumb, fist3 bands+thumb; coherent shoulders and guns.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\dripstone.png",
+        "code": "dripstone",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1847586,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 57.93,
+        "darkPct": 43.88,
+        "solidInteriorPct": 89.97,
+        "bboxPct": [
+          6.64,
+          94.92,
+          8.98,
+          96.09
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dripstone.png",
+        "code": "dripstone",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1885053,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 59.87,
+        "darkPct": 44.25,
+        "solidInteriorPct": 89.57,
+        "bboxPct": [
+          6.64,
+          92.58,
+          8.59,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "diamond_brotherhood_fire",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_fire.png",
+      "sourceSha256": "e72392eb1f4b0326f301fa85a38480b45ab5656a45f3d742be4a26a82bc166a4",
+      "reviewedAt": "2026-11-03T12:07:46.872Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coat grip3 curled fingers+thumb; scratching hand naturally occluded in hair; adult embarrassed burning-coat action.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_fire.png",
+        "code": "diamond_brotherhood_fire",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1917048,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 55.54,
+        "darkPct": 48.34,
+        "solidInteriorPct": 93.73,
+        "bboxPct": [
+          3.52,
+          86.72,
+          6.64,
+          98.44
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_fire.png",
+        "code": "diamond_brotherhood_fire",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1766326,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 59.81,
+        "darkPct": 48.11,
+        "solidInteriorPct": 93.43,
+        "bboxPct": [
+          8.2,
+          87.5,
+          6.25,
+          93.36
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "diamond_brotherhood_water",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_water.png",
+      "sourceSha256": "6c7a1823d55cbf0d5d2d766490104698aa4ba17a9026ddabd39cb357bf099edc",
+      "reviewedAt": "2026-11-03T12:07:46.967Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Fan3 curled fingers+thumb; resting hand3 fingers+thumb; adult duchess and pearls.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_water.png",
+        "code": "diamond_brotherhood_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1530732,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 60.59,
+        "darkPct": 39.21,
+        "solidInteriorPct": 95.8,
+        "bboxPct": [
+          10.55,
+          89.06,
+          7.03,
+          98.44
+        ],
+        "medallionPct": 1.93,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_water.png",
+        "code": "diamond_brotherhood_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1483757,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 64.39,
+        "darkPct": 38.73,
+        "solidInteriorPct": 95.51,
+        "bboxPct": [
+          10.16,
+          84.77,
+          6.64,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_air",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_air.png",
+      "sourceSha256": "3eee9914acc2ac850158846ccc34dcc2bae680a40f1646a50498a664d438ee9c",
+      "reviewedAt": "2026-11-03T12:07:47.052Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent tornado/debris silhouette, no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_air.png",
+        "code": "drmagic_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1645351,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 61.47,
+        "darkPct": 43.46,
+        "solidInteriorPct": 88.09,
+        "bboxPct": [
+          7.03,
+          89.06,
+          7.03,
+          94.53
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_air.png",
+        "code": "drmagic_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1732046,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 62.25,
+        "darkPct": 43.58,
+        "solidInteriorPct": 88.02,
+        "bboxPct": [
+          7.81,
+          89.06,
+          7.03,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_earth",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_earth.png",
+      "sourceSha256": "d11994a95635145e59370c20becf816d6ff699fad4931fac8b8f5d07a7e69827",
+      "reviewedAt": "2026-11-03T12:07:47.128Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent landslide, rocks/dust/trees; no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_earth.png",
+        "code": "drmagic_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1825173,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 56.92,
+        "darkPct": 39.44,
+        "solidInteriorPct": 91.45,
+        "bboxPct": [
+          4.3,
+          92.58,
+          2.73,
+          96.48
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_earth.png",
+        "code": "drmagic_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1677532,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 62.28,
+        "darkPct": 39.54,
+        "solidInteriorPct": 90.96,
+        "bboxPct": [
+          6.25,
+          88.67,
+          5.86,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "dao_w_sea_doubletail",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\dao_w_sea_doubletail.png",
+      "sourceSha256": "83234b317356b90bbafdafe2c43e42711385edfcc6c9974e42d4f1134d284d04",
+      "reviewedAt": "2026-11-03T12:07:47.199Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT attempt2. Shell3 curled fingers clear with opposing thumb largely behind shell; supporting fist3 bands+thumb. Natural occlusion noted.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\dao_w_sea_doubletail.png",
+        "code": "dao_w_sea_doubletail",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1984245,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 58.16,
+        "darkPct": 47.48,
+        "solidInteriorPct": 90.92,
+        "bboxPct": [
+          4.69,
+          95.31,
+          8.59,
+          96.09
+        ],
+        "medallionPct": 5,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dao_w_sea_doubletail.png",
+        "code": "dao_w_sea_doubletail",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1879993,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 60.58,
+        "darkPct": 47.66,
+        "solidInteriorPct": 90.56,
+        "bboxPct": [
+          5.86,
+          94.14,
+          8.59,
+          93.36
+        ],
+        "medallionPct": 1.46,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_heal_earth",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_earth.png",
+      "sourceSha256": "e96379aeae90a16daf947ff9486a6213c5139cd73765cc78e2d9c4c7dff79c2a",
+      "reviewedAt": "2026-11-03T12:07:47.269Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent branch/vines/mistletoe berries; no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_earth.png",
+        "code": "drmagic_heal_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1278382,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 72.36,
+        "darkPct": 43.08,
+        "solidInteriorPct": 85.25,
+        "bboxPct": [
+          7.03,
+          93.36,
+          14.84,
+          88.28
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_earth.png",
+        "code": "drmagic_heal_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1339496,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 72.36,
+        "darkPct": 43.1,
+        "solidInteriorPct": 85.25,
+        "bboxPct": [
+          7.03,
+          93.36,
+          14.84,
+          88.28
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "diamond_brotherhood_earth",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_earth.png",
+      "sourceSha256": "04a0107b6c17f3f4d0512724df4992add36e6dfad2b1157f9d1bbe8aace00b72",
+      "reviewedAt": "2026-11-03T12:07:47.343Z",
+      "attempt": 1,
+      "visualDecision": "reject",
+      "note": "Raised gauntlet has4 curled finger bands+opposing thumb:5 digits total."
+    },
+    {
+      "code": "drmagic_fire",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_fire.png",
+      "sourceSha256": "3d883be9b08c23fe43d234c431c97f4384fab4cd877c06ab661544ae0e316908",
+      "reviewedAt": "2026-11-03T12:14:21.264Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent wildfire/forest/deer; no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_fire.png",
+        "code": "drmagic_fire",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1794824,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 53.91,
+        "darkPct": 44.34,
+        "solidInteriorPct": 92.61,
+        "bboxPct": [
+          5.47,
+          91.8,
+          3.91,
+          96.09
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_fire.png",
+        "code": "drmagic_fire",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1748787,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 58.33,
+        "darkPct": 44.19,
+        "solidInteriorPct": 92.27,
+        "bboxPct": [
+          8.59,
+          90.63,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "fleuro",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\fleuro.png",
+      "sourceSha256": "1b638d1c5d0bbf92f9fdbc6bf963462fbcf872313b94e19e7bee4da185c42703",
+      "reviewedAt": "2026-11-03T12:14:21.364Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent wheels/axles/coils/exhaust; no disconnected machine parts.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\fleuro.png",
+        "code": "fleuro",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1425566,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 65.73,
+        "darkPct": 44.77,
+        "solidInteriorPct": 89.24,
+        "bboxPct": [
+          3.91,
+          95.31,
+          12.11,
+          88.28
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fleuro.png",
+        "code": "fleuro",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1357929,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 69.02,
+        "darkPct": 44.91,
+        "solidInteriorPct": 88.8,
+        "bboxPct": [
+          6.25,
+          92.97,
+          14.06,
+          85.94
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_heal_water",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_water.png",
+      "sourceSha256": "c51677060085c6d7e7b8409cceb4eb5dc446b211b17bba079c90602c045fa05b",
+      "reviewedAt": "2026-11-03T12:14:21.436Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent rain/plant/stump; no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_water.png",
+        "code": "drmagic_heal_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1388776,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 69.76,
+        "darkPct": 46.25,
+        "solidInteriorPct": 82.45,
+        "bboxPct": [
+          5.08,
+          89.45,
+          6.25,
+          97.27
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_water.png",
+        "code": "drmagic_heal_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1348608,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 71.75,
+        "darkPct": 46.79,
+        "solidInteriorPct": 82.06,
+        "bboxPct": [
+          7.03,
+          88.67,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "lord_of_the_winds",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\lord_of_the_winds.png",
+      "sourceSha256": "a5f6d8fb70887d5261e2bf9faa675c4a82b04e6004c1c461418dee4d91f3befd",
+      "reviewedAt": "2026-11-03T12:14:21.509Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Needle hand3 bent fingers with thumb naturally occluded by grip; lower thread hand3 bands+thumb; meaningful sewing-wind action.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\lord_of_the_winds.png",
+        "code": "lord_of_the_winds",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1820919,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 56,
+        "darkPct": 42.08,
+        "solidInteriorPct": 91.41,
+        "bboxPct": [
+          3.13,
+          85.94,
+          15.23,
+          98.44
+        ],
+        "medallionPct": 0,
+        "failures": [
+          "nontransparent_corner"
+        ],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\lord_of_the_winds.png",
+        "code": "lord_of_the_winds",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1776283,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 60.22,
+        "darkPct": 42.09,
+        "solidInteriorPct": 90.97,
+        "bboxPct": [
+          7.81,
+          86.72,
+          14.45,
+          93.75
+        ],
+        "medallionPct": 0.05,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "goblin_mechanic",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\goblin_mechanic.png",
+      "sourceSha256": "42ac3b83afbd1a42e8a58c469612cc0373785b13acadff0b4301ec59b99ba920",
+      "reviewedAt": "2026-11-03T12:14:21.586Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Wrench3 curled bands+thumb and cloth3 curled bands+thumb; coherent adult goblin/motor.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\goblin_mechanic.png",
+        "code": "goblin_mechanic",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2163067,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 49.93,
+        "darkPct": 44.31,
+        "solidInteriorPct": 92.91,
+        "bboxPct": [
+          6.25,
+          89.84,
+          7.03,
+          96.48
+        ],
+        "medallionPct": 14.67,
+        "failures": [
+          "medallion_fill_above_5pct"
+        ],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\goblin_mechanic.png",
+        "code": "goblin_mechanic",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2064096,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 53.8,
+        "darkPct": 44.1,
+        "solidInteriorPct": 92.65,
+        "bboxPct": [
+          5.86,
+          85.94,
+          6.64,
+          92.58
+        ],
+        "medallionPct": 4.2,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_water",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_water.png",
+      "sourceSha256": "f05c60f94eafa94c402ff9d742566d8a6dd3b390077c085d336b53ba48fd744d",
+      "reviewedAt": "2026-11-03T12:14:21.676Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Coherent whirlpool and sailboat; no humanoid anatomy.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_water.png",
+        "code": "drmagic_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2049854,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 50.63,
+        "darkPct": 39.99,
+        "solidInteriorPct": 95.44,
+        "bboxPct": [
+          6.64,
+          93.36,
+          8.98,
+          96.09
+        ],
+        "medallionPct": 8.15,
+        "failures": [
+          "medallion_fill_above_5pct"
+        ],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_water.png",
+        "code": "drmagic_water",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2028914,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 52.99,
+        "darkPct": 40.05,
+        "solidInteriorPct": 95.21,
+        "bboxPct": [
+          6.64,
+          91.02,
+          8.98,
+          93.75
+        ],
+        "medallionPct": 3.34,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "fire_servant",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\fire_servant.png",
+      "sourceSha256": "236a77ef9511bad5f93224761628609c694fc31e457ea61a497636023260b66c",
+      "reviewedAt": "2026-11-03T12:14:21.763Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT natural occlusion. Upper3 fingers with thumb behindflame; lowerthumb+2front fingers withfar finger behindorb. No extra digits or malformed wrists.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\fire_servant.png",
+        "code": "fire_servant",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2037614,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          1,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 51.69,
+        "darkPct": 50.82,
+        "solidInteriorPct": 95.39,
+        "bboxPct": [
+          4.3,
+          87.5,
+          11.33,
+          98.05
+        ],
+        "medallionPct": 0,
+        "failures": [
+          "nontransparent_corner"
+        ],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fire_servant.png",
+        "code": "fire_servant",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1976648,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 55.88,
+        "darkPct": 50.36,
+        "solidInteriorPct": 95.29,
+        "bboxPct": [
+          8.59,
+          87.89,
+          10.94,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "diamond_brotherhood_earth",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_earth.png",
+      "sourceSha256": "32b22184132fac89fb5b5a6df5234d40beb961fced03f53b73b45d7129c7cce1",
+      "reviewedAt": "2026-11-03T12:14:21.843Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT attempt3. Rear-facing solid armorplate conceals fingers; otherfist behindhip; natural punch pose.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_earth.png",
+        "code": "diamond_brotherhood_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1141828,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 72.59,
+        "darkPct": 48.67,
+        "solidInteriorPct": 87.98,
+        "bboxPct": [
+          16.41,
+          77.34,
+          0.78,
+          98.83
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_earth.png",
+        "code": "diamond_brotherhood_earth",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1049101,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 77.9,
+        "darkPct": 48.19,
+        "solidInteriorPct": 86.75,
+        "bboxPct": [
+          19.92,
+          74.22,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "mirror_tide_witch",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\mirror_tide_witch.png",
+      "sourceSha256": "73ce2ad84db0364169f301148b348ee539bb2511bbdca54eac48f6f1a89b8b38",
+      "reviewedAt": "2026-11-03T12:14:21.911Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Axe3bands+thumb; hanging4 withocclusion; BOTH reflectedhands3fingers+thumb.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\mirror_tide_witch.png",
+        "code": "mirror_tide_witch",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1584647,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 61.07,
+        "darkPct": 51.91,
+        "solidInteriorPct": 86.64,
+        "bboxPct": [
+          7.03,
+          83.98,
+          1.56,
+          99.22
+        ],
+        "medallionPct": 1.64,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_tide_witch.png",
+        "code": "mirror_tide_witch",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1423311,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 68.22,
+        "darkPct": 51.51,
+        "solidInteriorPct": 85.46,
+        "bboxPct": [
+          12.89,
+          82.03,
+          5.86,
+          94.14
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "mirror_inquisitor",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\mirror_inquisitor.png",
+      "sourceSha256": "4c7286e0791d9b194614eb4fa1e20f8312eb01a2b48b5519d286ea9250970bab",
+      "reviewedAt": "2026-11-03T12:14:21.986Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Axe andcenser hands3bands+thumb; coherent chain/book/axe.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\mirror_inquisitor.png",
+        "code": "mirror_inquisitor",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2007962,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 54.06,
+        "darkPct": 45.41,
+        "solidInteriorPct": 93.07,
+        "bboxPct": [
+          1.17,
+          86.72,
+          5.47,
+          98.44
+        ],
+        "medallionPct": 0,
+        "failures": [
+          "nontransparent_corner"
+        ],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct",
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_inquisitor.png",
+        "code": "mirror_inquisitor",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1869566,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 58.91,
+        "darkPct": 45.31,
+        "solidInteriorPct": 92.74,
+        "bboxPct": [
+          6.64,
+          87.5,
+          5.86,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [
+          "dark_pixel_ratio_outside_25_to_45pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "great_rivers_sorcerer",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\great_rivers_sorcerer.png",
+      "sourceSha256": "f052d0a5256d5850e4778edb6ef64bd313cad33e5a4383b640d7f990caeac679",
+      "reviewedAt": "2026-11-03T12:14:22.072Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT. Both watergesture hands3fingers+thumb; natural wrists/adult character.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\great_rivers_sorcerer.png",
+        "code": "great_rivers_sorcerer",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2338822,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 44.12,
+        "darkPct": 40.61,
+        "solidInteriorPct": 90.99,
+        "bboxPct": [
+          2.34,
+          97.66,
+          3.52,
+          98.83
+        ],
+        "medallionPct": 24.93,
+        "failures": [
+          "medallion_fill_above_5pct"
+        ],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\great_rivers_sorcerer.png",
+        "code": "great_rivers_sorcerer",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1924888,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 56.42,
+        "darkPct": 40.02,
+        "solidInteriorPct": 89.96,
+        "bboxPct": [
+          7.03,
+          91.02,
+          5.86,
+          89.84
+        ],
+        "medallionPct": 3.91,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    },
+    {
+      "code": "drmagic_heal_air",
+      "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_air.png",
+      "sourceSha256": "b1873c65bb12ad797aafb0db2ea37a201404572e8d591b5d03b33d423bc314f2",
+      "reviewedAt": "2026-11-03T12:14:22.156Z",
+      "visualDecision": "accept",
+      "note": "ACCEPT attempt2. Both hands entirely cloak-hidden; softgreyhalo removed; flatblack/cream aurora.",
+      "sourceMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_air.png",
+        "code": "drmagic_heal_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1932208,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 1,
+        "sampleSize": 256,
+        "transparentPct": 49.02,
+        "darkPct": 41.99,
+        "solidInteriorPct": 94.25,
+        "bboxPct": [
+          3.13,
+          89.06,
+          5.86,
+          97.66
+        ],
+        "medallionPct": 0.12,
+        "failures": [],
+        "warnings": [
+          "subject_margin_below_5pct"
+        ],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      },
+      "readyMeasurements": {
+        "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_air.png",
+        "code": "drmagic_heal_air",
+        "decoded": true,
+        "format": "png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2009499,
+        "hasAlpha": true,
+        "cornerAlphas": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "edgePixels": 0,
+        "edgeMaxAlpha": 0,
+        "sampleSize": 256,
+        "transparentPct": 53.43,
+        "darkPct": 41.48,
+        "solidInteriorPct": 94.1,
+        "bboxPct": [
+          7.42,
+          89.84,
+          6.25,
+          93.75
+        ],
+        "medallionPct": 0,
+        "failures": [],
+        "warnings": [],
+        "needsVisualReview": [
+          "subject_and_style",
+          "opaque_cream_fill",
+          "silhouette_at_100px",
+          "anatomy_and_four_digit_hands",
+          "pose_action",
+          "mechanical_connections"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "Root coordinates browser generation and game integration.",
+    "Measurements do not establish anatomy or mechanical correctness; full-image visual review is separate."
+  ],
+  "updatedAt": "2026-11-03T12:14:22.236Z"
+}

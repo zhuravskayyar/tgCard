@@ -24,6 +24,8 @@ interface ShaderSnapshot {
 
 // Last shaded frame of cards that left the screen: a return visit and short-lived static copies paint it before the first frame.
 const MAX_SHADER_SNAPSHOTS = 40;
+// Higher-resolution desktop cards share the same memory budget as the original 40 small snapshots.
+const MAX_SHADER_SNAPSHOT_PIXELS = 40 * 360 * 468;
 const shaderSnapshots = new Map<string, ShaderSnapshot>();
 // The light each element casts in the top materials' effects.
 const ELEMENT_LIGHT: Readonly<Record<CardElement, readonly [number, number, number]>> = {
@@ -41,7 +43,12 @@ function rememberShaderSnapshot(key: string, source: HTMLCanvasElement) {
   copy.getContext("2d")?.drawImage(source, 0, 0);
   shaderSnapshots.delete(key);
   shaderSnapshots.set(key, { canvas: copy, tilt: getCardMaterialTilt(source) });
-  if (shaderSnapshots.size > MAX_SHADER_SNAPSHOTS) shaderSnapshots.delete(shaderSnapshots.keys().next().value!);
+  let pixels = [...shaderSnapshots.values()].reduce((sum, snapshot) => sum + snapshot.canvas.width * snapshot.canvas.height, 0);
+  for (const [oldKey, snapshot] of shaderSnapshots) {
+    if (shaderSnapshots.size <= MAX_SHADER_SNAPSHOTS && pixels <= MAX_SHADER_SNAPSHOT_PIXELS) break;
+    pixels -= snapshot.canvas.width * snapshot.canvas.height;
+    shaderSnapshots.delete(oldKey);
+  }
 }
 
 // Generate the original SVG once per combination of real card values.

@@ -1,0 +1,47 @@
+{
+  "measuredAt": "2026-11-03T12:01:50.555Z",
+  "sourceImagesModified": false,
+  "results": [
+    {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_air.png",
+      "code": "diamond_brotherhood_air",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1506963,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 1,
+      "sampleSize": 256,
+      "transparentPct": 63.75,
+      "darkPct": 40.21,
+      "solidInteriorPct": 93.29,
+      "bboxPct": [
+        8.2,
+        91.41,
+        10.55,
+        94.92
+      ],
+      "medallionPct": 6.71,
+      "failures": [
+        "medallion_fill_above_5pct"
+      ],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  ]
+}

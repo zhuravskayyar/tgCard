@@ -90,8 +90,15 @@ interface MountCardMaterialShaderOptions {
   textureKey?: string;
 }
 
-const SHADER_WIDTH = 360;
-const SHADER_HEIGHT = 468;
+// One resolution per session keeps the shared renderer, textures and power-tray updates aligned.
+// Desktop supersampling preserves fine engraving on high-DPI displays; touch devices keep the lighter profile.
+const RENDER_SCALE = typeof window !== "undefined" && window.matchMedia("(min-width: 768px) and (any-pointer: fine)").matches ? 2 : 1;
+const SHADER_WIDTH = 360 * RENDER_SCALE;
+const SHADER_HEIGHT = 468 * RENDER_SCALE;
+
+function resolutionTextureKey(key: string | undefined) {
+  return key ? `${key}-${SHADER_WIDTH}x${SHADER_HEIGHT}` : undefined;
+}
 // Slightly under 33.3ms so a 60Hz display lands on every second frame instead of drifting to every third.
 const TARGET_FRAME_MS = 1000 / 30 - 2;
 // Below this change in tilt a repaint is invisible, so a resting card costs nothing.
@@ -216,7 +223,7 @@ void main() {
     // The art sits deeper than the frame: it shifts with the tilt, is clipped by the window and shades the galaxy.
     // Blued steel only needs to know where the art is: its engraving is cut into the plate, so it neither floats nor casts a shadow.
     float floating = kind > 6.5 && kind < 7.5 ? 0.0 : 1.0;
-    float window = rect(cardPoint, vec2(120.0, 175.5), vec2(101.0, 116.0), vec2(1.5)) * smoothstep(24.5, 26.0, distance(cardPoint, vec2(197.0, 263.0)));
+    float window = rect(cardPoint, vec2(120.0, 175.5), vec2(101.0, 116.0), vec2(1.5)) * smoothstep(28.2, 29.9, distance(cardPoint, vec2(197.0, 263.0)));
     vec2 artPoint = uv + tilt * 0.024 * floating;
     vec4 art = texture2D(artTexture, artPoint);
     backShade = 1.0 - 0.6 * floating * texture2D(artTexture, artPoint + tilt * 0.016 + vec2(-0.007, 0.008)).a * window;
@@ -265,7 +272,7 @@ void main() {
     color += vec3(1.0, 0.88, 0.66) * pow(sat(dot(reflected, normalize(vec3(-0.3, 0.45, 0.84)))), 9.0) * 0.07;
   }
   // Effects stay away from the power tray and medallion and are muted over the artwork.
-  float medallion = smoothstep(22.0, 34.0, distance(cardPoint, vec2(197.0, 263.0)));
+  float medallion = smoothstep(25.3, 39.1, distance(cardPoint, vec2(197.0, 263.0)));
   float tray = 1.0 - rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0));
   float zone = mix(0.32, 1.0, 1.0 - artAlpha) * medallion * tray;
   if (kind > 0.5 && kind < 1.5) {
@@ -411,7 +418,7 @@ void main() {
     if (kind > 6.5) {
       // The power tray and fleur-de-lis stay plain polished metal with their own light and dark; the medallion keeps its colours.
       float trayArea = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0));
-      float medallionArea = 1.0 - smoothstep(22.0, 26.0, distance(cardPoint, vec2(197.0, 263.0)));
+      float medallionArea = 1.0 - smoothstep(27.6, 30.0, distance(cardPoint, vec2(197.0, 263.0)));
       vec3 uiMetal = mix(vec3(0.85), f0, 0.55);
       vec3 ui = mix(vec3(0.05, 0.05, 0.06), uiMetal * (0.78 + 0.25 * diffuse) + uiMetal * bands * 0.35, smoothstep(0.25, 0.6, lum));
       color = mix(color, ui, trayArea);
@@ -420,6 +427,11 @@ void main() {
   }
   if (kind > 0.5 && kind < 5.5) color = color / (1.0 + color * 0.23);
   color = pow(max(color, vec3(0.0)), vec3(0.94));
+  if ((kind > 0.5 && kind < 1.5) || (kind > 5.5 && kind < 6.5)) {
+    // The wooden treatments shade the plate, but leave the enlarged elemental medallion in its original colours.
+    float medallionArea = 1.0 - smoothstep(27.6, 30.0, distance(cardPoint, vec2(197.0, 263.0)));
+    color = mix(color, pow(max(texel.rgb, vec3(0.0)), vec3(0.94)), medallionArea);
+  }
   vec4 surface = vec4(clamp(color, 0.0, 1.0) * texel.a, texel.a);
   if (destruction < 0.001) {
     gl_FragColor = surface;
@@ -833,7 +845,8 @@ export function createCardMaterialSurface(gl: WebGLRenderingContext, plate: HTML
 }
 
 async function prepareArtTexture(gl: WebGLRenderingContext, layer: CardArtLayer) {
-  const cached = layer.textureKey ? await loadCardTexture(layer.textureKey) : null;
+  const cacheKey = resolutionTextureKey(layer.textureKey);
+  const cached = cacheKey ? await loadCardTexture(cacheKey) : null;
   const image = cached ?? await makeSvgImage(layer.markup, layer.artworkSource);
   const canvas = document.createElement("canvas");
   canvas.width = SHADER_WIDTH;
@@ -842,7 +855,7 @@ async function prepareArtTexture(gl: WebGLRenderingContext, layer: CardArtLayer)
   if (!context) throw new Error("Card art canvas is unavailable");
   context.drawImage(image, 0, 0, SHADER_WIDTH, SHADER_HEIGHT);
   cached?.close();
-  if (!cached && layer.textureKey) saveCardTexture(layer.textureKey, canvas);
+  if (!cached && cacheKey) saveCardTexture(cacheKey, canvas);
   const texture = createTexture(gl, canvas);
   if (!texture) throw new Error("Card art texture could not be created");
   return texture;
@@ -1021,6 +1034,7 @@ export function getCardMaterialTilt(canvas: HTMLCanvasElement): CardTilt | null 
 }
 
 export function mountCardMaterialShader({ artLayer, artworkSource, canvas, elementColor, initialTilt, materialId, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
+  const cacheKey = resolutionTextureKey(textureKey);
   let disposed = false;
   let visible = !("IntersectionObserver" in window);
   let creating = false;
@@ -1076,7 +1090,7 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, eleme
     creating = true;
     void queueTexturePreparation(async () => {
       if (disposed) return;
-      const cachedTexture = textureKey ? await loadCardTexture(textureKey) : null;
+      const cachedTexture = cacheKey ? await loadCardTexture(cacheKey) : null;
       if (disposed) {
         cachedTexture?.close();
         return;
@@ -1092,7 +1106,7 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, eleme
       if (!textureContext) throw new Error("Card texture canvas is unavailable");
       textureContext.drawImage(image, 0, 0, SHADER_WIDTH, SHADER_HEIGHT);
       cachedTexture?.close();
-      if (!cachedTexture && textureKey) saveCardTexture(textureKey, textureCanvas);
+      if (!cachedTexture && cacheKey) saveCardTexture(cacheKey, textureCanvas);
       const texture = createTexture(renderer.gl, textureCanvas);
       if (!texture) throw new Error("Card texture could not be created");
       const artTexture = artLayer ? await prepareArtTexture(renderer.gl, artLayer) : null;
@@ -1240,7 +1254,8 @@ export async function updateCardMaterialShaderPower(canvas: HTMLCanvasElement, s
   const height = 38 * scale;
   instance.textureContext.clearRect(x, y, width, height);
   instance.textureContext.drawImage(image, x, y, width, height, x, y, width, height);
-  if (textureKey) saveCardTexture(textureKey, instance.textureCanvas);
+  const cacheKey = resolutionTextureKey(textureKey);
+  if (cacheKey) saveCardTexture(cacheKey, instance.textureCanvas);
 
   const gl = renderer.gl;
   gl.bindTexture(gl.TEXTURE_2D, instance.texture);

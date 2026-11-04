@@ -92,7 +92,128 @@
 }
 .campaign-giver__portrait img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .campaign-giver > div { min-width: 0; }
-.campaign-adventure-result .campaign-boss-reward { display: grid; justify-items: center; gap: 10px; }
+.campaign-adventure-result .campaign-boss-reward {
+  display: grid;
+  justify-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+  margin: 12px auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.campaign-boss-outcome {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 82px;
+  margin: 0 auto 12px;
+  padding: 12px 8px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid rgb(228 183 95 / 66%);
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgb(20 15 12 / 97%), rgb(67 43 21 / 94%) 50%, rgb(20 15 12 / 97%));
+  box-shadow: inset 0 0 0 3px rgb(9 8 7 / 65%), inset 0 0 24px rgb(217 158 68 / 22%), 0 4px 12px rgb(0 0 0 / 38%);
+  animation: campaign-boss-plaque-open 460ms cubic-bezier(.18, .82, .28, 1.12) both;
+}
+.campaign-boss-outcome::before,
+.campaign-boss-outcome::after {
+  position: absolute;
+  z-index: -1;
+  width: 56%;
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgb(245 211 133 / 75%), transparent);
+}
+.campaign-boss-outcome::before { top: 8px; }
+.campaign-boss-outcome::after { bottom: 8px; }
+.campaign-boss-outcome h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #f6d58e;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 8vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: .12em;
+  line-height: 1.15;
+  text-align: center;
+  text-shadow: 0 2px 0 #472a10, 0 0 12px rgb(247 193 89 / 58%);
+}
+.campaign-boss-outcome h2 > span {
+  display: inline-block;
+  opacity: 0;
+  animation: campaign-boss-letter-arrive 520ms cubic-bezier(.2, .84, .28, 1.28) both;
+  animation-delay: calc(120ms + var(--letter-index) * 42ms);
+}
+.campaign-boss-outcome--loss {
+  border-color: rgb(197 108 93 / 68%);
+  background: linear-gradient(135deg, rgb(21 13 13 / 98%), rgb(65 28 26 / 95%) 50%, rgb(21 13 13 / 98%));
+  box-shadow: inset 0 0 0 3px rgb(9 8 7 / 65%), inset 0 0 24px rgb(176 67 55 / 22%), 0 4px 12px rgb(0 0 0 / 38%);
+}
+.campaign-boss-outcome--loss h2 { color: #f0b3a7; text-shadow: 0 2px 0 #411812, 0 0 12px rgb(214 95 76 / 45%); }
+.campaign-boss-outcome__particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.campaign-boss-outcome__particles i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffe5a1;
+  box-shadow: 0 0 8px 2px rgb(255 218 125 / 76%);
+  opacity: 0;
+  animation: campaign-boss-particle-burst 980ms ease-out both;
+  animation-delay: calc(var(--particle-delay) + 180ms);
+}
+.campaign-boss-outcome--loss .campaign-boss-outcome__particles i { background: #ffb1a2; box-shadow: 0 0 8px 2px rgb(231 107 91 / 70%); }
+.campaign-boss-outcome__particles i:nth-child(1) { --particle-x: -112px; --particle-y: -22px; --particle-delay: 20ms; }
+.campaign-boss-outcome__particles i:nth-child(2) { --particle-x: -84px; --particle-y: 30px; --particle-delay: 90ms; width: 3px; height: 3px; }
+.campaign-boss-outcome__particles i:nth-child(3) { --particle-x: -52px; --particle-y: -38px; --particle-delay: 150ms; }
+.campaign-boss-outcome__particles i:nth-child(4) { --particle-x: -23px; --particle-y: 37px; --particle-delay: 40ms; width: 3px; height: 3px; }
+.campaign-boss-outcome__particles i:nth-child(5) { --particle-x: 18px; --particle-y: -35px; --particle-delay: 110ms; }
+.campaign-boss-outcome__particles i:nth-child(6) { --particle-x: 47px; --particle-y: 32px; --particle-delay: 60ms; width: 3px; height: 3px; }
+.campaign-boss-outcome__particles i:nth-child(7) { --particle-x: 78px; --particle-y: -25px; --particle-delay: 130ms; }
+.campaign-boss-outcome__particles i:nth-child(8) { --particle-x: 109px; --particle-y: 20px; --particle-delay: 30ms; width: 3px; height: 3px; }
+.campaign-boss-outcome__particles i:nth-child(9) { --particle-x: -131px; --particle-y: 2px; --particle-delay: 190ms; width: 2px; height: 2px; }
+.campaign-boss-outcome__particles i:nth-child(10) { --particle-x: 130px; --particle-y: -3px; --particle-delay: 170ms; width: 2px; height: 2px; }
+.campaign-boss-outcome__particles i:nth-child(11) { --particle-x: -4px; --particle-y: -44px; --particle-delay: 80ms; width: 3px; height: 3px; }
+.campaign-boss-outcome__particles i:nth-child(12) { --particle-x: 5px; --particle-y: 42px; --particle-delay: 210ms; width: 3px; height: 3px; }
+.campaign-boss-reward__status { display: grid; justify-items: center; gap: 8px; padding: 8px 0 4px; }
+.campaign-boss-reward__waiting { display: inline-flex; gap: 5px; align-items: center; height: 16px; }
+.campaign-boss-reward__waiting i { width: 5px; height: 5px; border-radius: 50%; background: #e5b95f; animation: campaign-boss-waiting-dot 800ms ease-in-out infinite alternate; }
+.campaign-boss-reward__waiting i:nth-child(2) { animation-delay: 140ms; }
+.campaign-boss-reward__waiting i:nth-child(3) { animation-delay: 280ms; }
+
+@keyframes campaign-boss-letter-arrive {
+  0% { opacity: 0; filter: blur(5px); transform: translate3d(0, 1.4em, 0) rotateX(-85deg) scale(.72); }
+  72% { opacity: 1; filter: blur(0); transform: translate3d(0, -.12em, 0) rotateX(10deg) scale(1.08); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotateX(0) scale(1); }
+}
+@keyframes campaign-boss-plaque-open {
+  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(.94); filter: brightness(.72); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: brightness(1); }
+}
+@keyframes campaign-boss-particle-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(.15); }
+}
+@keyframes campaign-boss-waiting-dot {
+  from { opacity: .4; transform: translateY(2px) scale(.85); }
+  to { opacity: 1; transform: translateY(-2px) scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campaign-boss-outcome { animation: none; }
+  .campaign-boss-outcome h2 > span,
+  .campaign-boss-reward__waiting i { animation: none; opacity: 1; }
+  .campaign-boss-outcome__particles { display: none; }
+}
 
 @media (max-width: 360px) {
   .adventure-map { padding-left: 42px; }

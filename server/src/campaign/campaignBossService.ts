@@ -183,6 +183,7 @@ function toBossView(row: BossDuelRow): CampaignBossView {
     enemyHp: row.enemy_hp,
     playerMaxHp: row.challenger_snapshot.startingHp,
     enemyMaxHp: row.opponent_snapshot.startingHp,
+    rewardsGranted: row.rewards_granted,
     introDialogues: [],
     playerActiveCards: toActiveCards(row.player_active_slots, "player active slots"),
     enemyActiveCards: [
@@ -281,7 +282,10 @@ export class CampaignBossService {
       if (!location) throw new CampaignBossLockedError();
       await client.query("SELECT id FROM players WHERE id = $1 FOR UPDATE", [playerId]);
       const activeResult = await client.query<BossDuelRow>(
-        `SELECT ${BOSS_DUEL_COLUMNS} FROM duels WHERE challenger_id = $1 AND status = 'active' FOR UPDATE`,
+        `SELECT ${BOSS_DUEL_COLUMNS} FROM duels
+         WHERE challenger_id = $1 AND (
+           status = 'active' OR (opponent_kind = 'campaign_boss' AND status <> 'active' AND rewards_granted = FALSE)
+         ) FOR UPDATE`,
         [playerId],
       );
       const active = activeResult.rows[0];
@@ -341,7 +345,10 @@ export class CampaignBossService {
 
   async findActive(playerId: string) {
     const result = await this.pool.query<BossDuelRow>(
-      `SELECT ${BOSS_DUEL_COLUMNS} FROM duels WHERE challenger_id = $1 AND opponent_kind = 'campaign_boss' AND status = 'active' ORDER BY created_at DESC LIMIT 1`,
+      `SELECT ${BOSS_DUEL_COLUMNS} FROM duels
+       WHERE challenger_id = $1 AND opponent_kind = 'campaign_boss'
+         AND (status = 'active' OR (status <> 'active' AND rewards_granted = FALSE))
+       ORDER BY created_at DESC LIMIT 1`,
       [playerId],
     );
     return result.rows[0] ? toBossView(result.rows[0]) : null;
@@ -354,6 +361,102 @@ export class CampaignBossService {
     );
     if (!result.rows[0]) throw new CampaignBossBattleMissingError();
     return toBossView(result.rows[0]);
+  }
+
+  async claimRewards(playerId: string, battleId: string, now = new Date()) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT id FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      const locked = await client.query<BossDuelRow>(
+        `SELECT ${BOSS_DUEL_COLUMNS} FROM duels WHERE id = $1 AND challenger_id = $2 AND opponent_kind = 'campaign_boss' FOR UPDATE`,
+        [battleId, playerId],
+      );
+      const duel = locked.rows[0];
+      if (!duel) throw new CampaignBossBattleMissingError();
+      if (duel.status === "active") throw new CampaignBossBattleConflictError();
+      if (duel.rewards_granted) {
+        await client.query("COMMIT");
+        return toBossView(duel);
+      }
+
+      const location = getCampaignLocation(Number(duel.campaign_id?.replace("location_", "")));
+      if (!location) throw new CampaignBossBattleMissingError();
+      const playerResult = await client.query<PlayerRewardRow>(
+        `SELECT id, username, first_name, photo_url, level, silver, gold, account_xp
+         FROM players WHERE id = $1 FOR UPDATE`,
+        [playerId],
+      );
+      let player = playerResult.rows[0];
+      if (!player) throw new CampaignBossBattleMissingError();
+      const boost = await getAccountBoostStatus(client, playerId, now);
+      const currentModifiers = getPlayerCollectionModifiers(
+        await getCompletedCollectionModifiers(client, playerId),
+        "campaign",
+      );
+      const won = duel.status === "won";
+      const existingWin = await client.query(
+        "SELECT first_win_at FROM player_campaign_locations WHERE player_id = $1 AND location_number = $2",
+        [playerId, location.number],
+      );
+      const firstWin = won && existingWin.rowCount === 0;
+      const reward = calculateBattleReward(toSafeInteger(duel.player_damage_total, "Boss player damage total"), 0, currentModifiers, boost.multiplier);
+      const progression = applyAccountXp({ level: player.level, xp: toSafeInteger(player.account_xp, "boss account XP"), gainedXp: reward.xp });
+      const silver = firstWin ? location.boss.firstWin.silver : 0;
+      const gold = (firstWin ? location.boss.firstWin.gold : 0) + progression.goldReward;
+      const updatedPlayer = await client.query<PlayerRewardRow>(`
+        UPDATE players SET level = $2, account_xp = $3, silver = silver + $4, gold = gold + $5, updated_at = $6
+        WHERE id = $1 RETURNING id, username, first_name, photo_url, level, silver, gold, account_xp
+      `, [playerId, progression.newLevel, progression.remainingXp, silver, gold, now]);
+      player = updatedPlayer.rows[0]!;
+      const result: CampaignBossResult = {
+        outcome: won ? "win" : "loss", xp: reward.xp, silver, gold,
+        reachedLevels: progression.reachedLevels, player: toPlayerSummary(player),
+        accountBoostMultiplier: boost.multiplier, boostExpiresAt: boost.expiresAt,
+        firstWin, respawnHours: location.boss.respawnHours,
+        ...(won ? { thanks: location.boss.thanks } : {}),
+      };
+
+      if (won) {
+        const definitions = await client.query<BossCardDefinitionRow>(`
+          SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible, description
+          FROM cards WHERE shop_eligible = TRUE ORDER BY code
+        `);
+        if (!definitions.rows.length) throw new CampaignBossConfigurationError("No eligible campaign drop cards");
+        const definition = definitions.rows[this.cardRandom.nextInt(definitions.rows.length)]!;
+        const rewardCard = await createStandardCardInstance(client, playerId, toCardDefinition(definition), location.boss.drop.level, this.cardRandom);
+        if (rewardCard.rarity !== location.boss.drop.rarity) throw new CampaignBossConfigurationError("Campaign drop level and rarity disagree");
+        const discovery = await recordCardDiscovery(client, playerId, definition.id);
+        const deckResult = await recalculateAutomaticDeck(client, playerId);
+        const inDeck = await client.query("SELECT 1 FROM deck_slots WHERE card_instance_id = $1", [rewardCard.instanceId]);
+        await this.campaign.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: rewardCard.rarity, location: location.number }, now);
+        await this.campaign.recordEvent(client, playerId, "CAMPAIGN_CARD_DROP", { rarity: rewardCard.rarity, location: location.number }, now);
+        if (discovery.newDiscovery) await this.campaign.recordEvent(client, playerId, "CARD_DISCOVERED", {}, now);
+        await client.query(`
+          INSERT INTO player_campaign_locations (player_id, location_number, first_win_at, last_win_at) VALUES ($1, $2, $3, $3)
+          ON CONFLICT (player_id, location_number) DO UPDATE SET last_win_at = EXCLUDED.last_win_at
+        `, [playerId, location.number, now]);
+        await this.guildActivity?.recordActivity(client, playerId, "campaign_win", `campaign:${battleId}`, now);
+        Object.assign(result, {
+          rewardCard, cardIsWeak: inDeck.rowCount === 0, newDiscovery: discovery.newDiscovery,
+          ...(deckResult.status !== "insufficient_valid_cards" ? { deckPower: deckResult.totalPower } : {}),
+          ...(discovery.collectionCompleted ? { collectionCompleted: discovery.collectionCompleted } : {}),
+        });
+      }
+
+      const updated = await client.query<BossDuelRow>(
+        `UPDATE duels SET result = $2, rewards_granted = TRUE, updated_at = $3
+         WHERE id = $1 RETURNING ${BOSS_DUEL_COLUMNS}`,
+        [battleId, JSON.stringify(result), now],
+      );
+      await client.query("COMMIT");
+      return toBossView(updated.rows[0]!);
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async action(
@@ -398,71 +501,8 @@ export class CampaignBossService {
       const previousPlayerDamage = toSafeInteger(duel.player_damage_total, "Boss player damage total");
       const playerDamageTotal = previousPlayerDamage + resolved.exchange.playerDamage;
       if (!Number.isSafeInteger(playerDamageTotal)) throw new Error("Boss player damage total exceeds safe integer limits");
-      let result: CampaignBossResult | null = null;
-      let rewardsGranted = false;
-
-      if (resolved.status !== "active") {
-        const playerResult = await client.query<PlayerRewardRow>(
-          `
-            SELECT id, username, first_name, photo_url, level, silver, gold, account_xp
-            FROM players WHERE id = $1 FOR UPDATE
-          `,
-          [playerId],
-        );
-        let player = playerResult.rows[0];
-        if (!player) throw new CampaignBossBattleMissingError();
-        const boost = await getAccountBoostStatus(client, playerId, now);
-        const currentModifiers = getPlayerCollectionModifiers(
-          await getCompletedCollectionModifiers(client, playerId),
-          "campaign",
-        );
-        const won = resolved.status === "won";
-        const existingWin = await client.query("SELECT first_win_at FROM player_campaign_locations WHERE player_id = $1 AND location_number = $2", [playerId, location.number]);
-        const firstWin = won && existingWin.rowCount === 0;
-        const reward = calculateBattleReward(playerDamageTotal, 0, currentModifiers, boost.multiplier);
-        const progression = applyAccountXp({ level: player.level, xp: toSafeInteger(player.account_xp, "boss account XP"), gainedXp: reward.xp });
-        const silver = firstWin ? location.boss.firstWin.silver : 0;
-        const gold = (firstWin ? location.boss.firstWin.gold : 0) + progression.goldReward;
-        const updatedPlayer = await client.query<PlayerRewardRow>(`
-          UPDATE players SET level = $2, account_xp = $3, silver = silver + $4, gold = gold + $5, updated_at = $6
-          WHERE id = $1 RETURNING id, username, first_name, photo_url, level, silver, gold, account_xp
-        `, [playerId, progression.newLevel, progression.remainingXp, silver, gold, now]);
-        player = updatedPlayer.rows[0]!;
-        result = {
-          outcome: won ? "win" : "loss", xp: reward.xp, silver, gold,
-          reachedLevels: progression.reachedLevels, player: toPlayerSummary(player),
-          accountBoostMultiplier: boost.multiplier, boostExpiresAt: boost.expiresAt,
-          firstWin, respawnHours: location.boss.respawnHours,
-          ...(won ? { thanks: location.boss.thanks } : {}),
-        };
-        if (won) {
-          const definitions = await client.query<BossCardDefinitionRow>(`
-            SELECT id, code, display_name, art_key, element, collection_id, min_rarity, shop_eligible, description
-            FROM cards WHERE shop_eligible = TRUE ORDER BY code
-          `);
-          if (!definitions.rows.length) throw new CampaignBossConfigurationError("No eligible campaign drop cards");
-          const definition = definitions.rows[this.cardRandom.nextInt(definitions.rows.length)]!;
-          const rewardCard = await createStandardCardInstance(client, playerId, toCardDefinition(definition), location.boss.drop.level, this.cardRandom);
-          if (rewardCard.rarity !== location.boss.drop.rarity) throw new CampaignBossConfigurationError("Campaign drop level and rarity disagree");
-          const discovery = await recordCardDiscovery(client, playerId, definition.id);
-          const deckResult = await recalculateAutomaticDeck(client, playerId);
-          const inDeck = await client.query("SELECT 1 FROM deck_slots WHERE card_instance_id = $1", [rewardCard.instanceId]);
-          await this.campaign.recordEvent(client, playerId, "CARD_ACQUIRED", { rarity: rewardCard.rarity, location: location.number }, now);
-          await this.campaign.recordEvent(client, playerId, "CAMPAIGN_CARD_DROP", { rarity: rewardCard.rarity, location: location.number }, now);
-          if (discovery.newDiscovery) await this.campaign.recordEvent(client, playerId, "CARD_DISCOVERED", {}, now);
-          await client.query(`
-            INSERT INTO player_campaign_locations (player_id, location_number, first_win_at, last_win_at) VALUES ($1, $2, $3, $3)
-            ON CONFLICT (player_id, location_number) DO UPDATE SET last_win_at = EXCLUDED.last_win_at
-          `, [playerId, location.number, now]);
-          await this.guildActivity?.recordActivity(client, playerId, "campaign_win", `campaign:${battleId}`, now);
-          Object.assign(result, {
-            rewardCard, cardIsWeak: inDeck.rowCount === 0, newDiscovery: discovery.newDiscovery,
-            ...(deckResult.status !== "insufficient_valid_cards" ? { deckPower: deckResult.totalPower } : {}),
-            ...(discovery.collectionCompleted ? { collectionCompleted: discovery.collectionCompleted } : {}),
-          });
-        }
-        rewardsGranted = true;
-      }
+      const result: CampaignBossResult | null = null;
+      const rewardsGranted = false;
 
       const updated = await client.query<BossDuelRow>(
         `

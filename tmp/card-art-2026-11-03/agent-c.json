@@ -1,0 +1,140 @@
+[
+  {
+    "name": "Гарячий юнак",
+    "code": "diamond_brotherhood_fire",
+    "prompt": "Generate a new image. Young man whose body glows with heat, ruby ring on his hand, scorched coat, awkward smile. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the left vertical golden line at about 38% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\diamond_brotherhood_fire.png",
+    "request": 2,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "Full prompt; first partial prompt rejected. Front hand three curled fingers around lapel, opposing thumb partly obscured. Rear hand obscured in hair. No clipping, lower margin only 2 percent; root may add fit padding.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 55.53741455078125,
+      "darkPct": 48.33727993410893,
+      "cornerPct": 0,
+      "bboxPct": [
+        3.515625,
+        86.328125,
+        6.640625,
+        98.046875
+      ]
+    }
+  },
+  {
+    "name": "Обвал",
+    "code": "drmagic_earth",
+    "prompt": "Generate a new image. Cascade of huge boulders falling down a cliff, dust plume, broken pine trees, no characters. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the right vertical golden line at about 62% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_earth.png",
+    "request": 3,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "No characters; inspect boulder silhouettes and margins.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 56.91986083984375,
+      "darkPct": 39.43612085148585,
+      "cornerPct": 0,
+      "bboxPct": [
+        4.296875,
+        92.1875,
+        2.734375,
+        96.09375
+      ]
+    }
+  },
+  {
+    "name": "Теплий дощ",
+    "code": "drmagic_heal_water",
+    "prompt": "Generate a new image. Warm rain falling over a young sprout on a dry stump, drops bouncing, leaves opening. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the right vertical golden line at about 62% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\drmagic_heal_water.png",
+    "request": 4,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "No anatomy; sprout on stump, rain drops and puddle. Full alpha original.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 69.76318359375,
+      "darkPct": 46.24545821558337,
+      "cornerPct": 0,
+      "bboxPct": [
+        5.078125,
+        89.0625,
+        6.25,
+        96.875
+      ]
+    }
+  },
+  {
+    "name": "Гоблін-майстер",
+    "code": "goblin_mechanic",
+    "prompt": "Generate a new image. Goblin mechanic with goggles and a giant wrench, oily rag, half-repaired gadget sparking. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the left vertical golden line at about 38% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\goblin_mechanic.png",
+    "request": 5,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "Anatomy passes: wrench hand exactly three curled fingers and one opposing thumb; rag hand same. Active mechanic pose and coherent machine. Corner fill 13.3 percent requires fit shrink or shift by root before integration.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 49.93438720703125,
+      "darkPct": 44.31135899545884,
+      "cornerPct": 13.28125,
+      "bboxPct": [
+        6.25,
+        89.453125,
+        7.03125,
+        96.09375
+      ]
+    }
+  },
+  {
+    "name": "Інквізитор Попелу",
+    "code": "mirror_inquisitor",
+    "prompt": "Generate a new image. Grim inquisitor in a hooded robe with an ash-covered axe, censer smoke, burning page drifting. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the left vertical golden line at about 38% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\mirror_inquisitor.png",
+    "request": 6,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "Both hands pass: exactly three curled finger bands and one opposing thumb on axe and censer chains. Adult expressive pose, coherent anatomy and axe construction. Tight left and bottom margins need fit padding; no actual clipping.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 54.06341552734375,
+      "darkPct": 45.41438299285833,
+      "cornerPct": 0,
+      "bboxPct": [
+        1.171875,
+        86.328125,
+        5.46875,
+        98.046875
+      ]
+    }
+  },
+  {
+    "name": "Скарабей-сонцекат",
+    "code": "nile_e_scarab",
+    "prompt": "Generate a new image. Large sacred scarab beetle rolling a sun-marked ball up a dune, hieroglyph-like shell markings. Anatomy priority for every human or humanoid: each hand has one thumb and exactly three fingers. In a closed grip, only three curled finger bands wrap the object, with one opposing thumb; never add a fourth finger band. Preserve the expressive working pose and naturally connected wrists and elbows. Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the right vertical golden line at about 62% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges. Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly four digits in total: one thumb and three fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has three curled finger bands and one opposing thumb, never four curled fingers plus a thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose while applying the four-digit anatomy, rather than displaying spread palms for counting. Use this four-digit stylization consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.",
+    "path": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\originals\\nile_e_scarab.png",
+    "request": 7,
+    "chatUrl": "https://chatgpt.com/c/6ae9cc75-286c-83eb-b407-7c0efccdd229",
+    "notes": "No humanoids; inspect insect anatomy and sphere connection.",
+    "metrics": {
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true,
+      "transparentPct": 65.15655517578125,
+      "darkPct": 34.635428070943725,
+      "cornerPct": 0,
+      "bboxPct": [
+        1.5625,
+        92.1875,
+        16.796875,
+        88.671875
+      ]
+    }
+  }
+]

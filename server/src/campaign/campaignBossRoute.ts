@@ -17,6 +17,7 @@ import {
 
 interface BossOperations {
   action(playerId: string, battleId: string, input: DuelActionRequest): Promise<CampaignBossView>;
+  claimRewards(playerId: string, battleId: string): Promise<CampaignBossView>;
   findActive(playerId: string): Promise<CampaignBossView | null>;
   findById(playerId: string, battleId: string): Promise<CampaignBossView>;
   start(playerId: string, location: number): Promise<CampaignBossView>;
@@ -44,6 +45,7 @@ export async function handleCampaignBossRequest(
   const url = new URL(request.url ?? "/api/player/campaign/boss", "http://localhost");
   const battleMatch = url.pathname.match(/^\/api\/player\/campaign\/boss\/([^/]+)$/);
   const actionMatch = url.pathname.match(/^\/api\/player\/campaign\/boss\/([^/]+)\/action$/);
+  const claimMatch = url.pathname.match(/^\/api\/player\/campaign\/boss\/([^/]+)\/claim$/);
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
     if (request.method === "POST" && url.pathname === "/api/player/campaign/boss/start") {
@@ -68,6 +70,10 @@ export async function handleCampaignBossRequest(
         await dependencies.boss.action(player.id, decodeURIComponent(actionMatch[1]!), body),
         headers,
       );
+      return;
+    }
+    if (request.method === "POST" && claimMatch) {
+      sendJson(response, 200, await dependencies.boss.claimRewards(player.id, decodeURIComponent(claimMatch[1]!)), headers);
       return;
     }
     if (request.method === "GET" && battleMatch && battleMatch[1] !== "active") {

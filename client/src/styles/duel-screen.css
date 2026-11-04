@@ -756,6 +756,10 @@
   gap: 7px;
 }
 
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .campaign-boss-multiplier-row {
+  min-height: 40px;
+}
+
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-card--enemy {
   filter: drop-shadow(0 5px 4px rgb(62 26 18 / 30%));
 }
@@ -1080,7 +1084,7 @@
   grid-template-columns: 44px minmax(0, 1fr) 40px minmax(0, 1fr) 44px;
   gap: 4px;
 }
-/* Card thumbnails sit in the same carved frame as the HUD portrait. */
+/* The log shows the original artwork without the card plate or a portrait frame. */
 :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art {
   width: 44px;
   height: 44px;
@@ -1088,22 +1092,15 @@
   border: 0;
   border-radius: 0;
 }
-/* Only the creature shows through the frame: the full card plate is enlarged so its title strip falls outside. */
 :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art .card-artwork {
-  inset: auto;
-  top: 50%;
-  left: 50%;
-  width: 62px;
-  height: 80px;
-  transform: translate(-50%, -46%);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  transform: none;
 }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-art::after {
-  position: absolute;
-  z-index: 10;
-  inset: 0;
-  content: "";
-  background: url("/assets/ui/home/hud-avatar-frame-v2.webp") center / 100% 100% no-repeat;
-  pointer-events: none;
+  content: none;
 }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-damage { font: 700 19px/1 var(--font-display); }
 /* Damage sits against its own card; the centre column belongs to the single seal. */
@@ -1253,9 +1250,10 @@
   animation: duel-search-rays .9s ease-out .35s forwards, duel-search-spin 40s linear infinite;
 }
 
-/* The ribbon covers the crest's own empty banner scroll. */
+/* Victory has a painted blank scroll; the loss title sits in the emblem's clear lower canvas. */
 .duel-outcome__title {
   position: absolute;
+  z-index: 3;
   left: 50%;
   bottom: 5%;
   width: 104%;
@@ -1272,7 +1270,46 @@
   clip-path: inset(0 50% 0 50%);
   animation: duel-outcome-unroll .6s cubic-bezier(.3, .8, .3, 1) .45s forwards;
 }
+.duel-outcome__title > span {
+  display: inline-block;
+  opacity: 0;
+  animation: duel-outcome-letter-arrive .42s cubic-bezier(.18, .88, .28, 1.2) both;
+  animation-delay: calc(.5s + var(--letter-index) * 44ms);
+}
+.duel-outcome--loss .duel-outcome__title {
+  position: relative;
+  left: 50%;
+  bottom: auto;
+  margin: -6px 0 0;
+}
 :root .app-shell .app-content .duel-outcome--loss .duel-outcome__title { color: #7a2418; }
+.duel-outcome__particles { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
+.duel-outcome__particles i {
+  position: absolute;
+  top: 76%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffe3a0;
+  box-shadow: 0 0 9px 2px rgb(255 218 125 / 76%);
+  opacity: 0;
+  animation: duel-outcome-particle-burst 950ms ease-out both;
+  animation-delay: calc(.53s + var(--particle-delay));
+}
+.duel-outcome__particles--loss i { background: #ffb3a2; box-shadow: 0 0 9px 2px rgb(231 107 91 / 72%); }
+.duel-outcome__particles i:nth-child(1) { --particle-x: -116px; --particle-y: -34px; --particle-delay: 20ms; }
+.duel-outcome__particles i:nth-child(2) { --particle-x: -92px; --particle-y: 31px; --particle-delay: 90ms; width: 3px; height: 3px; }
+.duel-outcome__particles i:nth-child(3) { --particle-x: -61px; --particle-y: -48px; --particle-delay: 150ms; }
+.duel-outcome__particles i:nth-child(4) { --particle-x: -29px; --particle-y: 43px; --particle-delay: 40ms; width: 3px; height: 3px; }
+.duel-outcome__particles i:nth-child(5) { --particle-x: 22px; --particle-y: -43px; --particle-delay: 110ms; }
+.duel-outcome__particles i:nth-child(6) { --particle-x: 53px; --particle-y: 39px; --particle-delay: 60ms; width: 3px; height: 3px; }
+.duel-outcome__particles i:nth-child(7) { --particle-x: 83px; --particle-y: -29px; --particle-delay: 130ms; }
+.duel-outcome__particles i:nth-child(8) { --particle-x: 112px; --particle-y: 26px; --particle-delay: 30ms; width: 3px; height: 3px; }
+.duel-outcome__particles i:nth-child(9) { --particle-x: -136px; --particle-y: 1px; --particle-delay: 190ms; width: 2px; height: 2px; }
+.duel-outcome__particles i:nth-child(10) { --particle-x: 134px; --particle-y: -7px; --particle-delay: 170ms; width: 2px; height: 2px; }
+.duel-outcome__particles i:nth-child(11) { --particle-x: -6px; --particle-y: -54px; --particle-delay: 80ms; width: 3px; height: 3px; }
+.duel-outcome__particles i:nth-child(12) { --particle-x: 7px; --particle-y: 51px; --particle-delay: 210ms; width: 3px; height: 3px; }
 
 .duel-outcome__received {
   margin: 2px 0 0;
@@ -1285,14 +1322,24 @@
   justify-content: center;
   gap: 8px;
 }
-/* Rewards sit on the HUD currency plate: the icon fills its round socket. */
+/* Rewards use the HUD plate's fixed icon socket and centered metallic value. */
 .duel-outcome__reward {
+  --reward-pill-height: 40px;
+  --number-metal-top: #fff1c9;
+  --number-metal-highlight: #fffaf0;
+  --number-metal-mid: #f1dcaa;
+  --number-metal-low: #dcb878;
+  --number-metal-outline: #0d0a07;
+  position: relative;
+  box-sizing: border-box;
   display: inline-flex;
-  min-width: 104px;
-  height: 40px;
+  width: 132px;
+  min-width: 132px;
+  height: var(--reward-pill-height);
   align-items: center;
-  gap: 12px;
-  padding: 0 14px 0 9px;
+  justify-content: center;
+  gap: 0;
+  padding: 0 11px 0 40px;
   color: #f4e6c4;
   font: 700 18px/1 var(--font-number, var(--font-display));
   font-variant-numeric: tabular-nums;
@@ -1300,6 +1347,21 @@
   border: 0 solid transparent;
   border-image: url("/assets/ui/home/hud-currency-pill-v2.webp") 0 40 0 140 fill / 0 11px 0 40px / 0 stretch;
   animation: duel-search-rise .45s ease-out both;
+}
+.duel-outcome__reward > :is(.currency-icon, .resource-icon) {
+  position: absolute;
+  top: 46%;
+  left: calc(var(--reward-pill-height) * 69 / 140);
+  width: calc(var(--reward-pill-height) * .62);
+  height: calc(var(--reward-pill-height) * .62);
+  transform: translate(-50%, -50%);
+}
+.duel-outcome__reward-value {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
 }
 .duel-outcome__reward:nth-child(1) { animation-delay: .65s; }
 .duel-outcome__reward:nth-child(2) { animation-delay: .75s; }
@@ -1359,11 +1421,23 @@
   100% { opacity: 1; transform: none; filter: grayscale(.15) drop-shadow(0 8px 10px rgb(40 20 5 / 35%)); }
 }
 @keyframes duel-outcome-unroll { to { clip-path: inset(0 0 0 0); } }
+@keyframes duel-outcome-letter-arrive {
+  0% { opacity: 0; filter: blur(4px); transform: translate3d(0, .8em, 0) scale(.74); }
+  70% { opacity: 1; filter: blur(0); transform: translate3d(0, -.1em, 0) scale(1.12); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes duel-outcome-particle-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.25); }
+  16% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(.1); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .duel-outcome :is(.duel-outcome__crest-art, .duel-outcome__rays, .duel-outcome__received, .duel-outcome__reward, .duel-outcome__wins, .duel-outcome__note, .duel-outcome__next, .battle-log-row) { animation: none; }
+  .duel-outcome :is(.duel-outcome__crest-art, .duel-outcome__rays, .duel-outcome__received, .duel-outcome__reward, .duel-outcome__wins, .duel-outcome__note, .duel-outcome__next, .duel-outcome__title > span, .battle-log-row) { animation: none; }
   .duel-outcome__rays { opacity: .8; }
   .duel-outcome__title { animation: none; clip-path: none; }
+  .duel-outcome__title > span { opacity: 1; }
+  .duel-outcome__particles { display: none; }
 }
 
 /* Tutorial duel hint and victory: same painted plate, medallion and leather button as the task board. */

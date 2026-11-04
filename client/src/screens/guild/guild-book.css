@@ -322,4 +322,4 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-forum__pager { color: var(--book-ink); }
 
 /* An empty guild-card slot shows the painted card back, not a CSS pedestal. */
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__empty { display: block; width: 52px; height: 78px; object-fit: contain; filter: drop-shadow(0 3px 3px rgb(45 29 13 / 35%)); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__empty { display: block; width: 52px; height: 68px; filter: drop-shadow(0 3px 3px rgb(45 29 13 / 35%)); }

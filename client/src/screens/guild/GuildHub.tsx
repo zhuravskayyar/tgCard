@@ -3,6 +3,7 @@ import { GUILD_CONFIG, type CardElement, type GuildActivityType, type GuildAltar
 import { getUiNumberLocale } from "../../i18n";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
+import { CardBack } from "../../components/CardBack";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
 import { DeckCard } from "../../components/DeckCard";
 import { MenuRow } from "../../components/MenuRow";
@@ -95,7 +96,7 @@ function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidat
     <button aria-label={active ? `Карта гільдії: ${active.displayName ?? active.code}, ${active.finalPower} сили` : canManage ? "Карта гільдії: Обрати карту" : "Карта гільдії: Карту ще не обрано"} aria-pressed={panel !== null} className="guild-card-platform" onClick={openPlatform} type="button">
       <span className="guild-card-platform__art" aria-hidden="true"><img alt="" src="/assets/guild/guild-reward.svg" /></span>
       <span className="guild-card-platform__visual" aria-hidden="true">
-        {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <img alt="" className="guild-card-platform__empty" src="/assets/guild/card-back-v1.webp" />}
+        {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <CardBack className="guild-card-platform__empty" />}
       </span>
       <span className="guild-tile-caption">
         <strong>Карта гільдії</strong>

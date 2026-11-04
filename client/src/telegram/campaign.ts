@@ -75,3 +75,11 @@ export function submitCampaignBossAction(
     { method: "POST", body, signal },
   );
 }
+
+export function claimCampaignBossRewards(initData: string, battleId: string, signal?: AbortSignal) {
+  return request<CampaignBossView>(
+    initData,
+    `/api/player/campaign/boss/${encodeURIComponent(battleId)}/claim`,
+    { method: "POST", signal },
+  );
+}

@@ -638,6 +638,7 @@ export function App() {
         />
       ) : null}
       {screen === "tasks" ? <TasksScreen onBack={goHome} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
+      {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
       {screen === "duel" && !isDuelSearchLoopPreview() ? (

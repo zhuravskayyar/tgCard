@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { CardRarity } from "@cardastika/shared";
 import { useCardArtworkSource } from "./cardArtSource";
-import { createBoosterCardTexture, loadBoosterImage, type BoosterPreviewCard } from "../booster/boosterCardTexture";
+import { createBoosterCardBackTexture, createBoosterCardTexture, type BoosterPreviewCard } from "../booster/boosterCardTexture";
 import { mountBoosterRenderer, type BoosterPhase, type BoosterRenderer } from "../booster/boosterRenderer";
 import { createShopPackTexture } from "../booster/boosterPackTexture";
 import type { CutPoint } from "../booster/boosterCut";
@@ -53,7 +53,7 @@ export function BoosterOpening({ autoFinishOnReveal = false, card, doneLabel, fo
     void Promise.all([
       createShopPackTexture(packRarity, controller.signal),
       createBoosterCardTexture(card, source, controller.signal),
-      loadBoosterImage("/assets/guild/card-back-v1.webp"),
+      createBoosterCardBackTexture(controller.signal),
     ]).then(([wrapper, cardTexture, reverse]) => {
       if (controller.signal.aborted) return;
       renderer = mountBoosterRenderer(canvas, wrapper, cardTexture, reverse, setPhase, (message) => {

@@ -218,7 +218,7 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
    ${lis(23.8,24.2,24,'#000000',.9).replace(/translate\(([-\d.]+) ([-\d.]+)\)/,(m_,x,y)=>`translate(${(+x+.6).toFixed(3)} ${(+y+1.1).toFixed(3)})`)}
    ${lis(23.8,23.5,24,powerPalette.numeral,.98)}
  </g>`;
- const emblem=opts.blank?'':`<g id="${g('element-layer')}" data-layer="element" data-element="${opts.element}">
+ const emblem=opts.blank?'':`<g id="${g('element-layer')}" data-layer="element" data-element="${opts.element}" transform="translate(197 263) scale(1.15) translate(-197 -263)">
    <circle cx="197" cy="265" r="36" fill="url(#${g('spill')})" opacity="${isPaper?.62:.82}"/>
    <circle cx="197" cy="265.4" r="24" fill="${mat.shadow}" opacity=".7"/>
    <circle cx="197" cy="264" r="24" fill="${mat.shadow}" stroke="${mat.light}" stroke-opacity=".68" stroke-width="1.05"/>

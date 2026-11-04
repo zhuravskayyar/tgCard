@@ -135,6 +135,7 @@ export interface CampaignBossView {
   playerActiveCards: [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
   playerHp: number;
   playerMaxHp: number;
+  rewardsGranted: boolean;
   result?: CampaignBossResult;
   status: DuelStatus;
   turnNumber: number;

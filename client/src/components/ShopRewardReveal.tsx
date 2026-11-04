@@ -4,7 +4,7 @@ import { playSound, preloadSounds, revealSoundCue, REWARD_SOUND_CUES } from "../
 import { CardNameBadge } from "./CardNameBadge";
 import { CardHud } from "./CardHud";
 import { CardFxWrapper } from "./CardFxWrapper";
-import { useGyroscopeCardTilt } from "../hooks/useGyroscopeCardTilt";
+import { RewardCardSurface } from "./RewardCardSurface";
 
 const BoosterOpening = lazy(() => import("./BoosterOpening").then(({ BoosterOpening }) => ({ default: BoosterOpening })));
 
@@ -22,27 +22,6 @@ class BoosterOpeningBoundary extends Component<{ children: ReactNode; onError: (
   render() {
     return this.state.failed ? null : this.props.children;
   }
-}
-
-interface ShopRewardCardSurfaceProps {
-  ariaLabel?: string;
-  children: ReactNode;
-  className: string;
-  interactive?: boolean;
-  onClick?: () => void;
-}
-
-function ShopRewardCardSurface({ ariaLabel, children, className, interactive = false, onClick }: ShopRewardCardSurfaceProps) {
-  const cardRef = useRef<HTMLElement | null>(null);
-  const attachCard = useCallback((card: HTMLElement | null) => { cardRef.current = card; }, []);
-  useGyroscopeCardTilt(cardRef);
-  const classes = `shop-reveal__card${interactive ? " shop-reveal__card--interactive" : ""} ${className}`;
-
-  return interactive ? (
-    <button aria-label={ariaLabel} className={classes} onClick={onClick} ref={attachCard} type="button">{children}</button>
-  ) : (
-    <div aria-label={ariaLabel} className={classes} ref={attachCard} role="img">{children}</div>
-  );
 }
 
 const elementLabels: Record<CardElement, string> = {
@@ -241,14 +220,14 @@ export function ShopRewardReveal({
           {Array.from({ length: REVEAL_EMBERS }, (_, index) => <i key={index} style={{ "--fx-index": index } as CSSProperties} />)}
         </span>
         <div className="shop-reveal__card-shell" key={reward.instanceId}>
-          <ShopRewardCardSurface
+          <RewardCardSurface
             ariaLabel={hasNextCard ? `Наступна карта, ${activeIndex + 2} з ${purchases.length}` : "Карта нагороди. Проведи пальцем або мишею, щоб повернути."}
             className={`deck-card--${reward.element} deck-card--${reward.rarity}`}
             interactive={hasNextCard}
             onClick={hasNextCard ? showNextCard : undefined}
           >
             {rewardCard}
-          </ShopRewardCardSurface>
+          </RewardCardSurface>
         </div>
       </div>
 

@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { CampaignBossView, CampaignMapView, PlayerSummary, StoryTrialsView } from "@cardastika/shared";
 import { ScreenHeading } from "../components/ScreenHeading";
+import { CardBack } from "../components/CardBack";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
+import { RewardCardSurface } from "../components/RewardCardSurface";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { MenuRow } from "../components/MenuRow";
 import { useCardArtworkSource } from "../components/cardArtSource";
 import { formatFullUiNumber, getUiLocale, translateUi } from "../i18n";
 import { getTelegramInitData } from "../telegram";
-import { CampaignApiError, loadActiveCampaignBoss, loadCampaign, loadCampaignBoss, startCampaignBoss, submitCampaignBossAction } from "../telegram/campaign";
-import { BattleCard, BattleLog, HpPanel } from "./DuelScreen";
+import { CampaignApiError, claimCampaignBossRewards, loadActiveCampaignBoss, loadCampaign, loadCampaignBoss, startCampaignBoss, submitCampaignBossAction } from "../telegram/campaign";
+import { BattleCard, BattleLog, DuelIntroOverlay, getEffectLevel, HpPanel } from "./DuelScreen";
 import "../styles/campaign-adventures.css";
 
 const tx = (value: string) => translateUi(value, getUiLocale());
@@ -87,29 +89,83 @@ export function CampaignScreen({ onBack, onOpenBoss, onOpenTasks, onOpenTrials }
 
 type BossState = { status: "loading" } | { status: "battle"; battle: CampaignBossView } | { status: "error"; message: string };
 
-function BossVictoryResult({ battle, onReturn, onOpenTrials, onOpenTasks }: { battle: CampaignBossView; onReturn: () => void; onOpenTrials: () => void; onOpenTasks: () => void }) {
-  const result = battle.result!;
+function CampaignBossOutcomeBanner({ won }: { won: boolean }) {
+  const title = tx(won ? "Перемога!" : "Поразка").toLocaleUpperCase(getUiLocale());
+  return <div className={`campaign-boss-outcome campaign-boss-outcome--${won ? "win" : "loss"}`}>
+    <span aria-hidden="true" className="campaign-boss-outcome__particles">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</span>
+    <h2 aria-label={title}>{Array.from(title, (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter === " " ? "\u00a0" : letter}</span>)}</h2>
+  </div>;
+}
+
+function PendingBossReward({ pending, error, onRetry }: { pending: boolean; error: string | null; onRetry: () => void }) {
+  if (error) return <div className="campaign-boss-reward__status" role="alert">
+    <p>{tx(error)}</p>
+    <button className="adventure-button ui-button ui-button--primary" onClick={onRetry} type="button">{tx("Спробувати ще раз")}</button>
+  </div>;
+  return <p aria-live="polite" className="campaign-boss-reward__status" role="status">
+    {tx(pending ? "Зараховуємо нагороду…" : "Готуємо нагороду…")}
+    <span aria-hidden="true" className="campaign-boss-reward__waiting"><i /><i /><i /></span>
+  </p>;
+}
+
+function BossVictoryResult({ battle, claimPending, claimError, onClaim, onReturn, onOpenTrials, onOpenTasks }: {
+  battle: CampaignBossView; claimPending: boolean; claimError: string | null; onClaim: () => void;
+  onReturn: () => void; onOpenTrials: () => void; onOpenTasks: () => void;
+}) {
+  const result = battle.result;
   return <div className="campaign-adventures">
-    <ScreenHeading onBack={onReturn} title={tx("Перемога")} />
+    <ScreenHeading onBack={onReturn} title={tx(battle.opponent.name)} />
     <section className="adventure-plate campaign-adventure-result">
-      {result.thanks?.map(text => <p key={text}>{tx(text)}</p>)}
-      {result.firstWin ? <p>{tx("Нагорода:")} {formatFullUiNumber(result.gold)}<CurrencyIcon kind="gold" size={17} /> {formatFullUiNumber(result.silver)}<CurrencyIcon kind="silver" size={17} /></p> : null}
-      <p>{tx(`Досвід: +${formatFullUiNumber(result.xp)} XP`)}</p>
-      {result.rewardCard ? <div className="campaign-boss-reward">
+      <CampaignBossOutcomeBanner won />
+      {result ? <>
+        {result.thanks?.map(text => <p key={text}>{tx(text)}</p>)}
+        {result.gold > 0 || result.silver > 0 ? <p>{tx("Нагорода:")} {formatFullUiNumber(result.gold)}<CurrencyIcon kind="gold" size={17} /> {formatFullUiNumber(result.silver)}<CurrencyIcon kind="silver" size={17} /></p> : null}
+        <p>{tx(`Досвід: +${formatFullUiNumber(result.xp)} XP`)}</p>
+      </> : <PendingBossReward error={claimError} onRetry={onClaim} pending={claimPending} />}
+      {result?.rewardCard ? <div className="campaign-boss-reward">
         <strong>{tx("Ти здобув карту!")}</strong>
-        <div className={`campaign-boss-reward-card deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}>
-          <CardFxWrapper artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} rarity={result.rewardCard.rarity}>
-            <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
-          </CardFxWrapper>
+        <div className="shop-reveal__stage">
+          <div className="shop-reveal__card-shell" key={result.rewardCard.instanceId}>
+            <RewardCardSurface
+              ariaLabel={`${tx(result.rewardCard.displayName ?? result.rewardCard.code)}. ${tx("Сила")}: ${formatFullUiNumber(result.rewardCard.finalPower)}. ${tx("Рівень")}: ${formatFullUiNumber(result.rewardCard.level)}. ${tx("Карта нагороди. Проведи пальцем або мишею, щоб повернути.")}`}
+              className={`deck-card--${result.rewardCard.element} deck-card--${result.rewardCard.rarity}`}
+            >
+              <CardFxWrapper artKey={result.rewardCard.artKey} cardId={result.rewardCard.cardId} element={result.rewardCard.element} rarity={result.rewardCard.rarity}>
+                <CardHud element={result.rewardCard.element} level={result.rewardCard.level} power={result.rewardCard.finalPower} rarity={result.rewardCard.rarity} showLevel />
+              </CardFxWrapper>
+            </RewardCardSurface>
+          </div>
         </div>
         <strong>{tx(result.rewardCard.displayName ?? result.rewardCard.code)}</strong>
         {result.cardIsWeak ? <p>{tx("Карта впала в слабкі")}</p> : null}
       </div> : null}
-      <p>{tx(`Битися знову з ${tx(battle.opponent.name)} можна через ${formatFullUiNumber(result.respawnHours ?? 0)} год.`)}</p>
-      <button className="adventure-button ui-button ui-button--primary" onClick={result.firstWin && battle.locationNumber < 10 ? onOpenTrials : onReturn} type="button">{tx(result.firstWin && battle.locationNumber < 10 ? "Нова пригода" : "До кампанії")}</button>
+      {result ? <>
+        <p>{tx(`Битися знову з ${tx(battle.opponent.name)} можна через ${formatFullUiNumber(result.respawnHours ?? 0)} год.`)}</p>
+        <button className="adventure-button ui-button ui-button--primary" onClick={result.firstWin && battle.locationNumber < 10 ? onOpenTrials : onReturn} type="button">{tx(result.firstWin && battle.locationNumber < 10 ? "Нова пригода" : "До кампанії")}</button>
+      </> : null}
     </section>
-    <BattleLog entries={battle.battleLog} />
-    <MenuRow compact icon="tasks" metalTexture onClick={onOpenTasks} title={tx("Завдання")} />
+    {result ? <>
+      <BattleLog entries={battle.battleLog} />
+      <MenuRow compact icon="tasks" metalTexture onClick={onOpenTasks} title={tx("Завдання")} />
+    </> : null}
+  </div>;
+}
+
+function BossDefeatResult({ battle, claimPending, claimError, onClaim, onReturn }: {
+  battle: CampaignBossView; claimPending: boolean; claimError: string | null; onClaim: () => void; onReturn: () => void;
+}) {
+  const result = battle.result;
+  return <div className="campaign-adventures">
+    <ScreenHeading onBack={onReturn} title={tx(battle.opponent.name)} />
+    <section className="adventure-plate campaign-adventure-result">
+      <CampaignBossOutcomeBanner won={false} />
+      {result ? <>
+        <p>{tx("Переглянь колоду й спробуй ще раз.")}</p>
+        <p>{tx(`Досвід: +${formatFullUiNumber(result.xp)} XP`)}</p>
+        <button className="adventure-button ui-button ui-button--primary" onClick={onReturn} type="button">{tx("До кампанії")}</button>
+      </> : <PendingBossReward error={claimError} onRetry={onClaim} pending={claimPending} />}
+    </section>
+    {result ? <BattleLog entries={battle.battleLog} /> : null}
   </div>;
 }
 
@@ -121,19 +177,37 @@ export function CampaignBossScreen({ locationNumber, onCampaignCompleted, onDeck
   const [state, setState] = useState<BossState>({ status: "loading" });
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [claimPending, setClaimPending] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [introActive, setIntroActive] = useState(false);
+  const introBattleId = useRef<string | null>(null);
   const clash = useBattleExchange(state.status === "battle" ? state.battle.battleLog[0] ?? null : null);
   const resultReady = useBattleResultReady(state.status === "battle" && state.battle.status === "active", state.status === "battle" && state.battle.status !== "active", state.status === "battle" && state.battle.status !== "active" ? state.battle.status === "won" ? "win" : "loss" : null);
   const resultId = useRef<string | null>(null);
-  const showBattle = useCallback((battle: CampaignBossView) => setState({ status: "battle", battle }), []);
+  const claimInFlightRef = useRef<string | null>(null);
+  const showBattle = useCallback((battle: CampaignBossView) => {
+    setState({ status: "battle", battle });
+    if (battle.battleLog.length === 0 && introBattleId.current !== battle.battleId) {
+      introBattleId.current = battle.battleId;
+      setIntroActive(true);
+    } else if (battle.battleLog.length > 0) {
+      setIntroActive(false);
+    }
+  }, []);
   const result = state.status === "battle" ? state.battle.result : undefined;
   const battleId = state.status === "battle" ? state.battle.battleId : null;
   useEffect(() => {
-    if (!result || resultId.current === battleId) return;
+    if (!result || state.status !== "battle" || !state.battle.rewardsGranted || resultId.current === battleId) return;
     resultId.current = battleId;
     onPlayerSummaryChange(result.player);
     if (result.deckPower !== undefined) onDeckPowerChange(result.deckPower);
     if (result.firstWin) onCampaignCompleted();
-  }, [result, battleId, onPlayerSummaryChange, onDeckPowerChange, onCampaignCompleted]);
+  }, [result, battleId, state, onPlayerSummaryChange, onDeckPowerChange, onCampaignCompleted]);
+  useEffect(() => {
+    if (!introActive) return;
+    const timer = window.setTimeout(() => setIntroActive(false), 720);
+    return () => window.clearTimeout(timer);
+  }, [introActive]);
 
   const start = useCallback(async (signal?: AbortSignal) => {
     const credential = getTelegramInitData();
@@ -163,23 +237,55 @@ export function CampaignBossScreen({ locationNumber, onCampaignCompleted, onDeck
       catch { setActionError("Хід не підтверджено. Спробуй ще раз."); }
     } finally { setPendingSlot(null); }
   }
+  const claimRewards = useCallback(async () => {
+    if (state.status !== "battle" || state.battle.status === "active" || state.battle.rewardsGranted) return;
+    const currentBattleId = state.battle.battleId;
+    if (claimInFlightRef.current === currentBattleId) return;
+    const credential = getTelegramInitData();
+    if (!credential) { setClaimError("Не вдалося отримати нагороду. Увійди в гру й спробуй ще раз."); return; }
+    claimInFlightRef.current = currentBattleId;
+    setClaimPending(true);
+    setClaimError(null);
+    try {
+      showBattle(await claimCampaignBossRewards(credential, currentBattleId));
+    } catch {
+      setClaimError("Не вдалося отримати нагороду. Спробуй ще раз.");
+    } finally {
+      claimInFlightRef.current = null;
+      setClaimPending(false);
+    }
+  }, [showBattle, state]);
+  useEffect(() => {
+    if (!resultReady || state.status !== "battle" || state.battle.status === "active" || state.battle.rewardsGranted || claimError) return;
+    void claimRewards();
+  }, [claimError, claimRewards, resultReady, state]);
   if (state.status === "loading") return <p className="adventure-plate" role="status">{tx("Відкриваємо лігво…")}</p>;
   if (state.status === "error") return <div className="adventure-plate" role="alert"><p>{tx(state.message)}</p><button className="adventure-button ui-button ui-button--primary" onClick={onReturn} type="button">{tx("До кампанії")}</button></div>;
   const battle = state.battle;
-  if (resultReady && battle.result?.outcome === "win") return <BossVictoryResult battle={battle} onOpenTasks={onOpenTasks} onOpenTrials={onOpenTrials} onReturn={onReturn} />;
-  if (resultReady) return <div className="campaign-adventures"><ScreenHeading onBack={onReturn} title={tx("Поразка")} /><section className="adventure-plate"><p>{tx("Переглянь колоду й спробуй ще раз.")}</p><p>{tx(`Досвід: +${formatFullUiNumber(battle.result?.xp ?? 0)} XP`)}</p><button className="adventure-button ui-button ui-button--primary" onClick={() => void start()} type="button">{tx("Повторити бій")}</button></section><BattleLog entries={battle.battleLog} /></div>;
-  return <div className="duel-battle campaign-boss-battle">
+  if (resultReady && battle.status === "won") return <BossVictoryResult battle={battle} claimError={claimError} claimPending={claimPending} onClaim={() => void claimRewards()} onOpenTasks={onOpenTasks} onOpenTrials={onOpenTrials} onReturn={onReturn} />;
+  if (resultReady && battle.status === "lost") return <BossDefeatResult battle={battle} claimError={claimError} claimPending={claimPending} onClaim={() => void claimRewards()} onReturn={onReturn} />;
+  const clashSlot = clash?.slotIndex ?? null;
+  const enemyHitLevel = clash ? getEffectLevel(clash.playerMultiplier) : "normal";
+  const playerHitLevel = clash ? getEffectLevel(clash.enemyMultiplier) : "normal";
+  const battleClassName = ["duel-page", "duel-battle", introActive ? "duel-battle--intro" : "", clash ? "duel-battle--clash" : ""].filter(Boolean).join(" ");
+  const boardClassName = ["duel-board", introActive ? "duel-board--intro" : "", clash ? "duel-board--clash" : ""].filter(Boolean).join(" ");
+  return <div className="campaign-boss-battle">
     <ScreenHeading onBack={onReturn} title={tx(battle.opponent.name)} />
-    <p className="adventure-plate">{tx("Карти боса приховані до удару")}</p>
     {actionError ? <p className="adventure-plate" role="alert">{tx(actionError)}</p> : null}
-    <HpPanel currentHp={battle.enemyHp} maximumHp={battle.enemyMaxHp} side={battle.opponent} tone="enemy" />
-    <div className="duel-board" aria-label={tx("Бойове поле боса")}>
-      {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
-      <div className="duel-card-row duel-card-row--enemy">{battle.enemyActiveCards.map(slot => <div aria-label={tx("Прихована карта боса")} className="duel-card duel-card--enemy campaign-boss-hidden-card" key={slot.slotIndex}>?</div>)}</div>
-      <div className="duel-card-row duel-card-row--player">{battle.playerActiveCards.map((card, index) => <BattleCard card={card} disabled={pendingSlot !== null || clash !== null || battle.status !== "active"} key={card.instanceId} onClick={() => void action(index as 0 | 1 | 2)} selected={pendingSlot === index} />)}</div>
+    <div className={battleClassName}>
+      <HpPanel currentHp={battle.enemyHp} damageElement={clash?.playerCard.element} damageLevel={enemyHitLevel} hit={clash !== null} maximumHp={battle.enemyMaxHp} side={battle.opponent} tone="enemy" />
+      <div className={boardClassName} aria-label={tx("Бойове поле боса")}>
+        {introActive ? <DuelIntroOverlay /> : null}
+        {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
+        <div className="duel-card-row duel-card-row--enemy">{battle.enemyActiveCards.map(slot => <div aria-label={tx("Прихована карта боса")} className={`duel-card duel-card--enemy campaign-boss-hidden-card${clashSlot === slot.slotIndex ? " duel-card--clash-enemy" : ""}`} key={slot.slotIndex} role="img"><CardBack /></div>)}</div>
+        <div aria-hidden="true" className="duel-multiplier-row campaign-boss-multiplier-row">
+          {battle.enemyActiveCards.map(slot => <span className="duel-multiplier" key={slot.slotIndex}>?</span>)}
+        </div>
+        <div className="duel-card-row duel-card-row--player">{battle.playerActiveCards.map((card, index) => <BattleCard card={card} clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined} clashing={clashSlot === index} disabled={introActive || pendingSlot !== null || clash !== null || battle.status !== "active"} introActive={introActive} key={card.instanceId} onClick={() => void action(index as 0 | 1 | 2)} selected={pendingSlot === index} />)}</div>
+      </div>
+      <HpPanel currentHp={battle.playerHp} damageElement={clash?.enemyCard.element} damageLevel={playerHitLevel} hit={clash !== null} maximumHp={battle.playerMaxHp} side={battle.player} tone="player" />
+      <p className="duel-action-hint">{tx(pendingSlot === null ? "Оберіть свою карту" : "Обмін ударами…")}</p>
+      <BattleLog entries={battle.battleLog} />
     </div>
-    <HpPanel currentHp={battle.playerHp} maximumHp={battle.playerMaxHp} side={battle.player} tone="player" />
-    <p className="adventure-plate">{tx(pendingSlot === null ? "Обирай слот" : "Бос відкриває карту…")}</p>
-    <BattleLog entries={battle.battleLog} />
   </div>;
 }

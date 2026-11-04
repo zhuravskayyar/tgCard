@@ -4089,7 +4089,7 @@ button:focus-visible {
 
 .battle-log-row--latest { animation: battle-log-row-in 180ms ease-out both; }
 
-.battle-log-art { position: relative; width: 34px; height: 34px; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-sm); }
+.battle-log-art { position: relative; width: 34px; height: 34px; overflow: hidden; background: none; border: 0; border-radius: 0; }
 .battle-log-art .card-artwork { inset: 0; border-radius: 0; }
 .battle-log-advantage {
   position: relative;
@@ -4762,9 +4762,12 @@ button:focus-visible {
 .campaign-quest__actions button { min-height: 44px; padding: 8px 16px; color: #0b0c0e; background: var(--accent-gold); border: 0; border-radius: var(--radius-lg); font-size: var(--font-xs); font-weight: 850; }
 .campaign-quest__go { display: grid; width: 36px; min-height: 44px; place-items: center; color: var(--text-muted); }
 
-.campaign-boss-battle { min-width: 0; }
+.campaign-boss-battle { display: grid; min-width: 0; gap: var(--space-3); }
 .campaign-boss-battle__warning { padding: 8px 10px; color: #dcaaa4; background: #1b1011; border: 1px solid #5b3030; border-radius: var(--radius-lg); font-size: var(--font-micro); text-align: center; }
-.campaign-boss-hidden-card { display: grid; place-items: center; color: #d5aaa4; background: #120d10; border-color: #5b3436; font-family: var(--font-display); font-size: clamp(1.7rem, 10vw, 2.5rem); font-weight: 800; }
+.campaign-boss-hidden-card { display: grid; place-items: center; color: #d5aaa4; background: #120d10; border-color: #5b3436; }
+.campaign-boss-hidden-card > .card-back { width: 100%; height: 100%; }
+.campaign-boss-multiplier-row { min-height: 1em; }
+.campaign-boss-multiplier-row:empty { visibility: hidden; }
 .campaign-boss-hidden-connectors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding: 2px 4px; }
 .campaign-boss-hidden-connectors span { justify-self: center; width: 1px; height: 15px; background: var(--border-default); }
 
@@ -6320,13 +6323,22 @@ button.mode-tile::before,
   font-family: var(--font-body) !important;
 }
 
-.app-shell h1,
-.app-shell h2,
-.auth-screen h1,
-.auth-screen h2,
-.mode-tile__title,
-.nickname-skin .nickname {
+.app-shell :is(h1, h2, h3),
+.app-shell :is(h1, h2, h3) *,
+.auth-screen :is(h1, h2, h3),
+.auth-screen :is(h1, h2, h3) *,
+.app-shell .mode-tile__title,
+.app-shell .mode-tile__title *,
+.nickname-skin .nickname,
+.nickname-skin .nickname * {
   font-family: var(--font-display) !important;
+}
+
+.app-shell :is(button, input, select, textarea),
+.app-shell :is(button, input, select, textarea) *,
+.auth-screen :is(button, input, select, textarea),
+.auth-screen :is(button, input, select, textarea) * {
+  font-family: var(--font-label) !important;
 }
 
 .mode-tile__title {
@@ -7294,7 +7306,7 @@ button.mode-tile::before,
   position: relative;
   display: block;
   width: 116px;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 240 / 312;
   filter: drop-shadow(0 8px 10px rgb(45 27 14 / 45%));
   animation: screen-loader-sway 2600ms ease-in-out infinite;
 }
@@ -7306,16 +7318,6 @@ button.mode-tile::before,
   border-radius: 6px;
 }
 
-/* The seal sits in the empty medallion painted at the centre of the card back. */
-.screen-loader__seal {
-  position: absolute;
-  top: 49.2%;
-  left: 50%;
-  width: 37%;
-  height: auto;
-  animation: screen-loader-seal 2600ms ease-in-out infinite;
-}
-
 .screen-loader__glint {
   position: absolute;
   inset: 0;
@@ -7324,13 +7326,16 @@ button.mode-tile::before,
   mix-blend-mode: screen;
 }
 
-.screen-loader__glint img {
+.screen-loader__glint::before {
+  content: "";
   position: absolute;
   top: -10%;
   left: 0;
   width: 100%;
   height: 120%;
+  background: linear-gradient(115deg, transparent 34%, rgb(255 241 204 / 4%) 41%, rgb(255 248 228 / 42%) 49%, rgb(255 241 204 / 5%) 57%, transparent 64%);
   animation: screen-loader-glint 2600ms ease-in-out infinite;
+  pointer-events: none;
 }
 
 .screen-loader__label {
@@ -7349,11 +7354,6 @@ button.mode-tile::before,
   50% { transform: rotateY(14deg) translateY(-3px); }
 }
 
-@keyframes screen-loader-seal {
-  0%, 100% { transform: translate(-50%, -50%) scale(.97); }
-  50% { transform: translate(-50%, -50%) scale(1.05); }
-}
-
 @keyframes screen-loader-glint {
   0% { transform: translateX(-120%); }
   55%, 100% { transform: translateX(120%); }
@@ -7361,8 +7361,7 @@ button.mode-tile::before,
 
 @media (prefers-reduced-motion: reduce) {
   .screen-loader__card,
-  .screen-loader__glint img { animation: none; }
-  .screen-loader__seal { animation: none; transform: translate(-50%, -50%); }
+  .screen-loader__glint::before { animation: none; }
   .screen-loader__glint { display: none; }
 }
 
@@ -7671,8 +7670,9 @@ button.mode-tile::before,
 .arena-slot.is-ready .duel-card { animation: arena-card-reveal 190ms ease-out both; }
 .arena-slot.is-ready .duel-card--clash-player { animation: none; }
 .arena-slot.is-ready .duel-card--clash-enemy { animation: none; }
-.arena-hidden-card { display: grid; width: 100%; height: 100%; place-items: center; color: #d2ad6b; background: radial-gradient(circle at 50% 35%, rgb(161 119 71 / 25%), transparent 50%), linear-gradient(145deg, #241c1d, #111518 65%); border: 1px solid #7d6244; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 3px #181b1b, inset 0 0 22px rgb(0 0 0 / 60%); }
-.arena-hidden-card span { display: grid; width: 21px; height: 21px; place-items: center; border: 1px solid #a88352; border-radius: 50%; font-family: var(--font-display); font-size: var(--font-sm); }
+.arena-hidden-card { position: relative; display: grid; width: 100%; height: 100%; place-items: center; color: #d2ad6b; background: transparent; border: 0; border-radius: var(--radius-sm); box-shadow: none; }
+.arena-hidden-card__back { position: absolute; inset: 0; width: 100%; height: 100%; }
+.arena-hidden-card__timer { position: relative; z-index: 1; display: grid; width: 21px; height: 21px; place-items: center; background: #27180d; border: 1px solid #a88352; border-radius: 50%; font-family: var(--font-display); font-size: var(--font-sm); }
 .arena-slot.is-cooldown .duel-card > .card-fx .card-fx__viewport { filter: saturate(.45) brightness(.62); }
 .arena-slot.is-cooldown .arena-hidden-card { filter: saturate(.45) brightness(.62); }
 .arena-slot__cooldown { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; gap: 0; color: #f2d49a; background: rgb(12 12 15 / 28%); border-radius: var(--radius-sm); text-align: center; pointer-events: none; }
@@ -13485,6 +13485,7 @@ body {
   object-fit: contain;
   filter: drop-shadow(0 2px 5px rgb(0 0 0 / 45%));
 }
+.arena-shop-item__card-back { width: 40px; height: 52px; filter: drop-shadow(0 2px 5px rgb(0 0 0 / 45%)); }
 
 .arena-shop-item__details {
   display: grid;

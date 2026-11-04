@@ -1,0 +1,1008 @@
+[
+  {
+    "code": "ancient_order_fire_m",
+    "name": "Жрець Незгасний",
+    "bytes": 70174,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\ancient_order_fire_m.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\ancient_order_fire_m.png",
+      "code": "ancient_order_fire_m",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1683203,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 1,
+      "sampleSize": 256,
+      "transparentPct": 63.49,
+      "darkPct": 40.19,
+      "solidInteriorPct": 93.19,
+      "bboxPct": [
+        15.63,
+        80.86,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 2.39,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "diamond_brotherhood_air",
+    "name": "Панна Кришталь",
+    "bytes": 65992,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_air.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_air.png",
+      "code": "diamond_brotherhood_air",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1545668,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 64.84,
+      "darkPct": 40.33,
+      "solidInteriorPct": 93.26,
+      "bboxPct": [
+        9.77,
+        91.8,
+        10.55,
+        93.75
+      ],
+      "medallionPct": 4.25,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "don_juan",
+    "name": "Дон Ель Фуего",
+    "bytes": 56304,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\don_juan.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\don_juan.png",
+      "code": "don_juan",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1227792,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 74.59,
+      "darkPct": 50.75,
+      "solidInteriorPct": 89.64,
+      "bboxPct": [
+        12.89,
+        82.42,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "dripstone",
+    "name": "Кораловий дредноут",
+    "bytes": 92756,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dripstone.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dripstone.png",
+      "code": "dripstone",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1885053,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 59.87,
+      "darkPct": 44.25,
+      "solidInteriorPct": 89.57,
+      "bboxPct": [
+        6.64,
+        92.58,
+        8.59,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "diamond_brotherhood_fire",
+    "name": "Гарячий юнак",
+    "bytes": 71656,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_fire.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_fire.png",
+      "code": "diamond_brotherhood_fire",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1766326,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 59.81,
+      "darkPct": 48.11,
+      "solidInteriorPct": 93.43,
+      "bboxPct": [
+        8.2,
+        87.5,
+        6.25,
+        93.36
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "diamond_brotherhood_water",
+    "name": "Герцогиня Перлина",
+    "bytes": 61336,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_water.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_water.png",
+      "code": "diamond_brotherhood_water",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1483757,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 64.39,
+      "darkPct": 38.73,
+      "solidInteriorPct": 95.51,
+      "bboxPct": [
+        10.16,
+        84.77,
+        6.64,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_earth",
+    "name": "Обвал",
+    "bytes": 70700,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_earth.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_earth.png",
+      "code": "drmagic_earth",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1677532,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 62.28,
+      "darkPct": 39.54,
+      "solidInteriorPct": 90.96,
+      "bboxPct": [
+        6.25,
+        88.67,
+        5.86,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_air",
+    "name": "Смерч",
+    "bytes": 82382,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_air.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_air.png",
+      "code": "drmagic_air",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1732046,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 62.25,
+      "darkPct": 43.58,
+      "solidInteriorPct": 88.02,
+      "bboxPct": [
+        7.81,
+        89.06,
+        7.03,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "dao_w_sea_doubletail",
+    "name": "Морська двохвоста",
+    "bytes": 82628,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dao_w_sea_doubletail.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\dao_w_sea_doubletail.png",
+      "code": "dao_w_sea_doubletail",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1879993,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 1,
+      "sampleSize": 256,
+      "transparentPct": 60.58,
+      "darkPct": 47.66,
+      "solidInteriorPct": 90.56,
+      "bboxPct": [
+        5.86,
+        94.14,
+        8.59,
+        93.36
+      ],
+      "medallionPct": 1.46,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_heal_earth",
+    "name": "Цілюща омела",
+    "bytes": 70962,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_earth.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_earth.png",
+      "code": "drmagic_heal_earth",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1339496,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 72.36,
+      "darkPct": 43.1,
+      "solidInteriorPct": 85.25,
+      "bboxPct": [
+        7.03,
+        93.36,
+        14.84,
+        88.28
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "fleuro",
+    "name": "Іскровий візок",
+    "bytes": 66296,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fleuro.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fleuro.png",
+      "code": "fleuro",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1357929,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 69.02,
+      "darkPct": 44.91,
+      "solidInteriorPct": 88.8,
+      "bboxPct": [
+        6.25,
+        92.97,
+        14.06,
+        85.94
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_heal_water",
+    "name": "Теплий дощ",
+    "bytes": 73220,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_water.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_water.png",
+      "code": "drmagic_heal_water",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1348608,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 71.75,
+      "darkPct": 46.79,
+      "solidInteriorPct": 82.06,
+      "bboxPct": [
+        7.03,
+        88.67,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_fire",
+    "name": "Верхова пожежа",
+    "bytes": 77776,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_fire.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_fire.png",
+      "code": "drmagic_fire",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1748787,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 58.33,
+      "darkPct": 44.19,
+      "solidInteriorPct": 92.27,
+      "bboxPct": [
+        8.59,
+        90.63,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "diamond_brotherhood_earth",
+    "name": "Кулак Самоцвіт",
+    "bytes": 50366,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_earth.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\diamond_brotherhood_earth.png",
+      "code": "diamond_brotherhood_earth",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1049101,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 77.9,
+      "darkPct": 48.19,
+      "solidInteriorPct": 86.75,
+      "bboxPct": [
+        19.92,
+        74.22,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "lord_of_the_winds",
+    "name": "Майстер вітрів",
+    "bytes": 81452,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\lord_of_the_winds.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\lord_of_the_winds.png",
+      "code": "lord_of_the_winds",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1776283,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 60.22,
+      "darkPct": 42.09,
+      "solidInteriorPct": 90.97,
+      "bboxPct": [
+        7.81,
+        86.72,
+        14.45,
+        93.75
+      ],
+      "medallionPct": 0.05,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "goblin_mechanic",
+    "name": "Гоблін-майстер",
+    "bytes": 88692,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\goblin_mechanic.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\goblin_mechanic.png",
+      "code": "goblin_mechanic",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2064096,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 1,
+      "sampleSize": 256,
+      "transparentPct": 53.8,
+      "darkPct": 44.1,
+      "solidInteriorPct": 92.65,
+      "bboxPct": [
+        5.86,
+        85.94,
+        6.64,
+        92.58
+      ],
+      "medallionPct": 4.2,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_water",
+    "name": "Вир",
+    "bytes": 85220,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_water.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_water.png",
+      "code": "drmagic_water",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2028914,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 52.99,
+      "darkPct": 40.05,
+      "solidInteriorPct": 95.21,
+      "bboxPct": [
+        6.64,
+        91.02,
+        8.98,
+        93.75
+      ],
+      "medallionPct": 3.34,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "fire_servant",
+    "name": "Служник вогню",
+    "bytes": 76736,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fire_servant.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\fire_servant.png",
+      "code": "fire_servant",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1976648,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 55.88,
+      "darkPct": 50.36,
+      "solidInteriorPct": 95.29,
+      "bboxPct": [
+        8.59,
+        87.89,
+        10.94,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "mirror_tide_witch",
+    "name": "Відьма Припливу",
+    "bytes": 71038,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_tide_witch.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_tide_witch.png",
+      "code": "mirror_tide_witch",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1423311,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 68.22,
+      "darkPct": 51.51,
+      "solidInteriorPct": 85.46,
+      "bboxPct": [
+        12.89,
+        82.03,
+        5.86,
+        94.14
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "mirror_inquisitor",
+    "name": "Інквізитор Попелу",
+    "bytes": 81446,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_inquisitor.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\mirror_inquisitor.png",
+      "code": "mirror_inquisitor",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1869566,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 58.91,
+      "darkPct": 45.31,
+      "solidInteriorPct": 92.74,
+      "bboxPct": [
+        6.64,
+        87.5,
+        5.86,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [
+        "dark_pixel_ratio_outside_25_to_45pct"
+      ],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "great_rivers_sorcerer",
+    "name": "Заклинателька Річок",
+    "bytes": 92920,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\great_rivers_sorcerer.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\great_rivers_sorcerer.png",
+      "code": "great_rivers_sorcerer",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1924888,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 56.42,
+      "darkPct": 40.02,
+      "solidInteriorPct": 89.96,
+      "bboxPct": [
+        7.03,
+        91.02,
+        5.86,
+        89.84
+      ],
+      "medallionPct": 3.91,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  },
+  {
+    "code": "drmagic_heal_air",
+    "name": "Північне сяйво",
+    "bytes": 76714,
+    "source": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_air.png",
+    "qa": {
+      "file": "C:\\Users\\yarik\\Desktop\\tgcard\\tmp\\card-art-2026-11-03\\ready\\drmagic_heal_air.png",
+      "code": "drmagic_heal_air",
+      "decoded": true,
+      "format": "png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2009499,
+      "hasAlpha": true,
+      "cornerAlphas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "edgePixels": 0,
+      "edgeMaxAlpha": 0,
+      "sampleSize": 256,
+      "transparentPct": 53.43,
+      "darkPct": 41.48,
+      "solidInteriorPct": 94.1,
+      "bboxPct": [
+        7.42,
+        89.84,
+        6.25,
+        93.75
+      ],
+      "medallionPct": 0,
+      "failures": [],
+      "warnings": [],
+      "needsVisualReview": [
+        "subject_and_style",
+        "opaque_cream_fill",
+        "silhouette_at_100px",
+        "anatomy_and_four_digit_hands",
+        "pose_action",
+        "mechanical_connections"
+      ]
+    }
+  }
+]

@@ -107,8 +107,8 @@
 
 /* A closed card keeps the exact size of an open one: same slot, painted back, seconds in the medallion. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-slot { position: relative; min-width: 0; filter: none; opacity: 1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card { display: grid; width: 100%; aspect-ratio: 2 / 3; place-items: center; border: 0; border-radius: 0; background: url("/assets/guild/card-back-v1.webp") center / 100% 100% no-repeat; box-shadow: none; filter: none; opacity: 1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { color: var(--book-ink); font: 700 1.75rem/1 var(--font-display); text-shadow: 0 1px 0 rgb(255 244 214 / 70%); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card { display: grid; width: 100%; height: 100%; aspect-ratio: auto; place-items: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; filter: none; opacity: 1; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { color: var(--book-ink); background: #ead8b1; border-color: #8a6336; font: 700 1.75rem/1 var(--font-display); text-shadow: 0 1px 0 rgb(255 244 214 / 70%); }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-multiplier--none { visibility: hidden; }
 
 /* Controls sit where the duel shows its hint. */

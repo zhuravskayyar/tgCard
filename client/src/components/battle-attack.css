@@ -1,4 +1,4 @@
-/* Layout only: motion, particles and the damage float are scripted in BattleAttackAnimation. */
+/* Shared card motion and elemental particles are scripted in BattleAttackAnimation. */
 .battle-attack {
   position: absolute;
   z-index: 15;
@@ -23,39 +23,113 @@
 .battle-attack__fx {
   position: absolute;
   z-index: 3;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: calc(-1 * var(--battle-fx-gutter));
+  width: calc(100% + var(--battle-fx-gutter) * 2);
+  height: calc(100% + var(--battle-fx-gutter) * 2);
   pointer-events: none;
 }
 
 .battle-attack__damage {
+  --damage-size: 36px;
+  --metal-top: #f5fbff;
+  --metal-mid: #9eafb8;
+  --metal-low: #526672;
+  --metal-highlight: #ffffff;
+  --metal-edge: #172631;
   position: absolute;
   z-index: 4;
   display: grid;
   justify-items: center;
-  font-family: var(--font-display);
+  gap: 7px;
+  font-family: var(--font-number);
   line-height: 1;
   text-align: center;
   white-space: nowrap;
-  text-shadow: 0 2px 0 #000, 0 0 10px #000;
+  text-shadow: none;
   pointer-events: none;
-  animation: battle-damage-float 1200ms ease-out both;
+  animation: battle-damage-float 1100ms cubic-bezier(.16, .7, .3, 1) both;
 }
-.battle-attack__damage b { color: #fff; font-size: 30px; }
-.battle-attack__damage small { color: #eadfc4; font: 600 12px/1.2 var(--font-body); letter-spacing: .04em; }
-.battle-attack__damage--strong b { color: #ffe08a; font-size: 44px; text-shadow: 0 0 14px #ff9a1f, 0 3px 0 #5a2a00; }
-.battle-attack__damage--strong small { color: #ffd27a; }
-.battle-attack__damage--weak b { color: #cfe0ff; font-size: 22px; }
-.battle-attack__damage--weak small { color: #a9bad6; }
-.battle-attack__damage--counter b { color: #ffc0a8; font-size: 22px; }
+.battle-attack__damage-value {
+  position: relative;
+  display: grid;
+  isolation: isolate;
+  font-size: clamp(22px, calc(var(--damage-size) * 5 / var(--damage-digits)), var(--damage-size));
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -.03em;
+  filter: drop-shadow(0 3px 2px #000b) drop-shadow(0 0 8px color-mix(in srgb, var(--damage-accent) 30%, transparent));
+}
+.battle-attack__damage-value::before,
+.battle-attack__damage-value::after,
+.battle-attack__damage-value > span { grid-area: 1 / 1; }
+/* The dark cut edge sits behind the face, so the polished bands stay clear. */
+.battle-attack__damage-value::before {
+  content: attr(data-value);
+  color: var(--metal-edge);
+  -webkit-text-stroke: 2.2px var(--metal-edge);
+  text-shadow: 0 1px 0 var(--metal-low), 0 2px 0 var(--metal-edge), 0 3px 0 #070d12;
+  transform: translateY(1px);
+}
+.battle-attack__damage-value > span {
+  position: relative;
+  color: var(--metal-top);
+  background: linear-gradient(180deg, var(--metal-highlight) 0%, var(--metal-top) 20%, var(--metal-mid) 43%, var(--metal-low) 48%, var(--metal-highlight) 52%, var(--metal-top) 62%, var(--metal-low) 92%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .3px var(--metal-top);
+}
+.battle-attack__damage-value::after {
+  position: relative;
+  content: attr(data-value);
+  background: linear-gradient(110deg, transparent 35%, #fff8 47%, #fff 50%, transparent 58%) 180% 0 / 280% 100% no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: battle-metal-glint 650ms 80ms ease-out both;
+}
+.battle-attack__damage small {
+  padding: 2px 7px;
+  color: #fff0d1;
+  background: #20150be6;
+  border-radius: 3px;
+  font: 700 11px/1.2 var(--font-body);
+  letter-spacing: .04em;
+  text-shadow: 0 1px 1px #000;
+}
+.battle-attack__damage--strong {
+  --damage-size: 46px;
+  --metal-top: #ffe7a5;
+  --metal-mid: #c59942;
+  --metal-low: #82501b;
+  --metal-highlight: #fffce3;
+  --metal-edge: #3c220d;
+}
+.battle-attack__damage--strong small { color: #ffe5a4; }
+.battle-attack__damage--weak { --damage-size: 28px; }
+.battle-attack__damage--counter {
+  --damage-size: 27px;
+  --metal-top: #f4ccab;
+  --metal-mid: #bb8363;
+  --metal-low: #7a4535;
+  --metal-highlight: #fff2d9;
+  --metal-edge: #391d18;
+}
 
 @keyframes battle-damage-float {
-  0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
-  18% { opacity: 1; transform: translate(-50%, -100%) scale(1.15); }
-  100% { opacity: 0; transform: translate(-50%, -210%) scale(1); }
+  0% { opacity: 0; transform: translate(-50%, -25%) scale(.65); }
+  14% { opacity: 1; transform: translate(-50%, -80%) scale(1.12); }
+  30% { transform: translate(-50%, -95%) scale(1); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -170%) scale(.96); }
+}
+@keyframes battle-metal-glint {
+  from { background-position: 180% 0; opacity: 0; }
+  25% { opacity: .9; }
+  to { background-position: -60% 0; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .battle-attack__damage { animation: none; transform: translate(-50%, -100%); }
+  .battle-attack__damage-value::after { animation: none; display: none; }
 }

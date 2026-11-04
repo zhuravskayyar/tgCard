@@ -49,6 +49,21 @@ Do not repeatedly open or check the application or website between edits. Inspec
 - Run only checks and tests relevant to the files changed.
 - Put detailed rules and design decisions in `/docs`, not this file.
 
+## Independent UI review with sub-agents
+
+- For UI work, use sub-agents to independently compare the result with the
+  user's idea and the established visual style before handing it off.
+- Review whether the screen feels intentional rather than generic or cluttered,
+  whether text is readable, and whether spacing, alignment, and hierarchy are
+  consistent. Report concrete problems instead of vague approval.
+- Check the natural proportions of relevant sprites: no squashed artwork,
+  stretched ornaments, accidental cropping, or blurry enlargement. Keep fixed
+  artwork proportional; use existing sliced frames for resizable surfaces.
+- Fix actionable findings and request a final independent review. State which
+  checks were performed in code or on a static mockup and which still need live
+  verification. This review does not override the local-first workflow or
+  authorize opening the website, pushing, or deploying.
+
 ## Rule for running tests after changes
 
 Verification must be proportional to the change. Do not run the full test suite,

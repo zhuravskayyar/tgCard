@@ -456,6 +456,7 @@
   align-self: center;
   place-items: end center;
 }
+.guild-card-platform__empty { width: 34px; height: 44px; align-self: center; filter: drop-shadow(0 3px 3px rgb(45 29 13 / 35%)); }
 
 .guild-card-platform__card,
 .guild-card-platform__card > .card-fx {

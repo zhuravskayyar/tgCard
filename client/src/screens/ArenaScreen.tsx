@@ -1,6 +1,7 @@
 import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
+import { CardBack } from "../components/CardBack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ArenaBattleLogEntry,
@@ -212,7 +213,7 @@ function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, cla
   };
   return (
     <div className={`arena-slot${cooldown > 0 ? " is-cooldown" : " is-ready"}${defeated ? " is-defeated" : ""}${slot.card ? "" : " is-hidden"}`}>
-      {slot.card ? <BattleCard card={slot.card} clashLevel={clashLevel} clashing={clashing} enemy={enemy} disabled={!canAttack} key={`${slot.card.instanceId}-${lane}`} onClick={handleClick} /> : <div aria-label={cooldown > 0 ? `Лінія ${lane + 1}: карта відкриється через ${cooldown} с` : `Лінія ${lane + 1}: карта прихована`} className="arena-hidden-card">{cooldown > 0 ? <span className="arena-hidden-card__timer">{cooldown}</span> : null}</div>}
+      {slot.card ? <BattleCard card={slot.card} clashLevel={clashLevel} clashing={clashing} enemy={enemy} disabled={!canAttack} key={`${slot.card.instanceId}-${lane}`} onClick={handleClick} /> : <div aria-label={cooldown > 0 ? `Лінія ${lane + 1}: карта відкриється через ${cooldown} с` : `Лінія ${lane + 1}: карта прихована`} className="arena-hidden-card"><CardBack className="arena-hidden-card__back" />{cooldown > 0 ? <span className="arena-hidden-card__timer">{cooldown}</span> : null}</div>}
     </div>
   );
 }
@@ -342,7 +343,6 @@ function LeagueTab({ profile, initData }: { profile: ArenaProfileResponse; initD
 function cosmeticPreview(type?: string) {
   if (type === "avatar") return "/assets/arena/avatar-preview.svg";
   if (type === "frame") return "/assets/arena/frame-preview.svg";
-  if (type === "card_back") return "/assets/arena/cardback-preview.svg";
   if (type === "title") return "/assets/arena/title-preview.svg";
   return ARENA_TOKEN_ICON_SOURCE;
 }
@@ -360,7 +360,7 @@ function ShopTab({ profile, catalog, catalogError, catalogLoading, pending, onLo
     <section className="arena-shop-panel">
       <header><div><span>Магазин арени</span><h2>Трофеї за жетони</h2></div><ArenaTokenBalance value={profile.arenaTokens} /></header>
       <p className="arena-shop-panel__intro">Витрачайте жетони Арени на загальні осколки, випадкове спорядження, карти та косметику.</p>
-      {!catalog ? catalogError ? <div className="arena-empty-state" role="alert"><span>{catalogError}</span><button className="duel-secondary-button" disabled={catalogLoading} onClick={onLoad} type="button">{catalogLoading ? "Завантажуємо…" : "Повторити"}</button></div> : <div aria-live="polite" className="arena-empty-state" role="status">Завантажуємо асортимент…</div> : <div className="arena-shop-grid">{catalog.items.map((item) => <article className="arena-shop-item" key={item.id}><div aria-hidden="true" className="arena-shop-item__art"><img alt="" src={arenaShopRewardPreview(item)} /></div><div className="arena-shop-item__details"><strong>{item.displayName}</strong><small>{item.rewardType === "cosmetic" ? "Косметика" : item.rewardType === "card" ? "Випадкова карта" : item.rewardType === "equipment" ? "Спорядження" : "Загальні осколки"}</small></div><button aria-label={`Придбати за ${item.price} жетонів`} className="arena-shop-item__purchase" disabled={pending !== null || profile.arenaTokens < item.price} onClick={() => onPurchase(item.id)} type="button"><span>Купити</span><span className="arena-shop-item__price"><ResourceIcon kind="arena-token" size={17} /><strong>{item.price}</strong></span></button></article>)}</div>}
+      {!catalog ? catalogError ? <div className="arena-empty-state" role="alert"><span>{catalogError}</span><button className="duel-secondary-button" disabled={catalogLoading} onClick={onLoad} type="button">{catalogLoading ? "Завантажуємо…" : "Повторити"}</button></div> : <div aria-live="polite" className="arena-empty-state" role="status">Завантажуємо асортимент…</div> : <div className="arena-shop-grid">{catalog.items.map((item) => <article className="arena-shop-item" key={item.id}><div aria-hidden="true" className="arena-shop-item__art">{item.rewardType === "cosmetic" && item.cosmeticType === "card_back" ? <CardBack className="arena-shop-item__card-back" /> : <img alt="" src={arenaShopRewardPreview(item)} />}</div><div className="arena-shop-item__details"><strong>{item.displayName}</strong><small>{item.rewardType === "cosmetic" ? "Косметика" : item.rewardType === "card" ? "Випадкова карта" : item.rewardType === "equipment" ? "Спорядження" : "Загальні осколки"}</small></div><button aria-label={`Придбати за ${item.price} жетонів`} className="arena-shop-item__purchase" disabled={pending !== null || profile.arenaTokens < item.price} onClick={() => onPurchase(item.id)} type="button"><span>Купити</span><span className="arena-shop-item__price"><ResourceIcon kind="arena-token" size={17} /><strong>{item.price}</strong></span></button></article>)}</div>}
     </section>
   );
 }

@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-03",
+  "mode": "ChatGPT in Chrome through cua_repl",
+  "queues": [3, 4],
+  "chats": ["https://chatgpt.com/c/6ae9cc90-fce8-83eb-93b9-6e019e4ac299", "https://chatgpt.com/c/6ae9cc91-d78c-83eb-9381-13342ba3324d"],
+  "basePrompts": "queues.json",
+  "attempts": {
+    "diamond_brotherhood_earth": [
+      { "attempt": 1, "result": "rejected: raised gauntlet has four curled fingers plus thumb" },
+      { "attempt": 2, "scene": "Adult boxer driving a single gem-studded gauntleted fist upward in a powerful punch, cracked stone under his boots, bandaged knuckles. The raised fist has exactly three curled finger bands and one opposing thumb, four digits total; only three knuckle gems, never four curled finger bands. His other hand is also clenched in a natural boxing guard with exactly three curled finger bands and one opposing thumb. Preserve the dynamic action and connected shoulders, elbows and wrists.", "side": "right", "result": "rejected: four curled lobes and thumb persisted" },
+      { "attempt": 3, "sceneSource": "tools/card-catalog/catalog-prompts.js", "side": "right", "result": "accepted: rear solid plate conceals digits, other fist behind hip", "chatImage": 5 }
+    ],
+    "drmagic_heal_fire": [
+      { "attempt": 1, "result": "rejected: painted checkerboard, no alpha", "chatImage": 4 },
+      { "attempt": 2, "scene": "Small campfire with a kettle on a tripod, bedroll and boots nearby, soft smoke spiral. Deliver this isolated ink-and-cream cutout as a real transparent PNG with actual alpha zero outside the complete shapes. No checkerboard pattern, no white or coloured rectangle, no backdrop, no paper sheet. The transparency must be real image alpha, not painted squares. Keep the smoke as solid opaque carved cream-and-black shapes.", "side": "left", "result": "generating", "chatImage": 7 }
+    ]
+  }
+}

@@ -2,7 +2,7 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { cardArtAvatarClassName } from "../components/avatarBackdrop";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useCardArtworkSource } from "../components/cardArtSource";
 import "../styles/duel-screen.css";
 import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
@@ -212,7 +212,7 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
   );
 }
 
-function DuelIntroOverlay() {
+export function DuelIntroOverlay() {
   return (
     <div aria-hidden="true" className="duel-intro">
       <span>ТВОЯ КОЛОДА</span>
@@ -232,7 +232,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; la
   const enemyStrong = exchange.visualState === "enemy_strong";
   return (
     <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}`}>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
+      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
       <strong className="battle-log-damage battle-log-damage--player">{exchange.playerDamage}</strong>
       {/* One seal per exchange: the multiplier of the player's own strike. */}
       <span
@@ -242,7 +242,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; la
         <BattleLogSeal multiplier={exchange.playerMultiplier} />
       </span>
       <strong className="battle-log-damage battle-log-damage--enemy">{exchange.enemyDamage}</strong>
-      <span className="battle-log-art"><CardArtwork artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} /></span>
+      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} /></span>
     </li>
   );
 }
@@ -404,7 +404,7 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
 
 const REWARD_SHOWCASE_MS = 1_500;
 const DUEL_RESULT_CREST_WIN = "/assets/ui/duel/result-victory-crest-v1.webp";
-const DUEL_RESULT_CREST_LOSS = "/assets/ui/duel/result-defeat-crest-v1.webp";
+const DUEL_RESULT_CREST_LOSS = "/assets/ui/duel/result-defeat-crest-v2.webp";
 
 /** Rewards tick up from zero once the crest has landed. */
 function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; delay?: number; duration?: number }) {
@@ -421,7 +421,7 @@ function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; d
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [delay, duration, value]);
-  return <>{formatUiNumber(shown)}</>;
+  return <span className="duel-outcome__reward-value ui-number">{formatUiNumber(shown)}</span>;
 }
 
 function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
@@ -472,7 +472,12 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
       <header className="duel-outcome__crest">
         {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}
         <img alt="" className="duel-outcome__crest-art" src={won ? DUEL_RESULT_CREST_WIN : DUEL_RESULT_CREST_LOSS} />
-        <h1 className="duel-outcome__title">{won ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
+        <span aria-hidden="true" className={`duel-outcome__particles${won ? " duel-outcome__particles--win" : " duel-outcome__particles--loss"}`}>
+          {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
+        </span>
+        <h1 aria-label={won ? "ПЕРЕМОГА" : "ПОРАЗКА"} className="duel-outcome__title">
+          {Array.from(won ? "ПЕРЕМОГА" : "ПОРАЗКА", (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter}</span>)}
+        </h1>
       </header>
       <p className="duel-outcome__received">Ти отримав:</p>
       <div aria-label="Нагороди за дуель" className="duel-outcome__loot">

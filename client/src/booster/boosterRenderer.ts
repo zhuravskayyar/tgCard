@@ -3,6 +3,7 @@ import { prepareBoosterCut, type BoosterCut, type CutPoint } from "./boosterCut"
 import { getBoosterMotion } from "./boosterMotion";
 import { BOOSTER_PAPER_CURL_DEPTH, BOOSTER_PAPER_RIPPLE_DEPTH, getBoosterFragmentPose, getBoosterFragmentShape, type BoosterFragmentShape } from "./boosterFragments";
 import { createCardMaterialSurface, type CardMaterialSurface } from "../cards/cardMaterialShader";
+import { CARD_BACK_MATERIAL_ID } from "../cards/cardBackModel";
 import type { BoosterCardTextures } from "./boosterCardTexture";
 
 export type BoosterPhase = "sealed" | "tearing" | "opening" | "revealing" | "revealed";
@@ -91,13 +92,14 @@ void main() {
 
 interface GpuMesh { attributes: WebGLBuffer[]; index: WebGLBuffer; count: number }
 
-export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCanvasElement, card: BoosterCardTextures, cardReverse: HTMLImageElement, onPhase: (phase: BoosterPhase) => void, onError: (message: string) => void): BoosterRenderer {
+export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCanvasElement, card: BoosterCardTextures, cardReverse: HTMLCanvasElement, onPhase: (phase: BoosterPhase) => void, onError: (message: string) => void): BoosterRenderer {
   const gl = canvas.getContext("webgl", { alpha: true, antialias: true, premultipliedAlpha: false });
   if (!gl) throw new Error("Цей браузер не підтримує 3D. Відкрий сторінку в Chrome або Telegram.");
   const shaders: WebGLShader[] = [];
   const meshes = new Set<GpuMesh>();
   const textures: WebGLTexture[] = [];
   let cardSurface: CardMaterialSurface | null = null;
+  let cardBackSurface: CardMaterialSurface | null = null;
   const program = gl.createProgram();
   if (!program) throw new Error("Не вдалося створити 3D-сцену.");
   function compile(type: number, source: string) {
@@ -145,6 +147,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
   }
   function freeGpu() {
     cardSurface?.dispose();
+    cardBackSurface?.dispose();
     meshes.forEach(deleteMesh);
     textures.forEach((texture) => gl!.deleteTexture(texture));
     shaders.forEach((shader) => gl!.deleteShader(shader));
@@ -162,7 +165,8 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     [cardFront, cardBack] = [uploadMesh(createCardMesh(false)), uploadMesh(createCardMesh(true))];
     cardEdges = uploadMesh(createCardEdges());
     foilTexture = uploadTexture(wrapper);
-    reverseTexture = uploadTexture(cardReverse);
+    cardBackSurface = createCardMaterialSurface(gl, cardReverse, CARD_BACK_MATERIAL_ID);
+    reverseTexture = cardBackSurface.texture;
     cardSurface = createCardMaterialSurface(gl, card.plate, card.materialId, card.art);
     cardTexture = cardSurface.texture;
   } catch (error) {
