@@ -34,12 +34,12 @@ export const WORLD_BOTS: readonly WorldBotDefinition[] = Object.freeze([
   {
     avatarIndex: 1, botKey: "hanna-koval", firstName: "Hanna Koval", lastName: "Koval", nickname: "Hanna", username: "hanna_koval",
     language: "uk", personality: "tactician", level: 10, deckLevel: 1, duelLeagueIndex: 0, element: "water", equipmentRarity: "common", equipmentSlots: 2, extraDailySession: false,
-    guild: { name: "Вартові Світанку", nameKey: "vartovi-svitan", description: "Шукаємо спокійних гравців для дуелей і спільних рейдів.", language: "uk", recruitmentMode: "open", emblemId: "shield-1", themeElement: "water" },
+    guild: { name: "Світанок", nameKey: "svitanok", description: "Шукаємо спокійних гравців для дуелей і спільних рейдів.", language: "uk", recruitmentMode: "open", emblemId: "shield-1", themeElement: "water" },
   },
   {
     avatarIndex: 2, botKey: "taras-bereza", firstName: "Taras Bereza", lastName: "Bereza", nickname: "Taras", username: "taras_bereza",
     language: "uk", personality: "rusher", level: 12, deckLevel: 2, duelLeagueIndex: 1, element: "fire", equipmentRarity: "common", equipmentSlots: 3, extraDailySession: false,
-    guild: { name: "Мідний Ворон", nameKey: "midnyi-voron", description: "Збираємо колекціонерів і любителів чесних боїв.", language: "uk", recruitmentMode: "application", emblemId: "shield-2", themeElement: "fire" },
+    guild: { name: "Мідний", nameKey: "midnyi", description: "Збираємо колекціонерів і любителів чесних боїв.", language: "uk", recruitmentMode: "application", emblemId: "shield-2", themeElement: "fire" },
   },
   {
     avatarIndex: 3, botKey: "johannes-weiss", firstName: "Johannes Weiss", lastName: "Weiss", nickname: "Johann", username: "johannes_weiss",
@@ -49,37 +49,37 @@ export const WORLD_BOTS: readonly WorldBotDefinition[] = Object.freeze([
   {
     avatarIndex: 4, botKey: "elin-ward", firstName: "Elin Ward", lastName: "Ward", nickname: "Elin", username: "elin_ward",
     language: "en", personality: "tactician", level: 17, deckLevel: 7, duelLeagueIndex: 3, element: "earth", equipmentRarity: "uncommon", equipmentSlots: 4, extraDailySession: false,
-    guild: { name: "The Ashen Compass", nameKey: "ashen-compass", description: "A small, friendly company for duels, collections, and raids.", language: "en", recruitmentMode: "application", emblemId: "shield-4", themeElement: "earth" },
+    guild: { name: "Ashen Pact", nameKey: "ashen-pact", description: "A small, friendly company for duels, collections, and raids.", language: "en", recruitmentMode: "application", emblemId: "shield-4", themeElement: "earth" },
   },
   {
     avatarIndex: 5, botKey: "liza-baran", firstName: "Liza Baran", lastName: "Baran", nickname: "Liza", username: "liza_baran",
     language: "uk", personality: "collector", level: 22, deckLevel: 12, duelLeagueIndex: 4, element: "fire", equipmentRarity: "rare", equipmentSlots: 5, extraDailySession: false,
-    guild: { name: "Тиха Бібліотека", nameKey: "tykha-biblioteka", description: "Місце для тих, хто збирає історії та рідкісні карти.", language: "uk", recruitmentMode: "closed", emblemId: "shield-5", themeElement: "fire" },
+    guild: { name: "Тиха Книга", nameKey: "tykha-knyha", description: "Місце для тих, хто збирає історії та рідкісні карти.", language: "uk", recruitmentMode: "closed", emblemId: "shield-5", themeElement: "fire" },
   },
   {
     avatarIndex: 6, botKey: "marko-hnatyshyn", firstName: "Marko Hnatyshyn", lastName: "Hnatyshyn", nickname: "Marko", username: "marko_hnatyshyn",
     language: "uk", personality: "guardian", level: 27, deckLevel: 18, duelLeagueIndex: 5, element: "earth", equipmentRarity: "rare", equipmentSlots: 6, extraDailySession: false,
-    guild: { name: "Коло Чотирьох Вітрів", nameKey: "kolo-chotyrokh-vitriv", description: "Граємо без поспіху, ділимося тактиками й ходимо в рейди.", language: "uk", recruitmentMode: "open", emblemId: "shield-6", themeElement: "air" },
+    guild: { name: "Коло Вітру", nameKey: "kolo-vitru", description: "Граємо без поспіху, ділимося тактиками й ходимо в рейди.", language: "uk", recruitmentMode: "open", emblemId: "shield-6", themeElement: "air" },
   },
   {
     avatarIndex: 7, botKey: "amin-darzi", firstName: "Amin Darzi", lastName: "Darzi", nickname: "Amin", username: "amin_darzi",
     language: "other", personality: "wanderer", level: 31, deckLevel: 24, duelLeagueIndex: 6, element: "water", equipmentRarity: "epic", equipmentSlots: 6, extraDailySession: false,
-    guild: { name: "Les Veilleurs Azur", nameKey: "veilleurs-azur", description: "Une compagnie ouverte aux voyageurs et aux amateurs de duels.", language: "other", recruitmentMode: "open", emblemId: "shield-7", themeElement: "water" },
+    guild: { name: "Veilleurs", nameKey: "veilleurs", description: "Une compagnie ouverte aux voyageurs et aux amateurs de duels.", language: "other", recruitmentMode: "open", emblemId: "shield-7", themeElement: "water" },
   },
   {
     avatarIndex: 8, botKey: "nora-vogel", firstName: "Nora Vogel", lastName: "Vogel", nickname: "Nora", username: "nora_vogel",
     language: "de", personality: "guardian", level: 36, deckLevel: 30, duelLeagueIndex: 7, element: "earth", equipmentRarity: "epic", equipmentSlots: 7, extraDailySession: false,
-    guild: { name: "Die Morgenlaterne", nameKey: "morgenlaterne", description: "Offen für Reisende, die gerne zusammen kämpfen und sammeln.", language: "de", recruitmentMode: "application", emblemId: "shield-8", themeElement: "earth" },
+    guild: { name: "Morgenrot", nameKey: "morgenrot", description: "Offen für Reisende, die gerne zusammen kämpfen und sammeln.", language: "de", recruitmentMode: "application", emblemId: "shield-8", themeElement: "earth" },
   },
   {
     avatarIndex: 9, botKey: "nika-sokolova", firstName: "Nika Sokolova", lastName: "Sokolova", nickname: "Nika", username: "nika_sokolova",
     language: "ru", personality: "rusher", level: 43, deckLevel: 40, duelLeagueIndex: 8, element: "fire", equipmentRarity: "legendary", equipmentSlots: 8, extraDailySession: false,
-    guild: { name: "Костяной Круг", nameKey: "kostyanoi-krug", description: "Ищем сильных соперников и союзников для рейдов.", language: "ru", recruitmentMode: "open", emblemId: "shield-9", themeElement: "fire" },
+    guild: { name: "Костяной", nameKey: "kostyanoi", description: "Ищем сильных соперников и союзников для рейдов.", language: "ru", recruitmentMode: "open", emblemId: "shield-9", themeElement: "fire" },
   },
   {
     avatarIndex: 10, botKey: "theo-reed", firstName: "Theo Reed", lastName: "Reed", nickname: "Theo", username: "theo_reed",
     language: "en", personality: "wanderer", level: 52, deckLevel: 55, duelLeagueIndex: 9, element: "air", equipmentRarity: "mythic", equipmentSlots: 9, extraDailySession: true,
-    guild: { name: "The Hollow Crown", nameKey: "hollow-crown", description: "For curious players, close duels, and stories worth sharing.", language: "en", recruitmentMode: "application", emblemId: "shield-10", themeElement: "air" },
+    guild: { name: "Hollow", nameKey: "hollow", description: "For curious players, close duels, and stories worth sharing.", language: "en", recruitmentMode: "application", emblemId: "shield-10", themeElement: "air" },
   },
   {
     avatarIndex: 11, botKey: "ostap-klymchuk", firstName: "Ostap Klymchuk", lastName: "Klymchuk", nickname: "Ostap", username: "ostap_klymchuk",
