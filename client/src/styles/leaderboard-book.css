@@ -3,7 +3,7 @@
   --book-ink: #2d1b0e;
   --book-ink-muted: #4a3620;
   --book-accent: #7a2f16;
-  --leaderboard-plate: url("/assets/ui/game/text-panel-plate-v1.webp");
+  --leaderboard-plate: var(--sprite-panel-frame);
 }
 
 :root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen :is(.leaderboard-lock, .leaderboard-state, .leaderboard-list-section) {
@@ -12,7 +12,7 @@
   color: var(--book-ink);
   border-style: solid;
   border-width: 20px 18px;
-  border-image: var(--leaderboard-plate) 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--leaderboard-plate) 62 fill / 20px stretch;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -72,14 +72,14 @@
   width: fit-content;
   height: 40px;
   margin: 0 auto;
-  padding: 0 52px 2px;
+  padding: 0 14px 2px;
   display: flex;
   align-items: center;
   color: #3a2410;
   font: 700 16px/1 var(--font-display);
   text-shadow: 0 1px 0 rgb(255 236 190 / 70%);
-  border: 0 solid transparent;
-  border-image: url("/assets/ui/ribbon-title-v3.webp") 0 145 0 145 fill / 0 52px / 0 stretch;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 :root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 :root[data-game-theme="light"] .app-shell .app-content .leaderboard-screen .leaderboard-tab { display: grid; min-height: 48px; padding: 0; place-items: center; color: #2d1b0e; }

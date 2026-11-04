@@ -1,7 +1,8 @@
 /* The single parchment theme: shared materials and ink for every screen. */
 :root {
-  --sprite-panel-frame: url("/assets/ui/theme-book/panel-frame.webp");
-  --sprite-heading-plaque: url("/assets/ui/theme-book/heading-plaque.webp");
+  /* The shared gold-edged panel selected on the Tasks screen is the standard info surface. */
+  --sprite-panel-frame: url("/assets/ui/trials/quest-plate-v1.webp");
+  --sprite-text-plate: var(--sprite-panel-frame);
   --sprite-menu-row: url("/assets/ui/theme-book/menu-row.webp");
   --sprite-button-primary: url("/assets/ui/theme-book/button-primary.webp");
   --sprite-button-secondary: url("/assets/ui/theme-book/button-secondary.webp");

@@ -22,16 +22,3 @@ const EMBLEMS: Readonly<Record<string, string>> = {
 export function collectionEmblem(code: string) {
   return `${ICONS}/${EMBLEMS[code] ?? "fleur-de-lis"}.svg`;
 }
-
-export function collectionEngraving(code: string) {
-  return `/assets/ui/bestiary/engravings/${code}.webp`;
-}
-
-export const ENGRAVING_FALLBACK = "/assets/ui/trials/campaign-map-v1.webp";
-
-// Spreads the shared fallback plate over its landscape so neighbouring entries differ until their art arrives.
-export function engravingFallbackPosition(code: string) {
-  let hash = 0;
-  for (const character of code) hash = (hash * 31 + character.charCodeAt(0)) % 997;
-  return `${8 + (hash % 85)}% 78%`;
-}

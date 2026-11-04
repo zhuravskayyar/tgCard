@@ -3,16 +3,16 @@
   .ui-panel, .profile-showcase, .profile-section, .profile-state, .profile-hero,
   .player-profile-card, .player-profile-section, .inventory-section, .settings-section,
   .arena-lobby, .arena-league-panel, .arena-shop-panel, .arena-queue-panel,
-  .arena-target-panel, .arena-player-panel, .duel-hp-panel, .dungeon-result__panel,
+  .arena-target-panel, .arena-player-panel, .arena-log, .duel-hp-panel, .dungeon-result__panel,
   .guild-dashboard-card, .guild-level, .guild-lock, .guild-pending, .guild-state,
   .guild-notice, .guild-forum-section, .guild-list, .tasks-screen__mascot,
   .tasks-screen__marathon, .tasks-screen__account-protection, .shop-wallet,
-  .battle-pass-hero, .battle-pass-circle, .card-detail-reference-stats
+  .battle-pass-hero, .battle-pass-circle, .campaign-quest, .card-detail-reference-stats
 ) {
   color: var(--home-ink);
   background: transparent;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -26,6 +26,20 @@
   border-radius: 0;
   box-shadow: none;
 }
+:root .app-content .battle-pass-screen .battle-pass-milestone__reward {
+  color: var(--home-ink);
+  background: none;
+  border: 20px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .app-content .battle-pass-screen .battle-pass-milestone__reward-copy strong { color: var(--home-ink); }
+:root .app-content .battle-pass-screen .battle-pass-milestone__reward-copy small { color: var(--home-ink-muted); }
+:root .app-content .campaign-quest :is(h1, h2, strong, b, p, span, small, em) { color: var(--home-ink); text-shadow: none; }
+:root .app-content .campaign-quest :is(p, small, em) { color: var(--home-ink-muted); }
+:root .app-content .arena-log :is(h2, strong, p, span, small) { color: var(--home-ink); text-shadow: none; }
+:root .app-content .arena-log :is(h2, small) { color: var(--home-ink-muted); }
 :root .app-content :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
   .guild-forum-topic) + :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
   .guild-forum-topic) { border-top: 1px solid var(--border-subtle); }
@@ -102,7 +116,7 @@
   background: none;
   border-style: solid;
   border-width: 20px 18px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -112,14 +126,14 @@
 :root[data-game-theme="light"] .app-shell .app-content .first-visit-hint li b { color: var(--home-ink); font-weight: 800; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; }
 :root[data-game-theme="light"] .app-shell .app-content .first-visit-hint button { min-width: 112px; white-space: nowrap; }
 
-/* Readability: no ink straight on the patterned page. Headings sit on the ribbon, captions on a small plate. */
+/* Readability: no ink straight on the patterned page. Section labels and captions share one plate. */
 :root[data-game-theme="light"] .app-shell .app-content :is(.pf-section > h2, .guild-section-heading h2) {
   justify-self: center;
   width: fit-content;
   max-width: 100%;
   height: 40px;
   margin: 0 auto;
-  padding: 0 52px 2px;
+  padding: 0 14px 2px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,7 +142,7 @@
   text-shadow: 0 1px 0 rgb(255 236 190 / 70%);
   background: none;
   border: 0 solid transparent;
-  border-image: url("/assets/ui/ribbon-title-v3.webp") 0 145 0 145 fill / 0 52px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 :root[data-game-theme="light"] .app-shell .app-content .guild-section-heading { justify-content: center; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-section-heading > span[aria-hidden="true"] { display: none; }
@@ -143,7 +157,7 @@
   padding: 2px 8px 3px;
   border-style: solid;
   border-width: 8px 8px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 8px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 8px / 0 stretch;
 }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption strong { color: #24140a; font-size: 13px; font-weight: 800; line-height: 1.1; text-shadow: none; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption small { color: #4a3620; font-size: 11px; font-weight: 700; line-height: 1.1; text-shadow: none; }
@@ -152,7 +166,7 @@
   padding: 6px 12px;
   border-style: solid;
   border-width: 20px 18px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
 }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-lobby__participants {
   justify-self: center;
@@ -162,7 +176,7 @@
   text-shadow: none;
   border-style: solid;
   border-width: 12px 14px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }
 
 /* Paler page: the book art keeps its drawing, but its dark lines no longer fight the text above it. */
@@ -177,5 +191,5 @@
   text-shadow: none;
   border-style: solid;
   border-width: 12px 14px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }

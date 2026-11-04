@@ -9,8 +9,8 @@
   padding: 8px 22px;
   color: var(--home-ink);
   background: transparent;
-  border: 0 solid transparent;
-  border-image: var(--sprite-heading-plaque) 0 160 0 160 fill / 0 60px / 0 stretch;
+  border: 12px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
   border-radius: 0;
   box-shadow: none;
   filter: var(--home-frame-shadow);

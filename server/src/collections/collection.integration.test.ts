@@ -58,7 +58,7 @@ test("completed progress and bonus survive consuming four current instances", {
     const collectionWithoutCover = COLLECTIONS.find(({ coverArtKey }) => coverArtKey === null);
     assert.ok(collectionWithoutCover);
     const fallbackCover = await repository.detail(player.id, collectionWithoutCover.id);
-    assert.equal(fallbackCover.collection.coverArtKey, collectionWithoutCover.cards[0]?.artKey);
+    assert.equal(fallbackCover.collection.coverArtKey, collectionWithoutCover.cards[0]?.artKey ?? collectionWithoutCover.cards[0]?.code);
     assert.ok(before.cards.every(({ description }) => description.trim().length > 0));
 
     await pool.query(

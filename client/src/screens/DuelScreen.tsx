@@ -285,10 +285,15 @@ function useSettledMultipliers(multipliers: readonly number[], latestTurn: numbe
   return settled.current;
 }
 
-function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, tutorialMode }: {
+export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionHint, actionNotice, disableCards = false, disabledSlots, tutorialAllowedSlot = null, tutorialMode }: {
   duel: DuelView;
   pendingSlot: 0 | 1 | 2 | null;
   onAction: (slotIndex: 0 | 1 | 2) => void;
+  actionButtons?: ReactNode;
+  actionHint?: string;
+  actionNotice?: ReactNode;
+  disableCards?: boolean;
+  disabledSlots?: [boolean, boolean, boolean];
   tutorialAllowedSlot?: 0 | 1 | null;
   tutorialMode?: boolean;
 }) {
@@ -361,7 +366,7 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
               card={card}
               clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined}
               clashing={clashSlot === index}
-              disabled={clash !== null || pendingSlot !== null || (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index)}
+              disabled={disableCards || clash !== null || pendingSlot !== null || disabledSlots?.[index] === true || (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index)}
               introActive={introActive}
               key={card.instanceId}
               onClick={() => onAction(index as 0 | 1 | 2)}
@@ -387,7 +392,9 @@ function DuelBattle({ duel, pendingSlot, onAction, tutorialAllowedSlot = null, t
         hit={clash !== null}
         tutorialTarget={tutorialMode ? "player-hp" : undefined}
       />
-      <p className="duel-action-hint">{pendingSlot === null ? "Оберіть свою карту" : "Обмін ударами…"}</p>
+      <p className="duel-action-hint">{actionHint ?? (pendingSlot === null ? "Оберіть свою карту" : "Обмін ударами…")}</p>
+      {actionButtons}
+      {actionNotice}
       <section data-tutorial-target={tutorialMode ? "duel-log" : undefined}>
         <BattleLog animateLatest={clash !== null} entries={duel.battleLog} />
       </section>

@@ -85,7 +85,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(20 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(20 * var(--u)) stretch round;
   border-radius: 0;
   box-shadow: none;
 }
@@ -483,13 +483,13 @@
   padding: 2px 10px;
   border-style: solid;
   border-width: 12px 14px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }
 :root[data-game-theme="light"] body .app-shell .app-content .eq-step small {
   padding: 1px 6px;
   border-style: solid;
   border-width: 6px 7px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 6px 7px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 7px stretch;
   text-shadow: none;
 }
 /* Disabled buttons keep readable words: the plate fades, the ink does not. */

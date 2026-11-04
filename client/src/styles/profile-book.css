@@ -54,10 +54,13 @@
   color: #fff3d6;
   font-size: 15px;
   font-weight: 700;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  text-shadow: 0 1px 0 rgb(255 245 220 / 60%);
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
-.pf-power strong { color: #fff3d6; font-family: var(--font-number); font-size: 19px; }
+.pf-power, .pf-power strong { color: #24140a; text-shadow: none; }
+.pf-power strong { font-family: var(--font-number); font-size: 19px; }
 
 .pf-menu { display: grid; gap: 8px; }
 
@@ -105,7 +108,7 @@
   padding: 2px 6px;
   border-style: solid;
   border-width: 12px 14px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 12px 14px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }
 .pf-elements .element-symbol--fire { color: #c2381f; }
 .pf-elements .element-symbol--water { color: #2a6fb0; }

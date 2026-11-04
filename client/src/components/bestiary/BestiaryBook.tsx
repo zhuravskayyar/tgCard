@@ -119,7 +119,6 @@ export function BestiaryBook({ collectionId, onBack, onBackToContents, onOpenCar
         </div>
       ) : null}
       <div className="bestiary-book">
-        <span aria-hidden="true" className="bestiary-book__bookmarks"><i /><i /><i /></span>
         <div className="bestiary-leaf">
           {shownId === null ? (
             list.state.status !== "ready" ? <BookState onRetry={list.retry} status={list.state.status} /> : filter === "all" ? (

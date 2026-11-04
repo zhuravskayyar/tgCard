@@ -14,7 +14,7 @@
   color: var(--home-ink);
   background: transparent;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   box-shadow: none;
 }
 
@@ -70,7 +70,7 @@
   color: var(--home-ink);
   background: transparent;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   box-shadow: none;
   padding: 22px;
 }
@@ -901,7 +901,7 @@
   color: var(--home-ink);
   background: transparent;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   box-shadow: none;
 }
 
@@ -1063,7 +1063,7 @@
   padding: 16px 18px 18px;
   background: none;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -1221,7 +1221,7 @@
   text-align: center;
   background: none;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 22px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -1262,7 +1262,9 @@
   margin: 0;
   padding: 9px 0 11px;
   color: var(--home-ink);
-  background: url("/assets/ui/ribbon-title-v3.webp") center / 100% 100% no-repeat;
+  background: none;
+  border: 12px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 15px stretch;
   font: 700 clamp(22px, 6.4vw, 28px)/1 var(--font-display);
   letter-spacing: .12em;
   text-shadow: 0 1px 0 rgb(255 246 220 / 70%);
@@ -1374,7 +1376,7 @@
   overflow: visible;
   background: none;
   border: 14px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 14px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 14px stretch;
   border-radius: 0;
   box-shadow: 0 6px 14px rgb(30 15 5 / 45%);
 }
@@ -1469,7 +1471,7 @@
   overflow: visible;
   background: none;
   border: 14px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 14px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 14px stretch;
   border-radius: 0;
 }
 .app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue p { padding: 0 4px; color: #24140a; font-size: 15px; font-weight: 700; line-height: 1.3; }

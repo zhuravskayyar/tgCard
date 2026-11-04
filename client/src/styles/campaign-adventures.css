@@ -27,7 +27,7 @@
 
 .adventure-plate {
   border: 14px solid transparent;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 18px / 0 stretch;
   color: var(--home-ink);
   padding: 8px 6px;
   text-align: center;

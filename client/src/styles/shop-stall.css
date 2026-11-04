@@ -103,7 +103,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(16 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(16 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(16 * var(--u)) stretch round;
 }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-offer__copy h3 { margin: 0; color: #24140a; font-size: 19px; line-height: 1.15; text-shadow: none; }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-offer__guarantee { display: block; margin: 0; color: #5f4024; font-size: 13px; line-height: 1.2; }
@@ -156,7 +156,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(20 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(20 * var(--u)) stretch round;
   border-radius: 0;
   box-shadow: none;
 }
@@ -262,11 +262,13 @@
   width: 240px;
   aspect-ratio: 800 / 117;
   margin: 0 auto 4px;
-  color: #fff3d6;
+  color: #24140a;
   font-size: 13px;
   line-height: 1;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  text-shadow: none;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-unbox-stage .shop-reveal__heading > span { letter-spacing: .08em; }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
@@ -296,7 +298,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(20 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(20 * var(--u)) stretch round;
   border-radius: 0;
   box-shadow: none;
 }
@@ -317,11 +319,13 @@
   width: 240px;
   aspect-ratio: 800 / 117;
   margin: 0;
-  color: #fff3d6;
+  color: #24140a;
   font-size: 14px;
   line-height: 1;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  text-shadow: none;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 
 /* Launch fixes: the pack stands on the shelf, the buy button sits under it. */
@@ -351,7 +355,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(23 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(23 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(23 * var(--u)) stretch round;
   animation: none;
 }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-category-banner__copy strong { color: #24140a; font-size: 20px; text-shadow: none; }
@@ -909,12 +913,14 @@
   gap: 6px;
   width: min(100%, 280px);
   aspect-ratio: 800 / 117;
-  color: #fff3d6;
+  color: #24140a;
   font-size: 14px;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  text-shadow: none;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
-:root[data-game-theme="light"] body .app-shell .app-content .workshop-head__balance strong { color: #fff3d6; font-family: var(--font-number); font-size: 17px; }
+:root[data-game-theme="light"] body .app-shell .app-content .workshop-head__balance strong { color: #24140a; font-family: var(--font-number); font-size: 17px; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-head__timer,
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-note { margin: 0; color: #24140a; font-size: 13px; font-weight: 700; text-align: center; text-shadow: 0 1px 0 rgb(255 245 220 / 70%); }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-list { display: grid; gap: 10px; }
@@ -931,7 +937,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(20 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(20 * var(--u)) stretch round;
   border-radius: 0;
   box-shadow: none;
 }
@@ -1075,7 +1081,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(20 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(20 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(20 * var(--u)) stretch round;
 }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__purchase { display: flex; justify-content: center; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__craft {
@@ -1150,7 +1156,7 @@
   background: none;
   border: solid transparent;
   border-width: 16px 18px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 16px 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 17px stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -1217,7 +1223,7 @@
   background: none;
   border-style: solid;
   border-width: 20px 18px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
   border-radius: 0;
   box-shadow: none;
 }
@@ -1227,8 +1233,9 @@
 :root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__body :is(h3, h4, p, span, strong, small) { color: #24140a; text-shadow: none; }
 :root[data-game-theme="light"] body .app-shell .app-content .nickname-series-item {
   color: #24140a;
-  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 100% 100% no-repeat;
-  border: 0;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
   border-radius: 0;
   box-shadow: none;
   filter: grayscale(.35);

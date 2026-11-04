@@ -41,7 +41,9 @@
   line-height: 1;
   text-align: center;
   text-shadow: none;
-  background: url("/assets/ui/auth/parchment/title-plaque-v1.webp") center / 100% 100% no-repeat;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 
 :root .daily-login-modal .daily-login-modal__mascot {
@@ -100,7 +102,7 @@
   padding: 0 4px;
   background: none;
   border: 12px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 12px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
   border-radius: 0;
 }
 :root .daily-login-modal .daily-login-modal__dialogue strong { color: #24140a; font-size: 15px; }

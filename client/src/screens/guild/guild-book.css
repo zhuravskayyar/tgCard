@@ -4,8 +4,8 @@
   --book-ink: #2d1b0e;
   --book-ink-muted: #5d452a;
   --book-ink-accent: #7a2f16;
-  --sprite-text-plate: url("/assets/ui/game/text-panel-plate-v1.webp");
-  --sprite-row-plate: url("/assets/ui/trials/quest-plate-v1.webp");
+  --sprite-text-plate: var(--sprite-panel-frame);
+  --sprite-row-plate: var(--sprite-panel-frame);
   --sprite-ring: url("/assets/ui/trials/medallion-v1.webp");
 }
 
@@ -25,7 +25,7 @@
   color: var(--book-ink);
   border-style: solid;
   border-width: 20px 18px;
-  border-image: var(--sprite-text-plate) 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-text-plate) 62 fill / 20px stretch;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -38,7 +38,7 @@
   color: var(--book-ink);
   border-style: solid;
   border-width: 20px 18px;
-  border-image: var(--sprite-text-plate) 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-text-plate) 62 fill / 20px stretch;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -101,7 +101,7 @@
   color: var(--book-ink);
   border-style: solid;
   border-width: 12px 14px;
-  border-image: var(--sprite-row-plate) 44 fill / 12px 14px / 0 stretch;
+  border-image: var(--sprite-row-plate) 62 fill / 13px stretch;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -196,7 +196,7 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-mode-tile, .guild-card-platform) :is(strong, small) { display: block; height: auto; max-height: none; overflow: visible; line-height: 1.2; }
 
 /* Bare lines the tree drawing would swallow get a slim plate; every plate keeps text off its ornate edge. */
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__cooldown, .guild-section-bar, .guild-raid__actions > p, .guild-raid__actions > small, .guild-altar__battle > p) { display: block; min-height: 0; margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-treasury__cooldown, .guild-section-bar, .guild-raid__actions > p, .guild-raid__actions > small, .guild-altar__battle > p) { display: block; min-height: 0; margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 62 fill / 12px stretch; background: none; box-shadow: none; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-information__facts, .guild-journal__list, .guild-roster__members, .guild-treasury__balance, .guild-treasury__donations, .guild-treasury__cards, .guild-altar-upgrade, .guild-altar__activation, .guild-altar__intro, .guild-raid__bosses, .guild-raid__chat, .guild-raid__status, .guild-management .guild-form, .guild-promo-banner, .guild-create) { padding: 6px 10px; }
 
 /* Rows: icon, title, then the value flush right before the sprite's arrow. */
@@ -239,7 +239,7 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row .guild-icon-button { grid-column: 6; width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__role { display: grid; place-items: center; width: 18px; overflow: hidden; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__role .guild-role { font-size: 0; gap: 0; }
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__title { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); font-weight: 700; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 62 fill / 12px stretch; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tabs { justify-content: center; gap: var(--space-1); }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__actions { display: grid; justify-items: center; gap: var(--space-2); padding: 0; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__divider { height: 16px; border: 0; background: url("/assets/guild/divider-v1.webp") center / contain no-repeat; box-shadow: none; }
@@ -279,7 +279,7 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-name { min-width: 0; overflow: hidden; color: var(--book-ink); font-size: var(--font-md); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stat-value { display: inline-flex; align-items: center; gap: 3px; color: var(--book-ink); font-size: var(--font-md); font-weight: 700; white-space: nowrap; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-treasury__stats-empty { color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__note { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-altar__note { margin: 0; padding: 0 4px; color: var(--book-ink); font-size: var(--font-sm); line-height: 1.3; text-align: center; border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 62 fill / 12px stretch; }
 /* Shared metric tabs: painted plates, the warmer one is selected. */
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tabs { display: grid; grid-template-columns: repeat(5, 48px); justify-content: center; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-roster__rank-tab { display: grid; width: 48px; height: 44px; place-items: center; padding: 0; border: 0; border-radius: 0; background: var(--sprite-button-secondary) center / 100% 100% no-repeat; box-shadow: none; }
@@ -302,10 +302,10 @@
 .guild-forum { padding-inline: 4px; }
 .guild-forum__crest { display: grid; justify-items: center; gap: 2px; padding-top: 2px; text-align: center; }
 .guild-forum__crest .guild-emblem { width: 72px; height: 72px; }
-.guild-forum__crest strong { padding: 0 8px; color: var(--book-ink); font: 700 var(--font-md) var(--font-display); overflow-wrap: anywhere; border-style: solid; border-width: 8px 12px; border-image: var(--sprite-row-plate) 44 fill / 8px 12px / 0 stretch; }
+.guild-forum__crest strong { padding: 0 8px; color: var(--book-ink); font: 700 var(--font-md) var(--font-display); overflow-wrap: anywhere; border-style: solid; border-width: 8px 12px; border-image: var(--sprite-row-plate) 62 fill / 10px stretch; }
 
 /* Crumbs sit on a plate: the page's tree drawing would swallow bare text. */
-.guild-forum__crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; padding: 0 4px; color: var(--book-ink-muted); font-size: var(--font-xs); border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 44 fill / 10px 14px / 0 stretch; }
+.guild-forum__crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; padding: 0 4px; color: var(--book-ink-muted); font-size: var(--font-xs); border-style: solid; border-width: 10px 14px; border-image: var(--sprite-row-plate) 62 fill / 12px stretch; }
 .guild-forum__crumbs button { min-height: 32px; padding: 0; color: var(--book-ink-accent); background: none; border: 0; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; text-align: left; }
 .guild-forum__crumbs span[aria-current] { color: var(--book-ink); font-weight: 700; overflow-wrap: anywhere; }
 

@@ -26,30 +26,7 @@
 }
 
 .bestiary-book {
-  position: relative;
   min-width: 0;
-  margin-inline: calc(var(--space-2) * -1);
-  /* Sliced so the left page edge, bronze corners and branch ornaments keep their proportions at any height. */
-  border-style: solid;
-  border-width: clamp(70px, 22vw, 96px) clamp(18px, 6vw, 28px) clamp(76px, 24vw, 104px) clamp(26px, 8.5vw, 38px);
-  border-image: url("/assets/ui/bestiary/page-v1.webp") 300 88 330 118 fill / 1 / 0 stretch round;
-}
-
-/* Decorative only: no pointer events, no focus, no pressed state. */
-.bestiary-book__bookmarks {
-  position: absolute;
-  top: 6%;
-  right: clamp(-29px, -5.6vw, -17px);
-  display: grid;
-  gap: 54px;
-  pointer-events: none;
-}
-
-.bestiary-book__bookmarks i {
-  display: block;
-  width: 13px;
-  height: 58px;
-  background: url("/assets/ui/bestiary/bookmark-v1.webp") center / 100% 100% no-repeat;
 }
 
 .bestiary-leaf {
@@ -108,18 +85,18 @@
   text-align: center;
 }
 
-/* Contents: two columns on a single page. */
+/* Collection covers echo the three-across reference grid while keeping the book page. */
 .bestiary-contents {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3) clamp(12px, 5vw, 22px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) clamp(7px, 2.6vw, 12px);
 }
 
 .app-content .bestiary-entry {
   position: relative;
   display: grid;
-  gap: 2px;
+  gap: 3px;
   justify-items: center;
   min-width: 0;
   min-height: 44px;
@@ -134,30 +111,34 @@
 
 .bestiary-entry__plate {
   position: relative;
-  display: block;
+  display: grid;
+  place-items: center;
   width: 100%;
-  padding-top: 12px;
-}
-
-.bestiary-engraving {
-  display: block;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1.18 / 1;
+  box-sizing: border-box;
   overflow: hidden;
-  border-style: solid;
-  border-width: 9px;
-  border-image: url("/assets/ui/home/hud-avatar-frame-v2.webp") 40 / 9px stretch;
-  transition: filter 140ms ease-out;
+  border: 8px solid transparent;
+  border-image: url("/assets/ui/equipment/slot-v1.webp") 42 fill / 8px stretch;
 }
 
-.bestiary-engraving img {
+.bestiary-entry__art {
+  position: absolute;
+  inset: 7%;
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.04);
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  opacity: .72;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 60%));
+  transition: opacity 140ms ease-out, filter 140ms ease-out, transform 140ms ease-out;
 }
 
-.app-content .bestiary-entry:active .bestiary-engraving { filter: brightness(1.16) saturate(1.2); }
+.bestiary-entry__fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.bestiary-entry__fallback .bestiary-emblem { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.app-content .bestiary-entry:active .bestiary-entry__art,
+.app-content .bestiary-entry:hover .bestiary-entry__art,
+.app-content .bestiary-entry:focus-visible .bestiary-entry__art { opacity: 1; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 70%)) brightness(1.08); transform: scale(1.04); }
+.bestiary-entry--completed .bestiary-entry__art { opacity: .92; }
 
 .bestiary-emblem {
   position: absolute;
@@ -198,27 +179,38 @@
   to { transform: translateX(110%); }
 }
 
-.bestiary-entry__name {
+.bestiary-entry__caption {
   display: grid;
-  place-items: center;
+  justify-items: center;
+  gap: 1px;
   width: 100%;
-  min-height: 34px;
-  padding: 4px 13px;
-  overflow-wrap: anywhere;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  border: 6px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 6px stretch;
+}
+
+.bestiary-entry__name {
+  width: 100%;
+  min-height: 2.1em;
+  padding: 0;
+  overflow-wrap: break-word;
   font-family: var(--font-display, inherit);
-  font-size: clamp(13px, 3.7vw, 15px);
+  font-size: clamp(12px, 3vw, 14px);
   font-weight: 700;
   line-height: 1.05;
   color: var(--book-ink);
-  background: url("/assets/ui/ribbon-title-v3.webp") center / 100% 100% no-repeat;
+  text-align: center;
 }
 
 .bestiary-entry__progress {
-  font-size: var(--font-sm);
+  font-size: clamp(11px, 2.8vw, 12px);
   font-weight: 700;
   color: var(--book-ink-muted);
   font-variant-numeric: tabular-nums;
 }
+
+.bestiary-entry .bestiary-seal { right: -7px; bottom: -7px; width: 27px; height: 26px; }
 
 /* Collection page */
 .bestiary-page { display: grid; gap: var(--space-3); min-width: 0; }
@@ -230,8 +222,14 @@
   display: grid;
   gap: 2px;
   justify-items: center;
+  width: min(100%, 460px);
+  box-sizing: border-box;
+  justify-self: center;
+  padding: 6px 9px;
   text-align: center;
   color: var(--book-ink);
+  border: 8px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 8px stretch;
 }
 
 .bestiary-page__crest { position: relative; display: block; width: 66px; height: 66px; }
@@ -246,8 +244,19 @@
 }
 
 .bestiary-page__progress { margin: 0; font-size: var(--font-md); font-weight: 700; color: var(--book-ink-muted); }
-.bestiary-page__bonus,
-.bestiary-page__source { margin: 0; font-size: var(--font-xs); color: var(--book-ink-muted); text-align: center; }
+.bestiary-page__bonus { margin: 0; font-size: var(--font-xs); color: var(--book-ink-muted); text-align: center; }
+.bestiary-page__source {
+  width: min(100%, 380px);
+  justify-self: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px 7px;
+  color: var(--book-ink-muted);
+  font-size: var(--font-xs);
+  text-align: center;
+  border: 7px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 7px stretch;
+}
 
 .bestiary-page__cards {
   display: grid;
@@ -277,12 +286,19 @@
 .bestiary-card__plate .card-artwork { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .bestiary-card__name {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  box-sizing: border-box;
   min-height: 2.1em;
+  padding: 3px 6px;
   overflow-wrap: anywhere;
   font-size: clamp(13px, 3.6vw, 15px);
   font-weight: 700;
   line-height: 1.05;
   text-align: center;
+  border: 7px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 7px stretch;
 }
 
 .bestiary-card--locked .bestiary-card__name { color: var(--book-ink-muted); font-weight: 500; }
@@ -320,7 +336,7 @@
   text-align: center;
   border-style: solid;
   border-width: 20px 18px;
-  border-image: url("/assets/ui/game/text-panel-plate-v1.webp") 96 fill / 20px 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
 }
 
 .bestiary-card__unknown i {
@@ -341,5 +357,5 @@
   .collection-card-screen,
   .bestiary-seal::after { animation: none; }
   .bestiary-seal::after { display: none; }
-  .bestiary-engraving { transition: none; }
+  .bestiary-entry__art { transition: none; }
 }

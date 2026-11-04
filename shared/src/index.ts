@@ -1,3 +1,19 @@
+export type {
+  TournamentLeague,
+  TournamentRegularLeague,
+  TournamentSchedule,
+  TournamentPrize,
+  TournamentLobbyView,
+  TournamentRunView,
+  TournamentChatMessage,
+  TournamentChatView,
+  TournamentSeed,
+  TournamentMatchSource,
+  TournamentBracketMatch,
+  TournamentMatchResult,
+  TournamentBuffOption,
+} from "./tournament.js";
+export { TOURNAMENT_CHAT_MAX_LENGTH } from "./tournament.js";
 export {
   CARD_ELEMENTS,
   getCardHoloConfig,

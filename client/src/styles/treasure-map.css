@@ -11,7 +11,7 @@
   border-style: solid;
   border-color: transparent;
   border-width: calc(23 * var(--u));
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / calc(23 * var(--u)) stretch round;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(23 * var(--u)) stretch round;
 }
 .treasure-screen__portrait { position: relative; width: 76px; height: 76px; }
 .treasure-screen__portrait .lariska-image {
@@ -57,8 +57,11 @@
   font-size: 13px;
   font-weight: 700;
   text-align: center;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  text-shadow: none;
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
+  color: #24140a;
 }
 
 .treasure-map {
@@ -104,8 +107,10 @@
   padding: 7px 8px;
   color: #24140a;
   text-align: center;
-  background: url("/assets/ui/trials/board/notice-straight-v1.webp") center / 100% 100% no-repeat;
-  filter: drop-shadow(0 3px 2px rgb(35 18 5 / 45%));
+  background: none;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
+  filter: none;
   transform: translateY(-50%);
 }
 .treasure-map__stop--right .treasure-map__tag { left: calc(100% - 2px); }

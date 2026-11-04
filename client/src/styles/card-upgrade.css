@@ -28,7 +28,7 @@
 :root .app-shell .card-detail-screen .card-detail-overview__main { display: grid; grid-template-columns: minmax(112px, min(144px, 40%)) minmax(0, 1fr); align-items: center; align-self: center; gap: 8px; }
 :root .app-shell .card-detail-screen .card-detail-card { width: 100%; max-width: none; min-width: 0; aspect-ratio: 10 / 13; }
 :root .app-shell .card-detail-screen .card-detail-overview__side { display: grid; gap: 6px; min-width: 0; align-self: center; }
-:root .app-shell .card-detail-screen .card-detail-reference-stats { display: grid; align-content: center; gap: 0; min-width: 0; padding: 5px 6px; background: transparent; border: 0 solid transparent; border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch; box-shadow: none; }
+:root .app-shell .card-detail-screen .card-detail-reference-stats { display: grid; align-content: center; gap: 0; min-width: 0; padding: 5px 6px; background: transparent; border: 0 solid transparent; border-image: var(--sprite-panel-frame) 62 fill / 18px / 0 stretch; box-shadow: none; }
 :root .app-shell .card-detail-screen .card-detail-reference-stat { display: grid; min-height: 28px; grid-template-columns: 19px minmax(0, 1fr) auto; align-items: center; gap: 5px; padding: 1px 3px; border-bottom: 1px solid #9b723955; color: var(--home-ink); font-size: 12.5px; }
 :root .app-shell .card-detail-screen .card-detail-reference-stat > .app-icon { width: 17px; height: 17px; color: var(--home-ink); }
 :root .app-shell .card-detail-screen .card-detail-reference-stat > span:nth-child(2) { color: var(--home-ink-muted); }
@@ -230,7 +230,7 @@
   padding: 5px 8% 10px;
   background: transparent;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 18px / 0 stretch;
   box-shadow: none;
 }
 :root .app-shell .card-detail-screen .card-detail-reference-stat {
@@ -596,7 +596,7 @@
   margin-top: 4px;
   padding: 16px 18px 16px;
   border: 0 solid transparent;
-  border-image: var(--sprite-panel-frame) 64 fill / 18px / 0 stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 18px / 0 stretch;
 }
 :root .app-shell .card-detail-screen .progression-panel__content { gap: 6px; }
 :root .app-shell .card-detail-screen .progression-panel--reference .progression-panel__external-hint {

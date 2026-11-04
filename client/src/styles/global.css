@@ -11526,19 +11526,15 @@ body {
   display: block;
   min-height: 154px;
   min-width: 0;
-  background: url("/assets/ui/world-tree/quest-paper.png") center / 100% 100% no-repeat;
-  filter: drop-shadow(0 6px 5px rgb(0 0 0 / 38%));
+  background: none;
+  border: 14px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 14px stretch;
+  filter: none;
   isolation: isolate;
 }
 
 .quest-paper::after {
-  position: absolute;
-  inset: 17% 8% 14%;
-  z-index: -1;
-  border-radius: 50%;
-  box-shadow: inset 0 0 24px rgb(123 60 14 / 12%);
-  content: "";
-  pointer-events: none;
+  content: none;
 }
 
 .quest-paper__content {
@@ -14178,7 +14174,9 @@ body {
   max-height: 42px;
   margin: 8px auto 10px;
   color: #3b2110;
-  background: url("/assets/ui/ribbon-title.png") center / 100% 250% no-repeat;
+  background: none;
+  border: 12px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
   text-align: center;
 }
 

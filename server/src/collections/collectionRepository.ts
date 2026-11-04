@@ -114,12 +114,11 @@ const SUMMARY_QUERY = `
     COALESCE(
       collections.cover_art_key,
       (
-        SELECT cards.art_key
+        SELECT COALESCE(cards.art_key, cards.code)
         FROM cards
         INNER JOIN collection_cards members ON members.card_id = cards.id
         WHERE members.collection_id = collections.id
-          AND cards.art_key IS NOT NULL
-        ORDER BY cards.code
+        ORDER BY members.position
         LIMIT 1
       )
     ) AS cover_art_key,

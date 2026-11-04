@@ -14,50 +14,51 @@
 :root body .daily-login-modal .daily-login-modal__dialogue,
 :root body .auth-screen--guest .auth-screen__hero .auth-screen__subtitle {
   border-width: calc(23 * var(--u));
-  border-image-source: url("/assets/ui/trials/quest-plate-v1.webp");
+  border-image-source: var(--sprite-panel-frame);
   border-image-slice: 62 fill;
   border-image-width: calc(23 * var(--u));
   border-image-repeat: stretch round;
 }
 
-/* Notice board 800x1423, slices 185 100 170 100. */
+/* Lists of notices use the same quest plate as the rest of the game. */
 :root body .notice-board {
-  border-width: calc(85 * var(--u)) calc(46 * var(--u)) calc(78 * var(--u));
-  border-image-source: url("/assets/ui/trials/board/board-v1.webp");
-  border-image-slice: 185 100 170 100 fill;
-  border-image-width: calc(85 * var(--u)) calc(46 * var(--u)) calc(78 * var(--u));
-  border-image-repeat: stretch round;
+  gap: calc(8 * var(--u));
+  border: 0;
+  border-image: none;
 }
-:root body .notice-board > * { margin-inline: calc(-26 * var(--u)); }
+:root body .notice-board > * { margin-inline: 0; }
 :root body .app-shell .app-content .notice-board > .notice-board__plaque {
   width: min(100%, calc(280 * var(--u)));
-  aspect-ratio: 800 / 117;
   display: grid;
   place-items: center;
-  min-height: 0;
-  margin-block: calc(-34 * var(--u)) 6px;
-  padding: 0 18px;
-  line-height: 1;
+  min-height: calc(38 * var(--u));
+  margin: 0 0 calc(2 * var(--u));
+  padding: 4px 12px;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / calc(12 * var(--u)) stretch;
 }
 
-/* Notices: torn edges tolerate repeating; corners and the ribbon keep their scale. */
+/* Notice rows share the same framed parchment; no torn-paper or rotating variants. */
 :root body .app-shell .app-content .notice-board-screen .quest-paper {
-  padding: 0 4px;
+  padding: calc(10 * var(--u)) calc(12 * var(--u));
   background: none;
   border-style: solid;
   border-color: transparent;
-  border-width: calc(22 * var(--u));
-  border-image: url("/assets/ui/trials/board/notice-torn-v1.webp") 60 fill / calc(22 * var(--u)) stretch round;
+  border-width: calc(14 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(14 * var(--u)) stretch;
+  filter: none;
+  transform: none;
 }
 :root body .app-shell .app-content .notice-board-screen .quest-paper:nth-of-type(even) {
-  border-image-source: url("/assets/ui/trials/board/notice-straight-v1.webp");
+  border-image-source: var(--sprite-panel-frame);
+  transform: none;
 }
 :root body .app-shell .app-content .notice-board-screen .quest-paper.story-notice--official {
-  padding-left: 0;
-  border-left-width: calc(44 * var(--u));
-  border-image: url("/assets/ui/trials/board/notice-official-v1.webp") 60 60 60 120 fill / calc(22 * var(--u)) calc(22 * var(--u)) calc(22 * var(--u)) calc(44 * var(--u)) stretch round;
+  padding-left: calc(12 * var(--u));
+  border-width: calc(14 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(14 * var(--u)) stretch;
 }
-:root body .app-shell .app-content .notice-board-screen .story-notice__nail { top: calc(-27 * var(--u)); }
+:root body .app-shell .app-content .notice-board-screen .story-notice__nail { display: none; }
 
 /* Fixed sprites: real aspect ratio, no free stretching. */
 :root body .app-shell .app-content .notice-board-screen .quest-paper__button:not(.quest-paper__button--claim) {
@@ -90,7 +91,7 @@
   padding: 0 34px;
 }
 :root body .auth-screen--guest .auth-screen__hero h1,
-:root body .daily-login-modal .daily-login-modal__title { aspect-ratio: 900 / 282; }
+:root body .daily-login-modal .daily-login-modal__title { aspect-ratio: 996 / 261; }
 :root body .auth-screen--guest .auth-screen__hero .auth-screen__eyebrow {
   width: 240px;
   aspect-ratio: 800 / 117;
@@ -100,10 +101,10 @@
   line-height: 1;
 }
 
-/* Panel 800x584, slice 70. */
+/* Login copy uses the same framed panel as the rest of the game. */
 :root body .auth-screen--guest .auth-screen__login-panel {
-  border-width: calc(32 * var(--u));
-  border-image: url("/assets/ui/auth/parchment/panel-v1.webp") 70 fill / calc(32 * var(--u)) stretch round;
+  border-width: calc(23 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(23 * var(--u)) stretch;
   padding: 0;
 }
 

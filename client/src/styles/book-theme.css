@@ -140,7 +140,7 @@
   background: transparent;
   border: 0 solid transparent;
   border-image-source: var(--sprite-panel-frame);
-  border-image-slice: 64 fill;
+  border-image-slice: 62 fill;
   border-image-width: 22px;
   border-image-outset: 0;
   border-image-repeat: stretch;
@@ -529,12 +529,12 @@
   transform: translateY(-4px);
 }
 
-/* Deck: element balance and contextual notes sit on the sealed parchment strip; seal and clip never stretch. */
+/* Deck notes use the same framed information plate as the rest of the game. */
 :root .app-shell .deck-upgrade-ribbon { justify-self: center; margin: 0; }
 :root .app-shell :is(.deck-elements, .deck-note) {
   --note-height: 56px;
-  border: 0 solid transparent;
-  border-image: url("/assets/ui/home/deck-note-plate-v1.webp") 0 75 0 125 fill / 0 calc(var(--note-height) * 75 / 148) 0 calc(var(--note-height) * 125 / 148) / 0 stretch;
+  border: 14px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 14px stretch;
   background: none;
 }
 :root .app-shell .deck-elements {
@@ -543,7 +543,7 @@
   justify-content: center;
   gap: 16px;
   min-height: var(--note-height);
-  padding: 0 calc(var(--note-height) * .6) 0 calc(var(--note-height) * .95);
+  padding: 0 14px;
   color: var(--home-ink);
 }
 :root .app-shell .deck-elements > span { display: inline-flex; align-items: center; gap: 6px; }
@@ -561,7 +561,7 @@
   width: 100%;
   margin: 0;
   min-height: var(--note-height);
-  padding: 8px calc(var(--note-height) * .6) 8px calc(var(--note-height) * .95);
+  padding: 8px 14px;
   color: var(--home-ink);
   text-align: left;
   font: 600 13px/1.3 var(--font-body, inherit);
@@ -594,20 +594,20 @@
 :root .app-shell .deck-actions { display: grid; gap: 4px; }
 :root .app-shell .weak-cards-screen .weak-cards-intro { text-align: center; font-style: normal; }
 
-/* Ribbon titles: cropped sprite at a readable height; fixed tails, the middle stretches with the label. */
+/* Section labels use the same frame as other information panels. */
 :root .app-shell .ribbon-title {
   --ribbon-height: 40px;
   height: var(--ribbon-height);
   min-height: var(--ribbon-height);
   max-height: none;
   background: none;
-  border: 0 solid transparent;
-  border-image: url("/assets/ui/ribbon-title-v3.webp") 0 145 0 145 fill / 0 calc(var(--ribbon-height) * 145 / 112) / 0 stretch;
+  border: 10px solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 :root .app-shell .ribbon-title--small { --ribbon-height: 36px; }
 :root .app-shell .ribbon-title--wide { --ribbon-height: 42px; }
 :root .app-shell .ribbon-title__text {
-  padding: 0 calc(var(--ribbon-height) * 1.4) 1px;
+  padding: 0 12px 1px;
   color: #3a2410;
   font: 700 clamp(14px, 3.9vw, 16px)/1 var(--font-display);
   letter-spacing: .01em;

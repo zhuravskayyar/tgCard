@@ -53,6 +53,8 @@ import { handleCardWorkshopCatalog, handleCardWorkshopCraft } from "./shop/cardW
 import { CardWorkshopService } from "./shop/cardWorkshopService.js";
 import { handleArenaRequest } from "./arena/arenaRoute.js";
 import { ArenaService } from "./arena/arenaService.js";
+import { handleTournamentRequest } from "./tournament/tournamentRoute.js";
+import { TournamentService } from "./tournament/tournamentService.js";
 import { handleLimitedCardRedeem } from "./limited/limitedCardRoute.js";
 import { LimitedCardService } from "./limited/limitedCardService.js";
 import {
@@ -108,6 +110,7 @@ const duels = new DuelService(pool, Math.random, campaign, guilds);
 const dungeon = new DungeonService(pool, guilds);
 const cardWorkshop = new CardWorkshopService(pool, undefined, campaign);
 const arena = new ArenaService(pool, guilds);
+const tournaments = new TournamentService(pool);
 const equipmentManual = new EquipmentManualService();
 const guildForumReference = new GuildForumReferenceService();
 const battlePass = new BattlePassService(pool);
@@ -254,6 +257,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const mailActionMatch = url.pathname.match(/^\/api\/player\/mail\/([^/]+)\/action$/);
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
   const isArenaRoute = url.pathname.startsWith("/api/arena/");
+  const isTournamentRoute = url.pathname === "/api/tournament" || url.pathname.startsWith("/api/tournament/");
   const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
   const isStoryTrialsRoute = url.pathname.startsWith("/api/player/trials");
   const isCampaignBossRoute = url.pathname.startsWith("/api/player/campaign/boss");
@@ -267,7 +271,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -741,6 +745,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       botToken: environment.telegramBotToken,
       duels,
       players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isTournamentRoute) {
+    await handleTournamentRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      tournaments,
       responseHeaders: cors.headers,
     });
     return;

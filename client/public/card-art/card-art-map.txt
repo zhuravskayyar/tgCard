@@ -157,3 +157,67 @@ battle_gryphon | Грифон | battle_gryphon
 dao_a_white_tiger | Сніжний тигр | dao_a_white_tiger
 dao_f_werefox | Дев'ятихвоста лисиця | dao_f_werefox
 dao_e_headless_giant | Велетень Без Голови | dao_e_headless_giant
+ancient_order_fire_m | Жрець Незгасний | ancient_order_fire_m
+diamond_brotherhood_air | Панна Кришталь | diamond_brotherhood_air
+don_juan | Дон Ель Фуего | don_juan
+dripstone | Кораловий дредноут | dripstone
+diamond_brotherhood_fire | Гарячий юнак | diamond_brotherhood_fire
+diamond_brotherhood_water | Герцогиня Перлина | diamond_brotherhood_water
+drmagic_earth | Обвал | drmagic_earth
+drmagic_air | Смерч | drmagic_air
+dao_w_sea_doubletail | Морська двохвоста | dao_w_sea_doubletail
+drmagic_heal_earth | Цілюща омела | drmagic_heal_earth
+fleuro | Іскровий візок | fleuro
+drmagic_heal_water | Теплий дощ | drmagic_heal_water
+drmagic_fire | Верхова пожежа | drmagic_fire
+diamond_brotherhood_earth | Кулак Самоцвіт | diamond_brotherhood_earth
+lord_of_the_winds | Майстер вітрів | lord_of_the_winds
+goblin_mechanic | Гоблін-майстер | goblin_mechanic
+drmagic_water | Вир | drmagic_water
+fire_servant | Служник вогню | fire_servant
+mirror_tide_witch | Відьма Припливу | mirror_tide_witch
+mirror_inquisitor | Інквізитор Попелу | mirror_inquisitor
+great_rivers_sorcerer | Заклинателька Річок | great_rivers_sorcerer
+drmagic_heal_air | Північне сяйво | drmagic_heal_air
+zodiac_earth_taurus | Телець | zodiac_earth_taurus
+zodiac_air_aquarius | Водолій | zodiac_air_aquarius
+zodiac_air_libra | Терези | zodiac_air_libra
+zodiac_earth_virgo | Діва | zodiac_earth_virgo
+zodiac_air_gemini | Близнюки | zodiac_air_gemini
+zodiac_earth_capricorn | Козеріг | zodiac_earth_capricorn
+zodiac_fire_aries | Овен | zodiac_fire_aries
+zodiac_fire_leo | Лев | zodiac_fire_leo
+nile_e_scarab | Скарабей-сонцекат | nile_e_scarab
+zodiac_fire_sagittarius | Стрілець | zodiac_fire_sagittarius
+wedge_storm_knight | Лицар Алебарди | wedge_storm_knight
+shamans_daughter | Шаманова донька | shamans_daughter
+zodiac_water_scorpio | Скорпіон | zodiac_water_scorpio
+zodiac_water_pisces | Риби | zodiac_water_pisces
+zodiac_water_cancer | Рак | zodiac_water_cancer
+maridel | Парова помпа | maridel
+nile_a_hor_ur | Сокіл Гор-Ур | nile_a_hor_ur
+thirtieth_a_nightingale | Соловей-Свистун | thirtieth_a_nightingale
+geobot | Кварцовий бур | geobot
+vortex | Вихровий гвинт | vortex
+nile_f_nadjem | Кицька Нефру | nile_f_nadjem
+thirtieth_e_baiyun | Кіт-Воркотун | thirtieth_e_baiyun
+nile_w_taweret | Пані Бегемотиха | nile_w_taweret
+thirtieth_f_3headdragon | Змій Триголовий | thirtieth_f_3headdragon
+thirtieth_w_merman | Водяник Лупатий | thirtieth_w_merman
+west_a_thunderbird | Птах-Буря | west_a_thunderbird
+west_e_sasquatch | Бігфут Великоступ | west_e_sasquatch
+west_w_underwater_panther | Підводна пума | west_w_underwater_panther
+incendium | Ходяча піч | incendium
+tideflow | Паровий ковзун | tideflow
+terraxis | Залізний таран | terraxis
+stratos | Механічний сокіл | stratos
+stalaktion | Кам'яний копер | stalaktion
+wedge_strelets | Засічний стрілець | wedge_strelets
+wedge_brodex_valk | Рудоволоса Сокирниця | wedge_brodex_valk
+wedge_yarl | Ярл Крига | wedge_yarl
+mirror_scaldmaer | Скальдиня Туману | mirror_scaldmaer
+mirror_teuton | Лицар Глухого Щита | mirror_teuton
+drmagic_heal_fire | Вогнище на стоянці | drmagic_heal_fire
+the_bat | Кажан-горищанин | the_bat
+wild_boar | Вепр | wild_boar
+winged_hound | Крилатий пес | winged_hound

@@ -208,7 +208,7 @@
   min-height: 0;
   background: none;
   border: 16px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 16px stretch;
   box-shadow: none;
 }
 .story-trials-screen .campaign-dialogue__sprite {
@@ -254,13 +254,13 @@
 :root .app-shell .app-content .notice-board-screen { background: none; }
 
 .notice-board {
-  gap: 10px;
+  gap: 8px;
   padding: 0 0 4px;
-  border: 33px solid transparent;
-  border-width: 61px 33px 56px;
-  border-image: url("/assets/ui/trials/board/board-v1.webp") 185 100 170 100 fill / 61px 33px 56px round;
+  border: 0;
+  border-image: none;
+  background: none;
 }
-.notice-board > * { margin-inline: -13px; }
+.notice-board > * { margin-inline: 0; }
 :root .app-shell .app-content .notice-board-screen .quest-paper__title strong {
   color: #2b1a0c;
   font-size: 17px;
@@ -295,47 +295,45 @@
 :root .app-shell .app-content .notice-board > .notice-board__plaque {
   justify-self: center;
   width: min(100%, 270px);
-  margin: -4px 0 2px;
+  min-height: 38px;
+  margin: 0 0 2px;
   padding: 8px 18px;
-  color: #fff3d6;
+  color: #2b1a0c;
   font-size: 14px;
-  white-space: nowrap;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
-  background: url("/assets/ui/trials/board/plaque-v1.webp") center / 100% 100% no-repeat;
+  font-weight: 700;
+  text-shadow: none;
+  white-space: normal;
+  text-align: center;
+  background: none;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 12px stretch;
 }
 
 :root .app-shell .app-content .notice-board-screen .quest-paper {
   position: relative;
   min-height: 0;
-  padding: 16px 16px 14px;
-  background: url("/assets/ui/trials/board/notice-torn-v1.webp") center / 100% 100% no-repeat;
-  border: 0;
+  padding: 10px 12px;
+  background: none;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 14px stretch;
   box-shadow: none;
-  filter: drop-shadow(0 3px 3px rgb(30 15 5 / 45%));
-  transform: rotate(-.7deg) translateX(-2px);
+  filter: none;
+  transform: none;
 }
 :root .app-shell .app-content .notice-board-screen .quest-paper:nth-of-type(even) {
-  background-image: url("/assets/ui/trials/board/notice-straight-v1.webp");
-  transform: rotate(.8deg) translateX(2px);
+  border-image-source: var(--sprite-panel-frame);
+  transform: none;
 }
 :root .app-shell .app-content .notice-board-screen .quest-paper.story-notice--official {
-  padding-left: 34px;
-  background-image: url("/assets/ui/trials/board/notice-official-v1.webp");
+  padding-left: 12px;
+  border-image-source: var(--sprite-panel-frame);
   transform: none;
 }
 :root .app-shell .app-content .notice-board-screen .quest-paper__content { min-height: 0; background: none; border: 0; box-shadow: none; }
 :root .app-shell .app-content .notice-board-screen .quest-paper::before,
 :root .app-shell .app-content .notice-board-screen .quest-paper::after { content: none; }
 .story-notice__nail {
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  z-index: 1;
-  width: 18px;
-  height: 18px;
-  margin-left: -9px;
-  background: url("/assets/ui/trials/board/nail-v1.webp") center / contain no-repeat;
-  filter: drop-shadow(0 2px 1px rgb(30 15 5 / 55%));
+  display: none;
 }
 .story-notice__seal { flex: none; width: 42px; height: auto; transform: rotate(-10deg); }
 :root .app-shell .app-content .notice-board-screen .quest-paper__button {
@@ -385,7 +383,7 @@
 :root .app-shell .app-content .notice-board-screen .tasks-screen__marathon {
   background: none;
   border: 16px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 16px stretch;
   border-radius: 0;
   box-shadow: none;
   padding: 0 2px;
@@ -411,7 +409,7 @@
   height: auto;
   overflow: hidden;
   border-radius: 50%;
-  background: url("/assets/ui/trials/quest-plate-v1.webp") center / 300% 300%;
+  background: var(--sprite-panel-frame) center / 300% 300%;
   animation: none;
 }
 :root .app-shell .app-content .notice-board-screen .tasks-screen__mascot-art .lariska-image > img {
@@ -445,7 +443,7 @@
 :root .app-shell .app-content .notice-board-screen .tasks-screen__account-protection {
   background: none;
   border: 16px solid transparent;
-  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 16px stretch;
+  border-image: var(--sprite-panel-frame) 62 fill / 16px stretch;
   border-radius: 0;
   box-shadow: none;
   padding: 0 2px;
