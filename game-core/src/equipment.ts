@@ -265,6 +265,20 @@ export function calculateEquipmentSummary(
   };
 }
 
+/** Applies equipped elemental bonuses to the displayed power of each deck card. */
+export function applyEquipmentElementBonuses<T extends { element: CardElement; finalPower: number }>(
+  cards: readonly T[],
+  summary: EquipmentSummary,
+): Array<T & { finalPower: number }> {
+  return cards.map((card) => {
+    const finalPower = card.finalPower + summary.elementBonuses[card.element];
+    if (!Number.isSafeInteger(finalPower) || finalPower <= 0) {
+      throw new RangeError("Equipment-adjusted card power must be a positive safe integer");
+    }
+    return { ...card, finalPower };
+  });
+}
+
 export function getEquipmentBattleModifiers(summary: EquipmentSummary): EquipmentBattleModifiers {
   const modifiers: EquipmentBattleModifiers = {
     damageReflectionPct: 0,

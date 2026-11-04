@@ -1,7 +1,9 @@
 import { randomInt, randomUUID } from "node:crypto";
 import {
-  generateStandardBonusPower,
+  calculateEquipmentSummary,
   getBasePowerForLevel,
+  getRequiredAccountXp,
+  generateStandardBonusPower,
   STARTER_EQUIPMENT_DEFINITIONS,
   type IntegerRandomSource,
 } from "@cardastika/game-core";
@@ -15,7 +17,7 @@ import { WORLD_BOTS, WORLD_BOT_PHRASES, type WorldBotDefinition, type WorldBotPe
 export type BotSessionWindow = "slot-1" | "slot-2" | "slot-3" | "slot-4" | "slot-5" | "slot-6" | "slot-7" | "slot-8" | "slot-9" | "slot-10" | "slot-11" | "slot-12";
 
 const DECK_ELEMENTS: readonly CardElement[] = ["fire", "fire", "fire", "water", "water", "air", "air", "earth", "earth"];
-const EQUIPMENT_SLOT_ORDER: readonly EquipmentSlot[] = ["weapon", "shield", "amulet", "relic", "voodoo", "head", "cloak", "gloves", "boots"];
+const EQUIPMENT_SLOT_ORDER: readonly EquipmentSlot[] = ["weapon", "shield", "head", "cloak", "gloves", "boots", "amulet", "relic", "voodoo"];
 const SECTION_LABELS: Readonly<Record<GuildLanguage, { welcome: [string, string]; inner: [string, string] }>> = {
   uk: { welcome: ["Гостьова зала", "Новини та знайомство. Видно всім мандрівникам."], inner: ["Внутрішня зала", "Тактика, плани та розмови учасників."] },
   ru: { welcome: ["Гостевой зал", "Новости и знакомство. Видно всем путешественникам."], inner: ["Внутренний зал", "Тактика, планы и разговоры участников."] },
@@ -91,6 +93,30 @@ function equippedItemsFor(bot: WorldBotDefinition) {
     inventory.push(definition.id);
   }
   return { equipped, inventory };
+}
+
+function getAccountLifetimeXp(level: number, currentXp: number) {
+  let total = currentXp;
+  for (let completedLevel = 1; completedLevel < level; completedLevel += 1) {
+    total += getRequiredAccountXp(completedLevel);
+  }
+  return total;
+}
+
+function estimateBotDeckPower(bot: WorldBotDefinition) {
+  const { equipped } = equippedItemsFor(bot);
+  const equipmentSummary = calculateEquipmentSummary(
+    STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipped[slot] === id),
+  );
+  const expectedCardPower = [-2, -1, 0, 1, 2].reduce((total, offset) => {
+    const level = clamp(bot.deckLevel + offset, 1, 120);
+    const basePower = getBasePowerForLevel(level);
+    return total + basePower + Math.floor(Math.floor(basePower / 5) / 2);
+  }, 0) / 5;
+
+  return DECK_ELEMENTS.reduce((total, element) => (
+    total + expectedCardPower + equipmentSummary.elementBonuses[element]
+  ), 0);
 }
 
 export class BotWorldService {
@@ -233,10 +259,10 @@ export class BotWorldService {
       await client.query(
         `INSERT INTO players (
            id, telegram_user_id, username, nickname, first_name, last_name, photo_url,
-           level, silver, gold, referral_code, tutorial_eligible, equipment, is_bot,
+           level, account_xp, silver, gold, referral_code, tutorial_eligible, equipment, is_bot,
            duel_rating, duel_highest_league_index, duel_wins, duel_losses, rating
-         ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, 50000, 0, $8, FALSE, $9::jsonb, TRUE, $10, $11, $12, $13, $10)`,
-        [playerId, bot.username, bot.nickname, bot.firstName, bot.lastName, `bot-avatar:${String(bot.avatarIndex).padStart(2, "0")}`, bot.level, referralCode, JSON.stringify({ equipped }), leagueSeed.rating, bot.duelLeagueIndex, leagueSeed.wins, leagueSeed.losses],
+         ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8, 50000, 0, $9, FALSE, $10::jsonb, TRUE, $11, $12, $13, $14, $11)`,
+        [playerId, bot.username, bot.nickname, bot.firstName, bot.lastName, `bot-avatar:${String(bot.avatarIndex).padStart(2, "0")}`, bot.level, leagueSeed.accountXp, referralCode, JSON.stringify({ equipped }), leagueSeed.rating, bot.duelLeagueIndex, leagueSeed.wins, leagueSeed.losses],
       );
       await this.createBotDeck(client, playerId, bot);
       if (inventory.length) {
@@ -340,10 +366,16 @@ export class BotWorldService {
   private getDuelLeagueSeed(bot: WorldBotDefinition) {
     const league = DUEL_LEAGUE_CONFIG.leagues[bot.duelLeagueIndex];
     if (!league) throw new Error(`World bot ${bot.botKey} has an invalid duel league index`);
+    const accountXp = Math.floor(getRequiredAccountXp(bot.level) / 2);
+    const lifetimeXp = getAccountLifetimeXp(bot.level, accountXp);
+    const expectedDeckPower = estimateBotDeckPower(bot);
+    const estimatedDuels = Math.max(15, Math.ceil(lifetimeXp / Math.max(expectedDeckPower, 1)));
+    const expectedWinRate = 0.62 + (bot.avatarIndex % 6) * 0.02;
     return {
       rating: league.minRating + 20 + (hashString(`${bot.botKey}:rating`) % 61),
-      wins: 10 + (bot.avatarIndex % 17),
-      losses: 4 + (bot.avatarIndex % 18),
+      accountXp,
+      wins: Math.max(10, Math.round(estimatedDuels * expectedWinRate)),
+      losses: Math.max(0, estimatedDuels - Math.round(estimatedDuels * expectedWinRate)),
     };
   }
 
@@ -352,20 +384,54 @@ export class BotWorldService {
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtext('cardastika-world-bot-leagues'))");
-      const seeds = WORLD_BOTS.map((bot) => ({ botKey: bot.botKey, ...this.getDuelLeagueSeed(bot), leagueIndex: bot.duelLeagueIndex }));
+      const seeds = WORLD_BOTS.map((bot) => {
+        const equipped = equippedItemsFor(bot);
+        const progression = this.getDuelLeagueSeed(bot);
+        return {
+          bot_key: bot.botKey,
+          rating: progression.rating,
+          wins: progression.wins,
+          losses: progression.losses,
+          account_xp: progression.accountXp,
+          league_index: bot.duelLeagueIndex,
+          equipped: equipped.equipped,
+          inventory: equipped.inventory,
+        };
+      });
       await client.query(
         `UPDATE players AS player
-         SET duel_rating = seed.rating,
+         SET duel_rating = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.rating ELSE player.duel_rating END,
              duel_highest_league_index = GREATEST(player.duel_highest_league_index, seed.league_index),
              duel_wins = GREATEST(player.duel_wins, seed.wins),
              duel_losses = GREATEST(player.duel_losses, seed.losses),
-             rating = seed.rating,
+             account_xp = GREATEST(player.account_xp, seed.account_xp),
+             equipment = jsonb_build_object('equipped', seed.equipped),
+             rating = CASE WHEN profile.duel_league_seeded_at IS NULL THEN seed.rating ELSE player.rating END,
              updated_at = NOW()
          FROM simulated_bot_profiles AS profile
-         JOIN UNNEST($1::text[], $2::integer[], $3::integer[], $4::integer[], $5::integer[])
-           AS seed(bot_key, rating, wins, losses, league_index) ON seed.bot_key = profile.bot_key
-         WHERE player.id = profile.player_id AND profile.duel_league_seeded_at IS NULL`,
-        [seeds.map(({ botKey }) => botKey), seeds.map(({ rating }) => rating), seeds.map(({ wins }) => wins), seeds.map(({ losses }) => losses), seeds.map(({ leagueIndex }) => leagueIndex)],
+         JOIN jsonb_to_recordset($1::jsonb) AS seed(
+           bot_key text, rating integer, wins integer, losses integer,
+           account_xp bigint, league_index integer, equipped jsonb
+         ) ON seed.bot_key = profile.bot_key
+         WHERE player.id = profile.player_id
+           AND (
+             profile.duel_league_seeded_at IS NULL
+             OR player.duel_highest_league_index < seed.league_index
+             OR player.duel_wins < seed.wins
+             OR player.duel_losses < seed.losses
+             OR player.account_xp < seed.account_xp
+             OR player.equipment IS DISTINCT FROM jsonb_build_object('equipped', seed.equipped)
+           )`,
+        [JSON.stringify(seeds)],
+      );
+      await client.query(
+        `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
+         SELECT profile.player_id, item.item_id, 1
+         FROM jsonb_to_recordset($1::jsonb) AS seed(bot_key text, inventory jsonb)
+         JOIN simulated_bot_profiles AS profile ON profile.bot_key = seed.bot_key
+         CROSS JOIN LATERAL jsonb_array_elements_text(seed.inventory) AS item(item_id)
+         ON CONFLICT (player_id, item_id) DO NOTHING`,
+        [JSON.stringify(seeds)],
       );
       await client.query(
         "UPDATE simulated_bot_profiles SET duel_league_seeded_at = NOW() WHERE duel_league_seeded_at IS NULL",

@@ -1,5 +1,5 @@
 import { ScreenHeading } from "../components/ScreenHeading";
-import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { applyEquipmentElementBonuses, calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDeckPower, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import type { EquippedEquipment } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -78,7 +78,6 @@ export function ProfileScreen({
   const { retry: retryDeck, state: deckState } = usePlayerDeck();
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const displayName = player ? getPlayerDisplayName(player) : "Гравець";
-  const deckPower = deckState.status === "ready" ? deckState.deck.totalPower : null;
   const experienceRewardPct = player?.experienceRewardPct ?? 0;
   const collectionBonuses = player?.collectionBonuses ?? [];
   const collectionExperienceRewardPct = collectionBonuses.reduce(
@@ -88,11 +87,14 @@ export function ProfileScreen({
   const additionalExperienceRewardPct = Math.max(0, experienceRewardPct - collectionExperienceRewardPct);
   const equippedDefinitions = STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment[slot] === id);
   const equipmentSummary = calculateEquipmentSummary(equippedDefinitions);
+  const deckPower = deckState.status === "ready"
+    ? getDeckPower(applyEquipmentElementBonuses(deckState.deck.cards, equipmentSummary))
+    : null;
   const xp = player?.accountXp ?? 0;
   const xpRequired = player?.accountXpRequired ?? 0;
   const xpPct = xpRequired > 0 ? Math.min(100, Math.floor((xp / xpRequired) * 100)) : 0;
   const playedArena = Boolean(player && ((player.arenaWins ?? 0) > 0 || (player.arenaTop3Count ?? 0) > 0));
-  const hasBonuses = collectionBonuses.length > 0 || additionalExperienceRewardPct > 0 || equipmentSummary.itemBonusTotal > 0;
+  const hasBonuses = collectionBonuses.length > 0 || additionalExperienceRewardPct > 0 || equipmentSummary.itemBonusTotal > 0 || equipmentSummary.artifactBonuses.length > 0;
 
   return (
     <section className="profile-screen pf-screen">
@@ -185,6 +187,15 @@ export function ProfileScreen({
                   <span aria-label={`${EQUIPMENT_ELEMENT_LABELS[element]}: +${equipmentSummary.elementBonuses[element]}`} key={element}><ElementSymbol element={element} size={18} /><b>+{equipmentSummary.elementBonuses[element]}</b></span>
                 ))}
               </div>
+            ) : null}
+            {equipmentSummary.artifactBonuses.map((bonus) => (
+              <div className="pf-row" key={bonus.itemId}>
+                <AppIcon name="equipment" size={20} />
+                <span>{bonus.label}: +{bonus.value}%{bonus.secondaryLabel ? ` · ${bonus.secondaryLabel}: +${bonus.secondaryValue ?? 0}%` : ""}</span>
+              </div>
+            ))}
+            {equipmentSummary.itemBonusTotal === 0 && equipmentSummary.artifactBonuses.length > 0 ? (
+              <p className="pf-empty">Артефакти посилюють бойові ефекти; силу колоди додають речі стихій.</p>
             ) : null}
             {collectionBonuses.map(({ bonusLabel, collectionId, collectionName }) => (
               <div className="pf-row" key={collectionId}><AppIcon name="collection" size={20} /><span><b>{collectionName}</b> {bonusLabel}</span></div>

@@ -1,4 +1,4 @@
-import { getCardPower, getRarityForLevel } from "@cardastika/game-core";
+import { applyEquipmentElementBonuses, calculateEquipmentSummary, getCardPower, getRarityForLevel, getDeckPower, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getLeagueByRating, getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
 import type { Pool } from "pg";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
@@ -157,13 +157,21 @@ export class LeaderboardRepository {
       );
       const first = result.rows[0];
       if (!first) return null;
-      const deckPower = result.rows.reduce((total, row) => {
-        if (row.instance_level === null || row.bonus_power === null) return total;
-        return total + getCardPower({
-          level: toSafeInteger(row.instance_level, "card level"),
-          bonusPower: toSafeInteger(row.bonus_power, "card bonus power"),
-        });
-      }, 0);
+      const equipment = toPublicPlayerEquipment(first.id, first.equipment);
+      const equipmentSummary = calculateEquipmentSummary(
+        STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment.equipped[slot] === id),
+      );
+      const poweredCards = result.rows.flatMap((row) => {
+        if (row.instance_level === null || row.bonus_power === null || row.card_element === null) return [];
+        return [{
+          element: row.card_element,
+          finalPower: getCardPower({
+            level: toSafeInteger(row.instance_level, "card level"),
+            bonusPower: toSafeInteger(row.bonus_power, "card bonus power"),
+          }),
+        }];
+      });
+      const deckPower = getDeckPower(applyEquipmentElementBonuses(poweredCards, equipmentSummary));
       const strongestCards = result.rows
         .filter((row) => row.card_id !== null && row.instance_id !== null && row.card_element !== null && row.instance_level !== null && row.bonus_power !== null)
         .map((row) => {
@@ -174,7 +182,7 @@ export class LeaderboardRepository {
             cardId: row.card_id!,
             displayName: row.card_display_name,
             element: row.card_element!,
-            finalPower: getCardPower({ level, bonusPower }),
+            finalPower: getCardPower({ level, bonusPower }) + equipmentSummary.elementBonuses[row.card_element!],
             instanceId: row.instance_id!,
             level,
             rarity: getRarityForLevel(level),
@@ -188,7 +196,7 @@ export class LeaderboardRepository {
         duelHighestLeagueIndex: toSafeInteger(first.duel_highest_league_index, "duel highest league index"),
         duelRating: toSafeInteger(first.duel_rating, "duel rating"),
         duelWins: toSafeInteger(first.duel_wins, "duel wins"),
-        equipment: toPublicPlayerEquipment(first.id, first.equipment),
+        equipment,
         id: first.id,
         level: first.level,
         photoUrl: first.photo_url,

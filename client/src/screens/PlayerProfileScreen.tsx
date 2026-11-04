@@ -2,6 +2,7 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { calculateEquipmentSummary, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getLeagueByRating } from "@cardastika/shared";
 import { CardArtwork } from "../components/CardArtwork";
+import { AppIcon } from "../components/AppIcon";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
 import { LeagueBadge } from "../components/LeagueBadge";
@@ -84,6 +85,19 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
               <span key={element}><ElementSymbol element={element} size={18} /><b>+{equipmentSummary.elementBonuses[element]}</b></span>
             ))}
           </div>
+          {equipmentSummary.artifactBonuses.length > 0 ? (
+            <section aria-label="Бойові бонуси спорядження" className="pf-plate player-profile-equipment-effects">
+              {equipmentSummary.artifactBonuses.map((bonus) => (
+                <div className="pf-row" key={bonus.itemId}>
+                  <AppIcon name="equipment" size={20} />
+                  <span>{bonus.label}: +{bonus.value}%{bonus.secondaryLabel ? ` · ${bonus.secondaryLabel}: +${bonus.secondaryValue ?? 0}%` : ""}</span>
+                </div>
+              ))}
+              {equipmentSummary.itemBonusTotal === 0 ? (
+                <p className="pf-empty">Артефакти посилюють бойові ефекти; силу колоди додають речі стихій.</p>
+              ) : null}
+            </section>
+          ) : null}
 
           <EquipmentDoll equipped={equipment} onSlot={() => undefined} />
 

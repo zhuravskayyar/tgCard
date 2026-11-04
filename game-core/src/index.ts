@@ -151,6 +151,7 @@ export {
   GUILD_RAID_REWARD_CARD_LEVEL_OFFSET,
 } from "./guildRaid.js";
 export {
+  applyEquipmentElementBonuses,
   calculateEquipmentSummary,
   EQUIPMENT_ARTIFACT_SLOTS,
   EQUIPMENT_BONUS_BY_RARITY,
