@@ -1,3 +1,5 @@
+import "./AvatarImage.css";
+
 interface AvatarImageProps {
   alt: string;
   name: string;

@@ -1,0 +1,14 @@
+.bot-avatar-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background-image: url("/assets/bots/bot-portraits.webp");
+  background-repeat: no-repeat;
+  background-size: 500% 200%;
+}
+
+.bot-avatar-sprite--extended {
+  background-image: url("/assets/bots/bot-portraits-11-40.webp");
+  background-size: 500% 600%;
+}
