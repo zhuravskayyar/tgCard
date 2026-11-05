@@ -2,6 +2,7 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { cardArtAvatarClassName } from "../components/avatarBackdrop";
+import { AvatarImage } from "../components/AvatarImage";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useCardArtworkSource } from "../components/cardArtSource";
 import "../styles/duel-screen.css";
@@ -86,7 +87,7 @@ export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: strin
   const source = artKey ? artwork.source : photoUrl;
   return (
     <span className="duel-avatar" aria-hidden="true">
-      {source ? <img alt="" className={cardArtAvatarClassName(source)} onError={artKey ? artwork.onSourceError : undefined} src={source} /> : <span>{name.slice(0, 2).toUpperCase()}</span>}
+      {source && !source.startsWith("bot-avatar:") ? <img alt="" className={cardArtAvatarClassName(source)} onError={artKey ? artwork.onSourceError : undefined} src={source} /> : <AvatarImage alt="" name={name} photoUrl={photoUrl} />}
     </span>
   );
 }
@@ -732,3 +733,4 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     </div>
   );
 }
+
