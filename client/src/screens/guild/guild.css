@@ -568,6 +568,7 @@
   content: "";
 }
 .guild-roster__title::after { background: linear-gradient(90deg, #71552e, transparent); }
+.guild-roster__disclosure { margin: 0 8px 6px; color: #bca177; font-size: var(--font-micro); line-height: 1.35; text-align: center; }
 .guild-roster__members {
   overflow: hidden;
   border-block: 1px solid #503b24;
@@ -971,3 +972,4 @@
   line-height: 1.25;
 }
 .guild-journal-entry__dot--treasury_contributed { background: #e6bb51; }
+

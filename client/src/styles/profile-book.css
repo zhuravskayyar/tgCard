@@ -61,6 +61,13 @@
 }
 .pf-power, .pf-power strong { color: #24140a; text-shadow: none; }
 .pf-power strong { font-family: var(--font-number); font-size: 19px; }
+:root[data-game-theme="light"] body .app-shell .app-content .pf-screen .pf-power,
+:root[data-game-theme="light"] body .app-shell .app-content .pf-screen .pf-power > span,
+:root[data-game-theme="light"] body .app-shell .app-content .pf-screen .pf-power > strong {
+  color: #24140a;
+  -webkit-text-fill-color: #24140a;
+  text-shadow: none;
+}
 
 .pf-menu { display: grid; gap: 8px; }
 
@@ -102,6 +109,7 @@
 .pf-identity--public .league-badge { width: 52px; height: 52px; }
 .pf-elements--public { justify-self: center; width: min(100%, 320px); }
 :root[data-game-theme="light"] body .app-shell .app-content .player-profile-screen .player-profile-card-preview > span { color: #24140a; font-size: 13px; font-weight: 700; text-shadow: none; }
+.player-profile-equipment-effects { display: grid; gap: 6px; padding: 10px; }
 
 /* Element bonuses: coloured element marks on a plate, readable while the page scrolls under them. */
 :root[data-game-theme="light"] body .app-shell .app-content .pf-elements {
@@ -115,3 +123,4 @@
 .pf-elements .element-symbol--air { color: #b8860b; }
 .pf-elements .element-symbol--earth { color: #4f7f2a; }
 .pf-elements .element-symbol { filter: drop-shadow(0 1px 0 rgb(255 245 220 / 80%)); }
+
