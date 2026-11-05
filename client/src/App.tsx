@@ -740,4 +740,3 @@ export function App() {
     </>
   );
 }
-

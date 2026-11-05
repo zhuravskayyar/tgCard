@@ -733,4 +733,3 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     </div>
   );
 }
-

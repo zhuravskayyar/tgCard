@@ -1,6 +1,7 @@
 import { ScreenHeading } from "../components/ScreenHeading";
 import { calculateEquipmentSummary, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getLeagueByRating } from "@cardastika/shared";
+import { AvatarImage } from "../components/AvatarImage";
 import { CardArtwork } from "../components/CardArtwork";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
@@ -64,7 +65,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
         <>
           <section aria-label={`Профіль гравця ${profile.displayName}`} className="eq-plate pf-identity pf-identity--public">
             <span className="eq-frame pf-portrait">
-              {profile.photoUrl ? <img alt={`Аватар ${profile.displayName}`} src={profile.photoUrl} /> : <span>{getInitials(profile.displayName)}</span>}
+              {profile.photoUrl ? <AvatarImage alt={`Аватар ${profile.displayName}`} name={profile.displayName} photoUrl={profile.photoUrl} /> : <span>{getInitials(profile.displayName)}</span>}
             </span>
             <div className="pf-identity__copy">
               <strong className="pf-identity__name">{profile.displayName}</strong>

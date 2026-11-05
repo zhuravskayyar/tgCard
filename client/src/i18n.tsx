@@ -579,7 +579,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     document.documentElement.lang = locale;
     document.title = PAGE_TITLES[locale];
-    const root = document.getElementById("root");
+    // Observe the full app shell so React portals mounted under body receive the same translations.
+    const root = document.body;
     // Source strings are Ukrainian, so that locale never rewrites the DOM.
     if (!root || locale === "uk") return;
 

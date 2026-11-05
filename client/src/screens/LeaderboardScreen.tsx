@@ -1,4 +1,5 @@
 import { ScreenHeading } from "../components/ScreenHeading";
+import { AvatarImage } from "../components/AvatarImage";
 import { useEffect, useState } from "react";
 import { ARENA_LEAGUE_CONFIG, DUEL_LEAGUE_CONFIG, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "../components/AppIcon";
@@ -47,7 +48,7 @@ function LeaderboardRow({ entry, mine, onOpen }: { entry: LeaderboardEntry; mine
       <button className="leaderboard-entry" onClick={() => onOpen(entry.id)} type="button">
         <span className="leaderboard-entry__rank">{entry.rank}</span>
         <span className="leaderboard-entry__avatar">
-          {entry.photoUrl ? <img alt={`Аватар ${entry.displayName}`} src={entry.photoUrl} /> : getInitials(entry.displayName)}
+          {entry.photoUrl ? <AvatarImage alt={`Аватар ${entry.displayName}`} name={entry.displayName} photoUrl={entry.photoUrl} /> : getInitials(entry.displayName)}
         </span>
         <span className="leaderboard-entry__identity">
           <strong>{entry.displayName}</strong>
