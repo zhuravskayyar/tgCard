@@ -1,4 +1,4 @@
-import { polygonArea, type BoosterCut, type CutPoint } from "./boosterCut";
+import { PACK_HEIGHT, PACK_WIDTH, polygonArea, type BoosterCut, type CutPoint } from "./boosterCut";
 import { multiply, transform } from "./boosterGeometry";
 import type { getBoosterMotion } from "./boosterMotion";
 
@@ -24,10 +24,10 @@ export function getBoosterFragmentShape(polygon: readonly CutPoint[], cut: Boost
     x += (p.x + q.x) * weight;
     y += (p.y + q.y) * weight;
   }
-  const center = { x: (x / (6 * area) - .5) * 2.1, y: (y / (6 * area) - .5) * 3.45 };
-  const hinge = cut.path.reduce((sum, point) => ({ x: sum.x + (point.x - .5) * 2.1 / cut.path.length, y: sum.y + (point.y - .5) * 3.45 / cut.path.length }), { x: 0, y: 0 });
-  const reach = Math.max(...polygon.map((point) => Math.hypot((point.x - .5) * 2.1 - center.x, (point.y - .5) * 3.45 - center.y)));
-  const foldScale = Math.max(.08, ...polygon.map((point) => Math.abs(((point.x - .5) * 2.1 - hinge.x) * cut.normal.x + ((point.y - .5) * 3.45 - hinge.y) * cut.normal.y)));
+  const center = { x: (x / (6 * area) - .5) * PACK_WIDTH, y: (y / (6 * area) - .5) * PACK_HEIGHT };
+  const hinge = cut.path.reduce((sum, point) => ({ x: sum.x + (point.x - .5) * PACK_WIDTH / cut.path.length, y: sum.y + (point.y - .5) * PACK_HEIGHT / cut.path.length }), { x: 0, y: 0 });
+  const reach = Math.max(...polygon.map((point) => Math.hypot((point.x - .5) * PACK_WIDTH - center.x, (point.y - .5) * PACK_HEIGHT - center.y)));
+  const foldScale = Math.max(.08, ...polygon.map((point) => Math.abs(((point.x - .5) * PACK_WIDTH - hinge.x) * cut.normal.x + ((point.y - .5) * PACK_HEIGHT - hinge.y) * cut.normal.y)));
   // This sphere contains the pillow sheets, bounded curl and ripples in every orientation.
   const radius = Math.hypot(reach, .16 + BOOSTER_PAPER_CURL_DEPTH + BOOSTER_PAPER_RIPPLE_DEPTH);
   return { center, hinge, normal: cut.normal, foldScale, radius, sign: index === 0 ? 1 : -1 };

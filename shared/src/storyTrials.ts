@@ -12,6 +12,7 @@ export interface StoryTrialView {
   /** False when the trial needs a game system that is not built yet; it shows as coming soon. */
   available: boolean;
   id: string;
+  kind: "campaign";
   navigation: StoryTrialNavigationTarget | null;
   progress: number;
   reward: StoryTrialReward;

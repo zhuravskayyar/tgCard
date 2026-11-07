@@ -4,7 +4,7 @@ import { loadBoosterImage } from "./boosterCardTexture";
 /** Reuse the shop's source sprites and its actual rarity CSS, with no generated assets or copied palette. */
 export async function createShopPackTexture(rarity: CardRarity, signal: AbortSignal) {
   const [pack, seal] = await Promise.all([
-    loadBoosterImage("/assets/ui/shop/stall/pack-noseal-v2.webp"),
+    loadBoosterImage("/assets/ui/shop/stall/pack-noseal-v3.webp"),
     loadBoosterImage("/assets/ui/shop/stall/pack-seal-v2.webp"),
   ]);
   signal.throwIfAborted();

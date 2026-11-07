@@ -286,9 +286,26 @@ function withTutorialPower(card: DuelCardSnapshot, finalPower: number, element =
   };
 }
 
+/**
+ * The tutorial lays out three cards of different strength. The first two hits are guided right to left
+ * (weak ×0.5, then even ×1); for the third the player picks any card, and even a weak hit finishes the enemy.
+ */
+const TUTORIAL_SLOTS = [2, 1] as const;
+/** Player multiplier per starting slot (left to right). */
+const TUTORIAL_MULTIPLIERS = [1.5, 1, 0.5] as const;
+const TUTORIAL_CARD_POWER = 12;
+const TUTORIAL_ENEMY_HP = 24;
+const TUTORIAL_PLAYER_HP = 180;
+/** HP before each scripted turn; every hit deals 12 power × its multiplier. 24 → 18 → 6 → 0. */
+const TUTORIAL_SCRIPT = [
+  { playerHp: 180, enemyHp: 24 },
+  { playerHp: 162, enemyHp: 18 },
+  { playerHp: 150, enemyHp: 6 },
+] as const;
+
 function createTutorialSnapshot(snapshot: DuelSideSnapshot, powers: readonly number[], enemy = false, targetElements?: readonly CardElement[]): DuelSideSnapshot {
   const cards = snapshot.cards.map((card, index) => {
-    const desiredMultiplier: 0.5 | 1 | 1.5 = index === 0 ? 1.5 : index === 1 ? 1 : 0.5;
+    const desiredMultiplier = TUTORIAL_MULTIPLIERS[index] ?? 1;
     const element = enemy && index < 3 && targetElements?.[index]
       ? elementForMultiplier(targetElements[index]!, desiredMultiplier)
       : card.element;
@@ -297,9 +314,9 @@ function createTutorialSnapshot(snapshot: DuelSideSnapshot, powers: readonly num
   return {
     ...snapshot,
     cards,
-    effectiveDeckPower: enemy ? 35 : 180,
+    effectiveDeckPower: enemy ? TUTORIAL_ENEMY_HP : TUTORIAL_PLAYER_HP,
     modifiers: tutorialModifiers(),
-    startingHp: enemy ? 35 : 180,
+    startingHp: enemy ? TUTORIAL_ENEMY_HP : TUTORIAL_PLAYER_HP,
   };
 }
 
@@ -660,9 +677,7 @@ export class DuelService {
       if (duel.status !== "active" || duel.version !== input.expectedVersion) {
         throw new DuelStateConflictError();
       }
-      const requiredTutorialSlot = duel.tutorial_mode
-        ? duel.turn_number === 0 ? 0 : duel.turn_number === 1 ? 1 : null
-        : null;
+      const requiredTutorialSlot: number | null = duel.tutorial_mode ? TUTORIAL_SLOTS[duel.turn_number] ?? null : null;
       if (requiredTutorialSlot !== null && input.slotIndex !== requiredTutorialSlot) {
         throw new DuelTutorialActionError();
       }
@@ -689,23 +704,17 @@ export class DuelService {
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });
-      const referenceTutorialState = duel.tutorial_mode
-        && ((duel.turn_number === 0 && duel.player_hp === 180 && duel.enemy_hp === 35)
-          || (duel.turn_number === 1 && duel.player_hp === 168 && duel.enemy_hp === 17)
-          || (duel.turn_number === 2 && duel.player_hp === 162 && duel.enemy_hp === 5));
-      if (referenceTutorialState) {
-        const tutorialPlayerDamage = duel.turn_number === 0 ? 18 : duel.turn_number === 1 ? 12 : 5;
-        const tutorialEnemyDamage = duel.turn_number === 0 ? 12 : 6;
+      const scripted = duel.tutorial_mode ? TUTORIAL_SCRIPT[duel.turn_number] : undefined;
+      if (scripted && duel.player_hp === scripted.playerHp && duel.enemy_hp === scripted.enemyHp) {
+        const playerDamage = Math.round(TUTORIAL_CARD_POWER * resolved.exchange.playerMultiplier);
+        const enemyDamage = Math.round(TUTORIAL_CARD_POWER * resolved.exchange.enemyMultiplier);
+        const enemyHp = Math.max(0, scripted.enemyHp - playerDamage);
         resolved = {
           ...resolved,
-          enemyHp: duel.turn_number === 0 ? 17 : duel.turn_number === 1 ? 5 : 0,
-          playerHp: duel.turn_number === 0 ? 168 : duel.turn_number === 1 ? 162 : 156,
-          status: duel.turn_number === 2 ? "won" : "active",
-          exchange: {
-            ...resolved.exchange,
-            enemyDamage: tutorialEnemyDamage,
-            playerDamage: tutorialPlayerDamage,
-          },
+          enemyHp,
+          playerHp: scripted.playerHp - enemyDamage,
+          status: enemyHp === 0 ? "won" : "active",
+          exchange: { ...resolved.exchange, enemyDamage, playerDamage },
         };
       }
       const battleLog = [...duel.battle_log, resolved.exchange].slice(-MAX_BATTLE_LOG_ENTRIES);

@@ -15,7 +15,8 @@ interface DeckCardProps {
 }
 
 export function DeckCard({ card, dataTutorialTarget, depthAssets, disabled = false, onClick, selected = false, showLevel = false, upgradeIndicator }: DeckCardProps) {
-  const indicator = upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements);
+  // The deck response carries the server's arrow (it sees every weak card); elsewhere only full progress counts.
+  const indicator = upgradeIndicator ?? card.upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements);
   return (
     <button
       aria-label={`${card.displayName ? `${card.displayName}, ` : ""}power ${card.finalPower}, element ${card.element}, rarity ${card.rarity}${showLevel ? `, level ${card.level}` : ""}${indicator === "element" ? ", доступне безкоштовне підвищення" : indicator === "gold" ? ", золотий рівень — підвищення за золото" : ""}`}

@@ -42,7 +42,7 @@
 .booster-preview__state p { margin: 0; }
 :root[data-game-theme="light"] .app-content .booster-preview__state p { color: #e7d8b8; }
 .booster-preview__story { min-height: 69px; text-align: center; }
-.booster-preview__story h2 { margin: 0; color: var(--text-primary); font-family: Georgia, serif; font-size: clamp(19px, 5vw, 24px); font-weight: 500; }
+.booster-preview__story h2 { margin: 0; color: var(--text-primary); font-family: var(--font-display); font-size: clamp(19px, 5vw, 24px); font-weight: 500; }
 .booster-preview__story p { max-width: 310px; margin: 8px auto 0; color: var(--text-secondary); font-size: 13px; line-height: 1.4; }
 .booster-preview__story--revealed {
   width: min(100%, 460px);
@@ -70,7 +70,7 @@
 .booster-preview__story--revealed .shop-reveal__rarity-line::after { width: clamp(18px, 6vw, 34px); height: 1px; background: currentColor; opacity: .55; content: ""; }
 .booster-preview__story--revealed h2 {
   color: #432b18;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: clamp(25px, 6vw, 31px);
   font-weight: 700;
   line-height: 1.08;

@@ -102,7 +102,7 @@
   border-radius: 0;
   box-shadow: none;
   font-size: 17px;
-  font-family: "Lugatype", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-weight: 700;
   text-shadow: none;
 }
@@ -136,7 +136,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--home-ink);
-  font-family: "Lugatype", Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: clamp(14px, calc(var(--hud-frame-width) * .042), 17px);
   font-weight: 700;
   line-height: 1.1;

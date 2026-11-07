@@ -10,8 +10,10 @@ import { InventoryRepository } from "../inventory/inventoryRepository.js";
 import { STARTER_CARDS } from "../inventory/starterCards.js";
 
 // The starter deck holds three air cards (fairy, raven, eagle) and two fire cards (salamander, ifrit).
-const AIR_TRIO = ["wind_fairy", "black_raven", "mountain_eagle"];
+const AIR_TRIO = ["giant_dragonfly", "black_raven", "mountain_eagle"];
 const FIRE_PAIR = ["salamander", "fire_ifrit"];
+// Copies of the starter dragonfly: the deck keeps only the strongest copy of one base card.
+const DRAGONFLY_ID = STARTER_CARDS.find(({ code }) => code === "giant_dragonfly")!.id;
 import { PlayerRepository } from "../users/playerRepository.js";
 import { CardProgressionDomainError, CardProgressionService } from "./cardProgressionService.js";
 
@@ -62,12 +64,13 @@ test("absorption validates ownership, weak membership and element while preservi
     );
     const byCode = new Map(starterRows.rows.map((row) => [row.code, row.id]));
     const targetId = randomUUID();
-    const activeAirId = byCode.get("wind_fairy")!;
+    // The dragonfly gets no bonus, so it is the air card pushed out once the target is upgraded.
+    const activeAirId = byCode.get("giant_dragonfly")!;
     const retainedStarterId = byCode.get("black_raven")!;
     await pool.query(
       `UPDATE player_card_instances SET level = 15, bonus_power = CASE WHEN card_id = $3 THEN 0 ELSE 2 END
        WHERE player_id = $1 AND card_id = ANY($2::text[])`,
-      [owner.id, AIR_TRIO, STARTER_CARDS[0]!.id],
+      [owner.id, AIR_TRIO, DRAGONFLY_ID],
     );
     await pool.query(
       `UPDATE player_card_instances SET level = 14
@@ -95,7 +98,7 @@ test("absorption validates ownership, weak membership and element while preservi
         differentElementId,
         targetId,
         owner.id,
-        STARTER_CARDS[0]!.id,
+        DRAGONFLY_ID,
         STARTER_CARDS[2]!.id,
         levelOneTargetId,
         levelOneFodderId,
@@ -186,8 +189,8 @@ test("weak pagination returns the 17-card complement as 9 then 8 in deterministi
   const user = createTelegramUser("pagination");
   try {
     const player = await players.findOrCreateFromTelegram(user);
-    // Fifteen extra cards plus the two weak starters make the 17-card complement.
-    const ids = Array.from({ length: 15 }, () => randomUUID());
+    // New players have no weak starters, so seventeen extra cards make the 17-card complement.
+    const ids = Array.from({ length: 17 }, () => randomUUID());
     await pool.query(
       `INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
        SELECT input.id, $1, $2, 1, input.bonus

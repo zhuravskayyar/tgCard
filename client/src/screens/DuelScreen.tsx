@@ -76,7 +76,7 @@ interface DuelScreenProps extends DuelResultNavigation {
   onTutorialResult?: () => void | Promise<void>;
   tutorialResultError?: string | null;
   onTutorialDuelState?: (duel: DuelView) => void;
-  tutorialAllowedSlot?: 0 | 1 | null;
+  tutorialAllowedSlot?: 0 | 1 | 2 | null;
   tutorialMode?: boolean;
 }
 
@@ -295,7 +295,7 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
   actionNotice?: ReactNode;
   disableCards?: boolean;
   disabledSlots?: [boolean, boolean, boolean];
-  tutorialAllowedSlot?: 0 | 1 | null;
+  tutorialAllowedSlot?: 0 | 1 | 2 | null;
   tutorialMode?: boolean;
 }) {
   const [introActive, setIntroActive] = useState(() => duel.battleLog.length === 0);
@@ -373,11 +373,11 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
               onClick={() => onAction(index as 0 | 1 | 2)}
               selected={pendingSlot === index}
               tutorialTarget={tutorialMode
-                ? index === 0
+                ? index === 2
                   ? "duel-card-first duel-card"
                   : index === 1
                     ? "duel-card-second duel-card"
-                    : "duel-card"
+                    : "duel-card-third duel-card"
                 : undefined}
             />
           ))}
@@ -425,6 +425,23 @@ function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; d
   return <span className="duel-outcome__reward-value ui-number">{formatUiNumber(shown)}</span>;
 }
 
+/** The stamped crest, light rays, sparks and unrolling title ribbon shared by every duel outcome screen. */
+function DuelOutcomeHeader({ won }: { won: boolean }) {
+  const title = won ? "ПЕРЕМОГА" : "ПОРАЗКА";
+  return (
+    <header className="duel-outcome__crest">
+      {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}
+      <img alt="" className="duel-outcome__crest-art" src={won ? DUEL_RESULT_CREST_WIN : DUEL_RESULT_CREST_LOSS} />
+      <span aria-hidden="true" className={`duel-outcome__particles${won ? " duel-outcome__particles--win" : " duel-outcome__particles--loss"}`}>
+        {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
+      </span>
+      <h1 aria-label={title} className="duel-outcome__title">
+        {Array.from(title, (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter}</span>)}
+      </h1>
+    </header>
+  );
+}
+
 function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
@@ -432,14 +449,13 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
   if (tutorialMode) {
     return (
       <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
-        <img alt="" aria-hidden="true" className="tutorial-result__crest" src={DUEL_RESULT_CREST_WIN} />
-        <h1 className="tutorial-result__title">ПЕРЕМОГА</h1>
-        <p className="tutorial-result__received">Ти отримав:</p>
-        <div aria-label="Нагороди за перемогу" className="tutorial-result__rewards">
-          <span data-reward-source="silver"><CurrencyIcon kind="silver" size={18} />{result.silver}</span>
-          <span data-reward-source="xp"><ResourceIcon kind="xp" size={18} />{result.xp}</span>
+        <DuelOutcomeHeader won />
+        <p className="duel-outcome__received">Ти отримав:</p>
+        <div aria-label="Нагороди за перемогу" className="duel-outcome__loot">
+          <span aria-label={`Срібло: ${result.silver}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={result.silver} /></span>
+          <span aria-label={`Досвід: ${result.xp}`} className="duel-outcome__reward" data-reward-source="xp"><ResourceIcon kind="xp" size={20} /><CountUpValue value={result.xp} /></span>
         </div>
-        <p className="tutorial-result__wins">Перемог у дуелях: {result.player.duelWins}</p>
+        <p className="duel-outcome__wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatUiNumber(result.player.duelWins ?? 0)}</p>
         <div className="tutorial-result__dialogue">
           <div aria-hidden="true"><Lariska emotion="happy" /></div>
           <p>Вперед за нагородою та новими пригодами!</p>
@@ -470,16 +486,7 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
   const silverReward = result.totalSilverEarned ?? result.silver;
   return (
     <section className={`duel-page duel-result duel-outcome duel-outcome--${won ? "win" : "loss"}`}>
-      <header className="duel-outcome__crest">
-        {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}
-        <img alt="" className="duel-outcome__crest-art" src={won ? DUEL_RESULT_CREST_WIN : DUEL_RESULT_CREST_LOSS} />
-        <span aria-hidden="true" className={`duel-outcome__particles${won ? " duel-outcome__particles--win" : " duel-outcome__particles--loss"}`}>
-          {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
-        </span>
-        <h1 aria-label={won ? "ПЕРЕМОГА" : "ПОРАЗКА"} className="duel-outcome__title">
-          {Array.from(won ? "ПЕРЕМОГА" : "ПОРАЗКА", (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter}</span>)}
-        </h1>
-      </header>
+      <DuelOutcomeHeader won={won} />
       <p className="duel-outcome__received">Ти отримав:</p>
       <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
         <span aria-label={`Срібло: ${silverReward}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={silverReward} /></span>

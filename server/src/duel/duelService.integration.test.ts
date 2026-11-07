@@ -97,6 +97,11 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
     const challenger = await players.findOrCreateFromTelegram(challengerUser);
     const opponent = await players.findOrCreateFromTelegram(opponentUser);
     playerIds.push(challenger.id, opponent.id);
+    // Both finish the tutorial first, so their decks carry its reward card as real players' do.
+    const completed = await players.completeTutorial(challenger.id);
+    assert.equal(completed.rewardCard?.code, "wind_fairy");
+    assert.equal((await players.completeTutorial(challenger.id)).rewardCard, null);
+    await players.completeTutorial(opponent.id);
     await pool.query(
       "UPDATE players SET account_xp = 239, duel_gold_earned_today = 1, duel_gold_level = level WHERE id = $1",
       [challenger.id],
@@ -165,7 +170,7 @@ test("tutorial players receive a guaranteed first victory after a losing exchang
     const found = await service.search(challenger.id);
     let duel = await service.start(challenger.id, found.searchId, true);
     const enemyActiveCards = duel.enemyActiveCards.map((card, index) => (
-      index === 0 ? { ...card, finalPower: 1_000 } : card
+      index === 2 ? { ...card, finalPower: 1_000 } : card
     ));
     await pool.query(
       `
@@ -183,7 +188,7 @@ test("tutorial players receive a guaranteed first victory after a losing exchang
       ],
     );
     duel = await service.action(challenger.id, duel.duelId, {
-      slotIndex: 0,
+      slotIndex: 2,
       expectedVersion: duel.version,
     });
     assert.equal(duel.status, "won");
@@ -213,20 +218,26 @@ test("tutorial exchange damage matches the displayed element multipliers", {
     const found = await service.search(challenger.id);
     let duel = await service.start(challenger.id, found.searchId, true);
 
-    duel = await service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: duel.version });
-    assert.equal(duel.battleLog[0]?.playerMultiplier, 1.5);
-    assert.equal(duel.battleLog[0]?.playerDamage, 18);
-    assert.equal(duel.enemyHp, 17);
-    assert.equal(duel.playerHp, 168);
+    // Guided right to left: weak ×0.5, then even ×1.
+    await assert.rejects(service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: duel.version }));
+    duel = await service.action(challenger.id, duel.duelId, { slotIndex: 2, expectedVersion: duel.version });
+    assert.equal(duel.battleLog[0]?.playerMultiplier, 0.5);
+    assert.equal(duel.battleLog[0]?.playerDamage, 6);
+    assert.equal(duel.enemyHp, 18);
+    assert.equal(duel.playerHp, 162);
 
+    await assert.rejects(service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: duel.version }));
     duel = await service.action(challenger.id, duel.duelId, { slotIndex: 1, expectedVersion: duel.version });
     assert.equal(duel.battleLog[0]?.playerMultiplier, 1);
     assert.equal(duel.battleLog[0]?.playerDamage, 12);
-    assert.equal(duel.enemyHp, 5);
-    assert.equal(duel.playerHp, 162);
+    assert.equal(duel.enemyHp, 6);
+    assert.equal(duel.playerHp, 150);
 
+    // The finisher is the player's own choice; even a weak hit (6) ends the duel.
     duel = await service.action(challenger.id, duel.duelId, { slotIndex: 2, expectedVersion: duel.version });
-    assert.equal(duel.battleLog[0]?.playerDamage, 5);
+    const finisher = duel.battleLog[0]!;
+    assert.equal(finisher.playerDamage, Math.round(12 * finisher.playerMultiplier));
+    assert.equal(duel.enemyHp, 0);
     assert.equal(duel.status, "won");
     assert.equal(duel.result?.duelGoldReward, 0);
     assert.equal(duel.result?.gold, 0);

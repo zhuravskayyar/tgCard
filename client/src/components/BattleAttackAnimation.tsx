@@ -35,7 +35,6 @@ const FORCE: Record<Tier, number> = { weak: 0.55, even: 1, strong: 1.8 };
 const SHAKE: Record<Tier, [number, number]> = { weak: [3, 240], even: [7, 360], strong: [15, 620] };
 const RECOIL_MS: Record<Tier, number> = { weak: 380, even: 520, strong: 760 };
 const HIT_SOUND: Record<Tier, SoundCue> = { weak: "hit-weak", even: "hit-normal", strong: "hit-strong" };
-const TIER_LABEL: Record<Tier, string> = { weak: "Слабкий удар", even: "Рівний удар", strong: "Сильний удар!" };
 const RISE_MS = 260;
 const RETURN_MS = 520;
 const FLIP_OUT_MS = 220;
@@ -56,6 +55,11 @@ const rgba = (hex: string, alpha: number) => {
 const transform = (x: number, y: number, rotateY: number, rotateZ: number, scale: number) =>
   `perspective(900px) translate(${x}px, ${y}px) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale})`;
 const materialFor = (rarity: CardRarity) => getBrightCutPlate(rarity);
+/** Dense keyframes from a motion function, played with linear easing, so curved paths stay smooth instead of kinking at keyframes. */
+const sampleFrames = (count: number, frame: (t: number) => Keyframe): Keyframe[] =>
+  Array.from({ length: count + 1 }, (_, index) => ({ ...frame(index / count), offset: index / count }));
+const quadratic = (a: number, control: number, b: number, t: number) => (1 - t) ** 2 * a + 2 * (1 - t) * t * control + t ** 2 * b;
+const FRAME_SAMPLES = 16;
 
 /** Soft glows and flames are painted once into small sprites, then stamped with drawImage (no gradient per particle per frame). */
 const FX_MAX_DPR = 1.5;
@@ -779,7 +783,17 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         return;
       }
       const spin = 360;
-      await ghost.animate([{ transform: transform(0, 0, 0, 0, 1) }, { transform: transform(0, 20, 0, 7, 1.12) }], { ...options, duration: RISE_MS, easing: "ease-out" }).finished;
+      // The card swings out along a gentle arc away from the board centre, so neighbouring slots never cross paths.
+      const arcSide = counterAt.x < width / 2 ? -1 : 1;
+      const normal = { x: -direction.y, y: direction.x };
+      // Signed along the normal so the bend points outward whichever way the strike travels.
+      const arc = Math.min(46, length * 0.18) * arcSide * (Math.sign(normal.x) || 1);
+      const lift = { x: -direction.x * 10, y: 20 - direction.y * 10 };
+      // Wind-up: a short pull back away from the target before the throw.
+      await ghost.animate([
+        { transform: transform(0, 0, 0, 0, 1) },
+        { transform: transform(lift.x, lift.y, -6, 7, 1.12) },
+      ], { ...options, duration: RISE_MS, easing: "cubic-bezier(.2,.8,.3,1)" }).finished;
       if (cancelled) return;
       ghost.style.filter = `drop-shadow(0 0 14px ${glow}) drop-shadow(0 18px 14px #000a)`;
       let lastTrailAt = -Infinity;
@@ -795,11 +809,15 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       };
       trailFrame = requestAnimationFrame(trail);
       playSound("battle-fly");
-      await ghost.animate([
-        { transform: transform(0, 20, 0, 7, 1.12) },
-        { transform: transform(dx / 2, dy / 2, spin / 2, 0, 1.22), offset: 0.5 },
-        { transform: transform(dx, dy, spin, 0, 0.94) },
-      ], { ...options, duration: FLIGHT_MS[tier], easing: "cubic-bezier(.55,0,.9,.5)" }).finished;
+      const controlX = dx / 2 + normal.x * arc;
+      const controlY = dy / 2 + normal.y * arc;
+      // Accelerates into the target: slow release, fastest on contact.
+      await ghost.animate(sampleFrames(FRAME_SAMPLES, (t) => {
+        const p = 0.25 * t + 0.75 * t ** 3;
+        const bank = 7 * (1 - p) + arcSide * 9 * Math.sin(Math.PI * p);
+        const scale = 1.12 + 0.12 * Math.sin(Math.PI * p) - 0.18 * p ** 3;
+        return { transform: transform(quadratic(lift.x, controlX, dx, p), quadratic(lift.y, controlY, dy, p), -6 + (spin + 6) * p, bank, scale) };
+      }), { ...options, duration: FLIGHT_MS[tier], easing: "linear" }).finished;
       cancelAnimationFrame(trailFrame);
       if (cancelled) return;
 
@@ -809,26 +827,36 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       shakeBoard(board, tier);
       setDamage({ tier, at: impact, counterAt });
       const force = FORCE[tier];
-      target.animate([
-        { transform: "none", filter: "brightness(1.65) saturate(1.2)" },
-        { transform: `translate(${direction.x * 16 * force}px, ${direction.y * 16 * force}px) rotate(${direction.x * 5 * force}deg) scale(.95)`, filter: "brightness(1.2)", offset: 0.25 },
-        { transform: `translate(${-direction.x * 5 * force}px, ${-direction.y * 5 * force}px) rotate(${-direction.x * 2 * force}deg)`, offset: 0.6 },
-        { transform: "none", filter: "none" },
-      ], { duration: RECOIL_MS[tier], easing: "ease-out" });
+      // The target is knocked back along the strike line and settles like a damped spring, with a fading flash.
+      target.animate(sampleFrames(FRAME_SAMPLES, (t) => {
+        const settle = t === 1 ? 0 : (1 - Math.exp(-40 * t)) * Math.exp(-5 * t) * Math.sin(2 * Math.PI * 1.4 * t + 0.35) / 0.56; // starts at rest; the peak push is ≈16px × force
+        const push = 16 * force * settle;
+        const squash = t === 1 ? 1 : 1 - 0.06 * force * Math.exp(-9 * t);
+        const flash = t === 1 ? 0 : 0.7 * Math.exp(-7 * t);
+        return {
+          transform: t === 1 ? "none" : `translate(${direction.x * push}px, ${direction.y * push}px) rotate(${direction.x * push * 0.3}deg) scale(${squash})`,
+          filter: t === 1 ? "none" : `brightness(${1 + flash}) saturate(${1 + flash * 0.3})`,
+        };
+      }), { duration: RECOIL_MS[tier], easing: "linear" });
       if (tier === "strong") board.animate([{ scale: "1" }, { scale: "1.02" }, { scale: "1" }], { duration: 300, easing: "ease-out" });
 
+      // Contact: the card squashes into the target, then bounces off.
       await ghost.animate([
         { transform: transform(dx, dy, spin, 0, 0.94) },
-        { transform: transform(dx, dy, spin, 8, 0.8), offset: 0.3 },
-        { transform: transform(dx - direction.x * 12, dy - direction.y * 12, spin, 6, 0.97) },
-      ], { ...options, duration: HIT_MS[tier], easing: "ease-out" }).finished;
+        { transform: transform(dx + direction.x * 4, dy + direction.y * 4, spin, arcSide * 6, 0.82), offset: 0.3 },
+        { transform: transform(dx - direction.x * 14, dy - direction.y * 14, spin, arcSide * 8, 0.98) },
+      ], { ...options, duration: HIT_MS[tier], easing: "cubic-bezier(.2,.8,.3,1)" }).finished;
       if (cancelled) return;
       ghost.style.filter = "";
-      await ghost.animate([
-        { transform: transform(dx - direction.x * 12, dy - direction.y * 12, spin, 6, 0.97) },
-        { transform: transform(dx / 2, dy / 2 + 30, spin / 2, 0, 1.1), offset: 0.5 },
-        { transform: transform(0, 0, 0, 0, 1) },
-      ], { ...options, duration: RETURN_MS, easing: "ease-in-out" }).finished;
+      // The return mirrors the arc on the other side, eased at both ends so the card lands back in its slot softly.
+      const backX = dx - direction.x * 14;
+      const backY = dy - direction.y * 14;
+      await ghost.animate(sampleFrames(FRAME_SAMPLES, (t) => {
+        const p = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+        const x = quadratic(backX, dx / 2 - normal.x * arc * 0.6, 0, p);
+        const y = quadratic(backY, dy / 2 - normal.y * arc * 0.6 + 26, 0, p);
+        return { transform: transform(x, y, spin * (1 - p), arcSide * 8 * (1 - p) * (1 - p), 1 + 0.1 * Math.sin(Math.PI * p) - 0.02 * (1 - p)) };
+      }), { ...options, duration: RETURN_MS, easing: "linear" }).finished;
       if (cancelled) return;
       const flipOut = [{ transform: "perspective(900px) rotateY(0deg)" }, { transform: "perspective(900px) rotateY(90deg)" }];
       await Promise.all([
@@ -888,7 +916,6 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         <>
           <span className={`battle-attack__damage battle-attack__damage--${damage.tier}`} style={damageStyle(damage.at, exchange.playerCard.element, exchange.playerDamage)}>
             <b className="battle-attack__damage-value" data-value={`−${exchange.playerDamage}`}><span>−{exchange.playerDamage}</span></b>
-            <small>{TIER_LABEL[damage.tier]} ×{exchange.playerMultiplier}</small>
           </span>
           {exchange.enemyDamage > 0 ? (
             <span className="battle-attack__damage battle-attack__damage--counter" style={damageStyle(damage.counterAt, exchange.enemyCard.element, exchange.enemyDamage)}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DailyLoginClaimResponse, LariskaDailyRewardPlayerState, LariskaDailyRewardSummary, LariskaDailyRewardView } from "@cardastika/shared";
 import { playSound } from "../audio";
+import { DiamondIcon } from "./DiamondIcon";
 import { AppIcon } from "./AppIcon";
 import { CurrencyIcon } from "./CurrencyDisplay";
 import { Lariska } from "./Lariska";
@@ -25,7 +26,7 @@ function CurrencyRewards({ reward }: { reward: LariskaDailyRewardSummary }) {
         <span className="daily-login-modal__reward-ring"><CurrencyIcon kind="gold" size={34} /></span><strong>{reward.gold === undefined ? "—" : formatUiNumber(reward.gold)}</strong><small>Золото</small>
       </div>
       <div className="daily-login-modal__currency-slot">
-        <span className="daily-login-modal__reward-ring"><img alt="" src="/assets/ui/icons/icon-diamond-v1.webp" width={34} height={34} /></span><strong>{reward.diamonds === undefined ? "—" : formatUiNumber(reward.diamonds)}</strong><small>Алмази</small>
+        <span className="daily-login-modal__reward-ring" data-reward-source="diamond"><DiamondIcon size={34} /></span><strong>{reward.diamonds === undefined ? "—" : formatUiNumber(reward.diamonds)}</strong><small>Алмази</small>
       </div>
     </div>
   );

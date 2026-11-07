@@ -66,7 +66,7 @@ export async function buildStoryTrials(database: Queryable, playerId: string, pr
     const isClaimed = claimed.has(definition.id) || (definition.id === SAVE_PROFILE_TRIAL_ID && save.rewarded);
     const measured = isClaimed ? definition.target : await measure(database, playerId, definition, previousWin);
     const state: StoryTrialState = isClaimed ? "claimed" : definition.available && measured >= definition.target ? "completed" : "active";
-    return { id: definition.id, title: definition.title, navigation: definition.navigation, available: definition.available, target: definition.target, progress: Math.min(definition.target, measured), state, reward: definition.id === SAVE_PROFILE_TRIAL_ID ? { gold: SAVE_PROFILE_GOLD_REWARD, silver: 0 } : location.trialReward };
+    return { id: definition.id, kind: "campaign" as const, title: definition.title, navigation: definition.navigation, available: definition.available, target: definition.target, progress: Math.min(definition.target, measured), state, reward: definition.id === SAVE_PROFILE_TRIAL_ID ? { gold: SAVE_PROFILE_GOLD_REWARD, silver: 0 } : location.trialReward };
   }));
   const portrait = await database.query<{ id: string; art_key: string | null }>("SELECT id, art_key FROM cards WHERE code = $1", [location.giverCode]);
   return {

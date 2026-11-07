@@ -88,15 +88,6 @@
   -webkit-text-fill-color: transparent;
   animation: battle-metal-glint 650ms 80ms ease-out both;
 }
-.battle-attack__damage small {
-  padding: 2px 7px;
-  color: #fff0d1;
-  background: #20150be6;
-  border-radius: 3px;
-  font: 700 11px/1.2 var(--font-body);
-  letter-spacing: .04em;
-  text-shadow: 0 1px 1px #000;
-}
 .battle-attack__damage--strong {
   --damage-size: 46px;
   --metal-top: #ffe7a5;
@@ -105,7 +96,6 @@
   --metal-highlight: #fffce3;
   --metal-edge: #3c220d;
 }
-.battle-attack__damage--strong small { color: #ffe5a4; }
 .battle-attack__damage--weak { --damage-size: 28px; }
 .battle-attack__damage--counter {
   --damage-size: 27px;

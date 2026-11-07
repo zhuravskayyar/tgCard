@@ -6,6 +6,7 @@ import {
   STARTER_CARD_COUNT,
   STARTER_CARD_GRANTS,
   STARTER_DECK_CODES,
+  TUTORIAL_REWARD_GRANT,
   getStarterGrantPower,
 } from "./starterCards.js";
 
@@ -13,7 +14,6 @@ test("starters mirror the reference start with shared catalog cards", () => {
   assert.deepEqual(
     STARTER_CARD_GRANTS.map((grant) => [grant.code, getStarterGrantPower(grant)]),
     [
-      ["wind_fairy", 84],
       ["black_raven", 12],
       ["salamander", 12],
       ["impetuous_lizard", 12],
@@ -22,15 +22,18 @@ test("starters mirror the reference start with shared catalog cards", () => {
       ["fire_ifrit", 12],
       ["river_naiad", 12],
       ["elvish_scout", 12],
-      ["crabman", 10],
       ["giant_dragonfly", 10],
     ],
   );
-  assert.equal(STARTER_CARD_COUNT, 11);
+  // No weak cards at the start: every starter is a deck card.
+  assert.equal(STARTER_CARD_COUNT, 9);
+  assert.deepEqual([...STARTER_DECK_CODES], STARTER_CARD_GRANTS.map(({ code }) => code));
   assert.equal(new Set(STARTER_CARDS.map(({ id }) => id)).size, STARTER_CARD_COUNT);
   assert.deepEqual(STARTER_CARDS.map(({ code }) => code), STARTER_CARD_GRANTS.map(({ code }) => code));
-  assert.equal(getRarityForLevel(STARTER_CARD_GRANTS[0]!.level), "uncommon");
-  assert.ok(STARTER_CARD_GRANTS.slice(1).every(({ level }) => getRarityForLevel(level) === "common"));
+  assert.ok(STARTER_CARD_GRANTS.every(({ level }) => getRarityForLevel(level) === "common"));
+  assert.equal(TUTORIAL_REWARD_GRANT.code, "wind_fairy");
+  assert.equal(getStarterGrantPower(TUTORIAL_REWARD_GRANT), 84);
+  assert.equal(getRarityForLevel(TUTORIAL_REWARD_GRANT.level), "uncommon");
 });
 
 test("the nine starter deck cards form a valid 3/2/2/2 deck", () => {

@@ -31,8 +31,8 @@ function countdown(availableAt: string, now: number) {
   return [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2, "0")).join(":");
 }
 
-export function CampaignScreen({ onBack, onOpenBoss, onOpenTasks, onOpenTrials }: {
-  onBack: () => void; onOpenBoss: (location: number) => void; onOpenTasks: () => void; onOpenTrials: () => void;
+export function CampaignScreen({ onBack, onOpenBoss, onOpenTrials }: {
+  onBack: () => void; onOpenBoss: (location: number) => void; onOpenTrials: () => void;
 }) {
   const [view, setView] = useState<CampaignMapView | null>(null);
   const [error, setError] = useState(false);
@@ -68,22 +68,18 @@ export function CampaignScreen({ onBack, onOpenBoss, onOpenTasks, onOpenTrials }
       <ol aria-label={tx("Локації кампанії")} className="adventure-map">{view.locations.map(location => {
       const resume = view.activeBattleLocation === location.number;
       return <li className={`adventure-location adventure-location--${location.state}`} key={location.number}>
-        <span aria-hidden="true" className="adventure-location__marker">{location.number}</span>
         <article className="adventure-plate">
           <h2>{tx(location.name)}</h2>
-          <p>{tx(location.boss.name)} · {formatFullUiNumber(location.boss.hp)} HP</p>
           {location.state === "trials" ? <>
             <p>{tx(`Пройди випробування! ${formatFullUiNumber(location.trialsClaimed)} / ${formatFullUiNumber(location.trialsTotal)}`)}</p>
             <button className="adventure-button ui-button ui-button--primary" onClick={onOpenTrials} type="button">{tx(location.claimableTrials > 0 ? "Нагорода!" : "Випробування")}</button>
           </> : resume || location.boss.canFight ? <button className="adventure-button ui-button ui-button--primary" onClick={() => onOpenBoss(location.number)} type="button">{tx(resume ? "Продовжити бій" : "Бити боса")}</button>
             : location.boss.availableAt ? <p>{tx("Битися знову через")} <time dateTime={location.boss.availableAt}>{countdown(location.boss.availableAt, now)}</time></p>
             : <p>{tx(location.state === "passed" ? "Пригоду пройдено" : "Бос готується до бою")}</p>}
-          {location.state !== "passed" ? <p className="adventure-location__reward"><span>{tx("Перша перемога:")}</span> {formatFullUiNumber(location.boss.firstWinReward.gold)}<CurrencyIcon kind="gold" size={15} /> {formatFullUiNumber(location.boss.firstWinReward.silver)}<CurrencyIcon kind="silver" size={15} /> {tx(`Карта рівня ${formatFullUiNumber(location.boss.drop.level)}`)}</p> : null}
         </article>
       </li>;
     })}</ol>
     </> : null}
-    <MenuRow compact icon="tasks" metalTexture onClick={onOpenTasks} title="Завдання" />
   </div>;
 }
 

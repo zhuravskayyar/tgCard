@@ -50,6 +50,7 @@ export interface DailyTaskView {
   claimed: boolean;
   completed: boolean;
   id: string;
+  kind: "daily";
   progress: number;
   rewardDiamonds: number;
   target: number;

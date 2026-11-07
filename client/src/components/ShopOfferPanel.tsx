@@ -64,9 +64,10 @@ export function ShopOfferPanel({
       <div className="shop-offer__summary">
         <div className="shop-offer__symbol" aria-hidden="true">
           <span className="shop-pack-body">
-          <img alt="" className="shop-offer__artwork" src="/assets/ui/shop/stall/pack-v2.webp" />
+          <img alt="" className="shop-offer__artwork" src="/assets/ui/shop/stall/pack-noseal-v3.webp" />
           <span aria-hidden="true" className={`shop-pack-foil shop-pack-foil--${offer.guaranteedRarity}`} /><span aria-hidden="true" className={`shop-pack-gilt shop-pack-gilt--${offer.guaranteedRarity}`} />
           <img alt="" className={`shop-pack-seal shop-pack-seal--${offer.guaranteedRarity}`} src="/assets/ui/shop/stall/pack-seal-v2.webp" />
+          <span aria-hidden="true" className={`shop-pack-sheen shop-pack-sheen--${offer.guaranteedRarity}`} />
           </span>
         </div>
         <div className="shop-offer__copy">

@@ -64,7 +64,7 @@
 :root .app-shell .card-detail-screen .progression-panel__facts strong span { width: auto; font-family: inherit !important; font-size: inherit; line-height: inherit; }
 :root .app-shell .card-detail-screen .progression-panel__facts .currency-icon { width: 18px; height: 18px; margin: 0; }
 :root .app-shell .card-detail-screen .progression-panel__external-hint { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 3px 0 0; padding: 0; color: var(--home-ink); background: none; border: 0; font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center; }
-:root .app-shell .card-detail-screen .progression-panel__external-hint > span { flex: 0 0 auto; color: var(--home-ink-muted); font: 12px/1 Georgia, serif; }
+:root .app-shell .card-detail-screen .progression-panel__external-hint > span { flex: 0 0 auto; color: var(--home-ink-muted); font: 12px/1 var(--font-body); }
 
 :root .app-shell .card-detail-screen .absorption-panel { display: grid; grid-template-rows: var(--upgrade-weak-height) minmax(0, 1fr); gap: 0; min-height: 0; padding: 0; overflow: hidden; background: none; border: 0; border-image: none; box-shadow: none; }
 :root .app-shell .card-detail-screen .weak-cards-heading { display: grid; width: 100%; height: var(--upgrade-weak-height); min-height: var(--upgrade-weak-height); grid-template-columns: 13% minmax(0, 1fr) auto 16px; align-items: center; gap: 8px; padding: 1px 16px; background: transparent; border-radius: 0; filter: none; border: 0 solid transparent; border-image: var(--sprite-menu-row) 0 160 0 160 fill / 0 36px / 0 stretch; box-shadow: none; }
@@ -483,7 +483,7 @@
   left: 0;
   pointer-events: none;
   color: #a6ffb0;
-  font: 700 24px Georgia, "Times New Roman", serif;
+  font: 700 24px var(--font-number);
   letter-spacing: .02em;
   white-space: nowrap;
   text-shadow: 0 0 5px #3dff78, 0 0 14px #19c452, 0 1px 0 #05301a;

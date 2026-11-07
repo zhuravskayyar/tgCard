@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BattlePassPageResponse } from "@cardastika/shared";
+import { reportDiamondBalance } from "../components/diamondGain";
 import { getTelegramInitData } from "../telegram";
 import {
   claimBattlePassMilestone,
@@ -26,7 +27,10 @@ export function useBattlePass() {
     const controller = new AbortController();
     setState({ status: "loading" });
     void loadBattlePass(initData, controller.signal)
-      .then((data) => setState({ status: "ready", data }))
+      .then((data) => {
+        reportDiamondBalance(data.battlePass.diamonds);
+        setState({ status: "ready", data });
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setState({ status: "error", message: "Не вдалося завантажити батл пас" });
@@ -38,6 +42,7 @@ export function useBattlePass() {
     const initData = getTelegramInitData();
     if (!initData) throw new Error("Telegram authentication is unavailable");
     const response = await claimBattlePassMilestone(initData, milestoneId);
+    reportDiamondBalance(response.battlePass.diamonds);
     setState({ status: "ready", data: response });
     return response;
   }, []);
@@ -46,6 +51,7 @@ export function useBattlePass() {
     const initData = getTelegramInitData();
     if (!initData) throw new Error("Telegram authentication is unavailable");
     const response = await claimDailyBattlePassTask(initData, taskId);
+    reportDiamondBalance(response.battlePass.diamonds);
     setState({ status: "ready", data: response });
     return response;
   }, []);

@@ -52,11 +52,7 @@ test("admin player mutations are validated, audited, and rolled back atomically"
       (error) => error instanceof AdminDomainError && error.code === "player_not_found",
     );
 
-    // Without the two weak starters no card can replace a removed deck card.
-    await pool.query(
-      "DELETE FROM player_card_instances WHERE player_id = $1 AND card_id = ANY($2::text[])",
-      [targetPlayer.id, ["crabman", "giant_dragonfly"]],
-    );
+    // A new player owns exactly the nine deck cards, so no card can replace a removed one.
     const beforeRollback = await service.getPlayer(targetPlayer.id, 1, 25);
     assert.equal(beforeRollback.deck.length, 9);
     const deckCard = beforeRollback.deck[0];

@@ -33,12 +33,14 @@ function StoryTrialRow({ onClaim, onOpen, pending, trial }: {
 }) {
   const action = trial.navigation ? trialActions[trial.navigation] : null;
   const completed = trial.state === "completed";
+  const claimed = trial.state === "claimed";
+  const done = completed || claimed;
   return (
-    <article className={`quest-paper story-notice${trial.navigation === "save-profile" ? " story-notice--official" : ""}${completed ? " quest-paper--completed" : ""}`}>
+    <article className={`quest-paper story-notice${trial.navigation === "save-profile" ? " story-notice--official" : ""}${claimed ? " quest-paper--claimed" : completed ? " quest-paper--completed" : ""}`}>
       <span aria-hidden="true" className="story-notice__nail" />
       <div className="quest-paper__content">
         <header className="quest-paper__header">
-          <span className="quest-paper__icon"><AppIcon name={completed ? "card-reward" : action?.icon ?? "tasks"} size={22} /></span>
+          <span className="quest-paper__icon"><AppIcon name={done ? "card-reward" : action?.icon ?? "tasks"} size={22} /></span>
           <div className="quest-paper__title"><strong>{tx(trial.title)}</strong></div>
           <span className="quest-paper__reward story-trials__reward">
             {trial.reward.gold ? <span data-reward-source={completed ? "gold" : undefined}>+{formatFullUiNumber(trial.reward.gold)}<CurrencyIcon kind="gold" size={15} /></span> : null}
@@ -52,10 +54,12 @@ function StoryTrialRow({ onClaim, onOpen, pending, trial }: {
           </span>
         </div>
         <footer className="quest-paper__footer">
-          {completed
-            ? <img alt={tx("Випробування пройдено!")} className="story-notice__seal" src="/assets/ui/trials/board/seal-v1.webp" />
+          {done
+            ? <img alt={tx(claimed ? "Нагороду забрано" : "Випробування пройдено!")} className="story-notice__seal" src="/assets/ui/trials/board/seal-v1.webp" />
             : <span className="quest-paper__status">{tx(trial.available ? "Виконай випробування" : "Скоро")}</span>}
-          {completed ? (
+          {claimed ? (
+            <span className="quest-paper__status quest-paper__status--done">{tx("Нагороду забрано")}</span>
+          ) : completed ? (
             <button className="quest-paper__button quest-paper__button--claim" disabled={pending} onClick={onClaim} type="button">
               {tx(pending ? "Забираємо…" : "Забрати нагороду")}
             </button>
@@ -76,12 +80,8 @@ type LoadState =
   | { status: "error" }
   | { status: "ready"; view: StoryTrialsView };
 
-export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenCampaign }: {
-  onBack: () => void;
-  onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
-  onNavigate: (target: StoryTrialNavigationTarget) => void;
-  onOpenCampaign: () => void;
-}) {
+/** Loads the current location's one-off trials and claims their rewards; shared by the story screen and the tasks board. */
+function useStoryTrials(onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -128,35 +128,86 @@ export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenC
     }
   }
 
+  return { claim, claimError, claimNotice, load, pendingId, state };
+}
+
+/** Every trial of the location stays pinned in place; claimed ones keep their seal instead of vanishing. */
+function StoryTrialsList({ claim, onNavigate, pendingId, view }: {
+  claim: (trialId: string) => Promise<void>;
+  onNavigate: (target: StoryTrialNavigationTarget) => void;
+  pendingId: string | null;
+  view: StoryTrialsView;
+}) {
+  return (
+    <section className="story-trials__list notice-board" aria-label="Випробування">
+      <p className="story-trials__progress notice-board__plaque">{tx(`Прогрес випробувань: ${formatFullUiNumber(view.completedCount)} з ${formatFullUiNumber(view.totalCount)}`)}</p>
+      {view.trials.filter((trial) => trial.kind === "campaign").map((trial) => (
+        <StoryTrialRow
+          key={trial.id}
+          onClaim={() => void claim(trial.id)}
+          onOpen={() => { if (trial.navigation) onNavigate(trial.navigation); }}
+          pending={pendingId === trial.id}
+          trial={trial}
+        />
+      ))}
+    </section>
+  );
+}
+
+function StoryTrialsStatus({ load, state }: { load: () => void; state: LoadState }) {
+  if (state.status === "loading") return <div className="battle-pass-state">{tx("Відновлюємо випробування…")}</div>;
+  if (state.status === "error") {
+    return (
+      <div className="battle-pass-state">
+        <span>{tx("Не вдалося завантажити випробування")}</span>
+        <button onClick={() => load()} type="button">{tx("Спробувати ще раз")}</button>
+      </div>
+    );
+  }
+  return null;
+}
+
+/** The campaign group of the tasks board: the same server trials as the story screen. */
+export function CampaignTasksBoard({ onBalanceChange, onNavigate }: {
+  onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
+  onNavigate: (target: StoryTrialNavigationTarget) => void;
+}) {
+  const { claim, claimError, claimNotice, load, pendingId, state } = useStoryTrials(onBalanceChange);
+  const view = state.status === "ready" ? state.view : null;
+  return (
+    <>
+      <StoryTrialsStatus load={load} state={state} />
+      {view ? (
+        <>
+          <p className="adventure-plate">{tx(`Щоб пройти пригоду «${tx(view.story.caveName)}», пройди всі випробування.`)}</p>
+          {claimNotice ? <p className="adventure-plate" role="status">{tx(claimNotice)}</p> : null}
+          {claimError ? <p className="campaign-claim-error" role="alert">{tx(claimError)}</p> : null}
+          <StoryTrialsList claim={claim} onNavigate={onNavigate} pendingId={pendingId} view={view} />
+        </>
+      ) : null}
+    </>
+  );
+}
+
+export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenCampaign }: {
+  onBack: () => void;
+  onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
+  onNavigate: (target: StoryTrialNavigationTarget) => void;
+  onOpenCampaign: () => void;
+}) {
+  const { claim, claimError, claimNotice, load, pendingId, state } = useStoryTrials(onBalanceChange);
   const view = state.status === "ready" ? state.view : null;
   return (
     <div className="story-trials-screen notice-board-screen tasks-screen">
       <ScreenHeading onBack={onBack} title={tx(view?.story.title ?? "Випробування")} titleFirst />
-      {state.status === "loading" ? <div className="battle-pass-state">{tx("Відновлюємо випробування…")}</div> : null}
-      {state.status === "error" ? (
-        <div className="battle-pass-state">
-          <span>{tx("Не вдалося завантажити випробування")}</span>
-          <button onClick={() => load()} type="button">{tx("Спробувати ще раз")}</button>
-        </div>
-      ) : null}
+      <StoryTrialsStatus load={load} state={state} />
       {view ? (
         <>
           <CampaignGiver view={view} />
           <p className="adventure-plate">{tx(`Щоб пройти пригоду «${tx(view.story.caveName)}», пройди всі випробування.`)}</p>
           {claimNotice ? <p className="adventure-plate" role="status">{tx(claimNotice)}</p> : null}
           {claimError ? <p className="campaign-claim-error" role="alert">{tx(claimError)}</p> : null}
-          <section className="story-trials__list notice-board" aria-label="Випробування">
-            <p className="story-trials__progress notice-board__plaque">{tx(`Прогрес випробувань: ${formatFullUiNumber(view.completedCount)} з ${formatFullUiNumber(view.totalCount)}`)}</p>
-            {view.trials.filter(({ state: trialState }) => trialState !== "claimed").map((trial) => (
-              <StoryTrialRow
-                key={trial.id}
-                onClaim={() => void claim(trial.id)}
-                onOpen={() => { if (trial.navigation) onNavigate(trial.navigation); }}
-                pending={pendingId === trial.id}
-                trial={trial}
-              />
-            ))}
-          </section>
+          <StoryTrialsList claim={claim} onNavigate={onNavigate} pendingId={pendingId} view={view} />
           <MenuRow compact icon="campaign" metalTexture onClick={onOpenCampaign} title={tx("Кампанія")} />
         </>
       ) : null}

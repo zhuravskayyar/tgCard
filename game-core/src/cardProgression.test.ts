@@ -12,6 +12,7 @@ import {
   generateStandardBonusPower,
   getBasePowerForLevel,
   getCardPower,
+  getAbsorbableElementsByElement,
   getCardUpgradeIndicator,
   getRequiredProgressElements,
   getUpgradeProgress,
@@ -155,6 +156,19 @@ test("upgrade badges distinguish free progress, mandatory gold, and maximum leve
   assert.equal(getCardUpgradeIndicator(1, getRequiredProgressElements(1)), "element");
   assert.equal(getCardUpgradeIndicator(4, 0), undefined);
   assert.equal(getCardUpgradeIndicator(4, getRequiredProgressElements(4)), "gold");
+  // Same-element weak cards that guarantee the level also show the arrow, coloured by the next level.
+  assert.equal(getCardUpgradeIndicator(1, 0, getRequiredProgressElements(1)), "element");
+  assert.equal(getCardUpgradeIndicator(4, 0, getRequiredProgressElements(4)), "gold");
+  assert.equal(getCardUpgradeIndicator(4, 0, getRequiredProgressElements(4) / 2), undefined);
+  const weak = [
+    { element: "air" as const, level: 1, levelProgressElements: 0, storedElements: 0 },
+    { element: "air" as const, level: 1, levelProgressElements: 0, storedElements: 0, protectedFromAbsorption: true },
+    { element: "fire" as const, level: 1, levelProgressElements: 0, storedElements: 0 },
+  ];
+  const absorbable = getAbsorbableElementsByElement(weak);
+  assert.equal(absorbable.air, getTransferableElementValue(weak[0]!));
+  assert.equal(absorbable.fire, getTransferableElementValue(weak[2]!));
+  assert.equal(absorbable.water, 0);
   assert.equal(getCardUpgradeIndicator(89, getRequiredProgressElements(89)), "gold");
   assert.equal(getCardUpgradeIndicator(MAX_CARD_LEVEL, 0), undefined);
 });

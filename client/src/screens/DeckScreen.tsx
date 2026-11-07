@@ -51,7 +51,7 @@ export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onO
     ? state.deck.cards.reduce<Record<string, number>>((counts, card) => ({ ...counts, [card.element]: (counts[card.element] ?? 0) + 1 }), {})
     : null;
   const hasUpgrade = state.status === "ready"
-    && state.deck.cards.some((card) => getCardUpgradeIndicator(card.level, card.levelProgressElements) !== undefined);
+    && state.deck.cards.some((card) => (card.upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements)) !== undefined);
   const deckTask = battlePassState.status === "ready"
     ? DECK_TASK_IDS.map((id) => battlePassState.data.daily.tasks.find((task) => task.id === id)).find((task) => task && !task.completed) ?? null
     : null;

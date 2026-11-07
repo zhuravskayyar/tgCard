@@ -3,6 +3,7 @@ import type { PlayerSummaryState } from "../types/player";
 import { getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CurrencyDisplay } from "./CurrencyDisplay";
+import { DiamondHudPill } from "./DiamondHudPill";
 import { ExperienceVine } from "./ExperienceVine";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { useExperienceFly } from "../hooks/useExperienceFly";
@@ -92,6 +93,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
         <div className="currency-list">
           <CurrencyDisplay kind="silver" label="Срібло" state={state.status} value={player?.silver} />
           <CurrencyDisplay kind="gold" label="Золото" state={state.status} value={player?.gold} />
+          <DiamondHudPill />
         </div>
       </div>
 

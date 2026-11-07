@@ -65,7 +65,11 @@ interface ShopRewardRevealProps {
   onBuyTen?: () => void;
   onContinue: () => void;
   packRarity?: CardRarity;
+  /** Heading over the unopened pack (shop default: "Пакунок придбано"). */
+  packHeading?: string;
   purchasing?: boolean;
+  /** Heading over the revealed card, replacing the shop wording. */
+  revealHeading?: string;
   purchases: readonly ShopPurchaseResponse[];
 }
 
@@ -78,8 +82,10 @@ export function ShopRewardReveal({
   onBuyTen,
   onContinue,
   packRarity,
+  packHeading = "Пакунок придбано",
   purchasing = false,
   purchases,
+  revealHeading,
 }: ShopRewardRevealProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [unboxStage, setUnboxStage] = useState<UnboxStage>(() => !forged ? "idle" : prefersReducedMotion() ? "done" : "forge");
@@ -147,7 +153,7 @@ export function ShopRewardReveal({
   if ((unboxStage === "idle" || unboxStage === "handoff") && !isBatch && !prefersReducedMotion()) {
     return (
       <section className={`shop-unbox-stage shop-unbox-stage--3d${unboxStage === "handoff" ? " shop-unbox-stage--leaving" : ""}`} ref={revealRef} tabIndex={-1}>
-        <header className="shop-reveal__heading"><span>Пакунок придбано</span></header>
+        <header className="shop-reveal__heading"><span>{packHeading}</span></header>
         <BoosterOpeningBoundary onError={useStandardUnbox}>
           <Suspense fallback={null}>
             <BoosterOpening
@@ -169,7 +175,7 @@ export function ShopRewardReveal({
     const sealClass = `shop-pack-seal ${packRarity ? `shop-pack-seal--${packRarity}` : ""} shop-unbox__seal`;
     return (
       <section aria-label="Відкриття пакунка" className="shop-unbox-stage" ref={revealRef} tabIndex={-1}>
-        <header className="shop-reveal__heading"><span>Пакунок придбано</span></header>
+        <header className="shop-reveal__heading"><span>{packHeading}</span></header>
         <button
           aria-label="Відкрити пакунок"
           aria-disabled={visibleUnboxStage !== "idle"}
@@ -206,7 +212,7 @@ export function ShopRewardReveal({
   return (
     <section aria-label="Отримана карта" className={`shop-reveal shop-reveal--${reward.rarity}${fromBooster && activeIndex === 0 ? " shop-reveal--from-booster" : ""}`} aria-live="polite" data-tutorial-target="shop-reveal" ref={revealRef} tabIndex={-1}>
       <header className="shop-reveal__heading">
-        <span>{forged ? "Карту викувано" : activePurchase.newDiscovery ? "Відкрито нову карту" : "Отримано карту"}</span>
+        <span>{revealHeading ?? (forged ? "Карту викувано" : activePurchase.newDiscovery ? "Відкрито нову карту" : "Отримано карту")}</span>
         {reward.displayName ? (
           <CardNameBadge name={reward.displayName} />
         ) : (

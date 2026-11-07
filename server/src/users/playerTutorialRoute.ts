@@ -34,7 +34,7 @@ export async function handlePlayerTutorialCompletion(
 
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
-    sendJson(response, 200, { player: await dependencies.players.completeTutorial(player.id) }, headers);
+    sendJson(response, 200, await dependencies.players.completeTutorial(player.id), headers);
   } catch (error) {
     sendTutorialError(response, error, headers);
   }

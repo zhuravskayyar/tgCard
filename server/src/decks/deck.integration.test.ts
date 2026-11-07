@@ -30,7 +30,7 @@ async function cleanupPlayers(pool: Pool, telegramUserIds: string[]) {
   await pool.query("DELETE FROM players WHERE telegram_user_id = ANY($1::bigint[])", [telegramUserIds]);
 }
 
-test("bootstrap keeps one automatic balanced 180-power starter deck without changing economy", {
+test("bootstrap keeps one automatic balanced 106-power starter deck without changing economy", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -56,7 +56,8 @@ test("bootstrap keeps one automatic balanced 180-power starter deck without chan
     assert.equal(secondPlayer.gold, firstPlayer.gold);
     assert.equal(Number(deckCount.rows[0]?.count), 1);
     assert.equal(firstDeck.cards.length, 9);
-    assert.equal(firstDeck.totalPower, 180);
+    // Eight 12-power commons plus the 10-power dragonfly; the tutorial reward later lifts it to 180.
+    assert.equal(firstDeck.totalPower, 106);
     assert.deepEqual(countDeckElements(firstDeck.cards), { fire: 2, water: 2, air: 3, earth: 2 });
     assert.deepEqual(new Set(firstDeck.cards.map(({ code }) => code)), new Set(STARTER_DECK_CODES));
     assert.deepEqual(secondDeck, firstDeck);
@@ -147,11 +148,12 @@ test("inventory transaction replaces a weaker card and skips an unchanged deck w
     );
 
     assert.equal(updatedResult.status, "updated");
-    assert.equal(after.totalPower, before.totalPower + 38);
+    // The 50-power fire card pushes out the weakest starter (the 10-power air dragonfly).
+    assert.equal(after.totalPower, before.totalPower + 40);
     assert.ok(after.cards.some(({ cardId }) => cardId === bonusCardId));
     assert.ok(after.cards.some(({ instanceId }) => instanceId === bonusInstanceId));
     assert.equal(after.baseBattleHp, after.totalPower);
-    assert.deepEqual(countDeckElements(after.cards), { fire: 2, water: 2, air: 3, earth: 2 });
+    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
     assert.equal(unchangedResult.status, "unchanged");
     assert.deepEqual(updatedAtAfterUnchangedCheck.rows[0], updatedAtBeforeUnchangedCheck.rows[0]);
   } finally {

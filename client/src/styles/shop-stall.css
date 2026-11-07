@@ -205,7 +205,7 @@
 .shop-unbox__pack .card-quality-badge { top: 53%; left: 50%; width: 48px; height: 48px; border-radius: 50%; transform: translate(-50%, -50%); }
 .shop-unbox--tear .card-quality-badge { opacity: 0; transition: opacity 120ms; }
 .shop-unbox--shake .shop-unbox__pack { animation: shop-pack-shake 300ms linear infinite; filter: drop-shadow(0 0 18px rgb(var(--unbox-glow) / 90%)); }
-.shop-unbox__half { position: absolute; inset: 0; background: url("/assets/ui/shop/stall/pack-v2.webp") center / contain no-repeat; }
+.shop-unbox__half { position: absolute; inset: 0; background: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat; }
 .shop-unbox__half--top { clip-path: polygon(0 0, 100% 0, 100% 38%, 80% 42%, 60% 37%, 40% 43%, 20% 38%, 0 43%); }
 .shop-unbox__half--bottom { clip-path: polygon(0 43%, 20% 38%, 40% 43%, 60% 37%, 80% 42%, 100% 38%, 100% 100%, 0 100%); }
 .shop-unbox--tear .shop-unbox__half--top { animation: shop-pack-top 450ms ease-in both; }
@@ -394,8 +394,8 @@
   display: block;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask: url("/assets/ui/shop/stall/pack-v2.webp") center / contain no-repeat;
-  mask: url("/assets/ui/shop/stall/pack-v2.webp") center / contain no-repeat;
+  -webkit-mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
+  mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
 }
 /* Colour wash of the wrapper. */
 .shop-pack-foil::before {
@@ -657,17 +657,8 @@
   z-index: 1;
   display: block;
   pointer-events: none;
-  -webkit-mask: url("/assets/ui/shop/stall/pack-v2.webp") center / contain no-repeat;
-  mask: url("/assets/ui/shop/stall/pack-v2.webp") center / contain no-repeat;
-}
-.shop-pack-gilt--legendary::after,
-.shop-pack-gilt--mythic::after {
-  content: "";
-  position: absolute;
-  inset: 10.5% 12% 15.5%;
-  border: 2px solid transparent;
-  border-image: linear-gradient(135deg, #f7dc8a, #a9782a 45%, #f0cf78 70%, #8e6420) 1;
-  box-shadow: 0 0 1px rgb(60 35 5 / 80%);
+  -webkit-mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
+  mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
 }
 .shop-pack-gilt--epic::before,
 .shop-pack-gilt--legendary::before,
@@ -745,7 +736,7 @@
   left: calc(var(--fx-index) * 8.3%);
   width: 15px;
   height: 11px;
-  background: url("/assets/ui/shop/stall/pack-v2.webp") 30% 20% / 700% auto;
+  background: url("/assets/ui/shop/stall/pack-noseal-v3.webp") 30% 20% / 700% auto;
   clip-path: polygon(10% 12%, 58% 0, 100% 38%, 72% 100%, 22% 82%, 0 48%);
   animation: shop-scrap 950ms cubic-bezier(.2, .6, .5, 1) both;
   animation-delay: calc(var(--fx-index) * 16ms);
@@ -901,7 +892,7 @@
 }
 
 /* The wrapper under the breakable wax has no painted seal. */
-.shop-unbox .shop-unbox__half { background-image: url("/assets/ui/shop/stall/pack-noseal-v2.webp"); }
+.shop-unbox .shop-unbox__half { background-image: url("/assets/ui/shop/stall/pack-noseal-v3.webp"); }
 
 /* Workshop: same painted plates as the rest of the stall, no dark panels. */
 :root[data-game-theme="light"] body .app-shell .app-content .card-workshop { display: grid; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
@@ -1260,4 +1251,63 @@
 @media (prefers-reduced-motion: reduce) {
   .shop-unbox-stage--leaving { transition: none; }
   :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal--from-booster .shop-reveal__stage .shop-reveal__card-shell { animation: none; }
+}
+
+
+/* Shelf packs: the frameless pack sways gently on the board as one object (paper, dye, seal and sheen together).
+   Neighbouring packs are out of phase, and a light band glides across the paper in step with the tilt. */
+.shop-offer { --sway-delay: 0s; }
+.shop-offer:nth-of-type(3n + 2) { --sway-delay: -1.7s; }
+.shop-offer:nth-of-type(3n + 3) { --sway-delay: -3.2s; }
+.shop-offer__symbol .shop-pack-body {
+  transform-origin: 50% 100%;
+  animation: shop-shelf-sway 4.8s ease-in-out var(--sway-delay) infinite;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer__symbol .shop-offer__artwork {
+  animation: shop-shelf-light 4.8s ease-in-out var(--sway-delay) infinite;
+}
+.shop-pack-sheen {
+  --sheen: .55;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
+  mask: url("/assets/ui/shop/stall/pack-noseal-v3.webp") center / contain no-repeat;
+}
+.shop-pack-sheen::before {
+  position: absolute;
+  inset: -10% -70%;
+  content: "";
+  background: linear-gradient(105deg, transparent 38%, rgb(255 244 214 / calc(var(--sheen) * .5)) 46%, rgb(255 252 238 / var(--sheen)) 50%, rgb(255 236 196 / calc(var(--sheen) * .45)) 54%, transparent 62%);
+  mix-blend-mode: soft-light;
+  animation: shop-shelf-sheen 4.8s ease-in-out var(--sway-delay) infinite;
+}
+.shop-pack-sheen--common { --sheen: .45; }
+.shop-pack-sheen--uncommon { --sheen: .55; }
+.shop-pack-sheen--rare { --sheen: .65; }
+.shop-pack-sheen--epic { --sheen: .75; }
+.shop-pack-sheen--legendary,
+.shop-pack-sheen--mythic { --sheen: .9; }
+@keyframes shop-shelf-sway {
+  0%, 100% { transform: rotateZ(-1.6deg) rotateY(-8deg) translateY(0); }
+  25% { transform: rotateZ(0deg) rotateY(0deg) translateY(-1.5px); }
+  50% { transform: rotateZ(1.6deg) rotateY(8deg) translateY(0); }
+  75% { transform: rotateZ(0deg) rotateY(0deg) translateY(-1.5px); }
+}
+/* The paper brightens as it turns towards the candle on the left, and dims as it turns away. */
+@keyframes shop-shelf-light {
+  0%, 100% { filter: brightness(1.06) drop-shadow(0 3px 2px rgb(20 10 2 / 35%)); }
+  50% { filter: brightness(.93) drop-shadow(0 3px 2px rgb(20 10 2 / 35%)); }
+}
+@keyframes shop-shelf-sheen {
+  0%, 100% { transform: translateX(-26%); }
+  50% { transform: translateX(26%); }
+}
+.shop-unbox .shop-pack-sheen { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .shop-offer__symbol .shop-pack-body,
+  :root[data-game-theme="light"] body .app-shell .app-content .shop-offer__symbol .shop-offer__artwork,
+  .shop-pack-sheen::before { animation: none; }
 }

@@ -1,4 +1,4 @@
-import type { CardRarity } from "@cardastika/shared";
+import type { CardElement, CardRarity } from "@cardastika/shared";
 
 export const MIN_CARD_LEVEL = 1;
 export const MAX_CARD_LEVEL = 180;
@@ -277,13 +277,31 @@ export function getUpgradeGoldPrice(targetLevel: number, levelProgressElements: 
   return minimum + Math.ceil((reducible * unfilled) / progress.requiredElements);
 }
 
-/** A free upgrade or an upcoming mandatory gold level; not an affordability promise. */
-export function getCardUpgradeIndicator(level: number, levelProgressElements: number): "element" | "gold" | undefined {
+/**
+ * Arrow on a card: its elemental progress is full, or absorbing the available same-element weak cards
+ * (absorbableElements, before any collection bonus) guarantees the level. Gold when the next level is a gold level.
+ */
+export function getCardUpgradeIndicator(level: number, levelProgressElements: number, absorbableElements = 0): "element" | "gold" | undefined {
   assertCardLevel(level);
   if (level === MAX_CARD_LEVEL) return undefined;
   const progress = getUpgradeProgress(levelProgressElements, level);
-  if (progress.filledElements < progress.requiredElements) return undefined;
+  if (roundProgressValue(progress.filledElements + absorbableElements) < progress.requiredElements) return undefined;
   return isGoldLevel(level + 1) ? "gold" : "element";
+}
+
+interface AbsorbableCard extends CardProgressionState {
+  element: CardElement;
+  protectedFromAbsorption?: boolean;
+}
+
+/** Elements the given weak cards would transfer, per element; protected cards are never absorbed. */
+export function getAbsorbableElementsByElement(weakCards: readonly AbsorbableCard[]): Record<CardElement, number> {
+  const totals: Record<CardElement, number> = { fire: 0, water: 0, earth: 0, air: 0 };
+  for (const card of weakCards) {
+    if (card.protectedFromAbsorption) continue;
+    totals[card.element] = roundProgressValue(totals[card.element] + getTransferableElementValue(card));
+  }
+  return totals;
 }
 
 export function canLevelUp(

@@ -1,5 +1,5 @@
 import type { Pool, PoolClient } from "pg";
-import { STARTER_CARD_CODES, STARTER_CARD_COUNT, STARTER_CARD_GRANTS } from "./starterCards.js";
+import { STARTER_CARD_CODES, STARTER_CARD_COUNT, STARTER_CARD_GRANTS, TUTORIAL_REWARD_GRANT } from "./starterCards.js";
 
 interface CountRow {
   count: string;
@@ -69,6 +69,37 @@ export async function grantStarterCards(client: PoolClient, playerId: string) {
     `,
     [playerId, STARTER_CARD_CODES],
   );
+}
+
+/**
+ * Gives the tutorial reward card once (stable instance id per player); returns its instance id,
+ * or null when the player already owns that card.
+ */
+export async function grantTutorialRewardCard(client: PoolClient, playerId: string): Promise<string | null> {
+  const result = await client.query<{ id: string }>(
+    `
+      INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+      SELECT md5('cardastika:tutorial-reward:' || $1::text || ':' || cards.id)::uuid, $1::uuid, cards.id, $3::int, $4::int
+      FROM cards
+      WHERE cards.code = $2
+        AND NOT EXISTS (
+          SELECT 1 FROM player_card_instances existing
+          WHERE existing.player_id = $1::uuid AND existing.card_id = cards.id
+        )
+      ON CONFLICT (id) DO NOTHING
+      RETURNING id
+    `,
+    [playerId, TUTORIAL_REWARD_GRANT.code, TUTORIAL_REWARD_GRANT.level, TUTORIAL_REWARD_GRANT.bonusPower],
+  );
+  await client.query(
+    `
+      INSERT INTO player_card_discoveries (player_id, card_id)
+      SELECT $1::uuid, cards.id FROM cards WHERE cards.code = $2
+      ON CONFLICT (player_id, card_id) DO NOTHING
+    `,
+    [playerId, TUTORIAL_REWARD_GRANT.code],
+  );
+  return result.rows[0]?.id ?? null;
 }
 
 export async function backfillStarterCards(pool: Pool) {

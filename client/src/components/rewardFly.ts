@@ -107,6 +107,12 @@ function flyReward({ amount, endX, endY, iconSrc, suffix, target, variant }: Rew
   return FLIGHT_MS;
 }
 
+/** Flies any reward icon into a HUD element (e.g. the temporary diamond capsule). */
+export function flyIconToHud(target: Element, amount: number, iconSrc: string, variant: string) {
+  const icon = (target.querySelector("img") ?? target).getBoundingClientRect();
+  return flyReward({ amount, endX: icon.left + icon.width / 2, endY: icon.top + icon.height / 2, iconSrc, target, variant });
+}
+
 export function flyRewardToHud(kind: CurrencyKind, target: Element, amount: number) {
   const icon = (target.querySelector(".currency-icon") ?? target).getBoundingClientRect();
   return flyReward({

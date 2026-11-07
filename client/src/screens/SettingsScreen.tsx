@@ -4,7 +4,7 @@ import { getPlayerDisplayName, type AuthIdentityView } from "@cardastika/shared"
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { MenuRow } from "../components/MenuRow";
 import { setSoundEnabled, useSoundEnabled } from "../audio";
-import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
+import { getUiLocale, LANGUAGE_PICKER_ENABLED, PICKER_LOCALES, setUiLocale, type UiLocale } from "../i18n";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { getRawTelegramInitData } from "../telegram";
 import {
@@ -193,7 +193,7 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
       <section className="settings-section" aria-labelledby="settings-other">
         <h2 id="settings-other">ІНШЕ</h2>
         <div className="settings-card settings-options">
-          <MenuRow compact icon="language" metalTexture onClick={() => setUiLocale(UI_LOCALES[(UI_LOCALES.indexOf(getUiLocale()) + 1) % UI_LOCALES.length]!)} title={`Мова: ${LOCALE_NAMES[getUiLocale()]}`} />
+          {LANGUAGE_PICKER_ENABLED ? <MenuRow compact icon="language" metalTexture onClick={() => setUiLocale(PICKER_LOCALES[(PICKER_LOCALES.indexOf(getUiLocale()) + 1) % PICKER_LOCALES.length]!)} title={`Мова: ${LOCALE_NAMES[getUiLocale()]}`} /> : null}
           <MenuRow compact disabled icon="mail" metalTexture title="Сповіщення — незабаром" />
           <MenuRow compact disabled icon="support" metalTexture title="Підтримка — незабаром" />
           {showTutorialReplay ? <MenuRow compact icon="record" metalTexture onClick={onReplayTutorial} title="Як грати · пройти навчання ще раз" /> : null}

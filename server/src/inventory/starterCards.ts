@@ -10,9 +10,9 @@ interface StarterCardGrant {
   level: number;
 }
 
-// Mirrors the reference start: nine deck cards of the shared catalog plus two weak ones.
+// A new player starts with exactly the nine 3/2/2/2 deck cards and no weak cards;
+// the tutorial duel then rewards TUTORIAL_REWARD_GRANT.
 export const STARTER_CARD_GRANTS: readonly StarterCardGrant[] = Object.freeze([
-  { code: "wind_fairy", level: 5, bonusPower: 14 },
   { code: "black_raven", level: 1, bonusPower: 2 },
   { code: "salamander", level: 1, bonusPower: 2 },
   { code: "impetuous_lizard", level: 1, bonusPower: 2 },
@@ -21,9 +21,11 @@ export const STARTER_CARD_GRANTS: readonly StarterCardGrant[] = Object.freeze([
   { code: "fire_ifrit", level: 1, bonusPower: 2 },
   { code: "river_naiad", level: 1, bonusPower: 2 },
   { code: "elvish_scout", level: 1, bonusPower: 2 },
-  { code: "crabman", level: 1, bonusPower: 0 },
   { code: "giant_dragonfly", level: 1, bonusPower: 0 },
 ].map((grant) => Object.freeze(grant)));
+
+/** Granted once when the tutorial is completed; it replaces the weakest air card in the deck. */
+export const TUTORIAL_REWARD_GRANT: Readonly<StarterCardGrant> = Object.freeze({ code: "wind_fairy", level: 5, bonusPower: 14 });
 
 export const STARTER_CARD_COUNT = STARTER_CARD_GRANTS.length;
 

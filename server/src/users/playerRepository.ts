@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { getEquipmentForgeRecipe, getPlayerCollectionModifiers, getRequiredAccountXp, resolveEquipmentForgeResult, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
-import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary } from "@cardastika/shared";
+import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCardInstance, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary, type TutorialCompletionResponse } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { VerifiedIdentity } from "../auth/identity.js";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
@@ -8,7 +8,8 @@ import { getAccountBoostStatus } from "../boosts/accountBoost.js";
 import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { getCompletedCollectionBonuses } from "../collections/discoveryService.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
-import { grantStarterCards } from "../inventory/starterCardGrant.js";
+import { grantStarterCards, grantTutorialRewardCard } from "../inventory/starterCardGrant.js";
+import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
 import { NEW_PLAYER_DEFAULTS } from "./playerDefaults.js";
 import { EquipmentForgeError, EquipmentValidationError, parseStoredEquipment, serializeEquipment, toPublicPlayerEquipment, validateEquipmentUpdate } from "../equipment/equipmentState.js";
 
@@ -416,17 +417,46 @@ export class PlayerRepository {
     }
   }
 
-  async completeTutorial(playerId: string): Promise<PlayerSummary> {
+  /** Ends the tutorial; the first call also grants the tutorial reward card and rebuilds the deck. */
+  async completeTutorial(playerId: string): Promise<TutorialCompletionResponse> {
+    let client: PoolClient | undefined;
     try {
-      const result = await this.pool.query<{ id: string }>(
-        "UPDATE players SET tutorial_eligible = FALSE, updated_at = NOW() WHERE id = $1 RETURNING id",
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const locked = await client.query<{ tutorial_eligible: boolean }>(
+        "SELECT tutorial_eligible FROM players WHERE id = $1 FOR UPDATE",
         [playerId],
       );
-      if (!result.rows[0]) throw new Error("Player does not exist");
-      return await this.findSummaryById(playerId);
+      if (!locked.rows[0]) throw new Error("Player does not exist");
+      let rewardCard: PlayerCardInstance | null = null;
+      if (locked.rows[0].tutorial_eligible) {
+        await client.query("UPDATE players SET tutorial_eligible = FALSE, updated_at = NOW() WHERE id = $1", [playerId]);
+        const instanceId = await grantTutorialRewardCard(client, playerId);
+        if (instanceId) {
+          await recalculateAutomaticDeck(client, playerId);
+          const card = await client.query<CardInstanceProjectionRow>(
+            `
+              SELECT player_card_instances.id AS instance_id, cards.id AS card_id, cards.code, cards.display_name,
+                cards.art_key, cards.element, player_card_instances.level, player_card_instances.bonus_power,
+                player_card_instances.level_progress_elements, player_card_instances.protected_from_absorption,
+                player_card_instances.stored_elements, cards.limited, cards.collection_id
+              FROM player_card_instances
+              INNER JOIN cards ON cards.id = player_card_instances.card_id
+              WHERE player_card_instances.id = $1
+            `,
+            [instanceId],
+          );
+          rewardCard = card.rows[0] ? mapCardInstanceRow(card.rows[0]) : null;
+        }
+      }
+      await client.query("COMMIT");
+      return { player: await this.findSummaryById(playerId), rewardCard };
     } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
       if (error instanceof PlayerPersistenceError) throw error;
       throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
     }
   }
 

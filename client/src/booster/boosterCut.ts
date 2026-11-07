@@ -1,3 +1,7 @@
+/** 3D pack size in world units; the width follows the pack sprite's 560×766 proportions so the art is not squeezed. */
+export const PACK_HEIGHT = 3.45;
+export const PACK_WIDTH = PACK_HEIGHT * 560 / 766;
+
 export interface CutPoint { x: number; y: number }
 export interface BoosterCut {
   path: CutPoint[];
@@ -117,7 +121,7 @@ export function prepareBoosterCut(stroke: readonly CutPoint[]): CutResult {
   const pieces: [CutPoint[], CutPoint[]] = [closeAlongBoundary(simplified), closeAlongBoundary([...simplified].reverse())];
   if (pieces.some((piece) => Math.abs(polygonArea(piece)) < .018)) return invalid("Зачепи трохи більше обгортки, щоб розкрити пакунок.");
   const a = centroid(pieces[0]), b = centroid(pieces[1]);
-  const dx = (a.x - b.x) * 2.1, dy = (a.y - b.y) * 3.45, length = Math.hypot(dx, dy);
+  const dx = (a.x - b.x) * PACK_WIDTH, dy = (a.y - b.y) * PACK_HEIGHT, length = Math.hypot(dx, dy);
   return { ok: true, cut: { path: simplified, pieces, center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, normal: { x: dx / length, y: dy / length } } };
 }
 

@@ -112,6 +112,7 @@ export {
   type PublicPlayerCard,
   type PublicPlayerProfile,
   type TelegramAuthRequest,
+  type TutorialCompletionResponse,
 } from "./player.js";
 export {
   NICKNAME_SKIN_IDS,
@@ -195,6 +196,7 @@ export type {
   StoryTrialView,
   StoryTrialsView,
 } from "./storyTrials.js";
+export { TASK_KIND_TITLES, TASK_KINDS, type TaskKind } from "./tasks.js";
 export {
   SHOP_CURRENCIES,
   type LimitedCardRedeemRequest,

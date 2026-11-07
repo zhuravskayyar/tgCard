@@ -346,6 +346,7 @@ export class BattlePassService {
             claimed: dailyClaims.has(task.id),
             completed: taskProgress >= task.target,
             id: task.id,
+            kind: "daily" as const,
             progress: taskProgress,
             rewardDiamonds: task.rewardDiamonds * currentRewardMultiplier,
             target: task.target,

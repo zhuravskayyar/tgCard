@@ -1,5 +1,5 @@
-import { createCardEdges, createCardMesh, createFoilMesh, createFoilPiece, createFoilWalls, foilSurface, multiply, perspective, transform, type BoosterMesh } from "./boosterGeometry";
-import { prepareBoosterCut, type BoosterCut, type CutPoint } from "./boosterCut";
+import { createCardMesh, createCardSlices, createFoilMesh, createFoilPiece, createFoilWalls, foilSurface, multiply, perspective, transform, type BoosterMesh } from "./boosterGeometry";
+import { PACK_HEIGHT, PACK_WIDTH, prepareBoosterCut, type BoosterCut, type CutPoint } from "./boosterCut";
 import { getBoosterMotion } from "./boosterMotion";
 import { BOOSTER_PAPER_CURL_DEPTH, BOOSTER_PAPER_RIPPLE_DEPTH, getBoosterFragmentPose, getBoosterFragmentShape, type BoosterFragmentShape } from "./boosterFragments";
 import { createCardMaterialSurface, type CardMaterialSurface } from "../cards/cardMaterialShader";
@@ -59,12 +59,19 @@ uniform float uBack;
 uniform float uFoil;
 uniform float uEdge;
 uniform float uMaterial;
+uniform float uSlice;
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec3 vPosition;
 void main() {
   vec4 tex = texture2D(uTexture, vUv);
-  if (tex.a < (uFoil > .5 ? .5 : .15) && uEdge < .5) discard;
+  // Pack walls and card layers follow the painted silhouette; nothing is drawn where the art is transparent.
+  if (tex.a < (uFoil > .5 ? .5 : .15) && (uEdge < .5 || uFoil > .5 || uSlice > .5)) discard;
+  if (uSlice > .5) {
+    // Inner paper of the card: warm parchment fibre, darker towards the middle of its thickness.
+    gl_FragColor = vec4(vec3(.46, .33, .19) * (.88 + .12 * sin(vUv.x * 90. + vUv.y * 40.)), 1.);
+    return;
+  }
   if (uMaterial > .5) {
     // The shared shader outputs premultiplied colour; the physical card remains opaque.
     gl_FragColor = vec4(clamp(tex.rgb / max(tex.a, .001), 0., 1.), 1.);
@@ -153,7 +160,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     shaders.forEach((shader) => gl!.deleteShader(shader));
     gl!.deleteProgram(program);
   }
-  let bodyFront: GpuMesh, bodyBack: GpuMesh, bodyWalls: GpuMesh, cardFront: GpuMesh, cardBack: GpuMesh, cardEdges: GpuMesh;
+  let bodyFront: GpuMesh, bodyBack: GpuMesh, bodyWalls: GpuMesh, cardFront: GpuMesh, cardBack: GpuMesh, cardSlices: GpuMesh;
   let foilTexture: WebGLTexture, cardTexture: WebGLTexture, reverseTexture: WebGLTexture;
   try {
     compile(gl.VERTEX_SHADER, VERTEX);
@@ -163,7 +170,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     [bodyFront, bodyBack] = [uploadMesh(createFoilMesh(false)), uploadMesh(createFoilMesh(true))];
     bodyWalls = uploadMesh(createFoilWalls([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }]));
     [cardFront, cardBack] = [uploadMesh(createCardMesh(false)), uploadMesh(createCardMesh(true))];
-    cardEdges = uploadMesh(createCardEdges());
+    cardSlices = uploadMesh(createCardSlices());
     foilTexture = uploadTexture(wrapper);
     cardBackSurface = createCardMaterialSurface(gl, cardReverse, CARD_BACK_MATERIAL_ID);
     reverseTexture = cardBackSurface.texture;
@@ -174,7 +181,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     throw error;
   }
   const locations = ["aPosition", "aNormal", "aUv"].map((name) => gl.getAttribLocation(program, name));
-  const uniform = Object.fromEntries(["Model", "ViewProjection", "Bend", "CutCenter", "CutNormal", "FoldScale", "Foil", "Edge", "Material", "Texture", "Back"].map((name) => [name, gl.getUniformLocation(program, `u${name}`)]));
+  const uniform = Object.fromEntries(["Model", "ViewProjection", "Bend", "CutCenter", "CutNormal", "FoldScale", "Foil", "Edge", "Material", "Texture", "Back", "Slice"].map((name) => [name, gl.getUniformLocation(program, `u${name}`)]));
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let frame = 0, disposed = false, startedAt: number | null = null, phase: BoosterPhase = "sealed", yaw = 0;
   let mode: "cut" | "rotate" = "cut";
@@ -187,7 +194,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
   function setPhase(next: BoosterPhase) {
     if (next !== phase) { phase = next; onPhase(next); }
   }
-  function draw(mesh: GpuMesh, texture: WebGLTexture, model: Float32Array, foil: boolean, back = false, bend = 0, edge = false, material = false) {
+  function draw(mesh: GpuMesh, texture: WebGLTexture, model: Float32Array, foil: boolean, back = false, bend = 0, edge = false, material = false, slice = false) {
     mesh.attributes.forEach((buffer, index) => {
       gl!.bindBuffer(gl!.ARRAY_BUFFER, buffer);
       gl!.enableVertexAttribArray(locations[index]);
@@ -200,6 +207,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     gl!.uniform1f(uniform.Back, back ? 1 : 0);
     gl!.uniform1f(uniform.Edge, edge ? 1 : 0);
     gl!.uniform1f(uniform.Material, material ? 1 : 0);
+    gl!.uniform1f(uniform.Slice, slice ? 1 : 0);
     gl!.uniform1f(uniform.Bend, bend);
     gl!.drawElements(gl!.TRIANGLES, mesh.count, gl!.UNSIGNED_SHORT, 0);
   }
@@ -230,7 +238,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     const idle = startedAt === null && mode === "rotate" && !motion.matches;
     const rotation = startedAt === null && mode === "rotate" ? yaw + (idle ? Math.sin(now * .00045) * .035 : 0) : 0;
     const float = idle ? Math.sin(now * .0011) * .04 : 0;
-    gl!.uniform2f(uniform.CutCenter, cut ? (cut.center.x - .5) * 2.1 : 0, cut ? (cut.center.y - .5) * 3.45 : 0);
+    gl!.uniform2f(uniform.CutCenter, cut ? (cut.center.x - .5) * PACK_WIDTH : 0, cut ? (cut.center.y - .5) * PACK_HEIGHT : 0);
     gl!.uniform2f(uniform.CutNormal, cut?.normal.x ?? 0, cut?.normal.y ?? 1);
     gl!.uniform1f(uniform.FoldScale, 1);
     gl!.disable(gl!.CULL_FACE);
@@ -271,7 +279,11 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
       }
       draw(cardFront, cardTexture, cardModel, false, false, 0, false, true);
       draw(cardBack, reverseTexture, cardModel, false);
-      draw(cardEdges, reverseTexture, cardModel, false, false, 0, true);
+      // The layers sit a hair behind the faces in depth, so the faces always win and only the edge shows from the side.
+      gl!.enable(gl!.POLYGON_OFFSET_FILL);
+      gl!.polygonOffset(2, 6);
+      draw(cardSlices, cardTexture, cardModel, false, false, 0, false, false, true);
+      gl!.disable(gl!.POLYGON_OFFSET_FILL);
     }
     const movingCard = Math.abs(targetYaw - cardYaw) + Math.abs(targetPitch - cardPitch) > .001;
     if (!motion.matches && (idle || startedAt !== null && phase !== "revealed" || movingCard || livingMaterial)) frame = window.requestAnimationFrame(render);
@@ -333,7 +345,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
       const nx = (x - rect.left) / rect.width * 2 - 1, ny = 1 - (y - rect.top) / rect.height * 2;
       let point = { x: .5, y: .5 }, z = .12;
       for (let i = 0; i < 3; i++) {
-        point = { x: .5 + nx * aspect * (distance - z) / f / 2.1, y: .5 + (ny * (distance - z) / f + .1) / 3.45 };
+        point = { x: .5 + nx * aspect * (distance - z) / f / PACK_WIDTH, y: .5 + (ny * (distance - z) / f + .1) / PACK_HEIGHT };
         z = point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1 ? foilSurface(point.x, point.y)[2] : .01;
       }
       return point;

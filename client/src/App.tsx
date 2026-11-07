@@ -26,6 +26,8 @@ import { EquipmentScreen } from "./screens/EquipmentScreen";
 import { ForgeScreen } from "./screens/ForgeScreen";
 import { BattlePassScreen } from "./screens/BattlePassScreen";
 import { TasksScreen } from "./screens/TasksScreen";
+import { ShopRewardReveal } from "./components/ShopRewardReveal";
+import { reportDiamondBalance } from "./components/diamondGain";
 import { GuildScreen } from "./screens/GuildScreen";
 import { getRawTelegramInitData, getTelegramInitData, initializeTelegram } from "./telegram";
 import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer, PlayerBootstrapError } from "./telegram/authenticatePlayer";
@@ -39,7 +41,7 @@ import { useMail } from "./hooks/useMail";
 import { useDailyLoginReward } from "./hooks/useDailyLoginReward";
 import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
 import { useTutorial } from "./hooks/useTutorial";
-import { getPlayerDisplayName, type DuelView, type EquippedEquipment, type StoryTrialNavigationTarget } from "@cardastika/shared";
+import { getPlayerDisplayName, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
 import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
@@ -107,6 +109,8 @@ export function App() {
   const [collectionCardId, setCollectionCardId] = useState<string | null>(() => decodeURIComponent(initialCollectionCard?.[2] ?? "") || null);
   const [tutorialCollectionId, setTutorialCollectionId] = useState<string | null>(null);
   const [tutorialCardId, setTutorialCardId] = useState<string | null>(null);
+  // The card the tutorial victory paid out, shown once before the story tasks.
+  const [tutorialRewardCard, setTutorialRewardCard] = useState<PlayerCardInstance | null>(null);
   const [playerProfileId, setPlayerProfileId] = useState<string | null>(() => decodeURIComponent(initialPlayerProfile?.[1] ?? "") || null);
   const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
   const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
@@ -126,6 +130,7 @@ export function App() {
   const dailyLoginClaimed = dailyLoginData !== null && dailyLoginClaimedDate === dailyLoginData.claimDate;
   const showDailyLogin = dailyLoginData !== null
     && !tutorial.isActive
+    && tutorialRewardCard === null
     && screen !== "trials" && screen !== "save-profile"
     && dailyLoginDismissedDate !== dailyLoginData.claimDate
     && (dailyLoginData.claimable || dailyLoginClaimed);
@@ -133,6 +138,7 @@ export function App() {
   const handleDailyLoginClaim = useCallback(async (choiceIndex?: number) => {
     const response = await dailyLogin.claim(choiceIndex);
     updateBalance(response.rewardPlayer);
+    reportDiamondBalance(response.battlePass.diamonds);
     setDailyLoginClaimedDate(response.dailyLogin.claimDate);
     return response;
   }, [dailyLogin.claim, updateBalance]);
@@ -435,10 +441,12 @@ export function App() {
     setTutorialCompletionError(null);
     setTutorialCompletionPending(true);
     try {
-      const player = await completeTutorial(initData);
+      const { player, rewardCard } = await completeTutorial(initData);
       updateBalance({ tutorialEligible: player.tutorialEligible });
       tutorial.complete();
-      openTrials();
+      // The first victory pays out a card; its reveal leads on to the story tasks.
+      if (rewardCard) setTutorialRewardCard(rewardCard);
+      else openTrials();
     } catch {
       setTutorialCompletionError("Не вдалося зберегти прогрес. Перевір з’єднання та спробуй ще раз.");
     } finally {
@@ -637,11 +645,26 @@ export function App() {
           tutorialStatus={tutorial.status}
         />
       ) : null}
-      {screen === "tasks" ? <TasksScreen onBack={goHome} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
+      {screen === "tasks" ? <TasksScreen onBack={goHome} onNavigateTrial={navigateFromTrials} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
-      {screen === "duel" && !isDuelSearchLoopPreview() ? (
+      {tutorialRewardCard ? (
+        <ShopRewardReveal
+          continueLabel="До завдань"
+          onContinue={() => { setTutorialRewardCard(null); openTrials(); }}
+          packHeading="Нагорода за першу перемогу"
+          purchases={[{
+            deckChanged: true,
+            newDiscovery: true,
+            reward: tutorialRewardCard,
+            updatedBalance: { gold: playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0, silver: playerSummaryState.status === "ready" ? playerSummaryState.data.silver : 0 },
+            updatedChances: [],
+          }]}
+          revealHeading="Нова карта в колоді"
+        />
+      ) : null}
+      {screen === "duel" && !tutorialRewardCard && !isDuelSearchLoopPreview() ? (
         <DuelScreen
           onOpenLeagues={openLeagues}
           onOpenTasks={openTasks}
@@ -652,7 +675,7 @@ export function App() {
           onTutorialResult={finishTutorial}
           tutorialResultError={tutorialCompletionError}
           onTutorialDuelState={handleTutorialDuelState}
-          tutorialAllowedSlot={tutorial.step === "duel-first-card" ? 0 : tutorial.step === "duel-advantage" ? 1 : null}
+          tutorialAllowedSlot={tutorial.step === "duel-first-card" ? 2 : tutorial.step === "duel-advantage" ? 1 : null}
           tutorialMode={tutorialDuelTraining}
         />
       ) : null}
@@ -732,7 +755,7 @@ export function App() {
       ) : null}
       {screen === "collections" || (screen === "collection" && collectionId) ? <BestiaryBook collectionId={screen === "collection" ? collectionId : null} onBack={() => collectionsReturnScreen === "trials" ? openTrials() : collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onBackToContents={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} onOpenShop={() => openShop("collection")} /> : null}
       {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenDeck={() => openDeck("home")} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
-      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={(location) => { setCampaignBossLocation(location); setScreen("campaign-boss"); updatePath(`/campaign/boss?location=${location}`); }} onOpenTasks={openTasks} /> : null}
+      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={(location) => { setCampaignBossLocation(location); setScreen("campaign-boss"); updatePath(`/campaign/boss?location=${location}`); }} /> : null}
       {screen === "campaign-boss" ? <CampaignBossScreen locationNumber={campaignBossLocation} onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} onOpenTrials={openTrials} onOpenTasks={openTasks} /> : null}
       {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} onOpenCampaign={openCampaign} /> : null}
       {screen === "save-profile" ? <SaveProfileScreen onBack={openTrials} onBalanceChange={updateBalance} /> : null}

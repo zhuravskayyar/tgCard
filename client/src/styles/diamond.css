@@ -1,0 +1,86 @@
+/* Diamonds are sapphire: the shared amber gem sprite is re-tinted wherever it appears, including flying rewards. */
+img[src$="/icon-diamond-v1.webp"] {
+  filter: hue-rotate(185deg) saturate(1.5) brightness(1.08) contrast(1.05);
+}
+
+/* A shader-like pass over the gem: a soft glint sweeps across and a sparkle blinks, both clipped to the sprite. */
+.diamond-icon {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--diamond-size, 20px);
+  height: var(--diamond-size, 20px);
+  vertical-align: middle;
+  filter: drop-shadow(0 0 3px rgb(80 170 255 / 55%));
+}
+.diamond-icon > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.diamond-icon::before,
+.diamond-icon::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  -webkit-mask: url("/assets/ui/icons/icon-diamond-v1.webp") center / contain no-repeat;
+  mask: url("/assets/ui/icons/icon-diamond-v1.webp") center / contain no-repeat;
+}
+.diamond-icon::before {
+  background: linear-gradient(115deg, transparent 30%, rgb(220 245 255 / 85%) 46%, rgb(255 255 255 / 95%) 50%, rgb(170 225 255 / 70%) 54%, transparent 70%) 160% 0 / 260% 100% no-repeat;
+  mix-blend-mode: screen;
+  animation: diamond-glint 3.2s ease-in-out infinite;
+}
+.diamond-icon::after {
+  background: radial-gradient(circle at 68% 28%, rgb(255 255 255 / 95%) 0 6%, rgb(190 235 255 / 60%) 10%, transparent 22%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: diamond-sparkle 3.2s ease-in-out infinite;
+}
+@keyframes diamond-glint {
+  0%, 55% { background-position: 160% 0; }
+  85%, 100% { background-position: -60% 0; }
+}
+@keyframes diamond-sparkle {
+  0%, 80% { opacity: 0; transform: scale(.6); }
+  88% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .diamond-icon::before,
+  .diamond-icon::after { animation: none; }
+}
+
+/* HUD: a third capsule drops in under the currencies while gained diamonds count up, then leaves. */
+:root .app-shell .currency-display--diamond {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 4px);
+  right: 0;
+  width: calc((100% - 8px) / 2);
+  border-width: 0;
+  animation: diamond-hud-in .35s cubic-bezier(.2, .8, .3, 1) both;
+}
+:root .app-shell .currency-display--diamond.is-leaving { animation: diamond-hud-out .4s ease-in both; }
+:root .app-shell .currency-display--diamond .diamond-icon {
+  position: absolute;
+  top: 46%;
+  left: calc(var(--pill-height) * 69 / 140);
+  width: calc(var(--pill-height) * .66);
+  height: calc(var(--pill-height) * .66);
+  transform: translate(-50%, -50%);
+}
+@keyframes diamond-hud-in {
+  from { opacity: 0; transform: translateY(-8px) scale(.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes diamond-hud-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-6px) scale(.95); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .currency-display--diamond,
+  :root .app-shell .currency-display--diamond.is-leaving { animation: none; }
+}

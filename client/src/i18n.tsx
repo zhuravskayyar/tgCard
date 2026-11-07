@@ -10,6 +10,12 @@ export type UiLocale = (typeof UI_LOCALES)[number];
 export type UiNumberLocale = "en-US" | "uk-UA" | "ru-RU" | "de-DE";
 const NUMBER_LOCALES: Readonly<Record<UiLocale, UiNumberLocale>> = { en: "en-US", uk: "uk-UA", ru: "ru-RU", de: "de-DE" };
 const LOCALE_STORAGE_KEY = "cardastika.locale.v1";
+/** Turn off to hide the language choice and show every player Ukrainian. Translations stay either way. */
+export const LANGUAGE_PICKER_ENABLED = true;
+/** Languages the picker offers; Russian is not offered. */
+export const PICKER_LOCALES: readonly UiLocale[] = UI_LOCALES.filter((locale) => locale !== "ru");
+/** A saved or Telegram language outside the picker (Russian) falls back to Ukrainian. */
+const offeredLocale = (locale: UiLocale): UiLocale => PICKER_LOCALES.includes(locale) ? locale : "uk";
 
 const phraseTranslations = new Map<string, string>([
   ["КАРДАСТІКА", "КАРДАСТИКА"],
@@ -369,15 +375,16 @@ const isUiLocale = (value: string | null | undefined): value is UiLocale => UI_L
 
 /** A language picked in the game wins; otherwise Telegram players get their Telegram language, everyone else English. */
 export function getUiLocale(): UiLocale {
+  if (!LANGUAGE_PICKER_ENABLED) return "uk";
   try {
     const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (isUiLocale(saved)) return saved;
+    if (isUiLocale(saved)) return offeredLocale(saved);
   } catch {
     // Without storage there is simply no saved choice.
   }
   if (!getTelegramWebApp()) return "en";
   const code = getTelegramLanguageCode();
-  return isUiLocale(code) ? code : "en";
+  return isUiLocale(code) ? offeredLocale(code) : "en";
 }
 
 /** The page reloads so every screen, number format and translated node starts from one language. */

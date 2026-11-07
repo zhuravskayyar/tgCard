@@ -1,7 +1,6 @@
 import type { DailyTaskView } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "./AppIcon";
-
-const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
+import { DiamondIcon } from "./DiamondIcon";
 
 const taskActions: Record<string, { icon: AppIconName; label: string }> = {
   "absorb-cards": { icon: "card-absorb", label: "До колоди" },
@@ -27,7 +26,7 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
           <div className="quest-paper__title">
             <strong>{task.title}</strong>
           </div>
-          <span aria-label={`Нагорода: ${task.rewardDiamonds} діамантів`} className="quest-paper__reward">+{task.rewardDiamonds}<img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></span>
+          <span aria-label={`Нагорода: ${task.rewardDiamonds} діамантів`} className="quest-paper__reward" data-reward-source={task.completed && !task.claimed ? "diamond" : undefined}>+{task.rewardDiamonds}<DiamondIcon size={18} /></span>
         </header>
 
         <div className="quest-paper__progress">

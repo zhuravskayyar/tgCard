@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import type { DuelView, LariskaEmotion } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { Lariska } from "./Lariska";
+import { ElementCycle } from "./ElementCycle";
 import type { TutorialStep } from "../hooks/useTutorial";
 
 interface TutorialOverlayProps {
@@ -31,9 +32,9 @@ interface ViewportSize {
 
 const STEP_COPY: Record<Exclude<TutorialStep, "complete">, TutorialCopy> = {
   intro: { action: "ПОЧАТИ БІЙ", interactive: true, target: "duel-card-first", text: "Твої карти внизу. Карти суперника — вгорі. Атакуй своєю картою!", title: "" },
-  "duel-first-card": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-first", text: "Твої карти внизу. Карти суперника — вгорі. Атакуй своєю картою!", title: "" },
-  "duel-advantage": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-second", text: "Критичні удари в 1,5 раза сильніші! Атакуй!", title: "" },
-  "duel-free-play": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card", text: "Добий ворога будь-якою картою!", title: "" },
+  "duel-first-card": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-first", text: "Твої карти внизу, карти суперника вгорі. Ця стихія слабка проти ворога: удар ×0,5. Атакуй!", title: "" },
+  "duel-advantage": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-second", text: "Рівні стихії б’ють звичайно: ×1. Атакуй цією картою!", title: "" },
+  "duel-free-play": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card", text: "Сильна стихія б’є в 1,5 раза сильніше! Тепер сам обери, чим добити ворога!", title: "" },
   "duel-result": { action: "ПЕРЕГЛЯНУТИ КОЛОДУ", target: "duel-result", text: "Перемога! Переглянь свою бойову колоду, а потім вирушай у кампанію.", title: "" },
   deck: { action: "ПЕРЕЙТИ ДО КАМПАНІЇ", target: "deck-rule", text: "У бою працюють 9 найсильніших допустимих карт. Копії однієї базової карти не дублюються — береться найсильніша.", title: "Твоя бойова колода" },
   campaign: { action: "ЗАВЕРШИТИ НАВЧАННЯ", text: "Ти готовий. Заверши навчання, а далі виконуй завдання кампанії у своєму темпі.", title: "Твій шлях починається" },
@@ -59,6 +60,8 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
   const maskId = "tutorial-overlay-mask-" + useId().replace(/:/g, "");
   const copy = step && step !== "complete" ? STEP_COPY[step] : null;
   const referenceDuel = screenKey === "duel" && step !== null && REFERENCE_DUEL_STEPS.includes(step as (typeof REFERENCE_DUEL_STEPS)[number]);
+  // The element wheel stays beside Lariska while the duel steps teach the multipliers.
+  const showElementCycle = referenceDuel && step !== "duel-result";
   const copyText = copy?.text;
   const targetSelector = useMemo(() => copy?.target ? `[data-tutorial-target~="${copy.target}"]` : null, [copy]);
 
@@ -176,16 +179,17 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
           style={{ left: rect.left + rect.width / 2, top: rect.bottom + 2 }}
         ><AppIcon name="arrow-up" size={52} /></span>
       )) : null}
-      <section className={`tutorial-dialog tutorial-dialog--${dialogPlacement}${referenceDuel ? " tutorial-dialog--reference-duel" : ""}`} style={referenceDuel && referenceDialogTop !== null ? { bottom: "auto", top: referenceDialogTop } : undefined}>
+      <section className={`tutorial-dialog tutorial-dialog--${dialogPlacement}${referenceDuel ? " tutorial-dialog--reference-duel" : ""}${showElementCycle ? " tutorial-dialog--with-cycle" : ""}`} style={referenceDuel && referenceDialogTop !== null ? { bottom: "auto", top: referenceDialogTop } : undefined}>
         <div className="tutorial-dialog__art" aria-hidden="true"><Lariska emotion={STEP_EMOTION[step]} /></div>
         <div className="tutorial-dialog__body">
           {!referenceDuel ? <div className="tutorial-dialog__meta"><span>Лариска · Навчання</span></div> : null}
           {!referenceDuel ? <h2 id="tutorial-dialog-title">{copy.title}</h2> : null}
-          <p>{step === "duel-advantage" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
+          <p>{step === "duel-free-play" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
           {!referenceDuel ? <button className="tutorial-dialog__primary" disabled={actionPending} onClick={onAction} type="button">{actionPending ? "ЗБЕРІГАЄМО…" : copy.action} <AppIcon name="chevron" size={16} /></button> : null}
           {!referenceDuel && error ? <p className="tutorial-dialog__error" role="alert">{error}</p> : null}
           {!referenceDuel ? <button className="tutorial-dialog__secondary" disabled={actionPending} onClick={onPause} type="button">Пізніше</button> : null}
         </div>
+        {showElementCycle ? <ElementCycle size={92} /> : null}
       </section>
     </div>
   );

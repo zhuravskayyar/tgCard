@@ -1,9 +1,15 @@
-import type { CardElement, CardRarity } from "./card.js";
+import type { CardElement, CardRarity, PlayerCardInstance } from "./card.js";
 import type { PlayerCollectionBonus } from "./collection.js";
 import type { NicknameSkinId } from "./cosmetics.js";
 import type { PublicPlayerEquipment } from "./equipment.js";
 
 export const PLAYER_NICKNAME_MAX_LENGTH = 10;
+
+/** Finishing the tutorial grants its reward card once; later calls return rewardCard: null. */
+export interface TutorialCompletionResponse {
+  player: PlayerSummary;
+  rewardCard: PlayerCardInstance | null;
+}
 
 export function getDefaultPlayerNickname(username: string | null | undefined, firstName: string) {
   const source = username?.trim() || firstName.trim() || "Гравець";

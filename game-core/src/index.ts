@@ -53,6 +53,7 @@ export {
   getBasePowerForLevel,
   getCardLevelTableEntry,
   getCardPower,
+  getAbsorbableElementsByElement,
   getCardUpgradeIndicator,
   getElementValueForLevel,
   getRarityForLevel,

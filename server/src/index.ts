@@ -561,6 +561,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       campaign,
       players,
       responseHeaders: cors.headers,
+      weakCards: inventory,
     });
     return;
   }

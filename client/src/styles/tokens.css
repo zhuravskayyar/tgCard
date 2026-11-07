@@ -1,9 +1,11 @@
 /* Cardastika: shared warm stone, wood and bronze tokens. */
 :root {
+  /* Two self-hosted families: Lugatype for headings, Alegreya for running text. */
   --font-body: "Alegreya", Georgia, "Times New Roman", serif;
-  --font-display: "Lugatype", "Alegreya Sans", Georgia, serif;
-  --font-number: "Cardastika Numbers", Georgia, "Times New Roman", serif;
-  --font-label: "Alegreya Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Lugatype", var(--font-body);
+  --font-number: "Cardastika Numbers", var(--font-body);
+  --font-label: var(--font-body);
+  --font-hero: "Calligrapher", var(--font-display);
   --bg-page: #0d0b08;
   --bg-app: #14110d;
   --bg-panel: #1b1712;

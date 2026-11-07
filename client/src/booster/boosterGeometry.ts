@@ -1,4 +1,4 @@
-import { polygonArea, triangulateCutPolygon, type CutPoint } from "./boosterCut";
+import { PACK_HEIGHT, PACK_WIDTH, polygonArea, triangulateCutPolygon, type CutPoint } from "./boosterCut";
 
 export interface BoosterMesh {
   positions: Float32Array;
@@ -8,13 +8,13 @@ export interface BoosterMesh {
 }
 
 // Exaggerated slightly so the card's paper edge remains visible at phone size.
-const CARD_HALF_DEPTH = 0.06;
+const CARD_HALF_DEPTH = 0.03;
 
 export function foilSurface(u: number, v: number, back = false): [number, number, number] {
-  const x = (u - .5) * 2.1, y = (v - .5) * 3.45;
+  const x = (u - .5) * PACK_WIDTH, y = (v - .5) * PACK_HEIGHT;
   const sealed = Math.abs(y) > 1.49;
-  const pillow = .12 * Math.pow(Math.max(0, Math.sin(v * Math.PI)), .65) * Math.max(0, 1 - Math.pow(x / 1.05, 8));
-  const edgeCrease = Math.pow(Math.abs(x) / 1.05, 5) * .014 * Math.sin(y * 27 + x * 13);
+  const pillow = .12 * Math.pow(Math.max(0, Math.sin(v * Math.PI)), .65) * Math.max(0, 1 - Math.pow(x / (PACK_WIDTH / 2), 8));
+  const edgeCrease = Math.pow(Math.abs(x) / (PACK_WIDTH / 2), 5) * .014 * Math.sin(y * 27 + x * 13);
   const crimp = sealed ? .006 * Math.sin(u * Math.PI * 100) : 0;
   return [x, y, (back ? -1 : 1) * Math.max(.012, .008 + (sealed ? .009 : pillow + edgeCrease) + crimp)];
 }
@@ -73,16 +73,17 @@ export function createFoilPiece(back: boolean, polygon: readonly CutPoint[]): Bo
 export function createFoilWalls(polygon: readonly CutPoint[]): BoosterMesh {
   const positions: number[] = [], normals: number[] = [], uvs: number[] = [], indices: number[] = [];
   const orientation = Math.sign(polygonArea(polygon)) || 1;
-  function quad(a: number[], b: number[], c: number[], d: number[], nx: number, ny: number) {
+  // Each wall samples the pack texture at its outline point, so the shader can drop walls where the painted pack is absent.
+  function quad(a: number[], b: number[], c: number[], d: number[], nx: number, ny: number, uv: readonly number[]) {
     const first = positions.length / 3;
     positions.push(...a, ...b, ...c, ...d);
     for (let i = 0; i < 4; i++) normals.push(nx, ny, 0);
-    uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+    uvs.push(...uv);
     indices.push(first, first + 1, first + 2, first, first + 2, first + 3);
   }
   for (let i = 0; i < polygon.length; i++) {
     const a = polygon[i], b = polygon[(i + 1) % polygon.length];
-    const dx = (b.x - a.x) * 2.1, dy = (b.y - a.y) * 3.45, length = Math.hypot(dx, dy);
+    const dx = (b.x - a.x) * PACK_WIDTH, dy = (b.y - a.y) * PACK_HEIGHT, length = Math.hypot(dx, dy);
     if (length < 1e-6) continue;
     const nx = dy / length * orientation, ny = -dx / length * orientation;
     const seam = ["x", "y"].some((axis) => [0, 1].some((edge) => Math.abs(a[axis as keyof CutPoint] - edge) < 1e-5 && Math.abs(b[axis as keyof CutPoint] - edge) < 1e-5));
@@ -93,10 +94,11 @@ export function createFoilWalls(polygon: readonly CutPoint[]): BoosterMesh {
       const u1 = a.x + (b.x - a.x) * to, v1 = a.y + (b.y - a.y) * to;
       const front0 = foilSurface(u0, v0), front1 = foilSurface(u1, v1);
       const back0 = foilSurface(u0, v0, true), back1 = foilSurface(u1, v1, true);
-      if (seam) quad(front0, front1, back1, back0, nx, ny);
+      const uv = [u0, v0, u1, v1, u1, v1, u0, v0];
+      if (seam) quad(front0, front1, back1, back0, nx, ny, uv);
       else {
-        quad(front0, front1, [front1[0], front1[1], front1[2] - Math.min(.008, front1[2] * .5)], [front0[0], front0[1], front0[2] - Math.min(.008, front0[2] * .5)], nx, ny);
-        quad(back0, back1, [back1[0], back1[1], back1[2] + Math.min(.008, -back1[2] * .5)], [back0[0], back0[1], back0[2] + Math.min(.008, -back0[2] * .5)], nx, ny);
+        quad(front0, front1, [front1[0], front1[1], front1[2] - Math.min(.008, front1[2] * .5)], [front0[0], front0[1], front0[2] - Math.min(.008, front0[2] * .5)], nx, ny, uv);
+        quad(back0, back1, [back1[0], back1[1], back1[2] + Math.min(.008, -back1[2] * .5)], [back0[0], back0[1], back0[2] + Math.min(.008, -back0[2] * .5)], nx, ny, uv);
       }
     }
   }
@@ -113,16 +115,21 @@ export function createCardMesh(back: boolean): BoosterMesh {
   };
 }
 
-export function createCardEdges(): BoosterMesh {
+const CARD_SLICES = 8;
+
+/**
+ * The card's thickness: thin layers stacked between its faces. The shader cuts each layer by the plate's alpha,
+ * so the paper edge follows the painted, uneven parchment outline instead of a straight rectangular wall.
+ */
+export function createCardSlices(): BoosterMesh {
   const positions: number[] = [], normals: number[] = [], uvs: number[] = [], indices: number[] = [];
-  const corners = [[-.86, -1.118], [.86, -1.118], [.86, 1.118], [-.86, 1.118]];
-  for (let side = 0; side < 4; side++) {
-    const a = corners[side], b = corners[(side + 1) % 4], index = positions.length / 3;
-    positions.push(a[0], a[1], CARD_HALF_DEPTH, b[0], b[1], CARD_HALF_DEPTH, b[0], b[1], -CARD_HALF_DEPTH, a[0], a[1], -CARD_HALF_DEPTH);
-    const dx = b[0] - a[0], dy = b[1] - a[1], length = Math.hypot(dx, dy);
-    for (let i = 0; i < 4; i++) normals.push(dy / length, -dx / length, 0);
+  for (let slice = 1; slice < CARD_SLICES; slice++) {
+    const z = -CARD_HALF_DEPTH + (2 * CARD_HALF_DEPTH * slice) / CARD_SLICES, index = positions.length / 3;
+    positions.push(-.86, -1.118, z, .86, -1.118, z, .86, 1.118, z, -.86, 1.118, z);
+    for (let i = 0; i < 4; i++) normals.push(0, 0, 1);
     uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
-    indices.push(index, index + 2, index + 1, index, index + 3, index + 2);
+    // Both windings, so a layer shows from either side while back faces are culled.
+    indices.push(index, index + 1, index + 2, index, index + 2, index + 3, index, index + 2, index + 1, index, index + 3, index + 2);
   }
   return { positions: new Float32Array(positions), normals: new Float32Array(normals), uvs: new Float32Array(uvs), indices: new Uint16Array(indices) };
 }

@@ -54,13 +54,13 @@ test("tutorial completion disables eligibility for the authenticated player", as
       findOrCreateFromTelegram: async () => ({ ...player, tutorialEligible: true }),
       completeTutorial: async (playerId) => {
         completedPlayerId = playerId;
-        return player;
+        return { player, rewardCard: null };
       },
     },
   });
 
   assert.equal(completedPlayerId, player.id);
-  assert.deepEqual(capture.read(), { status: 200, body: { player } });
+  assert.deepEqual(capture.read(), { status: 200, body: { player, rewardCard: null } });
 });
 
 test("tutorial completion rejects non-POST methods without authenticating", async () => {
@@ -74,7 +74,7 @@ test("tutorial completion rejects non-POST methods without authenticating", asyn
         authenticated = true;
         return {} as PlayerSummary;
       },
-      completeTutorial: async () => ({} as PlayerSummary),
+      completeTutorial: async () => ({ player: {} as PlayerSummary, rewardCard: null }),
     },
   });
 

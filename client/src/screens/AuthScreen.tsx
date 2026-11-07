@@ -3,8 +3,9 @@ import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import { TelegramLoginButton } from "../components/TelegramLoginButton";
 import { AuthProviderIcon } from "../components/AuthProviderIcon";
 import { ElementAmbientFx } from "../components/ElementAmbientFx";
+import { ElementTitleFx } from "../components/ElementTitleFx";
 import { setSessionToken } from "../auth/session";
-import { getUiLocale, setUiLocale, UI_LOCALES, type UiLocale } from "../i18n";
+import { getUiLocale, LANGUAGE_PICKER_ENABLED, PICKER_LOCALES, setUiLocale, type UiLocale } from "../i18n";
 
 const LOCALE_LABELS: Readonly<Record<UiLocale, string>> = { en: "EN", uk: "UA", ru: "RU", de: "DE" };
 
@@ -123,9 +124,9 @@ export function AuthScreen({
   return (
     <main className="auth-screen auth-screen--guest">
       <ElementAmbientFx />
-      {isTelegramMiniApp ? null : (
+      {isTelegramMiniApp || !LANGUAGE_PICKER_ENABLED ? null : (
         <nav aria-label="Language" className="auth-screen__languages">
-          {UI_LOCALES.map((locale) => (
+          {PICKER_LOCALES.map((locale) => (
             <button aria-pressed={locale === getUiLocale()} key={locale} onClick={() => setUiLocale(locale)} type="button">{LOCALE_LABELS[locale]}</button>
           ))}
         </nav>
@@ -136,7 +137,7 @@ export function AuthScreen({
             <img alt="" src="/assets/ui/auth/cardastika-logo.webp" />
           </div>
           <p className="auth-screen__eyebrow">СВІТОВЕ ДЕРЕВО</p>
-          <h1 id="auth-screen-title">КАРДАСТІКА</h1>
+          <h1 id="auth-screen-title"><ElementTitleFx>КАРДАСТІКА</ElementTitleFx></h1>
           <p className="auth-screen__subtitle">Світ чотирьох стихій чекає на тебе. Збери свою колоду. Відкрий світ.</p>
         </section>
 

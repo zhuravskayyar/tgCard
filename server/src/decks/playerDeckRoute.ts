@@ -1,4 +1,6 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
+import { getAbsorbableElementsByElement, getCardUpgradeIndicator } from "@cardastika/game-core";
+import type { PlayerCardInstance } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
@@ -19,6 +21,8 @@ interface PlayerDeckDependencies extends RouteAuthDependencies {
     recordExternalEvent(playerId: string, type: "DECK_OPENED"): Promise<void>;
   };
   automaticDeck: AutomaticDeckLookup;
+  /** All of the player's weak cards, used to mark deck cards that absorbing them would level up. */
+  weakCards?: { findWeakByPlayerId(playerId: string): Promise<PlayerCardInstance[]> };
 }
 
 export async function handlePlayerDeck(
@@ -42,8 +46,14 @@ export async function handlePlayerDeck(
       throw new DeckPersistenceError();
     }
     const deck = await dependencies.decks.findByPlayerId(player.id);
+    const weakCards = dependencies.weakCards ? await dependencies.weakCards.findWeakByPlayerId(player.id) : [];
+    const absorbable = getAbsorbableElementsByElement(weakCards);
+    const cards = deck.cards.map((card) => {
+      const upgradeIndicator = getCardUpgradeIndicator(card.level, card.levelProgressElements, absorbable[card.element]);
+      return upgradeIndicator ? { ...card, upgradeIndicator } : card;
+    });
     await dependencies.campaign?.recordExternalEvent(player.id, "DECK_OPENED");
-    sendJson(response, 200, deck, responseHeaders);
+    sendJson(response, 200, { ...deck, cards }, responseHeaders);
   } catch (error) {
     if (isAuthFailure(error)) {
       sendJson(response, 401, {

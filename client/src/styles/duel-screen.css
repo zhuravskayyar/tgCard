@@ -909,11 +909,6 @@
   box-shadow: none;
 }
 
-.app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__received,
-.app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__wins {
-  color: var(--home-ink);
-}
-
 .app-shell .app-content .duel-page.duel-result--tutorial .tutorial-result__dialogue p {
   color: var(--home-ink);
 }
@@ -1523,18 +1518,19 @@
   border: 0;
   border-image: none;
 }
-.tutorial-result__crest { width: 150px; height: auto; }
-.app-shell .app-content .duel-result--tutorial .tutorial-result__title {
-  margin: -6px 0 0;
-  color: #24140a;
-  font-size: 30px;
-  letter-spacing: .08em;
-  text-shadow: 0 1px 0 rgb(255 245 220 / 70%);
+/* The tutorial victory shares the duel outcome crest and reward plates; Lariska and the button follow them in. */
+.app-shell .app-content .duel-page.duel-result--tutorial { min-height: 0; gap: 6px; text-align: center; }
+.app-shell .app-content .duel-result--tutorial .duel-outcome__crest { width: min(60%, 215px); }
+.app-shell .app-content .duel-result--tutorial .duel-outcome__received { color: var(--home-ink); }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue { grid-template-columns: 64px minmax(0, 1fr); animation: duel-search-rise .45s ease-out 1.05s both; }
+.app-shell .app-content .duel-result--tutorial .tutorial-result__button { animation: duel-search-rise .45s ease-out 1.2s both; }
+@media (prefers-reduced-motion: reduce) {
+  .duel-result--tutorial :is(.duel-outcome__crest-art, .duel-outcome__rays, .duel-outcome__received, .duel-outcome__reward, .duel-outcome__wins, .duel-outcome__title > span, .tutorial-result__dialogue, .tutorial-result__button) { animation: none; }
+  .duel-result--tutorial .duel-outcome__rays { opacity: .8; }
+  .duel-result--tutorial .duel-outcome__title { animation: none; clip-path: none; }
+  .duel-result--tutorial .duel-outcome__title > span { opacity: 1; }
+  .duel-result--tutorial .duel-outcome__particles { display: none; }
 }
-.app-shell .app-content .duel-result--tutorial .tutorial-result__received,
-.app-shell .app-content .duel-result--tutorial .tutorial-result__wins { color: #24140a; font-size: 15px; font-weight: 700; text-shadow: 0 1px 0 rgb(255 245 220 / 70%); }
-.app-shell .app-content .duel-result--tutorial .tutorial-result__rewards { gap: 22px; margin: 0; }
-.app-shell .app-content .duel-result--tutorial .tutorial-result__rewards span { color: #24140a; font-size: 22px; text-shadow: none; }
 .app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue {
   grid-template-columns: 76px minmax(0, 1fr);
   gap: 6px;
@@ -1568,3 +1564,30 @@
   .app-shell .tutorial-overlay__arrow { animation: none; }
 }
 .app-shell:has(.tutorial-dialog--reference-duel) .duel-action-hint { display: none; }
+
+/* The element wheel beside Lariska during the tutorial duel: painted card medallions and ink arrows. */
+.app-shell .tutorial-dialog.tutorial-dialog--reference-duel.tutorial-dialog--with-cycle { grid-template-columns: 70px minmax(0, 1fr) var(--element-cycle-size, 92px); }
+.element-cycle {
+  position: relative;
+  width: var(--element-cycle-size, 92px);
+  height: var(--element-cycle-size, 92px);
+  margin: 0;
+}
+.element-cycle__arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.element-cycle__arrows path { fill: none; stroke: #5a3614; stroke-width: 2.4; stroke-linecap: round; }
+.element-cycle__arrows marker path { fill: #5a3614; stroke: none; }
+.element-cycle__node { position: absolute; display: grid; place-items: center; transform: translate(-50%, -50%); }
+.element-cycle__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #7a1408;
+  font: 700 13px/1 var(--font-number, var(--font-display));
+  transform: translate(-50%, -50%);
+}
+
+/* Card thickness in battle: the card's own silhouette is repeated a few pixels down in darker paper tones,
+   so the edge follows the painted frame (no drawn box) and reads as a physical card on the board. */
+.app-shell .duel-card > .card-fx {
+  filter: drop-shadow(0 1.5px 0 #9a7444) drop-shadow(0 1.5px 0 #7a5530) drop-shadow(0 1.5px 0 #523619);
+}

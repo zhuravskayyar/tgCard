@@ -181,3 +181,55 @@
 :root .auth-screen--guest .auth-screen__languages { position: absolute; top: max(10px, env(safe-area-inset-top)); right: 12px; z-index: 5; display: flex; gap: 4px; }
 :root .auth-screen--guest .auth-screen__languages button { min-width: 38px; min-height: 34px; padding: 0 6px; color: #2d1b0e; font-size: 14px; font-weight: 800; text-shadow: 0 0 4px #f3e4bf, 0 0 8px #f3e4bf; background: none; border: 0; border-bottom: 2px solid transparent; }
 :root .auth-screen--guest .auth-screen__languages button[aria-pressed="true"] { color: #2d1b0e; border-bottom-color: #2d1b0e; }
+
+/* Hero lettering: engraved ink on the painted plates; the title takes on each element in turn. */
+@property --title-deep { syntax: "<color>"; inherits: true; initial-value: #2b1a0c; }
+@property --title-mid { syntax: "<color>"; inherits: true; initial-value: #5a3614; }
+@property --title-rim { syntax: "<color>"; inherits: true; initial-value: #8a5a1c; }
+@property --title-glow { syntax: "<color>"; inherits: true; initial-value: rgb(0 0 0 / 0%); }
+:root body .auth-screen--guest .auth-screen__hero .auth-screen__eyebrow {
+  color: #3b2410;
+  font-family: var(--font-hero) !important; /* beats the global heading font rule */
+  font-weight: 400;
+  text-shadow: 0 1px 0 rgb(255 241 208 / 80%), 0 -1px 0 rgb(60 32 10 / 25%);
+  animation: auth-eyebrow-in 700ms cubic-bezier(.2,.7,.2,1) 150ms both;
+}
+:root body .auth-screen--guest .element-title {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  transition: --title-deep 900ms ease, --title-mid 900ms ease, --title-rim 900ms ease, --title-glow 900ms ease;
+}
+:root body .auth-screen--guest .element-title[data-element="fire"] { --title-deep: #4a1206; --title-mid: #9f2708; --title-rim: #e0761f; --title-glow: rgb(255 122 42 / 55%); }
+:root body .auth-screen--guest .element-title[data-element="water"] { --title-deep: #0a2a40; --title-mid: #11658d; --title-rim: #2fa8e0; --title-glow: rgb(53 180 255 / 50%); }
+:root body .auth-screen--guest .element-title[data-element="earth"] { --title-deep: #15361a; --title-mid: #2d6d24; --title-rim: #6fb83a; --title-glow: rgb(143 220 78 / 45%); }
+:root body .auth-screen--guest .element-title[data-element="air"] { --title-deep: #4a2a0c; --title-mid: #94601a; --title-rim: #d8a52c; --title-glow: rgb(255 216 74 / 55%); }
+:root body .auth-screen--guest .element-title__fx { position: absolute; z-index: 1; top: -28px; left: -28px; width: calc(100% + 56px); height: calc(100% + 56px); pointer-events: none; }
+:root body .auth-screen--guest .auth-screen__title-text {
+  position: relative;
+  display: inline-block;
+  padding: 0 .1em;
+  color: var(--title-deep);
+  font-family: var(--font-hero) !important; /* beats the global heading font rule */
+  font-weight: 400;
+  background: linear-gradient(180deg, var(--title-rim) 0%, var(--title-mid) 45%, var(--title-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgb(255 241 208 / 85%)) drop-shadow(0 0 7px var(--title-glow));
+  letter-spacing: .08em;
+  animation: auth-title-in 950ms cubic-bezier(.2,.7,.2,1) 300ms both;
+}
+@keyframes auth-eyebrow-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes auth-title-in {
+  from { opacity: 0; transform: translateY(5px) scale(1.12); filter: blur(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root body .auth-screen--guest .auth-screen__hero .auth-screen__eyebrow,
+  :root body .auth-screen--guest .auth-screen__title-text { animation: none; }
+  :root body .auth-screen--guest .element-title__fx { display: none; }
+}

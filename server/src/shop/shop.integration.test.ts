@@ -386,11 +386,12 @@ test("shop instance enters inventory, strongest deck, and weak cards remain its 
     assert.equal(result.deckChanged, true);
     assert.equal(result.previousDeckPower, before.totalPower);
     assert.equal(result.deckPower, after.totalPower);
-    assert.equal(after.totalPower, before.totalPower + 88);
+    // The 100-power card pushes out the weakest starter, the 10-power air dragonfly.
+    assert.equal(after.totalPower, before.totalPower + 90);
     assert.ok(after.cards.some(({ instanceId }) => instanceId === result.reward.instanceId));
-    assert.deepEqual(countDeckElements(after.cards), { fire: 2, water: 2, air: 3, earth: 2 });
-    assert.equal(ownedCards.length, 12);
-    assert.equal(weakCards.length, 3);
+    assert.deepEqual(countDeckElements(after.cards), { fire: 3, water: 2, air: 2, earth: 2 });
+    assert.equal(ownedCards.length, 10);
+    assert.equal(weakCards.length, 1);
     const deckIds = new Set(after.cards.map(({ instanceId }) => instanceId));
     assert.deepEqual(
       new Set(weakCards.map(({ instanceId }) => instanceId)),
