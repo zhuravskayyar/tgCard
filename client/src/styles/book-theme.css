@@ -486,7 +486,7 @@
 
 :root[data-game-theme="light"] .app-shell .app-content .ui-button--danger { color: #742d21; }
 
-:root[data-game-theme="light"] .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .arena-tabs button, .guild-tabs button, .pagination button, .guild-roster__rank-tab) {
+:root[data-game-theme="light"] .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .guild-tabs button, .pagination button, .guild-roster__rank-tab) {
   min-height: 40px;
   color: #4b341c;
   /* Inactive tabs are the same painted plate, faded; no CSS gradient box. */
@@ -500,7 +500,7 @@
   text-shadow: none;
 }
 
-:root[data-game-theme="light"] .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .arena-tabs button, .guild-tabs button, .pagination button, .guild-roster__rank-tab):is([aria-selected="true"], [aria-current="page"], .is-active, [class*="--active"]) {
+:root[data-game-theme="light"] .app-shell .app-content :is(.ui-tab, .collection-filter, .shop-tab, .inventory-tab, .leaderboard-tab, .equipment-category-tab, .equipment-filter-button, .guild-tabs button, .pagination button, .guild-roster__rank-tab):is([aria-selected="true"], [aria-current="page"], .is-active, [class*="--active"]) {
   color: #2d1b0e;
   background: var(--sprite-button-secondary) center / 100% 100% no-repeat;
   border-color: transparent;

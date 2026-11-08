@@ -3,16 +3,19 @@ import { randomUUID } from "node:crypto";
 import { createStandardCardInstance, CryptoCardRandomSource } from "./cards/cardInstanceCreator.js";
 import { recordCardDiscovery } from "./collections/discoveryService.js";
 import {
+  getArenaRewardCardLevelRange,
   getNextBattlePassThreshold,
   isBattlePassCircleComplete,
 } from "@cardastika/game-core";
 import type {
+  ArenaDailyTasksView,
   BattlePassClaimResponse,
   DailyLoginClaimResponse,
   BattlePassPageResponse,
   BattlePassReward,
   BattlePassView,
   DailyTaskClaimResponse,
+  DailyTaskReward,
   PlayerBalance,
   PlayerCardInstance,
 } from "@cardastika/shared";
@@ -21,6 +24,8 @@ import { CURRENCY_BOOST_DURATION_MS, getCurrencyBoostStatus } from "./boosts/cur
 import {
   BATTLE_PASS_CIRCLES,
   BATTLE_PASS_MILESTONES,
+  DAILY_TASK_EQUIPMENT_RARITY,
+  DAILY_TASK_SILVER_PER_DIAMOND,
   DAILY_TASKS,
   getBattlePassMilestone,
   getDailyTask,
@@ -156,6 +161,17 @@ async function loadEventProgress(database: Database, playerId: string, startsAt:
   }));
 }
 
+/** Today's arena daily-task progress, shown in the arena lobby. */
+export async function loadArenaDailyTasks(database: Database, playerId: string, now: Date = new Date()): Promise<ArenaDailyTasksView> {
+  const day = getDayWindow(now);
+  const progress = await loadEventProgress(database, playerId, day.startsAt, day.endsAt);
+  const task = (id: "play-arenas" | "win-arenas") => {
+    const definition = DAILY_TASKS.find((entry) => entry.id === id)!;
+    return { progress: Math.min(definition.target, progress.get(id) ?? 0), target: definition.target };
+  };
+  return { play: task("play-arenas"), win: task("win-arenas") };
+}
+
 async function loadDailyClaims(database: Database, playerId: string, taskDate: string) {
   const result = await database.query<{ task_id: string }>(
     "SELECT task_id FROM player_daily_task_claims WHERE player_id = $1 AND task_date = $2",
@@ -231,6 +247,25 @@ async function loadRewardCardDefinition(database: Database) {
   } as const;
 }
 
+type DailyTaskConfig = (typeof DAILY_TASKS)[number];
+
+/** Today's payout of one task: currencies take the day multiplier, the item and the card do not. */
+function dailyTaskReward(task: DailyTaskConfig, multiplier: 1 | 2 | 3, arenaLeagueIndex: number): DailyTaskReward {
+  const [minLevel, maxLevel] = getArenaRewardCardLevelRange(arenaLeagueIndex);
+  return {
+    card: task.card ? { maxLevel, minLevel } : null,
+    diamonds: task.rewardDiamonds * multiplier,
+    equipment: DAILY_TASK_EQUIPMENT_RARITY,
+    gold: task.rewardGold * multiplier,
+    silver: task.rewardDiamonds * DAILY_TASK_SILVER_PER_DIAMOND * multiplier,
+  };
+}
+
+async function loadArenaLeagueIndex(database: Database, playerId: string) {
+  const result = await database.query<{ arena_league_index: number | string }>("SELECT arena_league_index FROM players WHERE id = $1", [playerId]);
+  return toInteger(result.rows[0]?.arena_league_index ?? 0);
+}
+
 async function grantReward(
   database: PoolClient,
   playerId: string,
@@ -292,6 +327,7 @@ export class BattlePassService {
     const progress = await loadEventProgress(database, playerId, day.startsAt, day.endsAt);
     const completedCount = DAILY_TASKS.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
     const currentRewardMultiplier = multiplierForCompletedTasks(await loadCompletedTaskCount(database, playerId, now));
+    const arenaLeagueIndex = await loadArenaLeagueIndex(database, playerId);
     const allThresholds = BATTLE_PASS_CIRCLES.flatMap(({ thresholds }) => thresholds);
     const allCircleViews = BATTLE_PASS_CIRCLES.map(({ circle, thresholds }) => {
       const milestones = thresholds.map((threshold) => {
@@ -348,7 +384,7 @@ export class BattlePassService {
             id: task.id,
             kind: "daily" as const,
             progress: taskProgress,
-            rewardDiamonds: task.rewardDiamonds * currentRewardMultiplier,
+            reward: dailyTaskReward(task, currentRewardMultiplier, arenaLeagueIndex),
             target: task.target,
             title: task.title,
           };
@@ -425,14 +461,14 @@ export class BattlePassService {
       const progress = await loadEventProgress(client, playerId, day.startsAt, day.endsAt);
       if ((progress.get(task.id) ?? 0) < task.target) throw new DailyTaskNotClaimableError();
       const previousCompletedCount = await loadCompletedTaskCount(client, playerId, now);
-      const rewardDiamonds = task.rewardDiamonds * multiplierForCompletedTasks(previousCompletedCount);
+      const reward = dailyTaskReward(task, multiplierForCompletedTasks(previousCompletedCount), await loadArenaLeagueIndex(client, playerId));
       const claim = await client.query(
         `
           INSERT INTO player_daily_task_claims (player_id, task_date, task_id, reward_diamonds)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (player_id, task_date, task_id) DO NOTHING
         `,
-        [playerId, day.taskDate, task.id, rewardDiamonds],
+        [playerId, day.taskDate, task.id, reward.diamonds],
       );
       if (claim.rowCount !== 1) throw new DailyTaskNotClaimableError();
       await ensureState(client, playerId, season.seasonId);
@@ -442,12 +478,28 @@ export class BattlePassService {
           SET diamonds = diamonds + $3, updated_at = NOW()
           WHERE player_id = $1 AND season_id = $2
         `,
-        [playerId, season.seasonId, rewardDiamonds],
+        [playerId, season.seasonId, reward.diamonds],
       );
+      await client.query(
+        "UPDATE players SET gold = gold + $2, silver = silver + $3, updated_at = NOW() WHERE id = $1",
+        [playerId, reward.gold, reward.silver],
+      );
+      const equipmentItemId = reward.equipment ? (await grantRandomEquipment(client, playerId, reward.equipment)).id : undefined;
+      let card: PlayerCardInstance | undefined;
+      if (reward.card) {
+        const level = reward.card.minLevel + Math.floor(Math.random() * (reward.card.maxLevel - reward.card.minLevel + 1));
+        const definition = await loadRewardCardDefinition(client);
+        card = await createStandardCardInstance(client, playerId, definition, level, new CryptoCardRandomSource());
+        await recordCardDiscovery(client, playerId, definition.id);
+      }
+      const updatedBalance = await loadBalance(client, playerId);
       await client.query("COMMIT");
       return {
         ...(await this.getPage(playerId, now)),
+        ...(card ? { card } : {}),
         claimedTaskId: task.id,
+        ...(equipmentItemId ? { equipmentItemId } : {}),
+        updatedBalance,
       };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);

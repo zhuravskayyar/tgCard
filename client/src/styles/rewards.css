@@ -45,6 +45,10 @@
 .quest-paper__icon { color: var(--accent-gold); filter: none; }
 .quest-paper__reward { display: inline-flex; align-items: center; gap: 3px; align-self: start; color: var(--accent-gold); font-family: var(--font-number); font-size: var(--font-md); line-height: 1; white-space: nowrap; }
 .quest-paper__reward img { width: 18px; height: 18px; filter: none; }
+/* Daily task loot: a plain ink line of what the task pays besides diamonds. */
+.quest-paper__loot { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; color: var(--text-secondary); font-size: var(--font-xs); list-style: none; }
+.quest-paper__loot li { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.quest-paper__loot img, .quest-paper__loot .app-icon { width: 16px; height: 16px; }
 .quest-paper__progress { display: grid; gap: 4px; }
 .quest-paper__progress-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); color: var(--text-muted); font-size: var(--font-micro); }
 .quest-paper__progress-head strong { color: var(--text-secondary); font-family: var(--font-number); font-size: var(--font-xs); }

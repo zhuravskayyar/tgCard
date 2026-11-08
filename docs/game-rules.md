@@ -103,7 +103,7 @@ Each seven-day cycle contains:
 - Day 2: one Uncommon-or-better equipment item.
 - Day 3: one Rare-or-better card.
 - Day 4: 5–10 Gold.
-- Day 5: 10 Arena tokens and 250 account XP.
+- Day 5: 250 account XP.
 - Day 6: a choice of one of three Rare-or-better cards.
 - Day 7: an Epic card with a 5% Legendary upgrade chance.
 

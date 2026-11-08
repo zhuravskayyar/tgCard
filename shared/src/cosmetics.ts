@@ -39,7 +39,7 @@ export const NICKNAME_SKIN_PACK_ID = "nickname_skin_pack_01" as const;
 export interface NicknameSkinShopOffer {
   canAfford: boolean;
   choices: NicknameSkinDefinition[];
-  currency: "arena_tokens";
+  currency: "gold";
   equippedSkinId: NicknameSkinId | null;
   id: typeof NICKNAME_SKIN_PACK_ID;
   name: "Міфічне оформлення I";
@@ -50,7 +50,7 @@ export interface NicknameSkinShopOffer {
     total: 3;
   };
   subtitle: "Обери один: Blood Moon / Starforged / Broken Signal";
-  tokenBalance: number;
+  goldBalance: number;
   type: "nickname_skin_choice";
 }
 
@@ -88,7 +88,7 @@ export interface NicknameSkinPurchaseResponse {
   inventory: PlayerInventoryResponse;
   offer: NicknameSkinShopOffer;
   updatedBalance: {
-    arenaTokens: number;
+    gold: number;
   };
 }
 

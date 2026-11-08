@@ -18,7 +18,7 @@ import {
   type TournamentCardCycle,
   useTournamentCard,
 } from "@cardastika/game-core";
-import { TOURNAMENT_CHAT_MAX_LENGTH } from "@cardastika/shared";
+import { ChatChannel } from "../chat/chatChannel.js";
 import type {
   DuelCardSnapshot,
   DuelExchange,
@@ -77,9 +77,7 @@ type StoredRun = Omit<TournamentRunView, "match" | "bracket" | "player"> & {
 
 interface TournamentPlayerRow { duel_rating: number; arena_rating: number; has_master_cup?: boolean; }
 
-interface TournamentChatRow { id: string; author: string; body: string; created_at: Date | string; }
 
-const TOURNAMENT_CHAT_COOLDOWN_MS = 2_000;
 
 function shuffled<T>(values: readonly T[]): T[] {
   const result = [...values];
@@ -254,7 +252,11 @@ function finalizeIfComplete(state: StoredRun, playerId: string) {
 
 /** Read-only lobby until a run is started; active state is persisted for reloads. */
 export class TournamentService {
-  constructor(private readonly pool: Pool, private readonly truce = false) {}
+  private readonly chat: ChatChannel;
+
+  constructor(private readonly pool: Pool, private readonly truce = false) {
+    this.chat = new ChatChannel(pool, "tournament_chat_messages");
+  }
 
   async getLobby(playerId: string, now = new Date()): Promise<TournamentLobbyView> {
     try {
@@ -298,57 +300,12 @@ export class TournamentService {
     }
   }
 
-  async getChat(): Promise<TournamentChatView> {
-    try {
-      const result = await this.pool.query<TournamentChatRow>(`
-        SELECT id, author, body, created_at
-        FROM tournament_chat_messages
-        ORDER BY created_at DESC, id DESC
-        LIMIT 50
-      `);
-      return { messages: result.rows.reverse().map(row => ({
-        id: row.id,
-        author: row.author,
-        body: row.body,
-        createdAt: new Date(row.created_at).toISOString(),
-      })) };
-    } catch (cause) {
-      throw new PlayerPersistenceError({ cause });
-    }
+  getChat(): Promise<TournamentChatView> {
+    return this.chat.read();
   }
 
-  async sendChatMessage(playerId: string, rawBody: string): Promise<TournamentChatMessage> {
-    const body = rawBody.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/gu, " ").trim();
-    if (!body) throw new TournamentChatError(400, "empty_message", "Message cannot be empty");
-    if (Array.from(body).length > TOURNAMENT_CHAT_MAX_LENGTH) throw new TournamentChatError(400, "message_too_long", "Message is too long");
-
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`tournament-chat:${playerId}`]);
-      const recent = await client.query<{ created_at: Date | string }>(`
-        SELECT created_at FROM tournament_chat_messages
-        WHERE player_id = $1
-        ORDER BY created_at DESC LIMIT 1
-      `, [playerId]);
-      if (recent.rows[0] && Date.now() - new Date(recent.rows[0].created_at).getTime() < TOURNAMENT_CHAT_COOLDOWN_MS) {
-        throw new TournamentChatError(429, "chat_rate_limited", "Wait a moment before sending another message");
-      }
-      const inserted = await client.query<TournamentChatRow>(`
-        INSERT INTO tournament_chat_messages (player_id, author, body)
-        SELECT id, LEFT(COALESCE(NULLIF(BTRIM(nickname), ''), NULLIF(BTRIM(username), ''), first_name), 24), $2
-        FROM players WHERE id = $1
-        RETURNING id, author, body, created_at
-      `, [playerId, body]);
-      if (!inserted.rows[0]) throw new TournamentChatError(404, "player_missing", "Player not found");
-      const row = inserted.rows[0];
-      await client.query("COMMIT");
-      return { id: row.id, author: row.author, body: row.body, createdAt: new Date(row.created_at).toISOString() };
-    } catch (cause) {
-      await client.query("ROLLBACK");
-      if (cause instanceof TournamentChatError) throw cause;
-      throw new PlayerPersistenceError({ cause });
-    } finally { client.release(); }
+  sendChatMessage(playerId: string, rawBody: string): Promise<TournamentChatMessage> {
+    return this.chat.send(playerId, rawBody);
   }
 
   async enter(playerId: string): Promise<TournamentRunView> {
@@ -562,9 +519,4 @@ export class TournamentService {
 export class TournamentDeckError extends Error { constructor() { super("A valid saved 9-card deck is required"); this.name = "TournamentDeckError"; } }
 export class TournamentRunMissingError extends Error { constructor() { super("No active tournament run"); this.name = "TournamentRunMissingError"; } }
 export class TournamentActionError extends Error { constructor(message: string) { super(message); this.name = "TournamentActionError"; } }
-export class TournamentChatError extends Error {
-  constructor(public readonly status: 400 | 404 | 429, public readonly code: string, message: string) {
-    super(message);
-    this.name = "TournamentChatError";
-  }
-}
+export { ChatError as TournamentChatError } from "../chat/chatChannel.js";

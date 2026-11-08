@@ -6,24 +6,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ArenaBattleLogEntry,
   ArenaCardSlot,
+  ArenaDailyTasksView,
   ArenaLeaderboardResponse,
   ArenaParticipantView,
   ArenaProfileResponse,
   ArenaQueueView,
-  ArenaShopItem,
-  ArenaShopCatalogResponse,
   ArenaView,
-  CollectionCompletionNotice,
   DuelExchange,
   PlayerSummary,
 } from "@cardastika/shared";
-import { getElementMultiplier } from "@cardastika/game-core";
+import { getArenaQueueDurationMs, getElementMultiplier } from "@cardastika/game-core";
 import { AppIcon } from "../components/AppIcon";
 import { BattleCard, BattleLog, getEffectLevel, HpPanel, PlayerAvatar } from "./DuelScreen";
 import type { DuelEffectLevel } from "./DuelScreen";
 import { FirstVisitHint } from "../components/FirstVisitHint";
+import { GameChat } from "../components/GameChat";
+import { MenuRow } from "../components/MenuRow";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
-import { ARENA_TOKEN_ICON_SOURCE, ResourceIcon } from "../components/ResourceIcon";
 import { getTelegramInitData } from "../telegram";
 import { formatUiNumber } from "../i18n";
 import {
@@ -33,50 +32,111 @@ import {
   joinArenaQueue,
   leaveArenaQueue,
   loadActiveArena,
+  loadArenaChat,
   loadArenaLeaderboard,
   loadArenaProfile,
-  loadArenaShop,
-  purchaseArenaShopItem,
+  sendArenaChatMessage,
   submitArenaAction,
 } from "../telegram/arena";
 import "../styles/arena-book.css";
 
-type ArenaTab = "battle" | "league" | "shop";
+type ArenaPage = "lobby" | "league" | "rules";
 
 interface ArenaScreenProps {
   onBack: () => void;
-  onCollectionCompleted: (completion: CollectionCompletionNotice) => void;
-  onPlayerSummaryChange: (summary: Partial<Pick<PlayerSummary, "arenaLeagueIndex" | "arenaRating" | "arenaTokens" | "arenaTop3Count" | "arenaWins" | "cardShards" | "gold" | "silver">>) => void;
+  onOpenTasks: () => void;
+  onPlayerSummaryChange: (summary: Partial<Pick<PlayerSummary, "arenaLeagueIndex" | "arenaRating" | "arenaTop3Count" | "arenaWins" | "cardShards" | "gold" | "silver">>) => void;
 }
+
+const homeSprite = (name: string) => `/assets/ui/home/sprites/${name}.webp`;
 
 function cooldownSeconds(until: string | null, now = Date.now()) {
   if (!until) return 0;
   return Math.max(0, Math.ceil((new Date(until).getTime() - now) / 1_000));
 }
 
-function ArenaHeading({ onBack }: { onBack: () => void }) {
+function ArenaHeading({ onBack, title = "Арена" }: { onBack: () => void; title?: string }) {
   return (
-    <ScreenHeading onBack={onBack} title="Арена" action={<span className="arena-heading__token"><ResourceIcon kind="arena-token" size={20} /> Арена</span>} />
+    <ScreenHeading onBack={onBack} title={title} />
   );
 }
 
-function ArenaTabs({ active, onChange }: { active: ArenaTab; onChange: (tab: ArenaTab) => void }) {
+/** Rating rows and tasks under the lobby and the result, as in every mode menu. */
+function ArenaMenu({ onOpenLeague, onOpenTasks }: { onOpenLeague: () => void; onOpenTasks: () => void }) {
   return (
-    <nav className="arena-tabs" aria-label="Розділи Арени">
-      <button className={active === "battle" ? "is-active" : ""} onClick={() => onChange("battle")} type="button"><AppIcon name="arena" size={17} />Бій</button>
-      <button className={active === "league" ? "is-active" : ""} onClick={() => onChange("league")} type="button"><AppIcon name="ranking" size={17} />Ліга</button>
-      <button className={active === "shop" ? "is-active" : ""} onClick={() => onChange("shop")} type="button"><AppIcon name="arena-shop" size={17} />Магазин</button>
+    <nav aria-label="Розділи арени" className="arena-menu">
+      <MenuRow chevron icon="ranking" iconSrc={homeSprite("row-icon-ranking")} illustrationSrc={homeSprite("row-ranking")} onClick={onOpenLeague} title="Рейтинг арени" />
+      <MenuRow chevron icon="tasks" iconSrc={homeSprite("row-icon-tasks")} illustrationSrc={homeSprite("row-tasks")} onClick={onOpenTasks} title="Завдання" />
     </nav>
   );
 }
 
-function ArenaTokenBalance({ value }: { value: number }) {
-  return <span className="arena-token-balance"><ResourceIcon kind="arena-token" size={20} />{formatUiNumber(value)}</span>;
+function ArenaChat() {
+  return <GameChat inputLabel="Повідомлення в чат арени" load={loadArenaChat} send={sendArenaChatMessage} signInNotice="Увійди в гру, щоб переглянути чат арени." title="Чат арени" unavailableNotice="Чат арени тимчасово недоступний." />;
 }
 
-function shortParticipantName(name: string) {
-  const firstWord = name.trim().split(/\s+/)[0] ?? name;
-  return firstWord.length > 10 ? `${firstWord.slice(0, 9)}…` : firstWord;
+function arenaTasksText(tasks: ArenaDailyTasksView) {
+  const play = Math.max(0, tasks.play.target - tasks.play.progress);
+  const win = Math.max(0, tasks.win.target - tasks.win.progress);
+  if (!play && !win) return "Щоденні завдання арени виконано.";
+  const parts = [play ? `зіграти ${play}` : null, win ? `виграти ${win}` : null].filter(Boolean);
+  return `До виконання завдань лишилось: ${parts.join(", ")}.`;
+}
+
+function ArenaRatingMeter({ profile }: { profile: ArenaProfileResponse }) {
+  const next = profile.nextArenaLeague;
+  const floor = profile.arenaLeague.minRating;
+  const progress = next ? percentage(profile.arenaRating - floor, next.minRating - floor) : 100;
+  return (
+    <div className="arena-rating-meter">
+      <strong>Ваш рейтинг арени: {profile.arenaRating}</strong>
+      <div aria-label={next ? `До ліги ${next.name}: ${Math.round(progress)}%` : "Найвища ліга"} className="arena-rating-meter__rail"><i style={{ width: `${progress}%` }} /></div>
+      <small>{next ? `Ліга «${profile.arenaLeague.name}» · до «${next.name}» ${Math.max(0, next.minRating - profile.arenaRating)}` : `Ліга «${profile.arenaLeague.name}» — найвища`}</small>
+    </div>
+  );
+}
+
+function ArenaLobby({ profile, pending, onQueue, onRefresh, onOpenRules }: { profile: ArenaProfileResponse; pending: string | null; onQueue: () => void; onRefresh: () => void; onOpenRules: () => void }) {
+  return (
+    <section className="arena-lobby">
+      <img alt="" className="arena-lobby__banner" height={260} src={homeSprite("mode-arena")} width={456} />
+      <p className="arena-lobby__wait">Час очікування в черзі — не більше {getArenaQueueDurationMs(profile.arenaLeague.index, 1) / 1_000} секунд.</p>
+      <div className="arena-lobby__actions">
+        <button className="duel-primary-button" disabled={pending !== null} onClick={onQueue} type="button">{pending === "queue" ? "Записуємо…" : "Записатися"}</button>
+        <button className="duel-secondary-button" disabled={pending !== null} onClick={onRefresh} type="button">Оновити</button>
+      </div>
+      <ArenaRatingMeter profile={profile} />
+      <p className="arena-lobby__tasks">{arenaTasksText(profile.dailyTasks)}</p>
+      <button className="arena-rules-link" onClick={onOpenRules} type="button">Правила арени</button>
+    </section>
+  );
+}
+
+function ArenaRules() {
+  return (
+    <section className="arena-rules">
+      <h2>Як проходить бій</h2>
+      <ul>
+        <li>На арені б’ються шестеро. Справжні гравці, що записалися до старту, потрапляють в один бій, решту місць займають боти.</li>
+        <li>Час до старту залежить від ліги: від 5 до 25 секунд. Кожен новий живий гравець наближає старт на 5 секунд.</li>
+        <li>Бій іде циклами по 9 секунд; перші 9 секунд карти закриті. За цикл можна вдарити кожною з трьох карт. Використана карта закривається до кінця циклу, а невикористані лишаються на наступний.</li>
+        <li>Удар — це обмін: карта суперника на тій самій лінії відповідає одразу. Ціль можна змінити кнопкою або торкнувшись аватара.</li>
+        <li>Карти можна замінити: перша заміна безплатна, далі — 5 золота.</li>
+      </ul>
+      <h2>Хто перемагає</h2>
+      <ul>
+        <li>Бій триває, доки не лишиться один учасник, або завершується через три хвилини без ваших ударів.</li>
+        <li>Перемагають троє, хто завдав найбільше шкоди; далі рахуються вбивства і залишок здоров’я.</li>
+        <li>Менше трьох ходів — бій не зараховується: −3 рейтингу без перемоги й прогресу завдань.</li>
+      </ul>
+      <h2>Нагороди</h2>
+      <ul>
+        <li>Рейтинг арени окремий від дуелей і починається з 1400.</li>
+        <li>Кожна нова ліга, досягнута вперше, дає срібло. Пониження настає, лише коли рейтинг на 100 нижчий за межу ліги.</li>
+        <li>Щоденні завдання: 10 боїв і 5 перемог на арені.</li>
+      </ul>
+    </section>
+  );
 }
 
 function percentage(value: number, maximum: number) {
@@ -156,40 +216,6 @@ function ArenaQueuePanel({ queue, pending, onLeave }: { queue: ArenaQueueView; p
   );
 }
 
-function ParticipantList({ participants, playerId, targetId, disabled, onSelectTarget }: { participants: ArenaParticipantView[]; playerId: string; targetId: string | null; disabled: boolean; onSelectTarget: (participantId: string) => void }) {
-  const targets = participants.filter((participant) => participant.id !== playerId);
-  const aliveTargets = targets.filter((participant) => participant.alive).length;
-  return (
-    <section className="arena-participants">
-      <header><h2>Цілі</h2><span>{aliveTargets} живих · натисніть аватар</span></header>
-      <ol>
-        {targets.map((participant) => (
-          <li className={`${participant.id === playerId ? "is-player " : ""}${participant.id === targetId ? "is-target " : ""}${!participant.alive ? "is-dead" : ""}`} key={participant.id} title={participant.name}>
-            <div className="arena-participant__top">
-              <span className="arena-rank">{participant.placement ?? "•"}</span>
-              <button
-                aria-label={participant.id === playerId ? `Ваш аватар, ${participant.name}` : `Обрати ціллю ${participant.name}`}
-                className="arena-participant__avatar-button"
-                disabled={disabled || participant.id === playerId || !participant.alive}
-                onClick={() => onSelectTarget(participant.id)}
-                type="button"
-              >
-                <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} />
-              </button>
-              <strong>{shortParticipantName(participant.name)}</strong>
-              {!participant.alive ? <span className="arena-participant__dead" aria-label="Вибув"><AppIcon name="skull" size={16} /></span> : null}
-            </div>
-            <div className="arena-participant__hpbar" aria-label={`HP ${participant.hp} з ${participant.maxHp}`}>
-              <span style={{ width: `${percentage(participant.hp, participant.maxHp)}%` }} />
-            </div>
-            <small className="arena-participant__damage">{participant.totalDamageDealt}</small>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
 function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, clashLevel, clashing = false }: { slot: ArenaCardSlot; enemy?: boolean; disabled?: boolean; defeated?: boolean; onClick?: () => void; lane: number; clashLevel?: DuelEffectLevel; clashing?: boolean }) {
   const [cooldownNow, setCooldownNow] = useState(() => Date.now());
   useEffect(() => {
@@ -200,9 +226,10 @@ function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, cla
       const now = Date.now();
       setCooldownNow(now);
       const remaining = cooldownEnd - now;
-      if (remaining > 0) timer = window.setTimeout(refresh, Math.min(1_000, remaining));
+      // Tick on the whole seconds left before the shared cycle end, so lanes closing together show the same number.
+      if (remaining > 0) timer = window.setTimeout(refresh, remaining % 1_000 || 1_000);
     };
-    timer = window.setTimeout(refresh, Math.min(1_000, Math.max(0, cooldownEnd - Date.now())));
+    timer = window.setTimeout(refresh, Math.max(0, cooldownEnd - Date.now()) % 1_000 || 1_000);
     return () => { if (timer !== undefined) window.clearTimeout(timer); };
   }, [slot.cooldownUntil]);
 
@@ -268,18 +295,16 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
       {player ? <HpPanel currentHp={player.hp} detail={`Завдано: ${formatUiNumber(player.totalDamageDealt)}`} maximumHp={player.maxHp} side={player} tone="player" /> : null}
       <div className="arena-controls">
         <div className="arena-actions">
-          <button aria-label="Змінити ціль" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onTarget()} title="Змінити ціль" type="button"><AppIcon name="target" size={20} /><span>Ціль</span></button>
-          <button aria-label="Оновити карти" className="duel-secondary-button" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={onCards} title="Оновити карти" type="button"><AppIcon name="refresh" size={20} /><span>Карти</span><small>{match.changeCardsCost === 0 ? "0" : <><CurrencyIcon kind="gold" size={15} />{match.changeCardsCost}</>}</small></button>
+          <button className="arena-action" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onTarget()} type="button"><span aria-hidden="true" className="arena-action__medallion"><AppIcon name="target" size={28} /></span><span>Змінити ціль</span></button>
+          <button className="arena-action" disabled={clash !== null || match.status !== "active" || pending !== null} onClick={onCards} type="button"><span aria-hidden="true" className="arena-action__medallion"><AppIcon name="deck" size={28} /></span><span>Змінити карти</span><small>{match.changeCardsCost === 0 ? "безплатно" : <><CurrencyIcon kind="gold" size={14} />{formatUiNumber(match.changeCardsCost)}</>}</small></button>
         </div>
-        <p aria-live="polite" className="arena-action-status">{pending ? "…" : playerDefeated ? "Вибули" : "Обери карту"}</p>
+        {playerDefeated ? <p aria-live="polite" className="arena-action-status">Вибули</p> : null}
       </div>
-      <ParticipantList disabled={clash !== null || match.status !== "active" || pending !== null} onSelectTarget={onTarget} participants={match.participants} playerId={match.playerId} targetId={match.targetId} />
-      <ArenaLog animateLatest={clash !== null} match={match} />
     </div>
   );
 }
 
-function ArenaResult({ match, onArena, onQueue }: { match: ArenaView; onArena: () => void; onQueue: () => void }) {
+function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; onArena: () => void; onQueue: () => void; pending: string | null }) {
   const result = match.result;
   if (!result) return null;
   const won = result.reward.status === "win";
@@ -304,13 +329,12 @@ function ArenaResult({ match, onArena, onQueue }: { match: ArenaView; onArena: (
         <div className="arena-result__group arena-result__group--winners"><h2>Переможці</h2><ol>{ordered.slice(0, 3).map(renderParticipant)}</ol></div>
         <div className="arena-result__group arena-result__group--contenders"><h2>Претенденти</h2><ol>{ordered.slice(3).map(renderParticipant)}</ol></div>
       </div>
-      {result.reward.arenaTokens > 0 || result.reward.promotionSilver > 0 ? <div className="arena-result__rewards">{result.reward.arenaTokens > 0 ? <span><ArenaTokenBalance value={result.reward.arenaTokens} /></span> : null}{result.reward.promotionSilver > 0 ? <span><CurrencyIcon kind="silver" size={18} />+{formatUiNumber(result.reward.promotionSilver)} срібла за нову лігу</span> : null}</div> : null}
-      <div className="arena-result__actions"><button className="duel-primary-button" onClick={onQueue} type="button">Записатися знову</button><button className="duel-secondary-button" onClick={onArena} type="button">На арену</button></div>
+      {result.reward.promotionSilver > 0 ? <div className="arena-result__rewards"><span><CurrencyIcon kind="silver" size={18} />+{formatUiNumber(result.reward.promotionSilver)} срібла за нову лігу</span></div> : null}
+      <div className="arena-result__actions"><button className="duel-primary-button" disabled={pending !== null} onClick={onQueue} type="button">Записатися знову</button><button className="duel-secondary-button" onClick={onArena} type="button">На арену</button></div>
     </section>
   );
 }
-
-function LeagueTab({ profile, initData }: { profile: ArenaProfileResponse; initData: string | null }) {
+function ArenaLeague({ profile, initData }: { profile: ArenaProfileResponse; initData: string | null }) {
   const [board, setBoard] = useState<ArenaLeaderboardResponse | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -330,7 +354,7 @@ function LeagueTab({ profile, initData }: { profile: ArenaProfileResponse; initD
       <strong>Рейтинг арени: {profile.arenaRating}</strong>
       <div className="arena-league-panel__progress" aria-label={next ? `До ліги ${next.name}: ${Math.round(progress)}%` : "Найвища ліга"}><i style={{ width: `${progress}%` }} /></div>
       {next ? <p>До ліги «{next.name}»: {Math.max(0, next.minRating - profile.arenaRating)} рейтингу. Перший перехід: +{next.promotionReward.toLocaleString("uk-UA")} срібла.</p> : <p>Це найвища ліга арени.</p>}
-      <div className="arena-league-panel__stats"><span>Перемоги <b>{formatUiNumber(profile.arenaWins)}</b></span><span>Топ-3 <b>{formatUiNumber(profile.arenaTop3Count)}</b></span><span>Жетони <b>{formatUiNumber(profile.arenaTokens)}</b></span></div>
+      <div className="arena-league-panel__stats"><span>Перемоги <b>{formatUiNumber(profile.arenaWins)}</b></span><span>Топ-3 <b>{formatUiNumber(profile.arenaTop3Count)}</b></span></div>
       <h3 className="arena-league-panel__title">Рейтинг ліги</h3>
       {board ? <ol className="arena-leaderboard">
         {board.entries.map((entry) => <li className={entry.playerId === board.player.playerId ? "is-player" : ""} key={entry.playerId}><span>{entry.rank}</span><PlayerAvatar name={entry.name} photoUrl={entry.photoUrl} /><strong>{entry.name}</strong><b>{entry.rating}</b></li>)}
@@ -340,45 +364,16 @@ function LeagueTab({ profile, initData }: { profile: ArenaProfileResponse; initD
   );
 }
 
-function cosmeticPreview(type?: string) {
-  if (type === "avatar") return "/assets/arena/avatar-preview.svg";
-  if (type === "frame") return "/assets/arena/frame-preview.svg";
-  if (type === "title") return "/assets/arena/title-preview.svg";
-  return ARENA_TOKEN_ICON_SOURCE;
-}
-
-function arenaShopRewardPreview(item: ArenaShopItem) {
-  if (item.rewardType === "shards") return "/assets/ui/shop/icon_card_shard_v2.webp";
-  if (item.rewardType === "card") return "/assets/ui/world-tree/game-icons/card-random.svg";
-  if (item.rewardType === "equipment") return "/assets/ui/world-tree/game-icons/equipment-backpack.svg";
-  return cosmeticPreview(item.cosmeticType);
-}
-
-function ShopTab({ profile, catalog, catalogError, catalogLoading, pending, onLoad, onPurchase }: { profile: ArenaProfileResponse; catalog: ArenaShopCatalogResponse | null; catalogError: string | null; catalogLoading: boolean; pending: string | null; onLoad: () => void; onPurchase: (id: string) => void }) {
-  useEffect(() => { if (!catalog && !catalogError) onLoad(); }, [catalog, catalogError, onLoad]);
-  return (
-    <section className="arena-shop-panel">
-      <header><div><span>Магазин арени</span><h2>Трофеї за жетони</h2></div><ArenaTokenBalance value={profile.arenaTokens} /></header>
-      <p className="arena-shop-panel__intro">Витрачайте жетони Арени на загальні осколки, випадкове спорядження, карти та косметику.</p>
-      {!catalog ? catalogError ? <div className="arena-empty-state" role="alert"><span>{catalogError}</span><button className="duel-secondary-button" disabled={catalogLoading} onClick={onLoad} type="button">{catalogLoading ? "Завантажуємо…" : "Повторити"}</button></div> : <div aria-live="polite" className="arena-empty-state" role="status">Завантажуємо асортимент…</div> : <div className="arena-shop-grid">{catalog.items.map((item) => <article className="arena-shop-item" key={item.id}><div aria-hidden="true" className="arena-shop-item__art">{item.rewardType === "cosmetic" && item.cosmeticType === "card_back" ? <CardBack className="arena-shop-item__card-back" /> : <img alt="" src={arenaShopRewardPreview(item)} />}</div><div className="arena-shop-item__details"><strong>{item.displayName}</strong><small>{item.rewardType === "cosmetic" ? "Косметика" : item.rewardType === "card" ? "Випадкова карта" : item.rewardType === "equipment" ? "Спорядження" : "Загальні осколки"}</small></div><button aria-label={`Придбати за ${item.price} жетонів`} className="arena-shop-item__purchase" disabled={pending !== null || profile.arenaTokens < item.price} onClick={() => onPurchase(item.id)} type="button"><span>Купити</span><span className="arena-shop-item__price"><ResourceIcon kind="arena-token" size={17} /><strong>{item.price}</strong></span></button></article>)}</div>}
-    </section>
-  );
-}
-
-export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChange }: ArenaScreenProps) {
+export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: ArenaScreenProps) {
   const [profile, setProfile] = useState<ArenaProfileResponse | null>(null);
   const [match, setMatch] = useState<ArenaView | null>(null);
   const resultReady = useBattleResultReady(match?.status === "active", match?.status === "finished", match?.result?.reward.status ?? null);
   const [queueState, setQueueState] = useState<ArenaQueueView | null>(null);
-  const [catalog, setCatalog] = useState<ArenaShopCatalogResponse | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [tab, setTab] = useState<ArenaTab>("battle");
+  const [page, setPage] = useState<ArenaPage>("lobby");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingRef = useRef<string | null>(null);
-  const catalogLoadInFlightRef = useRef(false);
   const pollInFlightRef = useRef(false);
   const syncRevisionRef = useRef(0);
 
@@ -406,7 +401,7 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
     if (!initData) throw new Error("Telegram unavailable");
     const next = await loadArenaProfile(initData, signal);
     setProfile(next);
-    onPlayerSummaryChange({ arenaLeagueIndex: next.arenaLeague.index, arenaRating: next.arenaRating, arenaTokens: next.arenaTokens, arenaTop3Count: next.arenaTop3Count, arenaWins: next.arenaWins, cardShards: next.cardShards });
+    onPlayerSummaryChange({ arenaLeagueIndex: next.arenaLeague.index, arenaRating: next.arenaRating, arenaTop3Count: next.arenaTop3Count, arenaWins: next.arenaWins, cardShards: next.cardShards });
     return next;
   }, [initData, onPlayerSummaryChange]);
 
@@ -424,7 +419,6 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
         ...current,
         arenaLeague: next.result!.leagueAfter,
         arenaRating: next.result!.reward.ratingAfter,
-        arenaTokens: next.result!.player.arenaTokens ?? current.arenaTokens,
         arenaTop3Count: next.result!.player.arenaTop3Count ?? current.arenaTop3Count,
         arenaWins: next.result!.player.arenaWins ?? current.arenaWins,
         cardShards: next.result!.player.cardShards ?? current.cardShards,
@@ -432,21 +426,6 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
     }
     return next;
   }, [initData, onPlayerSummaryChange]);
-
-  const loadShopCatalog = useCallback(async () => {
-    if (!initData || catalog || catalogLoadInFlightRef.current) return;
-    catalogLoadInFlightRef.current = true;
-    setCatalogLoading(true);
-    setCatalogError(null);
-    try {
-      setCatalog(await loadArenaShop(initData));
-    } catch {
-      setCatalogError("Магазин тимчасово недоступний.");
-    } finally {
-      catalogLoadInFlightRef.current = false;
-      setCatalogLoading(false);
-    }
-  }, [catalog, initData]);
 
   useEffect(() => {
     if (!initData) { setError("Арена доступна лише в Telegram Mini App"); return; }
@@ -494,36 +473,32 @@ export function ArenaScreen({ onBack, onCollectionCompleted, onPlayerSummaryChan
     } finally { endPending(); }
   }
 
-  async function purchase(offerId: string) {
-    if (!initData) return;
-    if (!beginPending(offerId)) return;
-    setError(null);
-    try { const result = await purchaseArenaShopItem(initData, { offerId }); onPlayerSummaryChange({ arenaTokens: result.arenaTokens, cardShards: result.cardShards, gold: result.playerGold, silver: result.silver }); if (result.collectionCompleted) onCollectionCompleted(result.collectionCompleted); await syncProfile(); } catch (reason: unknown) { setError(reason instanceof ArenaApiError && reason.code === "insufficient_arena_tokens" ? "Недостатньо жетонів Арени." : "Покупку не виконано."); } finally { endPending(); }
-  }
+  const errorNotice = error ? <><p className="arena-error" role="alert">{error}</p><button className="duel-secondary-button" disabled={pending !== null} onClick={retrySync} type="button">Оновити стан</button></> : null;
+  const menu = <ArenaMenu onOpenLeague={() => setPage("league")} onOpenTasks={onOpenTasks} />;
 
   if (!profile) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><div className="arena-empty-state" role={error ? "alert" : "status"}><span>{error ?? "Завантажуємо арену…"}</span>{error && initData ? <button className="duel-secondary-button" onClick={retrySync} type="button">Повторити</button> : null}</div></div>;
-  if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaHeading onBack={onBack} /><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
+  if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
+  if (page === "league") return <div className="arena-screen"><ArenaHeading onBack={() => setPage("lobby")} title="Рейтинг арени" /><ArenaLeague initData={initData} profile={profile} /></div>;
+  if (page === "rules") return <div className="arena-screen"><ArenaHeading onBack={() => setPage("lobby")} title="Правила арени" /><ArenaRules /></div>;
   if (match?.status === "finished") return (
     <div className="arena-screen">
       <ArenaHeading onBack={onBack} />
-      <ArenaTabs active={tab} onChange={setTab} />
-      {error ? <><p className="arena-error" role="alert">{error}</p><button className="duel-secondary-button" disabled={pending !== null} onClick={retrySync} type="button">Оновити стан</button></> : null}
-      {tab === "battle" ? <ArenaResult match={match} onArena={() => { setMatch(null); setQueueState(null); setError(null); setTab("battle"); }} onQueue={() => void queue()} /> : null}
-      {tab === "league" ? <LeagueTab initData={initData} profile={profile} /> : null}
-      {tab === "shop" ? <ShopTab catalog={catalog} catalogError={catalogError} catalogLoading={catalogLoading} onLoad={loadShopCatalog} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
+      {errorNotice}
+      <ArenaResult match={match} onArena={() => { setMatch(null); setQueueState(null); setError(null); }} onQueue={() => void queue()} pending={pending} />
+      <ArenaLog animateLatest={false} match={match} />
+      {menu}
     </div>
   );
-  if (queueState) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaQueuePanel onLeave={() => void leaveQueue()} pending={pending} queue={queueState} /></div>;
+  if (queueState) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><ArenaQueuePanel onLeave={() => void leaveQueue()} pending={pending} queue={queueState} /><ArenaChat /></div>;
 
   return (
     <div className="arena-screen">
       <ArenaHeading onBack={onBack} />
-      <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Переможці — троє з найбільшою шкодою. Менше 3 ходів — бій не зараховується.", "Жетони арени можна витрачати в її магазині."]} />
-      <ArenaTabs active={tab} onChange={setTab} />
-      {error ? <><p className="arena-error" role="alert">{error}</p><button className="duel-secondary-button" disabled={pending !== null} onClick={retrySync} type="button">Оновити стан</button></> : null}
-      {tab === "battle" ? <section className="arena-lobby"><div className="arena-lobby__hero"><AppIcon name="arena" size={46} /><div><span>6 учасників · 15 секунд</span><h2>Готові вийти на пісок?</h2><p>Перемагають троє, хто завдав найбільше шкоди. Зробіть щонайменше 3 ходи, щоб бій зарахувався.</p></div></div><div className="arena-lobby__stats"><span>Ліга <b>{profile.arenaLeague.name}</b></span><span>Рейтинг <b>{profile.arenaRating}</b></span><span>Жетони <ArenaTokenBalance value={profile.arenaTokens} /></span></div><button className="duel-primary-button" disabled={pending !== null} onClick={() => void queue()} type="button">{pending === "queue" ? "Записуємо в чергу…" : "Записатися на арену"}</button></section> : null}
-      {tab === "league" ? <LeagueTab initData={initData} profile={profile} /> : null}
-      {tab === "shop" ? <ShopTab catalog={catalog} catalogError={catalogError} catalogLoading={catalogLoading} onLoad={loadShopCatalog} onPurchase={(id) => void purchase(id)} pending={pending} profile={profile} /> : null}
+      <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Переможці — троє з найбільшою шкодою. Менше 3 ходів — бій не зараховується."]} />
+      {errorNotice}
+      <ArenaLobby onOpenRules={() => setPage("rules")} onQueue={() => void queue()} onRefresh={retrySync} pending={pending} profile={profile} />
+      <ArenaChat />
+      {menu}
     </div>
   );
 }

@@ -30,6 +30,26 @@ interface ViewportSize {
   width: number;
 }
 
+interface TargetRect {
+  bottom: number;
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
+
+// Whole pixels: phones report sub-pixel jitter for animated targets, and every new value re-rendered the overlay.
+function toTargetRect(rect: DOMRect): TargetRect {
+  return { bottom: Math.round(rect.bottom), height: Math.round(rect.height), left: Math.round(rect.left), top: Math.round(rect.top), width: Math.round(rect.width) };
+}
+
+function sameRects(left: TargetRect[], right: TargetRect[]) {
+  return left.length === right.length && left.every((rect, index) => {
+    const other = right[index]!;
+    return rect.left === other.left && rect.top === other.top && rect.width === other.width && rect.height === other.height;
+  });
+}
+
 const STEP_COPY: Record<Exclude<TutorialStep, "complete">, TutorialCopy> = {
   intro: { action: "ПОЧАТИ БІЙ", interactive: true, target: "duel-card-first", text: "Твої карти внизу. Карти суперника — вгорі. Атакуй своєю картою!", title: "" },
   "duel-first-card": { action: "ОБРАТИ КАРТУ", interactive: true, target: "duel-card-first", text: "Твої карти внизу, карти суперника вгорі. Ця стихія слабка проти ворога: удар ×0,5. Атакуй!", title: "" },
@@ -51,7 +71,7 @@ const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = 
 };
 
 export function TutorialOverlay({ actionPending = false, duel, error = null, onAction, onPause, screenKey, step }: TutorialOverlayProps) {
-  const [rects, setRects] = useState<DOMRect[]>([]);
+  const [rects, setRects] = useState<TargetRect[]>([]);
   const [viewport, setViewport] = useState<ViewportSize>(() => typeof window === "undefined"
     ? { height: 1, width: 1 }
     : { height: window.innerHeight, width: window.innerWidth });
@@ -71,13 +91,16 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
       return undefined;
     }
     let cancelled = false;
+    let scheduledFrame: number | null = null;
     const update = () => {
+      scheduledFrame = null;
       if (cancelled) return;
       const nextRects = [...document.querySelectorAll<HTMLElement>(targetSelector)]
-        .map((element) => element.getBoundingClientRect())
+        .map((element) => toTargetRect(element.getBoundingClientRect()))
         .filter((rect) => rect.width > 0 && rect.height > 0);
-      setViewport({ height: window.innerHeight, width: window.innerWidth });
-      setRects(nextRects);
+      // Unchanged values keep the old state, so the overlay does not re-render and cannot feed its own observer.
+      setViewport((current) => current.width === window.innerWidth && current.height === window.innerHeight ? current : { height: window.innerHeight, width: window.innerWidth });
+      setRects((current) => sameRects(current, nextRects) ? current : nextRects);
       const targetRect = nextRects[0];
       setDialogPlacement(referenceDuel ? "bottom" : targetRect && targetRect.top + targetRect.height / 2 > window.innerHeight * .56 ? "top" : "bottom");
       if (referenceDuel) {
@@ -87,25 +110,29 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
         setReferenceDialogTop(null);
       }
     };
-    const frame = window.requestAnimationFrame(update);
-    const timer = window.setInterval(update, 180);
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    const observer = new MutationObserver(update);
+    // At most one measurement per frame, however many mutations or events arrive.
+    const schedule = () => {
+      if (!cancelled && scheduledFrame === null) scheduledFrame = window.requestAnimationFrame(update);
+    };
+    schedule();
+    const timer = window.setInterval(schedule, 180);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+    const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       cancelled = true;
-      window.cancelAnimationFrame(frame);
+      if (scheduledFrame !== null) window.cancelAnimationFrame(scheduledFrame);
       window.clearInterval(timer);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
       observer.disconnect();
     };
   }, [copy, referenceDuel, screenKey, targetSelector]);
 
   if (!copy || !step || step === "complete") return null;
 
-  const getFingerPosition = (rect: DOMRect) => {
+  const getFingerPosition = (rect: TargetRect) => {
     const placeAbove = rect.top >= 58;
     const fingerWidth = 40;
     const left = Math.min(
@@ -135,20 +162,20 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
           <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={viewport.width} height={viewport.height}>
             <rect fill="white" height={viewport.height} width={viewport.width} x="0" y="0" />
             {rects.map((rect, index) => (
-              <rect fill="black" height={rect.height} key={rect.left + "-" + rect.top + "-" + index} rx="10" width={rect.width} x={rect.left} y={rect.top} />
+              <rect fill="black" height={rect.height} key={index} rx="10" width={rect.width} x={rect.left} y={rect.top} />
             ))}
           </mask>
         </defs>
         <rect fill="#020508" fillOpacity={referenceDuel ? "0.18" : "0.78"} height={viewport.height} mask={"url(#" + maskId + ")"} width={viewport.width} x="0" y="0" />
       </svg>
       {rects.map((rect, index) => (
-        <span aria-hidden="true" className="tutorial-overlay__spotlight" key={`${rect.left}-${rect.top}-${index}`} style={{ height: rect.height, left: rect.left, top: rect.top, width: rect.width }} />
+        <span aria-hidden="true" className="tutorial-overlay__spotlight" key={`spotlight-${index}`} style={{ height: rect.height, left: rect.left, top: rect.top, width: rect.width }} />
       ))}
       {copy.interactive ? rects.map((rect, index) => (
         <button
           aria-label={copy.action}
           className="tutorial-overlay__target"
-          key={`target-${rect.left}-${rect.top}-${index}`}
+          key={`target-${index}`}
           onClick={() => {
             const target = document.querySelectorAll<HTMLElement>(targetSelector ?? "")[index];
             target?.click();
@@ -164,7 +191,7 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
             aria-hidden="true"
             className="tutorial-overlay__finger"
             data-placement={finger.placement}
-            key={"finger-" + rect.left + "-" + rect.top + "-" + index}
+            key={`finger-${index}`}
             style={{ left: finger.left, top: finger.top }}
           >
             <AppIcon name="arrow-up" size={32} />
@@ -175,7 +202,7 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
         <span
           aria-hidden="true"
           className="tutorial-overlay__arrow"
-          key={`arrow-${rect.left}-${rect.top}-${index}`}
+          key={`arrow-${index}`}
           style={{ left: rect.left + rect.width / 2, top: rect.bottom + 2 }}
         ><AppIcon name="arrow-up" size={52} /></span>
       )) : null}

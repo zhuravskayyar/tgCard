@@ -4,11 +4,10 @@ import type {
   ArenaLeaderboardResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
-  ArenaShopCatalogResponse,
-  ArenaShopPurchaseRequest,
-  ArenaShopPurchaseResponse,
   ArenaVersionRequest,
   ArenaView,
+  ChatMessage,
+  ChatView,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
@@ -83,14 +82,14 @@ export function changeArenaCards(initData: string, matchId: string, body: ArenaV
   return request<ArenaView>(initData, `/api/arena/matches/${encodeURIComponent(matchId)}/cards`, { method: "POST", body, signal });
 }
 
-export function loadArenaShop(initData: string, signal?: AbortSignal) {
-  return request<ArenaShopCatalogResponse>(initData, "/api/arena/shop", { signal });
-}
-
-export function purchaseArenaShopItem(initData: string, body: ArenaShopPurchaseRequest, signal?: AbortSignal) {
-  return request<ArenaShopPurchaseResponse>(initData, "/api/arena/shop/purchase", { method: "POST", body, signal });
-}
-
 export function loadArenaLeaderboard(initData: string, signal?: AbortSignal) {
   return request<ArenaLeaderboardResponse>(initData, "/api/arena/leaderboard", { signal });
+}
+
+export function loadArenaChat(initData: string, signal?: AbortSignal) {
+  return request<ChatView>(initData, "/api/arena/chat", { signal });
+}
+
+export function sendArenaChatMessage(initData: string, body: string) {
+  return request<ChatMessage>(initData, "/api/arena/chat", { method: "POST", body: { body } });
 }

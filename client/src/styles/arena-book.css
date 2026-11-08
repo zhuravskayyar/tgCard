@@ -5,11 +5,12 @@
   --arena-text-plate: var(--sprite-panel-frame);
   --arena-row-plate: var(--sprite-panel-frame);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   min-width: 0;
 }
 
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-shop-panel, .arena-result, .arena-empty-state, .arena-participants, .arena-log, .arena-controls) {
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-result, .arena-empty-state, .arena-log, .arena-rules) {
   margin: 0;
   padding: 6px 10px;
   color: var(--book-ink);
@@ -22,35 +23,47 @@
 }
 
 /* Medal instead of a drawn circle. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby__hero > .app-icon, .arena-queue-panel__crest, .arena-league-panel__crest) { display: block; flex: 0 0 72px; width: 72px; height: 72px; padding: 0; color: transparent; border: 0; border-radius: 0; background: url("/assets/guild/medal-arena-v1.webp") center / contain no-repeat; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-queue-panel__crest, .arena-league-panel__crest) { display: block; flex: 0 0 72px; width: 72px; height: 72px; padding: 0; color: transparent; border: 0; border-radius: 0; background: url("/assets/guild/medal-arena-v1.webp") center / contain no-repeat; box-shadow: none; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-queue-panel__crest, .arena-league-panel__crest) { justify-self: center; margin-inline: auto; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-queue-panel__crest, .arena-league-panel__crest) .app-icon { display: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__hero > .app-icon { background-size: contain; }
 
 /* Ink everywhere; no pale gold on parchment. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(h1, h2, strong, b, p, span, small, label) { text-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-shop-panel, .arena-result, .arena-empty-state, .arena-log) :is(h1, h2, strong, b, p, span) { color: var(--book-ink); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-shop-panel, .arena-result, .arena-empty-state, .arena-log) small { color: var(--book-ink-muted); font-size: var(--font-xs); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-result, .arena-empty-state, .arena-log, .arena-rules) :is(h1, h2, strong, b, p, span) { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby, .arena-league-panel, .arena-queue-panel, .arena-result, .arena-empty-state, .arena-log) small { color: var(--book-ink-muted); font-size: var(--font-xs); }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-log li em { color: #7a2f16; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby__hero span, .arena-queue-panel > span, .arena-league-panel > span, .arena-shop-panel header span, .arena-result > span) { color: var(--book-ink-muted); font-size: var(--font-xs); font-weight: 700; letter-spacing: .04em; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby p, .arena-league-panel p, .arena-queue-panel p, .arena-shop-panel__intro) { font-size: var(--font-sm); line-height: 1.35; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-heading__token { display: none; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-queue-panel > span, .arena-league-panel > span, .arena-result > span) { color: var(--book-ink-muted); font-size: var(--font-xs); font-weight: 700; letter-spacing: .04em; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby p, .arena-league-panel p, .arena-queue-panel p) { font-size: var(--font-sm); line-height: 1.35; }
 
 /* Lobby and league figures: a plain ledger row, no boxes. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby__stats, .arena-league-panel__stats) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: 0; border: 0; background: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby__stats, .arena-league-panel__stats) > span { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 0; color: var(--book-ink-muted); font-size: var(--font-xs); text-align: center; border: 0; background: none; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-lobby__stats, .arena-league-panel__stats) b { color: var(--book-ink); font-size: var(--font-md); font-weight: 700; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-token-balance { display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: var(--book-ink); font-size: var(--font-md); font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; margin-block: var(--space-2); gap: var(--space-2); padding: 0; border: 0; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__stats > span { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 0; color: var(--book-ink-muted); font-size: var(--font-xs); text-align: center; border: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__stats b { color: var(--book-ink); font-size: var(--font-md); font-weight: 700; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel { display: grid; justify-items: center; gap: var(--space-1); text-align: center; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel > strong { font-size: var(--font-md); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__stats { width: 100%; margin-block: var(--space-2); }
 
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby { display: grid; gap: var(--space-3); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__hero { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: var(--space-3); padding: 0; border: 0; background: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__hero h2 { margin: 2px 0; font-size: var(--font-md); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__stats b { font-size: var(--font-sm); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby > button { justify-self: center; width: min(100%, 280px); min-height: 48px; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-panel header .arena-token-balance { color: var(--book-ink); font-size: var(--font-md); letter-spacing: 0; }
+/* Lobby, top to bottom: banner, queue note, sign-up and refresh, rating rail, tasks, rules link. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby { display: grid; justify-items: center; gap: var(--space-2); text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__banner { display: block; width: min(100%, 300px); height: auto; aspect-ratio: 456 / 260; object-fit: contain; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__wait { margin: 0; font-weight: 700; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__actions { display: grid; justify-items: center; gap: var(--space-2); width: 100%; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__actions button { width: min(100%, 240px); min-height: 48px; margin: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__tasks { margin: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter { display: grid; justify-items: center; gap: var(--space-1); width: 100%; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter strong { font-size: var(--font-md); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter__rail { width: 100%; height: 14px; overflow: hidden; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter__rail i { display: block; height: 100%; background: #7a2f16; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules-link { min-height: 44px; padding: 0 var(--space-2); color: #7a2f16; font: 700 var(--font-sm) / 1 var(--font-body, inherit); text-decoration: underline; text-underline-offset: 3px; border: 0; background: none; box-shadow: none; }
+
+/* Rating and tasks rows: the shared MenuRow, stacked like every mode menu. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-menu { display: grid; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .game-chat { margin: 0; }
+
+/* Rules page. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules { display: grid; gap: var(--space-2); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules h2 { margin: 0; font-size: var(--font-md); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules ul { display: grid; gap: var(--space-1); margin: 0; padding-left: 18px; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules li { font-size: var(--font-sm); line-height: 1.4; }
 
 /* League progress and table. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__progress { width: 100%; height: 14px; overflow: hidden; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; }
@@ -74,47 +87,34 @@
 /* Hint button keeps its word inside the plate. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .first-visit-hint button { min-width: 112px; font-size: var(--font-xs); white-space: nowrap; }
 
-/* Shop rows: art, name, price; plain space between them. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-panel header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0; border: 0; background: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-grid { display: grid; gap: var(--space-2); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) 92px; align-items: center; gap: var(--space-2); padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__art { width: 52px; height: 52px; border: 0; border-radius: 0; background: none; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__art img { width: 100%; height: 100%; object-fit: contain; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__details strong { display: block; font-size: var(--font-sm); line-height: 1.2; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__purchase { display: grid; justify-items: center; gap: 0; width: 92px; min-height: 48px; padding: 4px; color: var(--book-ink); font-size: var(--font-xs); font-weight: 700; border: 0; border-radius: 0; background: var(--sprite-button-secondary) center / 100% 100% no-repeat; box-shadow: none; opacity: 1; filter: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__purchase:disabled { opacity: .62; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-shop-item__price { display: inline-flex; align-items: center; gap: 3px; }
 
 /* Battle. Rivals strip: five equal columns, bare avatars, a rail under each. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-battle { display: grid; gap: var(--space-2); min-width: 0; padding: 0; border: 0; background: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants { padding: 2px 4px; border-width: 13px; border-image-width: 13px; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants header { display: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants ol { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants li { display: grid; justify-items: center; gap: 2px; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; opacity: 1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants li.is-dead { opacity: .55; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__top { display: grid; justify-items: center; gap: 1px; width: 100%; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rank { display: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__top strong { display: block; max-width: 100%; overflow: hidden; color: var(--book-ink); font-size: var(--font-xs); text-overflow: ellipsis; white-space: nowrap; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__damage { color: var(--book-ink-muted); font-size: var(--font-xs); font-weight: 700; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants li.is-target .arena-participant__avatar-button { background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__avatar-button { display: grid; width: 48px; height: 48px; padding: 4px; place-items: center; border: 0; background: none; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__avatar-button .duel-avatar { width: 40px; height: 40px; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__dead { color: var(--book-ink); }
 
 /* The rival strip keeps its own slim rails; everything else in battle is the duel's own board and panels. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__hpbar { width: 100%; height: 8px; overflow: hidden; border: 0; border-radius: 0; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__hpbar span { display: block; height: 100%; background: #8d2a18; box-shadow: none; }
 
 /* A closed card keeps the exact size of an open one: same slot, painted back, seconds in the medallion. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-slot { position: relative; min-width: 0; filter: none; opacity: 1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card { display: grid; width: 100%; height: 100%; aspect-ratio: auto; place-items: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; filter: none; opacity: 1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { color: var(--book-ink); background: #ead8b1; border-color: #8a6336; font: 700 1.75rem/1 var(--font-display); text-shadow: 0 1px 0 rgb(255 244 214 / 70%); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card { position: relative; display: block; width: 100%; height: 100%; aspect-ratio: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; filter: none; opacity: 1; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__back { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; isolation: isolate; }
+/* Cooldown sits on the card itself, in the painted medallion. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { position: absolute; top: 50%; left: 50%; z-index: 2; display: grid; width: 52px; height: 52px; place-items: center; color: #f6ead0; font: 700 1.5rem/1 var(--font-display); text-shadow: 0 0 2px #1a100a, 0 1px 3px #1a100a, 0 0 8px rgb(26 16 10 / 85%); border: 0; border-radius: 0; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; transform: translate(-50%, -50%); }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-multiplier--none { visibility: hidden; }
 
-/* Controls sit where the duel shows its hint. */
 /* Controls. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-actions button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: 44px; }
+/* Battle fits one screen: no heading, no frame around the actions. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen.arena-screen--battle { gap: 0; padding-bottom: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-battle { gap: var(--space-1); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-controls { position: static; display: grid; gap: var(--space-1); padding: 0; border: 0; background: none; box-shadow: none; }
+
+/* Actions as in the reference: a painted medallion with the label under it, no stretched plate. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; gap: 2px; min-width: 0; min-height: 0; margin: 0; padding: 0; color: var(--book-ink); border: 0; background: none; box-shadow: none; cursor: pointer; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action :is(span, small) { text-shadow: 0 0 3px #f4e8cc, 0 0 6px #f4e8cc, 0 0 10px #f4e8cc; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action:disabled { cursor: default; opacity: .5; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action__medallion { display: grid; width: 54px; height: 54px; place-items: center; color: var(--book-ink); background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action > span:not(.arena-action__medallion) { font-size: var(--font-sm); font-weight: 700; line-height: 1.15; text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action small { display: inline-flex; align-items: center; gap: 2px; color: var(--book-ink-muted); font-size: var(--font-xs); }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-action-status { margin: var(--space-1) 0 0; color: var(--book-ink); font-size: var(--font-sm); text-align: center; }
 
 /* Result. */

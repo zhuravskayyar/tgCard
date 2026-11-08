@@ -1,7 +1,7 @@
 import type { CardElement, CardRarity, PlayerCardInstance } from "./card.js";
 import type { LariskaEmotion } from "./campaign.js";
 
-export type LariskaDailyRewardKind = "card" | "equipment" | "gold" | "arena_tokens_xp" | "choice" | "currencies";
+export type LariskaDailyRewardKind = "card" | "equipment" | "gold" | "choice" | "currencies";
 
 export interface LariskaDailyCardOption {
   artKey: string | null;
@@ -35,7 +35,6 @@ export interface LariskaDailyRewardSummary {
   gold?: number;
   diamonds?: number;
   amount?: number;
-  arenaTokens?: number;
   description: string;
   kind: LariskaDailyRewardKind;
   label: string;
@@ -76,7 +75,6 @@ export interface LariskaDailyRewardView {
 
 export interface LariskaDailyRewardPlayerState {
   accountXp: number;
-  arenaTokens: number;
   gold: number;
   level: number;
   silver: number;
@@ -98,12 +96,6 @@ export type LariskaDailyRewardGrant =
       amount: number;
       kind: "gold";
       label: string;
-    }
-  | {
-      arenaTokens: number;
-      kind: "arena_tokens_xp";
-      label: string;
-      xp: number;
     }
   | {
       cosmetic: {

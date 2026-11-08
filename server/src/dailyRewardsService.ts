@@ -15,7 +15,6 @@ interface DailyStateRow {
 }
 interface PlayerRewardRow {
   account_xp: number | string;
-  arena_tokens: number | string;
   gold: number | string;
   level: number;
   silver: number | string;
@@ -113,7 +112,7 @@ export class LariskaDailyRewardService {
       );
       const updatedResult = await client.query<PlayerRewardRow>(
         `UPDATE players SET silver = silver + $2, gold = gold + $3, updated_at = $4
-         WHERE id = $1 RETURNING level, account_xp, silver, gold, arena_tokens`,
+         WHERE id = $1 RETURNING level, account_xp, silver, gold`,
         [playerId, reward.silver, reward.gold, now],
       );
       const updated = updatedResult.rows[0];
@@ -136,7 +135,7 @@ export class LariskaDailyRewardService {
       return {
         claimedCycle: cycle, claimedDay: day, grant,
         rewardPlayer: {
-          accountXp: toInteger(updated.account_xp), arenaTokens: toInteger(updated.arena_tokens),
+          accountXp: toInteger(updated.account_xp),
           gold: toInteger(updated.gold), level: updated.level, silver: toInteger(updated.silver),
         },
       };

@@ -35,16 +35,24 @@ export const BATTLE_PASS_MILESTONES: readonly BattlePassMilestoneConfig[] = BATT
     };
   }));
 
+/**
+ * Daily tasks pay gold, silver and a common equipment item, as in the reference; "win arenas" also pays an
+ * epic-or-better card scaled by the arena league. Diamonds stay because they drive the battle pass.
+ * Silver is 1000 per diamond, the reference marathon ratio, paid at once. Our own numbers otherwise.
+ */
 export const DAILY_TASKS = [
-  { eventType: "DUEL_WON", id: "win-duels", rewardDiamonds: 1, target: 20, title: "Виграйте 20 дуелей" },
-  { eventType: "DUEL_FINISHED", id: "play-duels", rewardDiamonds: 1, target: 30, title: "Проведіть 30 дуелей" },
-  { eventType: "CAMPAIGN_CARD_DROP", id: "acquire-cards", rewardDiamonds: 1, target: 3, title: "Отримайте 3 карти в кампанії" },
-  { eventType: "CARD_ABSORBED", id: "absorb-cards", rewardDiamonds: 1, target: 10, title: "Поглиніть 10 карт" },
-  { eventType: "SHOP_CARD_PURCHASED", id: "buy-cards", rewardDiamonds: 2, target: 5, title: "Придбайте 5 карт" },
-  { eventType: "CARD_LEVEL_UP", id: "upgrade-card", rewardDiamonds: 1, target: 1, title: "Покращте бойову карту 1 раз" },
-  { eventType: "ARENA_FINISHED", id: "play-arenas", rewardDiamonds: 3, target: 10, title: "Зіграйте 10 боїв на арені" },
-  { eventType: "ARENA_WON", id: "win-arenas", rewardDiamonds: 3, target: 5, title: "Виграйте 5 арен" },
+  { card: false, eventType: "DUEL_WON", id: "win-duels", rewardDiamonds: 1, rewardGold: 1, target: 20, title: "Виграйте 20 дуелей" },
+  { card: false, eventType: "DUEL_FINISHED", id: "play-duels", rewardDiamonds: 1, rewardGold: 1, target: 30, title: "Проведіть 30 дуелей" },
+  { card: false, eventType: "CAMPAIGN_CARD_DROP", id: "acquire-cards", rewardDiamonds: 1, rewardGold: 1, target: 3, title: "Отримайте 3 карти в кампанії" },
+  { card: false, eventType: "CARD_ABSORBED", id: "absorb-cards", rewardDiamonds: 1, rewardGold: 1, target: 10, title: "Поглиніть 10 карт" },
+  { card: false, eventType: "SHOP_CARD_PURCHASED", id: "buy-cards", rewardDiamonds: 2, rewardGold: 2, target: 5, title: "Придбайте 5 карт" },
+  { card: false, eventType: "CARD_LEVEL_UP", id: "upgrade-card", rewardDiamonds: 1, rewardGold: 1, target: 1, title: "Покращте бойову карту 1 раз" },
+  { card: false, eventType: "ARENA_FINISHED", id: "play-arenas", rewardDiamonds: 3, rewardGold: 3, target: 10, title: "Зіграйте 10 боїв на арені" },
+  { card: true, eventType: "ARENA_WON", id: "win-arenas", rewardDiamonds: 3, rewardGold: 0, target: 5, title: "Виграйте 5 арен" },
 ] as const;
+
+export const DAILY_TASK_SILVER_PER_DIAMOND = 1_000;
+export const DAILY_TASK_EQUIPMENT_RARITY = "common" as const;
 
 function cloneReward(reward: BattlePassReward): BattlePassReward {
   return reward.kind === "card"

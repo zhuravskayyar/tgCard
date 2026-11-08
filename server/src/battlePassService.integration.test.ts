@@ -72,3 +72,41 @@ test("battle pass grants a 24h currency boost and a card at the lowest deck leve
     await pool.end();
   }
 });
+
+test("daily tasks pay gold, silver and an item, and five arena wins pay an epic-or-better card", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const player = await new PlayerRepository(pool).findOrCreateFromTelegram(telegramUser());
+  const battlePass = new BattlePassService(pool);
+  const now = new Date("2026-08-23T12:00:00.000Z");
+  const addEvents = (eventType: string, count: number) => pool.query(
+    "INSERT INTO player_campaign_events (player_id, event_type, payload, occurred_at) SELECT $1, $2, '{}'::jsonb, $3 FROM generate_series(1, $4)",
+    [player.id, eventType, now, count],
+  );
+  try {
+    const page = await battlePass.getPage(player.id, now);
+    const winArenas = page.daily.tasks.find(({ id }) => id === "win-arenas")!;
+    assert.deepEqual(winArenas.reward, { card: { maxLevel: 33, minLevel: 29 }, diamonds: 3, equipment: "common", gold: 0, silver: 3_000 });
+    const before = (await pool.query<{ gold: string; silver: string }>("SELECT gold, silver FROM players WHERE id = $1", [player.id])).rows[0]!;
+
+    await addEvents("ARENA_FINISHED", 10);
+    const played = await battlePass.claimDailyTask(player.id, "play-arenas", now);
+    assert.equal(played.updatedBalance.gold, Number(before.gold) + 3);
+    assert.equal(played.updatedBalance.silver, Number(before.silver) + 3_000);
+    assert.ok(played.equipmentItemId?.endsWith("_common"));
+    assert.equal(played.card, undefined);
+    assert.equal(played.battlePass.diamonds, 3);
+
+    await addEvents("ARENA_WON", 5);
+    const won = await battlePass.claimDailyTask(player.id, "win-arenas", now);
+    assert.ok(won.card);
+    assert.ok(won.card.level >= 29 && won.card.level <= 33);
+    assert.equal(won.card.rarity, "epic");
+    assert.equal(won.updatedBalance.silver, Number(before.silver) + 6_000);
+    assert.equal(won.battlePass.diamonds, 6);
+    await assert.rejects(() => battlePass.claimDailyTask(player.id, "win-arenas", now));
+  } finally {
+    await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
+    await pool.end();
+  }
+});

@@ -67,9 +67,6 @@ test("opens the requested screens at 320, 360, and 430 px without horizontal ove
         await page.getByRole("button", { name: "Ліга", exact: true }).click();
         await expect(page.locator(".arena-screen")).toContainText("Рейтинг");
         await expectNoHorizontalOverflow(page);
-        await page.getByRole("button", { name: "Магазин", exact: true }).click();
-        await expect(page.locator(".arena-screen")).toContainText(/жетони/i);
-        await expectNoHorizontalOverflow(page);
         await page.getByRole("button", { name: "Бій", exact: true }).click();
       }
     }

@@ -1,18 +1,18 @@
 import { useState } from "react";
 import type { NicknameSkinId, PlayerSummary } from "@cardastika/shared";
-import { AppIcon } from "./AppIcon";
+import { CurrencyIcon } from "./CurrencyDisplay";
 import { NicknameSkinPreview } from "./NicknameSkinPreview";
 import { ShopWallet } from "./ShopWallet";
 import { useNicknameSkinShop } from "../hooks/useNicknameSkinShop";
 
 interface NicknameSkinShopPanelProps {
   nickname: string;
-  onBalanceChange: (balance: Partial<Pick<PlayerSummary, "arenaTokens">>) => void;
+  onBalanceChange: (balance: Partial<Pick<PlayerSummary, "gold">>) => void;
   onEquippedSkinChange: (skinId: NicknameSkinId | null) => void;
 }
 
 const purchaseErrorMessages: Record<string, string> = {
-  insufficient_arena_tokens: "Недостатньо жетонів.",
+  insufficient_gold: "Недостатньо золота.",
   nickname_skin_already_owned: "Цей стиль уже є в інвентарі.",
   database_unavailable: "Косметика тимчасово недоступна.",
 };
@@ -25,7 +25,7 @@ export function NicknameSkinShopPanel({ nickname, onBalanceChange, onEquippedSki
   const offer = state.status === "ready" ? state.offer : null;
   const activeChoice = offer?.choices[previewIndex % offer.choices.length];
   const isCollectionComplete = offer ? offer.progress.owned === offer.progress.total : false;
-  const tokenShortage = offer ? Math.max(0, offer.price - offer.tokenBalance) : 0;
+  const goldShortage = offer ? Math.max(0, offer.price - offer.goldBalance) : 0;
 
   function openChoice() {
     if (!offer || !offer.canAfford || isCollectionComplete) return;
@@ -45,7 +45,7 @@ export function NicknameSkinShopPanel({ nickname, onBalanceChange, onEquippedSki
 
   return (
     <section className="nickname-shop-section" aria-labelledby="nickname-shop-heading">
-      <ShopWallet items={[{ id: "arena-tokens", icon: <AppIcon name="arena-token" size={18} />, label: "Жетони", value: offer?.tokenBalance }]} />
+      <ShopWallet items={[{ id: "gold", icon: <CurrencyIcon kind="gold" size={18} />, label: "Золото", value: offer?.goldBalance }]} />
       <div className="shop-section-heading"><span aria-hidden="true" /><h2 id="nickname-shop-heading">ВИГЛЯД</h2><span aria-hidden="true" /></div>
       {state.status === "loading" ? <div className="shop-state">Завантаження косметики…</div> : null}
       {state.status === "unavailable" ? <div className="shop-state">Косметика доступна після запуску через Telegram.</div> : null}
@@ -75,7 +75,7 @@ export function NicknameSkinShopPanel({ nickname, onBalanceChange, onEquippedSki
             <span aria-label={`Прогрес колекції: ${offer.progress.owned} з ${offer.progress.total}`} className="nickname-pack-card__progress-track"><span style={{ width: `${(offer.progress.owned / offer.progress.total) * 100}%` }} /></span>
             {isCollectionComplete ? <p className="nickname-pack-card__complete">Колекцію завершено</p> : null}
             <button className={`nickname-pack-card__buy${!offer.canAfford && !isCollectionComplete ? " nickname-pack-card__buy--insufficient" : ""}`} disabled={!offer.canAfford || isCollectionComplete || purchasing} onClick={openChoice} type="button">
-              {purchasing ? "Підтверджуємо…" : isCollectionComplete ? "Колекцію завершено" : offer.canAfford ? <><AppIcon name="arena-token" size={18} />Купити за {offer.price}</> : <><span>Не вистачає {tokenShortage}</span><AppIcon name="arena-token" size={18} /></>}
+              {purchasing ? "Підтверджуємо…" : isCollectionComplete ? "Колекцію завершено" : offer.canAfford ? <><CurrencyIcon kind="gold" size={18} />Купити за {offer.price}</> : <><span>Не вистачає {goldShortage}</span><CurrencyIcon kind="gold" size={18} /></>}
             </button>
             {!isCollectionComplete ? <small>Обери 1 із 3 стилів · після покупки його можна екіпірувати</small> : null}
           </div>
@@ -87,9 +87,9 @@ export function NicknameSkinShopPanel({ nickname, onBalanceChange, onEquippedSki
         <div className="nickname-choice-overlay" role="presentation">
           <div aria-labelledby="nickname-choice-heading" aria-modal="true" className="nickname-choice-dialog" role="dialog">
             <button aria-label="Закрити" className="nickname-choice-dialog__close" onClick={() => setChoiceOpen(false)} type="button">×</button>
-            <span>Міфічна косметика · {offer.price} жетонів</span>
+            <span>Міфічна косметика · {offer.price} золота</span>
             <h2 id="nickname-choice-heading">ОБЕРИ СКІН НІКУ</h2>
-            <p>Обраний стиль буде доданий до інвентарю. Жетони спишуться після підтвердження.</p>
+            <p>Обраний стиль буде доданий до інвентарю. Золото спишеться після підтвердження.</p>
             <div className="nickname-choice-list">
               {offer.choices.map((choice) => {
                 const owned = offer.ownedSkinIds.includes(choice.id);

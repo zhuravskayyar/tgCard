@@ -14,6 +14,7 @@ export type {
   TournamentBuffOption,
 } from "./tournament.js";
 export { TOURNAMENT_CHAT_MAX_LENGTH } from "./tournament.js";
+export { CHAT_MAX_LENGTH, type ChatMessage, type ChatView } from "./chat.js";
 export {
   CARD_ELEMENTS,
   getCardHoloConfig,
@@ -81,8 +82,8 @@ export type {
   ArenaBattleLogEntry,
   ArenaBattleParticipantSnapshot,
   ArenaCardSlot,
-  ArenaCosmetic,
-  ArenaCosmeticType,
+  ArenaDailyTaskProgress,
+  ArenaDailyTasksView,
   ArenaLeagueView,
   ArenaOutcome,
   ArenaPairInteractionSnapshot,
@@ -94,10 +95,6 @@ export type {
   ArenaQueueView,
   ArenaResult,
   ArenaRewardView,
-  ArenaShopCatalogResponse,
-  ArenaShopItem,
-  ArenaShopPurchaseRequest,
-  ArenaShopPurchaseResponse,
   ArenaStatus,
   ArenaVersionRequest,
   ArenaView,
@@ -238,6 +235,7 @@ export type {
   BattlePassView,
   DailyLoginClaimResponse,
   DailyTaskClaimResponse,
+  DailyTaskReward,
   DailyTaskView,
 } from "./battlePass.js";
 export type {

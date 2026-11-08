@@ -33,7 +33,6 @@ export interface PlayerSummary {
   accountXpRequired?: number;
   arenaLeagueIndex?: number;
   arenaRating?: number;
-  arenaTokens?: number;
   arenaTop3Count?: number;
   arenaWins?: number;
   cardShards?: number;

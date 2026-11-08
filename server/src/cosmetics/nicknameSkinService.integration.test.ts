@@ -31,7 +31,7 @@ test("nickname skin pack purchases are choice-based, persistent, and equippable"
   try {
     const player = await players.findOrCreateFromTelegram(user);
     playerId = player.id;
-    await pool.query("UPDATE players SET arena_tokens = 500 WHERE id = $1", [player.id]);
+    await pool.query("UPDATE players SET gold = 500 WHERE id = $1", [player.id]);
 
     const initial = await skins.getCatalog(player.id);
     assert.equal(initial.offer.price, 250);
@@ -40,14 +40,14 @@ test("nickname skin pack purchases are choice-based, persistent, and equippable"
 
     const first = await skins.purchase(player.id, "blood_moon");
     assert.equal(first.acquiredSkin, "blood_moon");
-    assert.equal(first.updatedBalance.arenaTokens, 250);
+    assert.equal(first.updatedBalance.gold, 250);
     assert.deepEqual(first.inventory.cosmetics.map(({ id }) => id), ["blood_moon"]);
     assert.equal(first.inventory.equippedNicknameSkin, "blood_moon");
     assert.equal(first.offer.progress.owned, 1);
     assert.rejects(() => skins.purchase(player.id!, "blood_moon"), NicknameSkinAlreadyOwnedError);
 
     await skins.equip(player.id, null);
-    await pool.query("UPDATE players SET arena_tokens = 500 WHERE id = $1", [player.id]);
+    await pool.query("UPDATE players SET gold = 500 WHERE id = $1", [player.id]);
     const second = await skins.purchase(player.id, "starforged");
     assert.equal(second.offer.progress.owned, 2);
     assert.equal(second.inventory.equippedNicknameSkin, "starforged");

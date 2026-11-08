@@ -6,19 +6,18 @@ import {
   ARENA_NO_WINNERS_ALIVE_COUNT,
   ARENA_UNCOUNTED_RATING_CHANGE,
   ARENA_PARTICIPANT_COUNT,
-  ARENA_QUEUE_DURATION_MS,
   ARENA_SLOT_COOLDOWN_MS,
   calculateArenaDamage,
   calculateArenaRatingChange,
   compareArenaResults,
   cycleCardPoolSlotWithGuildCard,
   getArenaCardChangeCost,
-  getArenaTokenReward,
+  getArenaCycleEnd,
+  getArenaQueueDurationMs,
   getElementMultiplier,
   getStartingHp,
   initializeCyclicCardPool,
   shuffleCards,
-  STARTER_EQUIPMENT_DEFINITIONS,
   type RandomSource,
 } from "@cardastika/game-core";
 import {
@@ -31,32 +30,26 @@ import {
   type ArenaBattleLogEntry,
   type ArenaBattleParticipantSnapshot,
   type ArenaCardSlot,
-  type ArenaCosmetic,
-  type ArenaCosmeticType,
+  type ChatMessage,
+  type ChatView,
   type ArenaLeagueView,
   type ArenaPairInteractionSnapshot,
   type ArenaProfileResponse,
   type ArenaQueueResponse,
   type ArenaQueueView,
   type ArenaResult,
-  type ArenaShopCatalogResponse,
-  type ArenaShopPurchaseResponse,
   type ArenaVersionRequest,
   type ArenaView,
-  type CardRarity,
-  type CollectionCompletionNotice,
   type DuelCardSnapshot,
   type DuelSideSnapshot,
   type PlayerSummary,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
-import { recordCardDiscovery } from "../collections/discoveryService.js";
-import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
-import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
 import { getBotCardArtAvatarUrl } from "../duel/botOpponent.js";
-import { getArenaCosmetic, getArenaShopItem, ARENA_COSMETICS, ARENA_SHOP_ITEMS } from "./arenaCatalog.js";
+import { loadArenaDailyTasks } from "../battlePassService.js";
+import { ChatChannel } from "../chat/chatChannel.js";
 
 const MAX_ARENA_LOG_ENTRIES = 7;
 const BOT_NAMES = ["Бронзовий звір", "Пилова відьма", "Штормовий спис", "Кришталевий страж", "Чорний гладіатор"];
@@ -68,7 +61,6 @@ interface ArenaPlayerRow {
   arena_highest_league_index: number;
   arena_league_index: number;
   arena_rating: number;
-  arena_tokens: string | number;
   arena_top3_count: number;
   arena_wins: number;
   card_shards: string | number;
@@ -95,6 +87,8 @@ interface ArenaRow {
 
 interface ArenaState {
   battleLog: ArenaBattleLogEntry[];
+  /** Start of the first nine-second cycle; matches written before cycles keep per-lane cooldowns. */
+  cyclesStartAt?: string;
   lastPlayerActionAt?: string;
   matchId: string;
   participants: ArenaBattleParticipantSnapshot[];
@@ -107,28 +101,10 @@ interface ArenaState {
   technicalFinish?: boolean;
 }
 
-interface CosmeticRow {
-  cosmetic_id: string;
-  cosmetic_type: ArenaCosmeticType;
-  equipped: boolean;
-}
-
 function toSafeInteger(value: number | string, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`Invalid ${field}`);
   return parsed;
-}
-
-function selectRandomArenaEquipment(rarity: CardRarity) {
-  const candidates = STARTER_EQUIPMENT_DEFINITIONS.filter((definition) => (
-    definition.category === "things"
-    && definition.rarity === rarity
-    && definition.element !== null
-    && (definition.slot === "head" || definition.slot === "cloak" || definition.slot === "gloves" || definition.slot === "boots")
-  ));
-  const definition = candidates[Math.floor(Math.random() * candidates.length)];
-  if (!definition) throw new Error("Arena equipment catalog is empty for the requested rarity");
-  return definition;
 }
 
 function toLeagueView(index: number): ArenaLeagueView {
@@ -152,7 +128,6 @@ function toPlayerSummary(row: ArenaPlayerRow): PlayerSummary {
     accountXp: toSafeInteger(row.account_xp, "account XP"),
     arenaLeagueIndex: toSafeInteger(row.arena_league_index, "arena league"),
     arenaRating: toSafeInteger(row.arena_rating, "arena rating"),
-    arenaTokens: toSafeInteger(row.arena_tokens, "arena tokens"),
     arenaTop3Count: toSafeInteger(row.arena_top3_count, "arena top 3 count"),
     arenaWins: toSafeInteger(row.arena_wins, "arena wins"),
     cardShards: toSafeInteger(row.card_shards, "card shards"),
@@ -234,6 +209,7 @@ function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = M
   }
   const state: ArenaState = {
     battleLog: [],
+    cyclesStartAt: firstCardsAt,
     lastPlayerActionAt: firstCardsAt,
     matchId: randomUUID(),
     participants,
@@ -518,7 +494,9 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
   if (!attacker.isBot) state.lastPlayerActionAt = new Date(now).toISOString();
-  attacker.cooldownUntil[slotIndex] = new Date(now + ARENA_SLOT_COOLDOWN_MS).toISOString();
+  attacker.cooldownUntil[slotIndex] = new Date(state.cyclesStartAt
+    ? getArenaCycleEnd(new Date(state.cyclesStartAt).getTime(), now)
+    : now + ARENA_SLOT_COOLDOWN_MS).toISOString();
   const targetDefeated = target.hp === 0;
   if (targetDefeated) attacker.kills += 1;
   if (attacker.hp === 0 && attackerHpBeforeCounter > 0) target.kills += 1;
@@ -610,7 +588,7 @@ async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, l
     `
       SELECT id, first_name, username, photo_url, level, silver, gold, account_xp,
         card_shards, duel_wins, duel_rating, duel_highest_league_index,
-        arena_rating, arena_league_index, arena_wins, arena_top3_count, arena_highest_league_index, arena_tokens
+        arena_rating, arena_league_index, arena_wins, arena_top3_count, arena_highest_league_index
       FROM players WHERE id = $1 ${lock ? "FOR UPDATE" : ""}
     `,
     [playerId],
@@ -643,7 +621,6 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
       : counted
         ? calculateArenaRatingChange({ averageDamage, averageOpponentRating, damageDealt: participant.totalDamageDealt, placement, playerRating: ratingBefore })
         : ARENA_UNCOUNTED_RATING_CHANGE;
-    const arenaTokens = counted && !noWinners ? getArenaTokenReward(placement) : 0;
     const leagueBeforeIndex = toSafeInteger(player.arena_league_index, "arena league");
     const highestBefore = toSafeInteger(player.arena_highest_league_index, "arena highest league");
     const ratingAfter = Math.max(0, ratingBefore + ratingChange);
@@ -656,19 +633,18 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
       `
         UPDATE players SET
           silver = silver + $2,
-          arena_tokens = arena_tokens + $3,
-          arena_rating = $4,
-          arena_league_index = $5,
-          arena_highest_league_index = GREATEST(arena_highest_league_index, $5),
-          arena_wins = arena_wins + $6,
-          arena_top3_count = arena_top3_count + $6,
+          arena_rating = $3,
+          arena_league_index = $4,
+          arena_highest_league_index = GREATEST(arena_highest_league_index, $4),
+          arena_wins = arena_wins + $5,
+          arena_top3_count = arena_top3_count + $5,
           updated_at = NOW()
         WHERE id = $1
         RETURNING id, first_name, username, photo_url, level, silver, gold, account_xp,
           card_shards, duel_wins, duel_rating, duel_highest_league_index,
-          arena_rating, arena_league_index, arena_highest_league_index, arena_wins, arena_top3_count, arena_tokens
+          arena_rating, arena_league_index, arena_highest_league_index, arena_wins, arena_top3_count
       `,
-      [participant.id, promotionSilver, arenaTokens, ratingAfter, leagueAfterIndex, won ? 1 : 0],
+      [participant.id, promotionSilver, ratingAfter, leagueAfterIndex, won ? 1 : 0],
     );
     const updatedPlayer = updated.rows[0];
     if (!updatedPlayer) throw new Error("Arena reward update returned no player");
@@ -677,7 +653,6 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
       leagueBefore: toLeagueView(leagueBeforeIndex),
       player: toPlayerSummary(updatedPlayer),
       reward: {
-        arenaTokens,
         counted,
         moves,
         placement,
@@ -709,7 +684,7 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
   return state.result;
 }
 
-function toView(row: ArenaRow, playerId: string, playerGold: number, arenaTokens: number): ArenaView {
+function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView {
   const player = findParticipant(row.state, playerId);
   if (!player) throw new Error("Arena player participant is missing");
   const target = player.targetId && player.targetId !== player.id ? findParticipant(row.state, player.targetId) : null;
@@ -720,7 +695,6 @@ function toView(row: ArenaRow, playerId: string, playerGold: number, arenaTokens
     cooldownUntil,
   });
   return {
-    arenaTokens,
     battleLog: [...row.state.battleLog].reverse(),
     changeCardsCost: getArenaCardChangeCost(row.state.rerollCount + 1),
     matchId: row.id,
@@ -756,27 +730,42 @@ function toView(row: ArenaRow, playerId: string, playerGold: number, arenaTokens
 }
 
 async function loadBalance(client: PoolClient, playerId: string) {
-  const result = await client.query<{ arena_tokens: string | number; gold: string | number }>(
-    "SELECT gold, arena_tokens FROM players WHERE id = $1",
+  const result = await client.query<{ gold: string | number }>(
+    "SELECT gold FROM players WHERE id = $1",
     [playerId],
   );
   const row = result.rows[0];
   if (!row) throw new ArenaPlayerMissingError();
-  return { arenaTokens: toSafeInteger(row.arena_tokens, "arena tokens"), playerGold: toSafeInteger(row.gold, "gold") };
+  return { playerGold: toSafeInteger(row.gold, "gold") };
 }
 
 function rowToArena(row: { id: string; player_id: string; state: ArenaState; result: ArenaResult | null; status: "active" | "finished"; version: number }): ArenaRow {
   return row;
 }
 
-function toQueueView(row: { created_at: string | Date; id: string }, participantCount: number): ArenaQueueView {
-  const createdAt = new Date(row.created_at).getTime();
+interface QueueHeadRow { arena_league_index: number; created_at: string | Date; participant_count: number | string; }
+
+/** Everyone in the queue shares one start: the first registration, its league timer, minus a step per extra live player. */
+async function loadQueueHead(client: Pick<PoolClient, "query">, lock = false) {
+  const result = await client.query<QueueHeadRow>(
+    `SELECT q.created_at, p.arena_league_index, (SELECT COUNT(*)::integer FROM arena_queue) AS participant_count
+     FROM arena_queue q JOIN players p ON p.id = q.player_id
+     ORDER BY q.created_at ASC LIMIT 1 ${lock ? "FOR UPDATE OF q SKIP LOCKED" : ""}`,
+  );
+  const head = result.rows[0];
+  if (!head) return null;
+  const createdAt = new Date(head.created_at).getTime();
+  const participantCount = Math.min(ARENA_PARTICIPANT_COUNT, toSafeInteger(head.participant_count, "arena queue size"));
+  return { createdAt, participantCount, startsAt: createdAt + getArenaQueueDurationMs(toSafeInteger(head.arena_league_index, "arena league"), participantCount) };
+}
+
+function toQueueView(queueId: string, head: { createdAt: number; participantCount: number; startsAt: number }): ArenaQueueView {
   return {
-    createdAt: new Date(createdAt).toISOString(),
+    createdAt: new Date(head.createdAt).toISOString(),
     maxParticipants: ARENA_PARTICIPANT_COUNT,
-    participantCount,
-    queueId: row.id,
-    startsAt: new Date(createdAt + ARENA_QUEUE_DURATION_MS).toISOString(),
+    participantCount: head.participantCount,
+    queueId,
+    startsAt: new Date(head.startsAt).toISOString(),
   };
 }
 
@@ -817,46 +806,36 @@ export class ArenaPlayerMissingError extends Error {
 export class ArenaInsufficientGoldError extends Error {
   constructor() { super("Not enough Gold for this card change"); this.name = "ArenaInsufficientGoldError"; }
 }
-export class ArenaShopOfferMissingError extends Error {
-  constructor() { super("Arena Shop offer does not exist"); this.name = "ArenaShopOfferMissingError"; }
-}
-export class ArenaInsufficientTokensError extends Error {
-  constructor() { super("Not enough Arena Tokens"); this.name = "ArenaInsufficientTokensError"; }
-}
-export class ArenaCosmeticUnavailableError extends Error {
-  constructor() { super("This Arena cosmetic is already owned or unavailable"); this.name = "ArenaCosmeticUnavailableError"; }
-}
-
 export class ArenaService {
+  private readonly chat: ChatChannel;
+
   constructor(
     private readonly pool: Pool,
     private readonly guildActivity?: GuildActivityRecorder,
     private readonly random: RandomSource = Math.random,
-  ) {}
+  ) {
+    this.chat = new ChatChannel(pool, "arena_chat_messages");
+  }
+
+  getChat(): Promise<ChatView> {
+    return this.chat.read();
+  }
+
+  sendChatMessage(playerId: string, body: string): Promise<ChatMessage> {
+    return this.chat.send(playerId, body);
+  }
 
   async getProfile(playerId: string): Promise<ArenaProfileResponse> {
     const player = await loadPlayer(this.pool, playerId);
-    const cosmetics = await this.pool.query<CosmeticRow>(
-      "SELECT cosmetic_id, cosmetic_type, equipped FROM player_arena_cosmetics WHERE player_id = $1 ORDER BY acquired_at",
-      [playerId],
-    );
-    const owned = new Map(cosmetics.rows.map((item) => [item.cosmetic_id, item]));
-    const cosmeticViews: ArenaCosmetic[] = ARENA_COSMETICS.map((cosmetic) => ({
-      ...cosmetic,
-      owned: owned.has(cosmetic.id),
-    }));
-    const equippedCosmetics: Partial<Record<ArenaCosmeticType, string>> = {};
-    for (const cosmetic of cosmetics.rows) if (cosmetic.equipped) equippedCosmetics[cosmetic.cosmetic_type] = cosmetic.cosmetic_id;
+    const dailyTasks = await loadArenaDailyTasks(this.pool, playerId);
     return {
+      dailyTasks,
       arenaLeague: toLeagueView(toSafeInteger(player.arena_league_index, "arena league")),
       nextArenaLeague: toSafeInteger(player.arena_league_index, "arena league") < ARENA_LEAGUE_CONFIG.leagues.length - 1 ? toLeagueView(toSafeInteger(player.arena_league_index, "arena league") + 1) : null,
       arenaRating: toSafeInteger(player.arena_rating, "arena rating"),
-      arenaTokens: toSafeInteger(player.arena_tokens, "arena tokens"),
       arenaTop3Count: toSafeInteger(player.arena_top3_count, "arena top 3 count"),
       arenaWins: toSafeInteger(player.arena_wins, "arena wins"),
       cardShards: toSafeInteger(player.card_shards, "card shards"),
-      cosmetics: cosmeticViews,
-      equippedCosmetics,
     };
   }
 
@@ -882,11 +861,8 @@ export class ArenaService {
   }
 
   private async startReadyQueue(client: PoolClient, now: number) {
-    const firstReady = await client.query<{ id: string }>(
-      `SELECT id FROM arena_queue WHERE created_at <= $1 ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED`,
-      [new Date(now - ARENA_QUEUE_DURATION_MS).toISOString()],
-    );
-    if (!firstReady.rows[0]) return null;
+    const head = await loadQueueHead(client, true);
+    if (!head || now < head.startsAt) return null;
 
     const queued = await client.query<{ created_at: string | Date; id: string; player_id: string }>(
       `SELECT id, player_id, created_at FROM arena_queue ORDER BY created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED`,
@@ -927,12 +903,11 @@ export class ArenaService {
   }
 
   private async queueView(client: Pick<PoolClient, "query">, playerId: string) {
-    const own = await client.query<{ created_at: string | Date; id: string; participant_count: number | string }>(
-      `SELECT id, created_at, (SELECT COUNT(*)::integer FROM arena_queue) AS participant_count FROM arena_queue WHERE player_id = $1`,
-      [playerId],
-    );
+    const own = await client.query<{ id: string }>("SELECT id FROM arena_queue WHERE player_id = $1", [playerId]);
     const ownRow = own.rows[0];
-    return ownRow ? toQueueView(ownRow, toSafeInteger(ownRow.participant_count, "arena queue size")) : null;
+    if (!ownRow) return null;
+    const head = await loadQueueHead(client);
+    return head ? toQueueView(ownRow.id, head) : null;
   }
 
   async joinQueue(playerId: string): Promise<ArenaQueueResponse> {
@@ -953,7 +928,7 @@ export class ArenaService {
       const balance = await loadBalance(client, playerId);
       await client.query("COMMIT");
       if (started && findParticipant(started.state, playerId)) {
-        return { match: toView(started, playerId, balance.playerGold, balance.arenaTokens), queue: null, queueId: registeredQueueId };
+        return { match: toView(started, playerId, balance.playerGold), queue: null, queueId: registeredQueueId };
       }
       return { match: null, queue, queueId: registeredQueueId };
     } catch (error) {
@@ -979,7 +954,7 @@ export class ArenaService {
       if (started) {
         const balance = await loadBalance(client, playerId);
         await client.query("COMMIT");
-        return { arena: toView(started, playerId, balance.playerGold, balance.arenaTokens), queue: null };
+        return { arena: toView(started, playerId, balance.playerGold), queue: null };
       }
       const queue = await this.queueView(client, playerId);
       if (queue) {
@@ -1002,7 +977,7 @@ export class ArenaService {
       const balance = await loadBalance(client, playerId);
       await client.query("COMMIT");
       return {
-        arena: finished.rows[0] ? toView(finished.rows[0], playerId, balance.playerGold, balance.arenaTokens) : null,
+        arena: finished.rows[0] ? toView(finished.rows[0], playerId, balance.playerGold) : null,
         queue: null,
       };
     } catch (error) {
@@ -1042,7 +1017,7 @@ export class ArenaService {
       }
       const balance = await loadBalance(client, playerId);
       await client.query("COMMIT");
-      return toView(row, playerId, balance.playerGold, balance.arenaTokens);
+      return toView(row, playerId, balance.playerGold);
     } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; }
     finally { client.release(); }
   }
@@ -1167,88 +1142,7 @@ export class ArenaService {
       if (!changed && row.status === "active") row.version -= 0;
       const balance = await loadBalance(client, playerId);
       await client.query("COMMIT");
-      return toView(row, playerId, balance.playerGold, balance.arenaTokens);
-    } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; }
-    finally { client.release(); }
-  }
-
-  async getShopCatalog(): Promise<ArenaShopCatalogResponse> {
-    return { items: ARENA_SHOP_ITEMS.map((item) => ({ ...item })) };
-  }
-
-  async purchase(playerId: string, offerId: string): Promise<ArenaShopPurchaseResponse> {
-    const offer = getArenaShopItem(offerId);
-    if (!offer) throw new ArenaShopOfferMissingError();
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      const player = await loadPlayer(client, playerId, true);
-      const currentTokens = toSafeInteger(player.arena_tokens, "arena tokens");
-      if (currentTokens < offer.price) throw new ArenaInsufficientTokensError();
-      let cosmeticId: string | null = null;
-      let equipmentName: string | null = null;
-      let collectionCompleted: CollectionCompletionNotice | undefined;
-      if (offer.rewardType === "cosmetic") {
-        const owned = await client.query<{ cosmetic_id: string }>("SELECT cosmetic_id FROM player_arena_cosmetics WHERE player_id = $1", [playerId]);
-        const ownedIds = new Set(owned.rows.map(({ cosmetic_id }) => cosmetic_id));
-        const available = ARENA_COSMETICS.find((cosmetic) => cosmetic.type === offer.cosmeticType && !ownedIds.has(cosmetic.id));
-        if (!available) throw new ArenaCosmeticUnavailableError();
-        cosmeticId = available.id;
-        await client.query("INSERT INTO player_arena_cosmetics (player_id, cosmetic_id, cosmetic_type) VALUES ($1, $2, $3)", [playerId, cosmeticId, available.type]);
-      } else if (offer.rewardType === "card") {
-        const card = await client.query<{ id: string; code: string; display_name: string | null; art_key: string | null; element: "fire" | "water" | "air" | "earth"; collection_id: string | null; description: string }>(
-          "SELECT id, code, display_name, art_key, element, collection_id, description FROM cards WHERE limited = FALSE AND source = 'standard' AND id IN (SELECT card_id FROM shop_card_pools) ORDER BY random() LIMIT 1",
-        );
-        const definition = card.rows[0];
-        if (!definition) throw new ArenaShopOfferMissingError();
-        await createStandardCardInstance(client, playerId, {
-          artKey: definition.art_key,
-          collectionId: definition.collection_id,
-          displayName: definition.display_name,
-          description: definition.description,
-          element: definition.element,
-          id: definition.id,
-          code: definition.code,
-          minRarity: "common",
-          shopEligible: false,
-        }, 1, new CryptoCardRandomSource());
-        const discovery = await recordCardDiscovery(client, playerId, definition.id);
-        collectionCompleted = discovery.collectionCompleted;
-        await recalculateAutomaticDeck(client, playerId);
-      } else if (offer.rewardType === "equipment") {
-        if (!offer.equipmentRarity) throw new ArenaShopOfferMissingError();
-        const definition = selectRandomArenaEquipment(offer.equipmentRarity);
-        await client.query(
-          `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
-           VALUES ($1, $2, 1)
-           ON CONFLICT (player_id, item_id)
-           DO UPDATE SET quantity = player_equipment_inventory.quantity + 1, updated_at = NOW()`,
-          [playerId, definition.id],
-        );
-        equipmentName = definition.name;
-      }
-      const updated = await client.query<ArenaPlayerRow>(
-        `UPDATE players SET arena_tokens = arena_tokens - $2, card_shards = card_shards + $3, updated_at = NOW()
-         WHERE id = $1 AND arena_tokens >= $2
-         RETURNING id, first_name, username, photo_url, level, silver, gold, account_xp, card_shards,
-           duel_wins, duel_rating, duel_highest_league_index, arena_rating, arena_league_index,
-           arena_highest_league_index, arena_wins, arena_top3_count, arena_tokens`,
-        [playerId, offer.price, offer.rewardType === "shards" ? offer.quantity ?? 0 : 0],
-      );
-      const updatedPlayer = updated.rows[0];
-      if (!updatedPlayer) throw new ArenaInsufficientTokensError();
-      await client.query("INSERT INTO arena_shop_purchases (id, player_id, offer_id, price) VALUES ($1, $2, $3, $4)", [randomUUID(), playerId, offer.id, offer.price]);
-      await client.query("COMMIT");
-      return {
-        arenaTokens: toSafeInteger(updatedPlayer.arena_tokens, "arena tokens"),
-        cardShards: toSafeInteger(updatedPlayer.card_shards, "card shards"),
-        ...(collectionCompleted ? { collectionCompleted } : {}),
-        message: cosmeticId
-          ? `Отримано: ${getArenaCosmetic(cosmeticId)?.displayName ?? offer.displayName}`
-          : equipmentName ? `Отримано: ${equipmentName}` : `Придбано: ${offer.displayName}`,
-        playerGold: toSafeInteger(updatedPlayer.gold, "gold"),
-        silver: toSafeInteger(updatedPlayer.silver, "silver"),
-      };
+      return toView(row, playerId, balance.playerGold);
     } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; }
     finally { client.release(); }
   }

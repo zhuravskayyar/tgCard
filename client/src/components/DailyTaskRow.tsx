@@ -1,6 +1,8 @@
 import type { DailyTaskView } from "@cardastika/shared";
 import { AppIcon, type AppIconName } from "./AppIcon";
 import { DiamondIcon } from "./DiamondIcon";
+import { CurrencyIcon } from "./CurrencyDisplay";
+import { formatUiNumber } from "../i18n";
 
 const taskActions: Record<string, { icon: AppIconName; label: string }> = {
   "absorb-cards": { icon: "card-absorb", label: "До колоди" },
@@ -26,8 +28,15 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
           <div className="quest-paper__title">
             <strong>{task.title}</strong>
           </div>
-          <span aria-label={`Нагорода: ${task.rewardDiamonds} діамантів`} className="quest-paper__reward" data-reward-source={task.completed && !task.claimed ? "diamond" : undefined}>+{task.rewardDiamonds}<DiamondIcon size={18} /></span>
+          <span aria-label={`Нагорода: ${task.reward.diamonds} діамантів`} className="quest-paper__reward" data-reward-source={task.completed && !task.claimed ? "diamond" : undefined}>+{task.reward.diamonds}<DiamondIcon size={18} /></span>
         </header>
+
+        <ul aria-label="Нагорода" className="quest-paper__loot">
+          {task.reward.gold > 0 ? <li><CurrencyIcon kind="gold" size={16} />+{formatUiNumber(task.reward.gold)}</li> : null}
+          {task.reward.silver > 0 ? <li><CurrencyIcon kind="silver" size={16} />+{formatUiNumber(task.reward.silver)}</li> : null}
+          {task.reward.equipment ? <li><AppIcon name="equipment" size={16} />Річ</li> : null}
+          {task.reward.card ? <li><AppIcon name="card-reward" size={16} />Карта · рів. {task.reward.card.minLevel}–{task.reward.card.maxLevel}</li> : null}
+        </ul>
 
         <div className="quest-paper__progress">
           <div className="quest-paper__progress-head"><span>Прогрес</span><strong>{task.progress} / {task.target}</strong></div>

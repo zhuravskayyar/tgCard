@@ -680,7 +680,7 @@ export function App() {
         />
       ) : null}
       {screen === "tournament" ? <TournamentScreen onBack={goHome} /> : null}
-      {screen === "arena" ? <ArenaScreen onBack={goHome} onCollectionCompleted={addCollectionBonus} onPlayerSummaryChange={updateBalance} /> : null}
+      {screen === "arena" ? <ArenaScreen onBack={goHome} onOpenTasks={openTasks} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "dungeon" ? <DungeonScreen onBack={goHome} /> : null}
       {screen === "profile" ? (
         <ProfileScreen

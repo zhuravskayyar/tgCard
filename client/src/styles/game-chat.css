@@ -1,0 +1,24 @@
+/* Lobby chat shared by tournament and arena: a painted parchment plate with ink text. */
+.game-chat { padding: 10px 12px; border: 14px solid transparent; border-image: var(--sprite-panel-frame) 62 fill / 14px stretch; color: var(--home-ink); }
+.game-chat { display: grid; gap: 8px; min-width: 0; margin: 0 8px 8px; }
+.game-chat > h2 { display: grid; grid-template-columns: minmax(16px, 1fr) auto minmax(16px, 1fr); align-items: center; gap: 9px; color: var(--home-link); font: 600 16px/1.2 var(--font-display); text-align: center; }
+.game-chat > h2::before, .game-chat > h2::after { height: 1px; background: var(--border-subtle); content: ""; }
+.game-chat__messages { display: grid; align-content: start; gap: 7px; min-height: 38px; max-height: 176px; overflow: auto; padding: 6px 4px; border-top: 1px solid rgb(86 58 31 / 28%); overscroll-behavior: contain; }
+.game-chat__message { display: grid; gap: 3px; min-width: 0; }
+.game-chat__message > header { display: flex; justify-content: space-between; gap: 10px; min-width: 0; color: var(--home-link); font-size: 13px; }
+.game-chat__message > header strong { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.game-chat__message > header time { flex: 0 0 auto; color: var(--home-ink-muted); font-size: 12px; }
+.game-chat__message > p { overflow-wrap: anywhere; color: var(--home-ink); font-size: 14px; line-height: 1.35; white-space: pre-wrap; }
+.game-chat__state, .game-chat__notice { color: var(--home-ink-muted); font-size: 13px; line-height: 1.35; text-align: center; }
+.game-chat__composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.game-chat__composer input { width: 100%; min-width: 0; min-height: 44px; padding: 7px 10px; border: 1px solid var(--border-subtle); border-radius: 4px; background: var(--surface-paper); color: var(--home-ink); font: inherit; }
+.game-chat__composer input::placeholder { color: var(--home-ink-muted); }
+.game-chat__send { min-width: 116px; min-height: 44px; padding: 8px 18px; font-size: 13px; }
+.game-chat__send:disabled { opacity: .62; }
+.game-chat__notice[role="alert"] { color: var(--state-danger); }
+
+@media (max-width: 360px) {
+  .game-chat { margin-inline: 2px; }
+  .game-chat__composer { grid-template-columns: minmax(0, 1fr); }
+  .game-chat__send { justify-self: end; width: 132px; }
+}

@@ -2,7 +2,7 @@
 :root .app-content :is(
   .ui-panel, .profile-showcase, .profile-section, .profile-state, .profile-hero,
   .player-profile-card, .player-profile-section, .inventory-section, .settings-section,
-  .arena-lobby, .arena-league-panel, .arena-shop-panel, .arena-queue-panel,
+  .arena-lobby, .arena-league-panel, .arena-queue-panel,
   .arena-target-panel, .arena-player-panel, .arena-log, .duel-hp-panel, .dungeon-result__panel,
   .guild-dashboard-card, .guild-level, .guild-lock, .guild-pending, .guild-state,
   .guild-notice, .guild-forum-section, .guild-list, .tasks-screen__mascot,
@@ -16,7 +16,7 @@
   border-radius: 0;
   box-shadow: none;
 }
-:root .app-content :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
+:root .app-content :is(.inventory-item, .inventory-cosmetic,
   .guild-forum-topic, .profile-record-grid article, .profile-rating-grid article,
   .profile-empty-row, .profile-facts, .profile-gifts > p, .profile-guild-card,
   .battle-pass-milestone__reward) {
@@ -40,8 +40,8 @@
 :root .app-content .campaign-quest :is(p, small, em) { color: var(--home-ink-muted); }
 :root .app-content .arena-log :is(h2, strong, p, span, small) { color: var(--home-ink); text-shadow: none; }
 :root .app-content .arena-log :is(h2, small) { color: var(--home-ink-muted); }
-:root .app-content :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
-  .guild-forum-topic) + :is(.inventory-item, .inventory-cosmetic, .arena-shop-item,
+:root .app-content :is(.inventory-item, .inventory-cosmetic,
+  .guild-forum-topic) + :is(.inventory-item, .inventory-cosmetic,
   .guild-forum-topic) { border-top: 1px solid var(--border-subtle); }
 :root .app-content :is(.profile-record-grid, .profile-rating-grid) article { border-bottom: 1px solid var(--border-subtle); }
 :root .app-content :is(.profile-section, .player-profile-section, .settings-section,

@@ -39,8 +39,9 @@ export function TasksScreen({ onBack, onNavigateTrial, onOpenTask, onPlayerSumma
     setPendingId(id);
     setFeedback(null);
     try {
-      await claimDailyTask(id);
-      setFeedback("Щоденну нагороду отримано");
+      const response = await claimDailyTask(id);
+      onPlayerSummaryChange(response.updatedBalance);
+      setFeedback(response.card ? "Нагороду отримано: золото, срібло, річ і нова карта" : "Нагороду отримано: золото, срібло і річ");
     } catch {
       setFeedback("Завдання ще не виконано або нагорода вже забрана");
     } finally {
