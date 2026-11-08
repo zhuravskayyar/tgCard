@@ -126,6 +126,11 @@ export function App() {
     return Number.isInteger(value) && value >= 1 && value <= 10 ? value : null;
   });
 
+  // The first-win reveal belongs to the duel screen; leaving it drops the reveal (the card is already granted).
+  useEffect(() => {
+    if (screen !== "duel") setTutorialRewardCard(null);
+  }, [screen]);
+
   const dailyLoginData = dailyLogin.state.status === "ready" ? dailyLogin.state.data : null;
   const dailyLoginClaimed = dailyLoginData !== null && dailyLoginClaimedDate === dailyLoginData.claimDate;
   const showDailyLogin = dailyLoginData !== null
@@ -649,7 +654,7 @@ export function App() {
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
-      {tutorialRewardCard ? (
+      {screen === "duel" && tutorialRewardCard ? (
         <ShopRewardReveal
           continueLabel="До завдань"
           onContinue={() => { setTutorialRewardCard(null); openTrials(); }}

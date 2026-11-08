@@ -1,6 +1,6 @@
 import type { CardWorkshopCard } from "@cardastika/shared";
 import { getBrightCutMaterialId, isLayeredBrightCutMaterial, renderBrightCutArtLayer, renderBrightCutCard } from "../cards/brightCutModel";
-import { renderCardBackSvg } from "../cards/cardBackModel";
+import { CARD_BACK_SRC } from "../cards/cardBackModel";
 
 export type BoosterPreviewCard = Pick<CardWorkshopCard, "artKey" | "cardId" | "displayName" | "element" | "rarity"> & { finalPower?: number };
 export interface BoosterCardTextures { plate: HTMLCanvasElement; art?: HTMLCanvasElement; materialId: string }
@@ -28,9 +28,16 @@ async function rasterizeSvg(markup: string, signal: AbortSignal, size = 720) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-/** The booster reverse face uses the same vector model as the shader-rendered card backs. */
-export function createBoosterCardBackTexture(signal: AbortSignal) {
-  return rasterizeSvg(renderCardBackSvg("booster-card-back"), signal);
+/** The booster reverse face uses the same painted sprite as every other card back. */
+export async function createBoosterCardBackTexture(signal: AbortSignal, size = 720) {
+  const image = await loadBoosterImage(CARD_BACK_SRC);
+  signal.throwIfAborted();
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = Math.round(size * 13 / 10);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Браузер не може підготувати карту.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas;
 }
 
 /** Keep the game's existing frame and real card values on the 3D card. */

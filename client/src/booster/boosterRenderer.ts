@@ -3,7 +3,6 @@ import { PACK_HEIGHT, PACK_WIDTH, prepareBoosterCut, type BoosterCut, type CutPo
 import { getBoosterMotion } from "./boosterMotion";
 import { BOOSTER_PAPER_CURL_DEPTH, BOOSTER_PAPER_RIPPLE_DEPTH, getBoosterFragmentPose, getBoosterFragmentShape, type BoosterFragmentShape } from "./boosterFragments";
 import { createCardMaterialSurface, type CardMaterialSurface } from "../cards/cardMaterialShader";
-import { CARD_BACK_MATERIAL_ID } from "../cards/cardBackModel";
 import type { BoosterCardTextures } from "./boosterCardTexture";
 
 export type BoosterPhase = "sealed" | "tearing" | "opening" | "revealing" | "revealed";
@@ -106,7 +105,6 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
   const meshes = new Set<GpuMesh>();
   const textures: WebGLTexture[] = [];
   let cardSurface: CardMaterialSurface | null = null;
-  let cardBackSurface: CardMaterialSurface | null = null;
   const program = gl.createProgram();
   if (!program) throw new Error("Не вдалося створити 3D-сцену.");
   function compile(type: number, source: string) {
@@ -154,7 +152,6 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
   }
   function freeGpu() {
     cardSurface?.dispose();
-    cardBackSurface?.dispose();
     meshes.forEach(deleteMesh);
     textures.forEach((texture) => gl!.deleteTexture(texture));
     shaders.forEach((shader) => gl!.deleteShader(shader));
@@ -172,8 +169,7 @@ export function mountBoosterRenderer(canvas: HTMLCanvasElement, wrapper: HTMLCan
     [cardFront, cardBack] = [uploadMesh(createCardMesh(false)), uploadMesh(createCardMesh(true))];
     cardSlices = uploadMesh(createCardSlices());
     foilTexture = uploadTexture(wrapper);
-    cardBackSurface = createCardMaterialSurface(gl, cardReverse, CARD_BACK_MATERIAL_ID);
-    reverseTexture = cardBackSurface.texture;
+    reverseTexture = uploadTexture(cardReverse);
     cardSurface = createCardMaterialSurface(gl, card.plate, card.materialId, card.art);
     cardTexture = cardSurface.texture;
   } catch (error) {

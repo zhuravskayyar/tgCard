@@ -179,8 +179,6 @@
   border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }
 
-/* Paler page: the book art keeps its drawing, but its dark lines no longer fight the text above it. */
-:root .app-shell::before { filter: contrast(.65) brightness(1.08) sepia(.35) saturate(1.05); }
 :root[data-game-theme="light"] .app-shell .app-content .campaign-locked-hub__hint {
   justify-self: center;
   width: fit-content;
