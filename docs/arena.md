@@ -88,4 +88,4 @@ Under `/api/arena`: `GET /profile`, `/active`, `/leaderboard`, `/chat`;
 `/profile` includes `dailyTasks`, today’s progress of the two arena tasks.
 
 There is no Arena shop and no Arena currency: Arena Tokens, the shop and its
-cosmetics were removed by migration `072_remove_arena_tokens.sql`.
+cosmetics were removed by migration `074_remove_arena_tokens.sql`.

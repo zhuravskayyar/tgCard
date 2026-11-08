@@ -18,7 +18,7 @@ function toMessage(row: ChatRow): ChatMessage {
   return { id: row.id, author: row.author, body: row.body, createdAt: new Date(row.created_at).toISOString() };
 }
 
-/** A lobby chat stored in its own table; every table has the same shape (see migrations 071 and 073). */
+/** A lobby chat stored in its own table; every table has the same shape (see migrations 071 and 075). */
 export class ChatChannel {
   constructor(
     private readonly pool: Pick<Pool, "connect" | "query">,
