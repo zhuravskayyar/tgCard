@@ -4,7 +4,7 @@ import { getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { CurrencyDisplay } from "./CurrencyDisplay";
 import { DiamondHudPill } from "./DiamondHudPill";
-import { ExperienceVine } from "./ExperienceVine";
+import { ExperienceFlask } from "./ExperienceFlask";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { useExperienceFly } from "../hooks/useExperienceFly";
 import { NicknameSkinPreview } from "./NicknameSkinPreview";
@@ -41,7 +41,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
     typeof accountXpRequired === "number" &&
     accountXpRequired >= 0
   );
-  const experienceTrackRef = useRef<HTMLDivElement>(null);
+  const experienceTrackRef = useRef<HTMLSpanElement>(null);
   const experienceProgress = useExperienceFly(
     player && hasExperience ? { level: player.level, required: accountXpRequired, xp: accountXp } : null,
     experienceTrackRef,
@@ -103,10 +103,9 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
           aria-valuemin={hasExperience ? 0 : undefined}
           aria-valuenow={hasExperience ? accountXp : undefined}
           className="top-hud__xp-track"
-          ref={experienceTrackRef}
           role="progressbar"
         >
-          {player ? <ExperienceVine level={player.level} progress={experienceProgress} /> : null}
+          {player ? <ExperienceFlask progress={experienceProgress} tipRef={experienceTrackRef} /> : null}
         </div>
       </div>
     </header>

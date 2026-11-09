@@ -5,6 +5,8 @@ import {
   EQUIPMENT_BONUS_BY_RARITY,
   EQUIPMENT_FORGE_RECIPES,
   getEquipmentBattleModifiers,
+  getEquipmentQuickForgeOptions,
+  resolveEquipmentAtelierResult,
   resolveEquipmentForgeResult,
   STARTER_EQUIPMENT_DEFINITIONS,
 } from "./equipment.js";
@@ -115,4 +117,30 @@ test("resolves exact and mixed forge results using the source recipes", () => {
   const mixed = definitions("equipment_head_fire_common", "equipment_head_fire_common", "equipment_head_fire_common", "equipment_head_water_common");
   assert.equal(resolveEquipmentForgeResult(mixed, () => 0).id, "equipment_head_fire_uncommon");
   assert.throws(() => resolveEquipmentForgeResult(exact.slice(0, 3), () => 0), /requires 4/);
+
+  const mixedSlots = definitions("equipment_head_fire_common", "equipment_head_fire_common", "equipment_boots_fire_common", "equipment_boots_fire_common");
+  assert.throws(() => resolveEquipmentForgeResult(mixedSlots, () => 0), /share one slot/);
+  const mixedArtifacts = definitions("equipment_weapon_common", "equipment_weapon_common", "equipment_shield_common", "equipment_shield_common");
+  assert.equal(resolveEquipmentForgeResult(mixedArtifacts, () => 0).id, "equipment_weapon_uncommon");
+});
+
+test("quick forge offers only whole batches of identical items", () => {
+  const options = getEquipmentQuickForgeOptions(new Map([
+    ["equipment_head_earth_common", 9],
+    ["equipment_head_fire_common", 2],
+    ["equipment_shield_uncommon", 5],
+    ["equipment_boots_air_mythic", 20],
+  ]));
+  assert.deepEqual(options.map(({ itemId, available, resultItemId, goldCost }) => ({ itemId, available, resultItemId, goldCost })), [
+    { itemId: "equipment_head_earth_common", available: 2, resultItemId: "equipment_head_earth_uncommon", goldCost: 5 },
+    { itemId: "equipment_shield_uncommon", available: 1, resultItemId: "equipment_shield_rare", goldCost: 50 },
+  ].sort((a, b) => options.findIndex((o) => o.itemId === a.itemId) - options.findIndex((o) => o.itemId === b.itemId)));
+});
+
+test("atelier changes the element of legendary and mythic things only", () => {
+  const [legendary, epic, artifact] = definitions("equipment_cloak_fire_legendary", "equipment_cloak_fire_epic", "equipment_weapon_mythic");
+  assert.equal(resolveEquipmentAtelierResult(legendary!, "water").id, "equipment_cloak_water_legendary");
+  assert.throws(() => resolveEquipmentAtelierResult(legendary!, "fire"), /already/);
+  assert.throws(() => resolveEquipmentAtelierResult(epic!, "water"), /legendary and mythic/);
+  assert.throws(() => resolveEquipmentAtelierResult(artifact!, "water"), /Only things/);
 });

@@ -616,7 +616,7 @@ export class GuildRaidService {
             mailId,
             participant.player_id,
             "Нагорода за рейд",
-            `Ти посів${displayName.endsWith("а") ? "ла" : ""} ${placement} місце у рейді на відьом. Забери свою карту в пошті.`,
+            `Ти посі${displayName.endsWith("а") ? "ла" : "в"} ${placement} місце у рейді на відьом. Забери свою карту в пошті.`,
             card.id,
             rewardCard.level,
             `guild-witch-raid:${resultId}:${participant.player_id}`,
@@ -640,7 +640,7 @@ export class GuildRaidService {
               mailId,
               participant.player_id,
               "Нагорода за рейд",
-              `Ти посів${displayName.endsWith("а") ? "ла" : ""} ${placement} місце у рейді на відьом. Забери нагороду в пошті.`,
+              `Ти посі${displayName.endsWith("а") ? "ла" : "в"} ${placement} місце у рейді на відьом. Забери нагороду в пошті.`,
               currency.silver,
               currency.gold,
               `guild-witch-raid:${resultId}:${participant.player_id}`,
@@ -1010,7 +1010,6 @@ export class GuildRaidService {
           attackerFinalPower: playerCard.finalPower,
           battleDamagePct: battle.player_snapshot.modifiers.battleDamagePct,
           defenderElement: witchCard.element,
-          attackerEquipment: battle.player_snapshot.modifiers.equipment,
         });
         const witchAttack = calculateDuelDamage({
           attackerElement: witchCard.element,

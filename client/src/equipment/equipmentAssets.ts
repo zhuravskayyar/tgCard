@@ -12,9 +12,11 @@ export const EQUIPMENT_RARITY_CLASSES: Readonly<Record<CardRarity, string>> = {
   mythic: "rarity-mythic",
 };
 
-export function getEquipmentSpritePath(definition: Pick<EquipmentDefinition, "assetKey" | "category">) {
-  const folder = definition.category === "artifacts" ? "artifacts-v2" : "items-v2";
-  return `${EQUIPMENT_ASSET_ROOT}/${folder}/${definition.assetKey}${EQUIPMENT_SPRITE_EXTENSION}`;
+/** One sprite per type: things are tinted by element in CSS, artifacts have no element. */
+export function getEquipmentSpritePath(definition: Pick<EquipmentDefinition, "assetKey" | "category" | "slot">) {
+  return definition.category === "artifacts"
+    ? `${EQUIPMENT_ASSET_ROOT}/artifacts-v3/${definition.assetKey}${EQUIPMENT_SPRITE_EXTENSION}`
+    : `${EQUIPMENT_ASSET_ROOT}/items-v3/${definition.slot}${EQUIPMENT_SPRITE_EXTENSION}`;
 }
 
 export function getEquipmentRarityClass(rarity: CardRarity) {

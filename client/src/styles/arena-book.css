@@ -96,6 +96,10 @@
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rank { display: none; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__top strong { display: block; max-width: 100%; overflow: hidden; color: var(--book-ink); font-size: var(--font-xs); text-overflow: ellipsis; white-space: nowrap; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__damage { color: var(--book-ink-muted); font-size: var(--font-xs); font-weight: 700; }
+/* Opponents' artifacts: the sprite plus a rarity-coloured underline, no panel. */
+.arena-participant__artifacts { display: flex; flex-wrap: nowrap; justify-content: center; gap: 1px; max-width: 100%; }
+.arena-participant__artifact { display: grid; flex: 0 1 11px; min-width: 9px; height: 14px; place-items: start center; border-bottom: 2px solid var(--eq-rarity); }
+.arena-participant__artifact > .eq-sprite { width: 100%; height: 12px; filter: none; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participants li.is-target .arena-participant__avatar-button { background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__avatar-button { display: grid; width: 48px; height: 48px; padding: 4px; place-items: center; border: 0; background: none; box-shadow: none; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-participant__avatar-button .duel-avatar { width: 40px; height: 40px; }

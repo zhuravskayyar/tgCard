@@ -17,7 +17,8 @@ import type {
   DuelExchange,
   PlayerSummary,
 } from "@cardastika/shared";
-import { getElementMultiplier } from "@cardastika/game-core";
+import { EQUIPMENT_SLOT_LABELS, getElementMultiplier, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { EquipmentSprite, rarityStyle } from "../components/EquipmentBook";
 import { AppIcon } from "../components/AppIcon";
 import { BattleCard, BattleLog, getEffectLevel, HpPanel, PlayerAvatar } from "./DuelScreen";
 import type { DuelEffectLevel } from "./DuelScreen";
@@ -72,6 +73,23 @@ function ArenaTabs({ active, onChange }: { active: ArenaTab; onChange: (tab: Are
 
 function ArenaTokenBalance({ value }: { value: number }) {
   return <span className="arena-token-balance"><ResourceIcon kind="arena-token" size={20} />{formatUiNumber(value)}</span>;
+}
+
+const ARTIFACT_DEFINITIONS_BY_ID = new Map(STARTER_EQUIPMENT_DEFINITIONS.filter(({ category }) => category === "artifacts").map((definition) => [definition.id, definition]));
+
+/** Every fighter's artifacts and their rarity are visible in the arena. */
+function ArenaArtifacts({ itemIds }: { itemIds: readonly string[] | undefined }) {
+  const definitions = (itemIds ?? []).flatMap((itemId) => ARTIFACT_DEFINITIONS_BY_ID.get(itemId) ?? []);
+  if (!definitions.length) return null;
+  return (
+    <span aria-label={`Артефакти: ${definitions.map((definition) => `${definition.name}`).join(", ")}`} className="arena-participant__artifacts" role="img">
+      {definitions.map((definition) => (
+        <span className="arena-participant__artifact" key={definition.id} style={rarityStyle(definition.rarity)} title={`${EQUIPMENT_SLOT_LABELS[definition.slot]} · ${definition.name}`}>
+          <EquipmentSprite definition={definition} />
+        </span>
+      ))}
+    </span>
+  );
 }
 
 function shortParticipantName(name: string) {
@@ -183,6 +201,7 @@ function ParticipantList({ participants, playerId, targetId, disabled, onSelectT
               <span style={{ width: `${percentage(participant.hp, participant.maxHp)}%` }} />
             </div>
             <small className="arena-participant__damage">{participant.totalDamageDealt}</small>
+            <ArenaArtifacts itemIds={participant.artifactItemIds} />
           </li>
         ))}
       </ol>

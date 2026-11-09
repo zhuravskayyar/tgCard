@@ -1,3 +1,4 @@
+import { EquipmentChestError } from "../equipment/equipmentChestService.js";
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type {
   ArenaActionRequest,
@@ -83,6 +84,7 @@ function sendArenaError(response: ServerResponse, error: unknown, headers: Outgo
   if (error instanceof ArenaStateConflictError) return sendJson(response, 409, { error: { code: "arena_state_conflict", message: error.message } }, headers), true;
   if (error instanceof ArenaMissingError) return sendJson(response, 404, { error: { code: "arena_not_found", message: error.message } }, headers), true;
   if (error instanceof ArenaInsufficientGoldError) return sendJson(response, 409, { error: { code: "insufficient_gold", message: error.message } }, headers), true;
+  if (error instanceof EquipmentChestError) return sendJson(response, 409, { error: { code: error.code, message: error.message } }, headers), true;
   if (error instanceof ArenaShopOfferMissingError) return sendJson(response, 404, { error: { code: "arena_offer_not_found", message: error.message } }, headers), true;
   if (error instanceof ArenaInsufficientTokensError) return sendJson(response, 409, { error: { code: "insufficient_arena_tokens", message: error.message } }, headers), true;
   if (error instanceof ArenaCosmeticUnavailableError) return sendJson(response, 409, { error: { code: "arena_cosmetic_unavailable", message: error.message } }, headers), true;

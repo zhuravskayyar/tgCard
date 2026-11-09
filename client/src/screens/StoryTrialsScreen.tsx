@@ -3,7 +3,6 @@ import type { PlayerSummary, StoryTrialNavigationTarget, StoryTrialView, StoryTr
 import { AccountProtectionTask } from "../components/AccountProtectionTask";
 import { AppIcon, type AppIconName } from "../components/AppIcon";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
-import { MenuRow } from "../components/MenuRow";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { formatFullUiNumber, getUiLocale, translateUi } from "../i18n";
 import { getTelegramInitData } from "../telegram";
@@ -189,11 +188,10 @@ export function CampaignTasksBoard({ onBalanceChange, onNavigate }: {
   );
 }
 
-export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenCampaign }: {
+export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate }: {
   onBack: () => void;
   onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
   onNavigate: (target: StoryTrialNavigationTarget) => void;
-  onOpenCampaign: () => void;
 }) {
   const { claim, claimError, claimNotice, load, pendingId, state } = useStoryTrials(onBalanceChange);
   const view = state.status === "ready" ? state.view : null;
@@ -208,7 +206,6 @@ export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenC
           {claimNotice ? <p className="adventure-plate" role="status">{tx(claimNotice)}</p> : null}
           {claimError ? <p className="campaign-claim-error" role="alert">{tx(claimError)}</p> : null}
           <StoryTrialsList claim={claim} onNavigate={onNavigate} pendingId={pendingId} view={view} />
-          <MenuRow compact icon="campaign" metalTexture onClick={onOpenCampaign} title={tx("Кампанія")} />
         </>
       ) : null}
     </div>

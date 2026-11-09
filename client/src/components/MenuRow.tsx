@@ -39,7 +39,7 @@ export function MenuRow({ active: _active = false, actionContent, attention = fa
       </span>}
       <span className="menu-row__title">{title}</span>
       <span className="menu-row__action">
-        {actionContent ?? (locked ? <AppIcon name="lock" size={14} /> : attention ? <span aria-hidden="true" className="menu-row__indicator" /> : detail ? <span className="menu-row__detail">{detail}</span> : badge ? <Badge value={badge} /> : null)}
+        {actionContent ?? (locked ? <AppIcon name="lock" size={14} /> : attention ? <img alt="" aria-hidden="true" className="menu-row__seal" draggable={false} src="/assets/ui/trials/board/seal-v1.webp" /> : detail ? <span className="menu-row__detail">{detail}</span> : badge ? <Badge value={badge} /> : null)}
       </span>
       {chevron ? <span aria-hidden="true" className="menu-row__chevron"><AppIcon name="chevron" size={16} /></span> : null}
     </button>

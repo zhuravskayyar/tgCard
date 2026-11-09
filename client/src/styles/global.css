@@ -14240,6 +14240,6 @@ body {
 
 /* Painted equipment icons keep their own colours instead of the silhouette tint. */
 .equipment-icon--painted { background: none; mask-image: none; -webkit-mask-image: none; object-fit: contain; }
-.equipment-art--empty > .equipment-icon--painted { opacity: .8; }
-.equipment-slot--empty:has(.equipment-icon--painted) { filter: grayscale(.2); }
+/* Empty slots show a faint ink imprint so nobody mistakes the hint for an owned item. */
+.equipment-art--empty > .equipment-icon--painted { opacity: .3; filter: grayscale(1) sepia(.5) contrast(.7); mix-blend-mode: multiply; }
 .equipment-art--filled > .equipment-icon--painted { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--equipment-rarity) 45%, transparent)); }

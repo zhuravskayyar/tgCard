@@ -26,6 +26,12 @@ export {
   type OwnedDeckCard,
 } from "./automaticDeck.js";
 export {
+  BOT_PROFILE_JITTER_PCT,
+  distributeDeckPowerByProfile,
+  getDeckPowerProfile,
+  type DeckPowerProfileOptions,
+} from "./botDeckProfile.js";
+export {
   getBaseBattleHp,
   getDeckPower,
   type PoweredCard,
@@ -160,8 +166,13 @@ export {
   EQUIPMENT_ELEMENT_SYMBOLS,
   EQUIPMENT_RARITY_CONFIG,
   EQUIPMENT_SLOT_LABELS,
+  EQUIPMENT_STORAGE_LIMIT,
   EQUIPMENT_SLOT_SHORT_LABELS,
   getEquipmentForgeChances,
+  getEquipmentQuickForgeOptions,
+  EQUIPMENT_ATELIER_COSTS,
+  resolveEquipmentAtelierResult,
+  type EquipmentQuickForgeOption,
   pickRandomEquipment,
   EQUIPMENT_THING_SLOTS,
   getEquippedDefinitions,
@@ -232,3 +243,5 @@ export {
   type ReferencePageDiscovery,
   type ReferencePageKind,
 } from "./guildForumReference.js";
+
+export { getDominantDeckElement } from "./deckElement.js";

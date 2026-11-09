@@ -64,7 +64,7 @@ import {
   handlePlayerInventory,
 } from "./cosmetics/nicknameSkinRoute.js";
 import { NicknameSkinService } from "./cosmetics/nicknameSkinService.js";
-import { handleEquipmentChests, handlePlayerEquipment, handlePlayerEquipmentForge } from "./equipment/equipmentRoute.js";
+import { handleEquipmentChests, handlePlayerEquipment, handlePlayerEquipmentAtelier, handlePlayerEquipmentForge, handlePlayerEquipmentQuickForge } from "./equipment/equipmentRoute.js";
 import { EquipmentChestService } from "./equipment/equipmentChestService.js";
 import { handleEquipmentManual } from "./equipment/equipmentManualRoute.js";
 import { EquipmentManualService } from "./equipment/equipmentManualService.js";
@@ -451,6 +451,16 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       players,
       responseHeaders: cors.headers,
     });
+    return;
+  }
+
+  if (url.pathname === "/api/player/equipment/quick-forge") {
+    await handlePlayerEquipmentQuickForge(request, response, { auth, botToken: environment.telegramBotToken, players, responseHeaders: cors.headers });
+    return;
+  }
+
+  if (url.pathname === "/api/player/equipment/atelier") {
+    await handlePlayerEquipmentAtelier(request, response, { auth, botToken: environment.telegramBotToken, players, responseHeaders: cors.headers });
     return;
   }
 

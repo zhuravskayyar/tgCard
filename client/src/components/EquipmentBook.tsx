@@ -1,11 +1,12 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { EQUIPMENT_ARTIFACT_SLOTS, EQUIPMENT_ELEMENT_LABELS, EQUIPMENT_RARITY_CONFIG, EQUIPMENT_SLOT_LABELS, EQUIPMENT_SLOT_SHORT_LABELS, EQUIPMENT_THING_SLOTS, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
-import type { CardRarity, EquipmentDefinition, EquipmentSlot, EquippedEquipment } from "@cardastika/shared";
+import type { CardElement, CardRarity, EquipmentDefinition, EquipmentSlot, EquippedEquipment } from "@cardastika/shared";
+import { ProfileMage } from "./ProfileMage";
 import { AppIcon } from "./AppIcon";
 import { EquipmentIcon } from "./EquipmentIcon";
 import { ElementSymbol } from "./ElementSymbol";
-import { getEquipmentSpritePath } from "../equipment/equipmentAssets";
+import { EquipmentSpriteImage } from "./EquipmentSpriteImage";
 
 const RACK_CELLS = 8;
 
@@ -14,7 +15,7 @@ export function rarityStyle(rarity: CardRarity) {
 }
 
 export function EquipmentSprite({ definition }: { definition: EquipmentDefinition }) {
-  return <img alt="" className="eq-sprite" draggable={false} src={getEquipmentSpritePath(definition)} />;
+  return <EquipmentSpriteImage className="eq-sprite" definition={definition} />;
 }
 
 export function getEquipmentBonusText(definition: EquipmentDefinition) {
@@ -32,20 +33,21 @@ export function getEquipmentBonusText(definition: EquipmentDefinition) {
 }
 
 /** The mage's sheet with things on the left and artifacts on the right. */
-export function EquipmentDoll({ equipped, onSlot }: { equipped: EquippedEquipment; onSlot: (slot: EquipmentSlot, definition?: EquipmentDefinition) => void }) {
+export function EquipmentDoll({ equipped, mageElement, onSlot }: { equipped: EquippedEquipment; mageElement?: CardElement | null; onSlot: (slot: EquipmentSlot, definition?: EquipmentDefinition) => void }) {
   const column = (slots: readonly EquipmentSlot[]) => slots.map((slot) => {
     const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === equipped[slot]);
     return (
       <button aria-label={`${EQUIPMENT_SLOT_LABELS[slot]}: ${definition?.name ?? "порожньо"}`} className="eq-doll__slot" key={slot} onClick={() => onSlot(slot, definition)} style={definition ? rarityStyle(definition.rarity) : undefined} type="button">
         <span className="eq-frame">
-          {definition ? <><EquipmentSprite definition={definition} /><span aria-hidden="true" className="eq-gem" /></> : <span className="eq-frame__empty"><EquipmentIcon name={slot} size={24} /></span>}
+          {definition ? <><EquipmentSprite definition={definition} /></> : <span className="eq-frame__empty"><EquipmentIcon name={slot} size={24} /></span>}
         </span>
         <small>{EQUIPMENT_SLOT_SHORT_LABELS[slot]}</small>
       </button>
     );
   });
   return (
-    <div aria-label="Одягнене спорядження" className="eq-doll">
+    <div aria-label="Одягнене спорядження" className={`eq-doll${mageElement ? " eq-doll--live" : ""}`}>
+      {mageElement ? <ProfileMage element={mageElement} /> : null}
       <div className="eq-doll__column eq-doll__column--left">{column(EQUIPMENT_THING_SLOTS)}</div>
       <div className="eq-doll__column eq-doll__column--right">{column(EQUIPMENT_ARTIFACT_SLOTS)}</div>
     </div>
@@ -76,7 +78,6 @@ export function EquipmentRack({ entries, onPick }: { entries: readonly RackEntry
               type="button"
             >
               <EquipmentSprite definition={entry.definition} />
-              <span aria-hidden="true" className="eq-gem" />
               {entry.quantity > 1 ? <span aria-hidden="true" className="eq-rack__quantity">×{entry.quantity}</span> : null}
               {entry.equipped ? <span aria-hidden="true" className="eq-rack__worn">✓</span> : null}
               {entry.selected ? <span aria-hidden="true" className="eq-rack__picked">{entry.selected}</span> : null}
@@ -150,7 +151,7 @@ export function EquipmentItemCard({ busy = false, celebrate = false, children, d
         <div className="eq-card__body">
           {eyebrow ? <span className="eq-card__eyebrow">{eyebrow}</span> : null}
           <h2 id="eq-card-title">{definition.name.split(" · ")[0]}</h2>
-          <span className="eq-card__meta"><span className="eq-gem eq-gem--inline" />{rarity.label}{definition.element ? <><ElementSymbol element={definition.element} size={14} />{EQUIPMENT_ELEMENT_LABELS[definition.element]}</> : null}</span>
+          <span className="eq-card__meta">{rarity.label}{definition.element ? <><ElementSymbol element={definition.element} size={14} />{EQUIPMENT_ELEMENT_LABELS[definition.element]}</> : null}</span>
           <strong className="eq-card__bonus">{getEquipmentBonusText(definition)}</strong>
           <p>{definition.description}</p>
           <div className="eq-card__actions">{children}</div>

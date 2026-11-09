@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   BASE_POWER_BY_LEVEL,
+  distributeDeckPowerByProfile,
   getRarityForLevel,
   getStartingHp,
   type MatchmakingRange,
@@ -159,29 +160,23 @@ function selectBotCardTemplates(
   return selected;
 }
 
-function distributeCardPowers(totalPower: number, random: RandomSource): number[] {
-  const minimumTotal = BOT_DECK_SIZE * MIN_CARD_POWER;
-  if (!Number.isSafeInteger(totalPower) || totalPower < minimumTotal) {
-    throw new RangeError(`Bot deck power must be a safe integer of at least ${minimumTotal}`);
+/** Bot slot powers follow the player deck shape; strong cards land on random slots. */
+function distributeCardPowers(
+  challenger: DuelSideSnapshot,
+  totalPower: number,
+  random: RandomSource,
+): number[] {
+  const profilePowers = distributeDeckPowerByProfile(
+    challenger.cards.map(({ finalPower }) => finalPower),
+    totalPower,
+    { deckSize: BOT_DECK_SIZE, minCardPower: MIN_CARD_POWER },
+    random,
+  );
+  const shuffled: number[] = [];
+  while (profilePowers.length) {
+    shuffled.push(profilePowers.splice(randomIndex(profilePowers.length, random), 1)[0]!);
   }
-
-  const distributable = totalPower - minimumTotal;
-  const weights = Array.from({ length: BOT_DECK_SIZE }, () => 0.75 + random() * 0.5);
-  if (weights.some((weight) => !Number.isFinite(weight) || weight < 0.75 || weight >= 1.25)) {
-    throw new Error("Bot opponent RNG must return a value from 0 inclusive to 1 exclusive");
-  }
-  const weightTotal = weights.reduce((total, weight) => total + weight, 0);
-  const exactExtras = weights.map((weight) => distributable * weight / weightTotal);
-  const extras = exactExtras.map(Math.floor);
-  let remainder = distributable - extras.reduce((total, value) => total + value, 0);
-  const remainderOrder = exactExtras
-    .map((value, index) => ({ fraction: value - Math.floor(value), index }))
-    .sort((left, right) => right.fraction - left.fraction || left.index - right.index);
-  for (let index = 0; remainder > 0; index += 1, remainder -= 1) {
-    const targetIndex = remainderOrder[index % remainderOrder.length]!.index;
-    extras[targetIndex] = (extras[targetIndex] ?? 0) + 1;
-  }
-  return extras.map((extra) => MIN_CARD_POWER + extra);
+  return shuffled;
 }
 
 function progressionForPower(finalPower: number) {
@@ -212,7 +207,7 @@ export function createBotOpponentSnapshot(
     random,
   );
   const selectedTemplates = selectBotCardTemplates(challenger, templates, random);
-  const cardPowers = distributeCardPowers(effectiveDeckPower, random);
+  const cardPowers = distributeCardPowers(challenger, effectiveDeckPower, random);
   const cards: DuelCardSnapshot[] = selectedTemplates.map((template, index) => ({
     ...template,
     ...progressionForPower(cardPowers[index]!),

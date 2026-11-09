@@ -108,6 +108,26 @@ test("bot snapshot builds a distinct canonical 3/2/2/2 deck at the selected tota
   assert.deepEqual(challenger, original);
 });
 
+test("bot deck mirrors a spiky player deck instead of flattening it", () => {
+  const spiky: DuelSideSnapshot = {
+    ...challenger,
+    cards: challenger.cards.map((card, index) => ({
+      ...card, level: 1, basePower: 10, bonusPower: index === 4 ? 74 : 2, finalPower: index === 4 ? 84 : 12,
+    })),
+    effectiveDeckPower: 180,
+    startingHp: 180,
+  };
+  const range = getMatchmakingRange(spiky.effectiveDeckPower, 0);
+  for (const seed of [0, 0.25, 0.5, 0.75, 0.999999]) {
+    const bot = createBotOpponentSnapshot(spiky, range, templates, () => seed, `spiky-${seed}`);
+    const powers = bot.cards.map(({ finalPower }) => finalPower).sort((left, right) => right - left);
+    assert.equal(getDeckPower(bot.cards), bot.effectiveDeckPower);
+    assert.equal(validateDeckElementBalance(bot.cards).valid, true);
+    assert.ok(powers[0]! >= 65, `strong card ${powers}`);
+    assert.ok(powers.slice(1).every((power) => power <= 18), `weak cards ${powers}`);
+  }
+});
+
 test("bot snapshot never selects limited card templates", () => {
   const limitedTemplate: BotCardTemplate = {
     cardId: "limited-bot-card",

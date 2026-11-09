@@ -129,6 +129,9 @@ export interface EquipmentBattleModifiers {
   voodooHpReductionPct: number;
 }
 
+/** Storage limit per category (things, artifacts); equipped copies are not counted. */
+export const EQUIPMENT_STORAGE_LIMIT = 888;
+
 export interface EquipmentForgeRecipe {
   goldCost: number;
   inputCount: number;
@@ -316,6 +319,10 @@ export function resolveEquipmentForgeResult(
   if (inputDefinitions.some((definition) => definition.rarity !== first.rarity || definition.category !== first.category || !definition.isEnabled)) {
     throw new RangeError("Forge inputs must have the same rarity and category");
   }
+  // Things are forged only with things of the same type; artifacts may be mixed.
+  if (first.category === "things" && inputDefinitions.some((definition) => definition.slot !== first.slot)) {
+    throw new RangeError("Forge things must share one slot");
+  }
 
   const family = pickWeighted(getForgeFamilies(inputDefinitions).map(({ definition, weight }) => ({ value: definition, weight })), random);
   return getForgeOutput(family, recipe.outputRarity);
@@ -354,6 +361,46 @@ export function getEquipmentForgeChances(inputDefinitions: readonly EquipmentDef
       definition: getForgeOutput(definition, recipe.outputRarity),
     }))
     .sort((left, right) => right.chancePct - left.chancePct);
+}
+
+export interface EquipmentQuickForgeOption {
+  /** Full batches the spare copies allow. */
+  available: number;
+  goldCost: number;
+  inputCount: number;
+  itemId: string;
+  resultItemId: string;
+}
+
+/**
+ * Quick forge: identical items (same type, rarity and, for things, element) are forged
+ * in whole batches, so every result is certain. `spareById` excludes equipped copies.
+ */
+export function getEquipmentQuickForgeOptions(spareById: ReadonlyMap<string, number>): EquipmentQuickForgeOption[] {
+  return STARTER_EQUIPMENT_DEFINITIONS.flatMap((definition) => {
+    const recipe = getEquipmentForgeRecipe(definition.rarity);
+    const available = recipe ? Math.floor((spareById.get(definition.id) ?? 0) / recipe.inputCount) : 0;
+    if (!recipe || !definition.isEnabled || available < 1) return [];
+    return [{ available, goldCost: recipe.goldCost, inputCount: recipe.inputCount, itemId: definition.id, resultItemId: getForgeOutput(definition, recipe.outputRarity).id }];
+  });
+}
+
+/** Atelier changes the element of a legendary or mythic thing. Card shards stand in for the source's "sources". */
+export const EQUIPMENT_ATELIER_COSTS: Readonly<Partial<Record<CardRarity, { cardShards: number; gold: number }>>> = {
+  legendary: { cardShards: 1_000, gold: 50_000 },
+  mythic: { cardShards: 3_000, gold: 50_000 },
+};
+
+/** Returns the same thing in another element, or throws when the atelier cannot take it. */
+export function resolveEquipmentAtelierResult(definition: EquipmentDefinition, element: CardElement) {
+  if (definition.category !== "things" || !definition.element) throw new RangeError("Only things have an element");
+  if (!EQUIPMENT_ATELIER_COSTS[definition.rarity]) throw new RangeError("Only legendary and mythic things can change element");
+  if (definition.element === element) throw new RangeError("The thing already has this element");
+  const result = STARTER_EQUIPMENT_DEFINITIONS.find((candidate) => (
+    candidate.category === "things" && candidate.slot === definition.slot && candidate.rarity === definition.rarity && candidate.element === element
+  ));
+  if (!result) throw new Error("Atelier result is not present in the equipment catalog");
+  return result;
 }
 
 /** Any enabled thing or artifact of the rarity, equally likely. */

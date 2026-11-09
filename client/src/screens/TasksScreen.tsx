@@ -3,11 +3,7 @@ import { useState } from "react";
 import { DailyTaskRow } from "../components/DailyTaskRow";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
-import { TASK_KIND_TITLES, TASK_KINDS, type PlayerSummary, type StoryTrialNavigationTarget, type TaskKind } from "@cardastika/shared";
-import { getTelegramInitData } from "../telegram";
-import { claimStoryTrial, SAVE_PROFILE_TRIAL_ID } from "../telegram/storyTrials";
-import { AccountProtectionTask } from "../components/AccountProtectionTask";
-import { CampaignTasksBoard } from "./StoryTrialsScreen";
+import type { PlayerSummary, StoryTrialNavigationTarget } from "@cardastika/shared";
 import { DiamondIcon } from "../components/DiamondIcon";
 
 
@@ -24,14 +20,14 @@ function getDailyReset(taskDate: string) {
   };
 }
 
-export function TasksScreen({ onBack, onNavigateTrial, onOpenTask, onPlayerSummaryChange }: {
+/** Only daily tasks live here; campaign trials stay on the campaign screen. */
+export function TasksScreen({ onBack, onOpenTask }: {
   onBack: () => void;
   onNavigateTrial: (target: StoryTrialNavigationTarget) => void;
   onOpenTask: (id: string) => void;
   onPlayerSummaryChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
 }) {
   const { claimDailyTask, retry, state } = useBattlePass();
-  const [kind, setKind] = useState<TaskKind>("daily");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -65,42 +61,7 @@ export function TasksScreen({ onBack, onNavigateTrial, onOpenTask, onPlayerSumma
     <div className="notice-board-screen tasks-screen">
       <ScreenHeading onBack={onBack} title="Завдання" />
 
-      {/* Groups follow the server's task kinds: one-off campaign trials and tasks that reset daily. */}
-      <div className="tasks-screen__tabs" role="tablist" aria-label="Тип завдань">
-        {TASK_KINDS.map((taskKind) => (
-          <button
-            aria-controls={`tasks-panel-${taskKind}`}
-            aria-selected={kind === taskKind}
-            className="ui-tab"
-            id={`tasks-tab-${taskKind}`}
-            key={taskKind}
-            onClick={() => setKind(taskKind)}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-              const step = event.key === "ArrowRight" ? 1 : -1;
-              const next = TASK_KINDS[(TASK_KINDS.indexOf(taskKind) + step + TASK_KINDS.length) % TASK_KINDS.length]!;
-              setKind(next);
-              document.getElementById(`tasks-tab-${next}`)?.focus();
-            }}
-            role="tab"
-            tabIndex={kind === taskKind ? 0 : -1}
-            type="button"
-          >{TASK_KIND_TITLES[taskKind]}</button>
-        ))}
-      </div>
-
-      <section aria-labelledby={`tasks-tab-${kind}`} className="tasks-screen__panel" id={`tasks-panel-${kind}`} role="tabpanel">
-      {kind === "campaign" ? (
-        <>
-          <AccountProtectionTask onRewardGranted={() => {
-            retry();
-            const initData = getTelegramInitData();
-            if (initData) void claimStoryTrial(initData, SAVE_PROFILE_TRIAL_ID).then((response) => onPlayerSummaryChange(response.player)).catch(() => undefined);
-          }} />
-          <CampaignTasksBoard onBalanceChange={onPlayerSummaryChange} onNavigate={onNavigateTrial} />
-        </>
-      ) : (
-        <>
+      <section className="tasks-screen__panel">
       {state.status === "loading" ? <div className="battle-pass-state">Відновлюємо завдання…</div> : null}
       {state.status === "error" ? <div className="battle-pass-state battle-pass-state--error"><strong>Завдання недоступні</strong><span>{state.message}</span><button onClick={retry} type="button">Повторити</button></div> : null}
       {state.status === "ready" ? (
@@ -143,8 +104,6 @@ export function TasksScreen({ onBack, onNavigateTrial, onOpenTask, onPlayerSumma
           {feedback ? <p className="battle-pass-feedback" role="status">{feedback}</p> : null}
         </>
       ) : null}
-        </>
-      )}
       </section>
     </div>
   );

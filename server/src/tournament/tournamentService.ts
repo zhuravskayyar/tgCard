@@ -60,6 +60,8 @@ interface StoredMatch {
   playerDamage: number;
   opponentDamage: number;
   log: DuelExchange[];
+  /** Amulet and doll fire once per match. */
+  playerArtifactState?: { reviveUsed: boolean; voodooUsed: boolean };
 }
 
 type StoredRun = Omit<TournamentRunView, "match" | "bracket" | "player"> & {
@@ -490,10 +492,25 @@ export class TournamentService {
       if (!opponentCard) throw new TournamentActionError("Bot card is unavailable");
 
       const playerModifiers = state.entrants.find(entry => entry.id === playerId)!.side.modifiers;
-      const playerHit = calculateDuelDamage({ attackerFinalPower: playerCardResult.finalPower, attackerElement: playerCardResult.element, defenderElement: opponentCard.element, battleDamagePct: playerModifiers.battleDamagePct, attackerElementDamagePct: playerModifiers.elementDamagePct[playerCardResult.element] });
-      const opponentHit = calculateDuelDamage({ attackerFinalPower: opponentCard.finalPower, attackerElement: opponentCard.element, defenderElement: playerCardResult.element, battleDamagePct: 0, attackerElementDamagePct: 0 });
-      match.opponentHp = Math.max(0, match.opponentHp - playerHit.damage);
+      const artifacts = playerModifiers.equipment;
+      const playerHit = calculateDuelDamage({ attackerFinalPower: playerCardResult.finalPower, attackerElement: playerCardResult.element, defenderElement: opponentCard.element, battleDamagePct: playerModifiers.battleDamagePct, attackerElementDamagePct: playerModifiers.elementDamagePct[playerCardResult.element], attackerEquipment: artifacts });
+      const rawOpponentHit = calculateDuelDamage({ attackerFinalPower: opponentCard.finalPower, attackerElement: opponentCard.element, defenderElement: playerCardResult.element, battleDamagePct: 0, attackerElementDamagePct: 0 });
+      // Tournament bots carry no artifacts; the player's shield and mirror act on the bot's hit.
+      const opponentHit = { ...rawOpponentHit, damage: Math.round(rawOpponentHit.damage * Math.max(0, 1 - (artifacts?.incomingDamageReductionPct ?? 0) / 100)) };
+      const reflected = Math.round(opponentCard.finalPower * (artifacts?.damageReflectionPct ?? 0) / 100);
+      match.opponentHp = Math.max(0, match.opponentHp - playerHit.damage - reflected);
       match.playerHp = Math.max(0, match.playerHp - opponentHit.damage);
+      if (match.playerHp === 0 && artifacts) {
+        const artifactState = match.playerArtifactState ?? { reviveUsed: false, voodooUsed: false };
+        if (!artifactState.reviveUsed && artifacts.reviveHpPct > 0) {
+          match.playerHp = Math.max(1, Math.round(match.playerMaxHp * artifacts.reviveHpPct / 100));
+          artifactState.reviveUsed = true;
+        } else if (!artifactState.voodooUsed && artifacts.voodooHpReductionPct > 0) {
+          match.opponentHp = Math.max(0, match.opponentHp - Math.round(match.opponentMaxHp * artifacts.voodooHpReductionPct / 100));
+          artifactState.voodooUsed = true;
+        }
+        match.playerArtifactState = artifactState;
+      }
       match.playerDamage += playerHit.damage;
       match.opponentDamage += opponentHit.damage;
       match.playerCycle = playerCycleResult.state;

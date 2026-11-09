@@ -1,4 +1,4 @@
-import type { EquipmentChestOpenResponse, EquippedEquipment, PlayerEquipmentForgeResponse, PlayerEquipmentResponse } from "@cardastika/shared";
+import type { CardElement, EquipmentChestOpenResponse, EquippedEquipment, PlayerEquipmentAtelierResponse, PlayerEquipmentForgeResponse, PlayerEquipmentQuickForgeResponse, PlayerEquipmentResponse } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
 
@@ -26,6 +26,29 @@ export async function forgePlayerEquipment(credential: string, itemIds: readonly
     throw new Error(body?.error?.code ?? "forge_failed");
   }
   return response.json() as Promise<PlayerEquipmentForgeResponse>;
+}
+
+async function postEquipment<T>(credential: string, path: string, body: unknown, fallbackError: string) {
+  const response = await fetch(getApiEndpoint(path), {
+    method: "POST",
+    headers: { Authorization: getPlayerAuthHeader(credential), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { error?: { code?: string } } | null;
+    throw new Error(error?.error?.code ?? fallbackError);
+  }
+  return response.json() as Promise<T>;
+}
+
+export function quickForgePlayerEquipment(credential: string, batches: readonly { itemId: string; count: number }[]) {
+  return postEquipment<PlayerEquipmentQuickForgeResponse>(credential, "/api/player/equipment/quick-forge", { batches }, "forge_failed");
+}
+
+export function changePlayerEquipmentElement(credential: string, itemId: string, element: CardElement) {
+  return postEquipment<PlayerEquipmentAtelierResponse>(credential, "/api/player/equipment/atelier", { itemId, element }, "atelier_failed");
 }
 
 export async function openEquipmentChest(credential: string, chestId: string) {

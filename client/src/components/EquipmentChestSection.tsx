@@ -70,7 +70,7 @@ export function EquipmentChestSection({ onInventoryChange, onSilverChange, silve
       setLastOffer(offer);
       setResultItemId(result.resultItemId);
     } catch (openError) {
-      setError(openError instanceof Error && openError.message === "not_enough_silver" ? "Не вистачає срібла." : "Не вдалося відкрити скриню.");
+      setError(openError instanceof Error && openError.message === "not_enough_silver" ? "Не вистачає срібла." : openError instanceof Error && openError.message === "equipment_storage_full" ? "Склад спорядження заповнений (888). Переплав зайве в кузні." : "Не вдалося відкрити скриню.");
     } finally {
       setOpeningId(null);
       setStage(null);

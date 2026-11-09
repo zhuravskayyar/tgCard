@@ -27,7 +27,7 @@ function emptyEquipment(playerId: string): PlayerEquipment {
 }
 
 export class EquipmentForgeError extends Error {
-  constructor(readonly code: "invalid_forge" | "not_enough_gold", message: string) {
+  constructor(readonly code: "invalid_forge" | "not_enough_gold" | "not_enough_shards", message: string) {
     super(message);
     this.name = "EquipmentForgeError";
   }

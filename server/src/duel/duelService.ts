@@ -439,7 +439,9 @@ export async function loadDuelParticipant(
     [playerId],
   );
   const equipment = parseStoredEquipment(player.id, player.equipment);
-  const equipmentSummary = calculateEquipmentSummary(getEquippedDefinitions(equipment));
+  const equippedDefinitions = getEquippedDefinitions(equipment);
+  const equipmentSummary = calculateEquipmentSummary(equippedDefinitions);
+  const artifactItemIds = equippedDefinitions.filter(({ category }) => category === "artifacts").map(({ id }) => id);
   const modifiers = toBattleModifiers(modifiersResult.rows.map((row) => ({
     type: row.buff_type,
     value: Number(row.buff_value),
@@ -462,6 +464,7 @@ export async function loadDuelParticipant(
       modifiers,
       effectiveDeckPower,
       startingHp: getStartingHp(effectiveDeckPower, modifiers.battleHpPct),
+      ...(artifactItemIds.length ? { artifactItemIds } : {}),
     },
     guildCard,
   };
@@ -699,7 +702,8 @@ export class DuelService {
         enemyMaxHp: duel.opponent_snapshot.startingHp,
         playerGuildCard: duel.player_guild_card,
         enemyGuildCard: duel.enemy_guild_card,
-        equipmentEnabled: true,
+        // Artifacts work only in the arena, tournament and guild war (source rules).
+        equipmentEnabled: false,
         random: this.random,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,

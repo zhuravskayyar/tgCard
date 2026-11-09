@@ -494,3 +494,131 @@
 }
 /* Disabled buttons keep readable words: the plate fades, the ink does not. */
 :root[data-game-theme="light"] body .app-shell .app-content .eq-button:disabled { opacity: 1; filter: grayscale(.55) brightness(.92); }
+
+/* Quick forge and atelier reuse the recipe plate; only the row states are new. */
+.eq-quick-forge, .eq-atelier { display: grid; gap: 8px; justify-items: center; }
+.eq-quick-forge__row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 6px; width: 100%; min-height: 40px; padding: 0 4px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.eq-quick-forge__row .eq-sprite { width: 26px; height: 26px; }
+.eq-quick-forge__off .eq-sprite { opacity: .35; filter: grayscale(1); }
+.eq-quick-forge__off > span { text-decoration: line-through; }
+
+/* Equipment and forge tabs: centred, one column per tab (the book theme sets margin: 0 and two columns). */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen .shop-tabs { width: min(100%, 300px); margin-inline: auto; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+
+/* Item sprites v3: ink + cream; things are tinted by element (cream × colour, ink stays black). */
+.equipment-sprite { isolation: isolate; }
+.equipment-sprite > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.equipment-sprite[class*="equipment-sprite--"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--equipment-element-tint);
+  -webkit-mask: var(--equipment-sprite-mask) center / contain no-repeat;
+  mask: var(--equipment-sprite-mask) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.eq-sprite.equipment-sprite, .equipment-art__sprite.equipment-sprite { position: relative; }
+.eq-frame > .eq-sprite.equipment-sprite, .eq-rack__item .eq-sprite.equipment-sprite, .eq-card__art .eq-sprite.equipment-sprite { position: absolute; }
+.equipment-sprite--fire { --equipment-element-tint: #ec9a68; }
+.equipment-sprite--water { --equipment-element-tint: #86b6dc; }
+.equipment-sprite--earth { --equipment-element-tint: #a9bf72; }
+.equipment-sprite--air { --equipment-element-tint: #c9c3e6; }
+
+/* New sprites carry little padding, so slots no longer enlarge them (150% would crop). */
+.equipment-slot .equipment-art .equipment-art__sprite { width: 82%; height: 82%; }
+
+/* Painted parchment tile behind an item, tinted by rarity. */
+.eq-rack__item, .eq-card__art, .equipment-slot--filled .equipment-art__background {
+  background-image: url("/assets/equipment/rarity-v3/tile.webp") !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  background-color: color-mix(in srgb, var(--eq-rarity, var(--equipment-rarity, #a7a39b)) 62%, #fff) !important;
+  background-blend-mode: multiply;
+}
+
+/* Slot frames: the painted parchment tile replaces the old frames (equipment sheet, forge, profile avatar). */
+.eq-frame {
+  background: url("/assets/equipment/rarity-v3/tile.webp") center / 100% 100% no-repeat;
+  background-color: color-mix(in srgb, var(--eq-rarity, #d9cdb4) 62%, #fff);
+  background-blend-mode: multiply;
+}
+:root[data-game-theme="light"] .app-shell .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot,
+:root[data-game-theme="light"] .app-shell .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot:is(:hover, :focus-visible) {
+  background: url("/assets/equipment/rarity-v3/tile.webp") center / 100% 100% no-repeat;
+  background-color: color-mix(in srgb, var(--equipment-rarity, #d9cdb4) 62%, #fff);
+  background-blend-mode: multiply;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-game-theme="light"] .app-shell .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot > .slotFrame { border: 0; border-radius: 0; box-shadow: none; background: none; }
+:root[data-game-theme="light"] .app-shell .app-content :is(.profile-equipment, .player-profile-equipment) .equipment-slot .equipment-art__background { background: none !important; }
+
+/* Forge mode tabs size to their labels so "Швидка кузня" fits inside the ribbon sprite. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen.forge-screen > .shop-tabs { display: flex; justify-content: center; justify-self: center; gap: 4px; width: auto; max-width: 100%; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen.forge-screen > .shop-tabs .shop-tab { flex: 0 1 86px; width: 86px; min-width: 0; padding-inline: 14px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen.forge-screen > .shop-tabs .shop-tab:nth-child(2) { flex-basis: 128px; width: 128px; }
+
+/* Quick forge rows: icon | name over amounts | price. */
+.eq-quick-forge .eq-chances { gap: 4px; }
+.eq-quick-forge .eq-chances li { display: block; }
+.eq-quick-forge__row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; min-height: 50px; padding: 4px 6px; border-bottom: 1px solid rgb(74 52 27 / 16%); }
+.eq-quick-forge .eq-chances li:last-child .eq-quick-forge__row { border-bottom: 0; }
+.eq-quick-forge__row .eq-sprite { width: 40px; height: 40px; }
+.eq-recipe .eq-quick-forge__text { display: grid; gap: 1px; min-width: 0; line-height: 1.2; }
+.eq-recipe .eq-quick-forge__text strong { overflow: hidden; color: #24140a; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.eq-recipe .eq-quick-forge__text small { color: #6b4e2c; font-size: 12px; }
+.eq-quick-forge__row > b { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.eq-quick-forge__off > .eq-quick-forge__text { text-decoration: line-through; }
+
+/* Rarity steps sit on the light parchment tile now, so the count is dark ink. */
+.eq-step .eq-frame b { color: #24140a; text-shadow: 0 1px 0 rgb(255 248 230 / 70%); }
+
+/* Atelier: storage spans the plate; element choices reuse the small tab ribbons in one row. */
+.eq-quick-forge, .eq-atelier { justify-items: stretch; min-width: 0; text-align: center; }
+.eq-atelier > span, .eq-quick-forge > span { justify-self: center; }
+.eq-atelier > .eq-button, .eq-quick-forge > .eq-button { justify-self: center; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-atelier > .shop-tabs.eq-atelier__elements { display: flex; justify-content: center; gap: 4px; width: 100%; max-width: none; margin: 0; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-atelier > .shop-tabs.eq-atelier__elements .shop-tab { flex: 1 1 0; width: auto; max-width: 96px; min-width: 0; padding-inline: 10px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-atelier > .shop-tabs.eq-atelier__elements .shop-tab > span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Forge layout v2: scene as stage, one tile per rarity, one recipe line. */
+.eq-forge-scene__materials {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  display: grid;
+  grid-template-columns: repeat(var(--eq-columns, 4), minmax(0, 44px));
+  gap: 5px;
+  width: 92%;
+  justify-content: center;
+  translate: -50% 0;
+}
+.eq-forge-scene__materials .eq-material { grid-column: auto !important; filter: drop-shadow(0 3px 4px rgb(20 8 2 / 70%)); }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-forge-scene__materials .eq-material:disabled .eq-frame { filter: none; }
+.eq-forge-scene__materials .eq-frame:empty { opacity: .82; }
+
+.eq-steps { grid-template-columns: repeat(5, minmax(0, 58px)); gap: 7px; }
+.eq-step .eq-frame { display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 7px 2px 6px; filter: saturate(.55) brightness(.92); opacity: .78; transition: transform 120ms ease, opacity 120ms ease; }
+.eq-step--active .eq-frame { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--eq-rarity) 85%, #ffb347)); opacity: 1; transform: translateY(-2px); }
+.eq-step .eq-frame b { margin: 0; color: #24140a; font-size: 19px; line-height: 1; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-step .eq-frame small { padding: 0; border: 0; border-image: none; color: #4a3420; font-size: 11px; line-height: 1; }
+.eq-step--active .eq-frame small { color: #7c1c10 !important; }
+
+.eq-recipe--compact { gap: 6px; padding-block: 2px; }
+.eq-recipe--compact > strong { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; }
+.eq-recipe__price { display: inline-flex; align-items: center; gap: 3px; }
+.eq-steps .eq-step:not(.eq-step--active) .eq-frame { opacity: .6; }
+.eq-step--active .eq-frame { filter: drop-shadow(0 0 1px #5a1a0c) drop-shadow(0 0 6px color-mix(in srgb, var(--eq-rarity) 70%, #ffb347)); transform: translateY(-3px) scale(1.06); }
+.eq-storage > .ribbon-title { margin: 6px auto 0; }
+.eq-steps .eq-step:not(.eq-step--active) .eq-frame { opacity: 1; filter: saturate(.45) brightness(.97); }
+/* Review pass: bigger targets on the anvil, empty counts recede, even rhythm. */
+.eq-forge-scene__materials { grid-template-columns: repeat(var(--eq-columns, 4), minmax(0, 52px)); }
+.eq-forge-scene__materials .eq-frame:empty::after { content: "+"; color: #6b4e2c; font-size: 22px; font-weight: 800; opacity: .55; }
+.eq-steps .eq-step.eq-step--empty:not(.eq-step--active) .eq-frame { opacity: .6; }
+.eq-step .eq-frame b { font-size: 22px; }
+.eq-recipe__price b { font-size: 16px; }
+.eq-storage > .ribbon-title { margin-top: 14px; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-screen.forge-screen { gap: 14px; }

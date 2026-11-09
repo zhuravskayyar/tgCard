@@ -493,7 +493,8 @@ export class CampaignBossService {
         },
         playerModifiers: duel.challenger_snapshot.modifiers,
         enemyModifiers: duel.opponent_snapshot.modifiers,
-        equipmentEnabled: true,
+        // Artifacts work only in the arena, tournament and guild war (source rules).
+        equipmentEnabled: false,
         slotIndex: input.slotIndex,
         turnNumber: duel.turn_number,
       });

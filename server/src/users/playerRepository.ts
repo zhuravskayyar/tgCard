@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { getEquipmentForgeRecipe, getPlayerCollectionModifiers, getRequiredAccountXp, resolveEquipmentForgeResult, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
-import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type EquippedEquipment, type NicknameSkinId, type PlayerCardInstance, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary, type TutorialCompletionResponse } from "@cardastika/shared";
+import { EQUIPMENT_ATELIER_COSTS, getEquipmentForgeRecipe, getEquipmentQuickForgeOptions, getPlayerCollectionModifiers, getRequiredAccountXp, resolveEquipmentAtelierResult, resolveEquipmentForgeResult, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { getDefaultPlayerNickname, NICKNAME_SKIN_IDS, PLAYER_NICKNAME_MAX_LENGTH, type AuthIdentityView, type AuthProvider, type CardElement, type EquippedEquipment, type NicknameSkinId, type PlayerCardInstance, type PlayerCollectionBonus, type PlayerEquipmentInventory, type PlayerSummary, type TutorialCompletionResponse } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import type { VerifiedIdentity } from "../auth/identity.js";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
@@ -579,6 +579,124 @@ export class PlayerRepository {
     } finally {
       client?.release();
     }
+  }
+
+  /** Quick forge: whole batches of identical items, so every result is certain. */
+  async quickForgeEquipment(playerId: string, batches: readonly { itemId: string; count: number }[]) {
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const row = await client.query<{ equipment: unknown }>("SELECT equipment FROM players WHERE id = $1 FOR UPDATE", [playerId]);
+      if (!row.rows[0]) throw new Error("Player does not exist");
+      const spare = await this.lockSpareEquipment(client, playerId, row.rows[0].equipment);
+      const options = new Map(getEquipmentQuickForgeOptions(spare).map((option) => [option.itemId, option]));
+      const requested = new Map<string, number>();
+      for (const { itemId, count } of batches) requested.set(itemId, (requested.get(itemId) ?? 0) + count);
+      let goldCost = 0;
+      const results = new Map<string, number>();
+      for (const [itemId, count] of requested) {
+        const option = options.get(itemId);
+        if (!option || count < 1 || count > option.available) throw new EquipmentForgeError("invalid_forge", "Quick forge batch is not available");
+        goldCost += option.goldCost * count;
+        results.set(option.resultItemId, (results.get(option.resultItemId) ?? 0) + count);
+      }
+      if (requested.size === 0) throw new EquipmentForgeError("invalid_forge", "Quick forge needs at least one batch");
+      const updated = await client.query<{ gold: string | number }>(
+        "UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1 AND gold >= $2 RETURNING gold",
+        [playerId, goldCost],
+      );
+      if (!updated.rows[0]) throw new EquipmentForgeError("not_enough_gold", "Not enough gold");
+      for (const [itemId, count] of requested) await this.changeEquipmentQuantity(client, playerId, itemId, -count * options.get(itemId)!.inputCount);
+      for (const [itemId, count] of results) await this.changeEquipmentQuantity(client, playerId, itemId, count);
+      await client.query("COMMIT");
+      return { gold: Number(updated.rows[0].gold), results: [...results].map(([itemId, count]) => ({ itemId, count })) };
+    } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
+      if (error instanceof EquipmentForgeError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
+    }
+  }
+
+  /** Atelier: one copy of a legendary or mythic thing changes element; an equipped copy stays equipped. */
+  async changeEquipmentElement(playerId: string, itemId: string, element: CardElement) {
+    let client: PoolClient | undefined;
+    try {
+      const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === itemId);
+      if (!definition) throw new EquipmentForgeError("invalid_forge", "Unknown item");
+      let result;
+      try {
+        result = resolveEquipmentAtelierResult(definition, element);
+      } catch (error) {
+        if (error instanceof RangeError) throw new EquipmentForgeError("invalid_forge", error.message);
+        throw error;
+      }
+      const cost = EQUIPMENT_ATELIER_COSTS[definition.rarity]!;
+      client = await this.pool.connect();
+      await client.query("BEGIN");
+      const row = await client.query<{ equipment: unknown; gold: string | number; card_shards: string | number }>(
+        "SELECT equipment, gold, card_shards FROM players WHERE id = $1 FOR UPDATE",
+        [playerId],
+      );
+      if (!row.rows[0]) throw new Error("Player does not exist");
+      const owned = await client.query<{ quantity: number }>(
+        "SELECT quantity FROM player_equipment_inventory WHERE player_id = $1 AND item_id = $2 FOR UPDATE",
+        [playerId, itemId],
+      );
+      const quantity = owned.rows[0]?.quantity ?? 0;
+      if (quantity < 1) throw new EquipmentForgeError("invalid_forge", "Item is not owned");
+      if (Number(row.rows[0].gold) < cost.gold) throw new EquipmentForgeError("not_enough_gold", "Not enough gold");
+      if (Number(row.rows[0].card_shards) < cost.cardShards) throw new EquipmentForgeError("not_enough_shards", "Not enough card shards");
+      const updated = await client.query<{ gold: string | number; card_shards: string | number }>(
+        "UPDATE players SET gold = gold - $2, card_shards = card_shards - $3, updated_at = NOW() WHERE id = $1 RETURNING gold, card_shards",
+        [playerId, cost.gold, cost.cardShards],
+      );
+      await this.changeEquipmentQuantity(client, playerId, itemId, -1);
+      await this.changeEquipmentQuantity(client, playerId, result.id, 1);
+      // The last copy may be the equipped one: the slot follows it into the new element.
+      const equipment = parseStoredEquipment(playerId, row.rows[0].equipment);
+      if (quantity === 1 && equipment.equipped[definition.slot] === itemId) {
+        const equipped = { ...equipment.equipped, [definition.slot]: result.id };
+        await client.query("UPDATE players SET equipment = $2::jsonb, updated_at = NOW() WHERE id = $1", [playerId, serializeEquipment(equipped)]);
+        equipment.equipped = equipped;
+      }
+      await client.query("COMMIT");
+      return { cardShards: Number(updated.rows[0]!.card_shards), equipment: { equipped: equipment.equipped }, gold: Number(updated.rows[0]!.gold), resultItemId: result.id };
+    } catch (error) {
+      await client?.query("ROLLBACK").catch(() => undefined);
+      if (error instanceof EquipmentForgeError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    } finally {
+      client?.release();
+    }
+  }
+
+  /** Locks the storage rows and returns spare copies per item (an equipped copy is never material). */
+  private async lockSpareEquipment(client: PoolClient, playerId: string, storedEquipment: unknown) {
+    const inventory = await client.query<{ item_id: string; quantity: number }>(
+      "SELECT item_id, quantity FROM player_equipment_inventory WHERE player_id = $1 FOR UPDATE",
+      [playerId],
+    );
+    const equippedItemIds = new Set(Object.values(parseStoredEquipment(playerId, storedEquipment).equipped));
+    return new Map(inventory.rows.map(({ item_id, quantity }) => [item_id, quantity - (equippedItemIds.has(item_id) ? 1 : 0)]));
+  }
+
+  private async changeEquipmentQuantity(client: PoolClient, playerId: string, itemId: string, delta: number) {
+    if (delta < 0) {
+      // Quantity stays positive in storage, so the last copies are deleted instead of zeroed.
+      await client.query("UPDATE player_equipment_inventory SET quantity = quantity + $3, updated_at = NOW() WHERE player_id = $1 AND item_id = $2 AND quantity > $4", [playerId, itemId, delta, -delta]);
+      await client.query("DELETE FROM player_equipment_inventory WHERE player_id = $1 AND item_id = $2 AND quantity = $3", [playerId, itemId, -delta]);
+      return;
+    }
+    await client.query(
+      `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (player_id, item_id)
+       DO UPDATE SET quantity = player_equipment_inventory.quantity + $3, updated_at = NOW()`,
+      [playerId, itemId, delta],
+    );
   }
 
   async getEquipmentInventory(playerId: string): Promise<PlayerEquipmentInventory[]> {

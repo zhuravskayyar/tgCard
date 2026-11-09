@@ -92,3 +92,9 @@
 .menu-row--book.menu-row--compact .menu-row__icon { width: 26px; height: 26px; }
 .menu-row--book.menu-row--compact .menu-row__title { font-size: 17px; }
 .menu-row--book.menu-row--compact .menu-row__chevron .app-icon { width: 18px; height: 18px; }
+
+/* Something waits behind the row: a red wax seal, gently pressed again and again. */
+.menu-row__seal { display: block; flex: none; width: 30px; height: auto; transform: rotate(-12deg); filter: drop-shadow(0 2px 2px rgb(40 12 4 / 45%)); animation: menu-row-seal 2.4s ease-in-out infinite; }
+.menu-row--compact .menu-row__seal { width: 26px; }
+@keyframes menu-row-seal { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(-12deg) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .menu-row__seal { animation: none; } }

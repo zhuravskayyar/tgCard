@@ -19,7 +19,15 @@ export function DeckCard({ card, dataTutorialTarget, depthAssets, disabled = fal
   const indicator = upgradeIndicator ?? card.upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements);
   return (
     <button
-      aria-label={`${card.displayName ? `${card.displayName}, ` : ""}power ${card.finalPower}, element ${card.element}, rarity ${card.rarity}${showLevel ? `, level ${card.level}` : ""}${indicator === "element" ? ", доступне безкоштовне підвищення" : indicator === "gold" ? ", золотий рівень — підвищення за золото" : ""}`}
+      // " · " lets the translator handle each part on its own.
+      aria-label={[
+        card.displayName,
+        `сила ${card.finalPower}`,
+        `стихія ${card.element}`,
+        `рідкість ${card.rarity}`,
+        showLevel ? `рівень ${card.level}` : null,
+        indicator === "element" ? "доступне безкоштовне підвищення" : indicator === "gold" ? "золотий рівень — підвищення за золото" : null,
+      ].filter(Boolean).join(" · ")}
       aria-pressed={showLevel ? selected : undefined}
       className={`deck-card deck-card--${card.element} deck-card--${card.rarity}${selected ? " deck-card--selected" : ""}`}
       data-tutorial-target={dataTutorialTarget}

@@ -43,6 +43,8 @@ export interface DuelSideSnapshot {
   name: string;
   photoUrl: string | null;
   startingHp: number;
+  /** Equipped artifact ids, shown to everyone in battles where artifacts work. */
+  artifactItemIds?: string[];
 }
 
 export interface DuelOpponentPreview {

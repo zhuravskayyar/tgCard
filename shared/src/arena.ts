@@ -23,6 +23,8 @@ export interface ArenaCardSlot {
 
 export interface ArenaParticipantView {
   alive: boolean;
+  /** The arena shows every fighter's artifacts and their rarity. */
+  artifactItemIds?: string[];
   cooldownUntil: [string | null, string | null, string | null];
   effectiveDeckPower: number;
   hp: number;
@@ -177,6 +179,7 @@ export interface ArenaCosmetic {
 }
 
 export interface ArenaBattleParticipantSnapshot {
+  artifactItemIds?: string[];
   activeSlots: [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
   cards: DuelCardSnapshot[];
   cooldownUntil: [string | null, string | null, string | null];

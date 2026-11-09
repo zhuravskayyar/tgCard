@@ -1,0 +1,143 @@
+/* Profile mage: element scene, tinted ink sprite, orb and eye glows, particles, tap-to-cast.
+   Only transform and opacity animate; reduced motion keeps a still mage. */
+.profile-mage {
+  --pm-tint: #efe2c4;
+  --pm-glow: #ffd27a;
+  position: absolute;
+  inset: 0 12% 1%;
+  z-index: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.profile-mage--fire { --pm-tint: #f2a676; --pm-glow: #ffae45; }
+.profile-mage--water { --pm-tint: #93c2e4; --pm-glow: #63d1ff; }
+.profile-mage--air { --pm-tint: #d3d6ee; --pm-glow: #eaf6ff; }
+.profile-mage--earth { --pm-tint: #bccb84; --pm-glow: #b9e46f; }
+
+/* The scene covers the sheet's old drawing and fades softly into the parchment. */
+.profile-mage__scene {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  /* Soft oval that melts into the parchment: the sheet under a live mage is blank, so no edge has to hide anything. */
+  -webkit-mask: radial-gradient(closest-side, #000 38%, rgb(0 0 0 / 55%) 66%, transparent 100%);
+  mask: radial-gradient(closest-side, #000 38%, rgb(0 0 0 / 55%) 66%, transparent 100%);
+  animation: pm-scene 18s ease-in-out infinite alternate;
+}
+@keyframes pm-scene { from { transform: scale(1); } to { transform: scale(1.06); } }
+
+.profile-mage__figure {
+  position: absolute;
+  left: 50%;
+  bottom: 3%;
+  height: 80%;
+  aspect-ratio: 2 / 3;
+  translate: -50% 0;
+  animation: pm-breathe 4.2s ease-in-out infinite;
+}
+@keyframes pm-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2%); } }
+
+.profile-mage__pose { position: absolute; inset: 0; isolation: isolate; transition: opacity 160ms ease; }
+.profile-mage__pose > img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--pm-glow) 45%, transparent)); }
+/* Cream × element colour inside the silhouette; black ink stays black. */
+.profile-mage__pose::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--pm-tint);
+  -webkit-mask: var(--pose) center / contain no-repeat;
+  mask: var(--pose) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.profile-mage__pose--cast { opacity: 0; }
+.profile-mage--casting .profile-mage__pose--idle { opacity: 0; }
+.profile-mage--casting .profile-mage__pose--cast { opacity: 1; }
+
+.profile-mage__orb, .profile-mage__eye, .profile-mage__burst { position: absolute; z-index: 1; border-radius: 50%; pointer-events: none; translate: -50% -50%; }
+.profile-mage__orb {
+  width: 22%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, #fff 0 18%, var(--pm-glow) 40%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: pm-orb 2.6s ease-in-out infinite;
+}
+.profile-mage__pose--idle .profile-mage__orb { left: 23.7%; top: 8.2%; }
+.profile-mage__pose--cast .profile-mage__orb { left: 39.4%; top: 6.6%; width: 30%; }
+@keyframes pm-orb { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.1); } }
+
+.profile-mage__eye {
+  width: 2.6%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, #fff 0 30%, var(--pm-glow) 55%, transparent 75%);
+  box-shadow: 0 0 6px 2px color-mix(in srgb, var(--pm-glow) 70%, transparent);
+  animation: pm-blink 5.5s ease-in-out infinite;
+}
+.profile-mage__pose--idle .profile-mage__eye--left { left: 51%; top: 15.1%; }
+.profile-mage__pose--idle .profile-mage__eye--right { left: 54.7%; top: 15.2%; }
+.profile-mage__pose--cast .profile-mage__eye { width: 3.4%; }
+.profile-mage__pose--cast .profile-mage__eye--left { left: 51.4%; top: 22.7%; }
+.profile-mage__pose--cast .profile-mage__eye--right { left: 55.7%; top: 22.8%; }
+@keyframes pm-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+
+/* A ring bursts from the orb when the spell is cast. */
+.profile-mage__burst { left: 39.4%; top: 6.6%; width: 30%; aspect-ratio: 1; border: 3px solid var(--pm-glow); opacity: 0; }
+.profile-mage--casting .profile-mage__burst { animation: pm-burst 700ms ease-out 120ms 1 both; }
+@keyframes pm-burst { from { opacity: .95; transform: scale(.4); } to { opacity: 0; transform: scale(3.2); } }
+
+/* Element particles. */
+.profile-mage__particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; -webkit-mask: radial-gradient(closest-side, #000 70%, transparent 100%); mask: radial-gradient(closest-side, #000 70%, transparent 100%); }
+.profile-mage__particles i {
+  position: absolute;
+  left: calc(6% + var(--p) * 6.6%);
+  bottom: -4%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--pm-glow);
+  box-shadow: 0 0 6px 1px var(--pm-glow);
+  opacity: 0;
+  animation: pm-rise calc(3.2s + var(--p) * .17s) linear infinite;
+  animation-delay: calc(var(--p) * -.41s);
+}
+@keyframes pm-rise {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: .9; }
+  100% { opacity: 0; transform: translate(calc((var(--p) - 7) * 1.5px), -260px); }
+}
+.profile-mage--water .profile-mage__particles i { width: 6px; height: 6px; background: transparent; border: 1px solid var(--pm-glow); box-shadow: none; animation-name: pm-bubble; animation-duration: calc(4.6s + var(--p) * .2s); }
+@keyframes pm-bubble {
+  0% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: .8; }
+  50% { transform: translate(6px, -130px); }
+  100% { opacity: 0; transform: translate(-4px, -260px); }
+}
+.profile-mage--air .profile-mage__particles i { top: calc(10% + var(--p) * 6%); bottom: auto; left: -20%; width: 34px; height: 1.5px; border-radius: 2px; box-shadow: none; animation-name: pm-wind; animation-duration: calc(2.6s + var(--p) * .15s); }
+@keyframes pm-wind {
+  0% { opacity: 0; transform: translateX(0); }
+  20% { opacity: .75; }
+  100% { opacity: 0; transform: translateX(240px); }
+}
+.profile-mage--earth .profile-mage__particles i { top: -4%; bottom: auto; width: 5px; height: 3px; border-radius: 1px 4px; background: #c9b072; box-shadow: none; animation-name: pm-fall; animation-duration: calc(5.4s + var(--p) * .25s); }
+@keyframes pm-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+  15% { opacity: .85; }
+  100% { opacity: 0; transform: translate(calc((var(--p) - 7) * 2px), 260px) rotate(320deg); }
+}
+.profile-mage--casting .profile-mage__particles i { animation-duration: 1.1s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-mage__scene, .profile-mage__figure, .profile-mage__orb, .profile-mage__eye, .profile-mage__particles i, .profile-mage--casting .profile-mage__burst { animation: none; }
+  .profile-mage__particles { display: none; }
+}
+
+/* On the sheet the slot columns stay above the mage. */
+.eq-doll > .eq-doll__column { z-index: 1; }
+
+/* A live mage stands on a blank sheet instead of the drawn one. */
+:root[data-game-theme="light"] body .app-shell .app-content .eq-doll--live { background-image: url("/assets/ui/equipment/mage-sheet-blank-v1.webp"); }

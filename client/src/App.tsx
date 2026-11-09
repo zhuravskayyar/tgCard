@@ -32,7 +32,7 @@ import { GuildScreen } from "./screens/GuildScreen";
 import { getRawTelegramInitData, getTelegramInitData, initializeTelegram } from "./telegram";
 import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer, PlayerBootstrapError } from "./telegram/authenticatePlayer";
 import { completeTutorial } from "./telegram/tutorial";
-import { forgePlayerEquipment, savePlayerEquipment } from "./telegram/equipment";
+import { changePlayerEquipmentElement, forgePlayerEquipment, quickForgePlayerEquipment, savePlayerEquipment } from "./telegram/equipment";
 import type { BottomNavItem } from "./components/BottomNav";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import { DailyLoginModal } from "./components/DailyLoginModal";
@@ -41,7 +41,7 @@ import { useMail } from "./hooks/useMail";
 import { useDailyLoginReward } from "./hooks/useDailyLoginReward";
 import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
 import { useTutorial } from "./hooks/useTutorial";
-import { getPlayerDisplayName, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
+import { getPlayerDisplayName, type CardElement, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
 import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
@@ -125,6 +125,11 @@ export function App() {
     const value = Number(new URLSearchParams(window.location.search).get("location"));
     return Number.isInteger(value) && value >= 1 && value <= 10 ? value : null;
   });
+
+  // The first-win reveal belongs to the duel screen; leaving it drops the reveal (the card is already granted).
+  useEffect(() => {
+    if (screen !== "duel") setTutorialRewardCard(null);
+  }, [screen]);
 
   const dailyLoginData = dailyLogin.state.status === "ready" ? dailyLogin.state.data : null;
   const dailyLoginClaimed = dailyLoginData !== null && dailyLoginClaimedDate === dailyLoginData.claimDate;
@@ -300,6 +305,26 @@ export function App() {
     const result = await forgePlayerEquipment(credential, itemIds);
     playerEquipmentState.setInventory(result.inventory);
     updateBalance({ gold: result.gold });
+    return result;
+  }
+
+  async function handleEquipmentQuickForge(batches: readonly { itemId: string; count: number }[]) {
+    const credential = getTelegramInitData();
+    if (!credential) throw new Error("forge_failed");
+    const result = await quickForgePlayerEquipment(credential, batches);
+    playerEquipmentState.setInventory(result.inventory);
+    updateBalance({ gold: result.gold });
+    return result;
+  }
+
+  async function handleEquipmentElementChange(itemId: string, element: CardElement) {
+    const credential = getTelegramInitData();
+    if (!credential) throw new Error("atelier_failed");
+    const result = await changePlayerEquipmentElement(credential, itemId, element);
+    playerEquipmentState.setInventory(result.inventory);
+    const nextEquipment = reconcileEquipment(result.equipment.equipped, result.inventory);
+    setEquipment(nextEquipment);
+    updateBalance({ cardShards: result.cardShards, equipment: { equipped: nextEquipment }, gold: result.gold });
     return result;
   }
 
@@ -649,7 +674,7 @@ export function App() {
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
-      {tutorialRewardCard ? (
+      {screen === "duel" && tutorialRewardCard ? (
         <ShopRewardReveal
           continueLabel="До завдань"
           onContinue={() => { setTutorialRewardCard(null); openTrials(); }}
@@ -699,7 +724,7 @@ export function App() {
       {screen === "settings" ? <SettingsScreen onBack={goHome} onLogout={retry} onReplayTutorial={() => { tutorial.replay(); goHome(); }} playerSummaryState={playerSummaryState} showTutorialReplay={tutorial.eligible} /> : null}
       {screen === "inventory" ? <InventoryScreen nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"} onBack={() => navigateFromBottom("profile")} onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })} /> : null}
       {screen === "equipment" ? <EquipmentScreen equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} saveError={equipmentSaveError} savePending={equipmentSavePending} /> : null}
-      {screen === "forge" ? <ForgeScreen equipped={equipment} gold={playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0} onForge={handleEquipmentForge} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={openEquipment} /> : null}
+      {screen === "forge" ? <ForgeScreen cardShards={playerSummaryState.status === "ready" ? playerSummaryState.data.cardShards ?? 0 : 0} equipped={equipment} gold={playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0} onChangeElement={handleEquipmentElementChange} onForge={handleEquipmentForge} onQuickForge={handleEquipmentQuickForge} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={openEquipment} /> : null}
       {screen === "mail" ? <MailScreen changeNickname={updateNickname} claim={claimMail} currentNickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : ""} onBack={() => mailReturnScreen === "profile" ? navigateFromBottom("profile") : goHome()} onBalanceChange={updateBalance} onRetry={retryMail} resolveAction={resolveMailAction} state={mailState} /> : null}
       {screen === "leagues" ? <LeaderboardScreen onBack={() => navigateFromBottom("profile")} onOpenPlayerProfile={openPlayerProfile} playerSummaryState={playerSummaryState} /> : null}
       {screen === "player-profile" && playerProfileId ? <PlayerProfileScreen onBack={() => { setScreen("leagues"); updatePath("/leagues"); }} playerId={playerProfileId} /> : null}
@@ -757,7 +782,7 @@ export function App() {
       {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenDeck={() => openDeck("home")} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
       {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={(location) => { setCampaignBossLocation(location); setScreen("campaign-boss"); updatePath(`/campaign/boss?location=${location}`); }} /> : null}
       {screen === "campaign-boss" ? <CampaignBossScreen locationNumber={campaignBossLocation} onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} onOpenTrials={openTrials} onOpenTasks={openTasks} /> : null}
-      {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} onOpenCampaign={openCampaign} /> : null}
+      {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} /> : null}
       {screen === "save-profile" ? <SaveProfileScreen onBack={openTrials} onBalanceChange={updateBalance} /> : null}
     </AppShell>
     </>

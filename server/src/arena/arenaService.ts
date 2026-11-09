@@ -56,6 +56,7 @@ import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
 import { getBotCardArtAvatarUrl } from "../duel/botOpponent.js";
+import { assertEquipmentStorageSpace } from "../equipment/equipmentChestService.js";
 import { getArenaCosmetic, getArenaShopItem, ARENA_COSMETICS, ARENA_SHOP_ITEMS } from "./arenaCatalog.js";
 
 const MAX_ARENA_LOG_ENTRIES = 7;
@@ -189,6 +190,7 @@ function createParticipant(snapshot: DuelSideSnapshot, id: string, isBot: boolea
   const pool = initializeCyclicCardPool(snapshot.cards, random);
   const maxHp = getStartingHp(snapshot.effectiveDeckPower * 3, snapshot.modifiers.battleHpPct);
   return {
+    ...(snapshot.artifactItemIds?.length ? { artifactItemIds: [...snapshot.artifactItemIds] } : {}),
     activeSlots: pool.activeCards,
     cards: snapshot.cards,
     cooldownUntil: [null, null, null],
@@ -478,6 +480,35 @@ function advanceCooldowns(state: ArenaState, now: number, random: RandomSource) 
   return changed;
 }
 
+function withoutArtifacts(modifiers: ArenaBattleParticipantSnapshot["modifiers"]): ArenaBattleParticipantSnapshot["modifiers"] {
+  const { equipment: _equipment, ...rest } = modifiers;
+  return rest;
+}
+
+/** At zero HP the amulet revives first; on the next death the doll curses the killer. Each works once. */
+function applyDeathArtifacts(fallen: ArenaBattleParticipantSnapshot, killer: ArenaBattleParticipantSnapshot) {
+  const equipment = fallen.modifiers.equipment;
+  if (fallen.hp > 0 || !equipment) return;
+  const state = fallen.modifiers.equipmentState ?? { reviveUsed: false, voodooUsed: false };
+  if (!state.reviveUsed && equipment.reviveHpPct > 0) {
+    fallen.hp = Math.max(1, Math.round(fallen.maxHp * equipment.reviveHpPct / 100));
+    state.reviveUsed = true;
+  } else if (!state.voodooUsed && equipment.voodooHpReductionPct > 0) {
+    killer.hp = Math.max(0, killer.hp - Math.round(killer.maxHp * equipment.voodooHpReductionPct / 100));
+    state.voodooUsed = true;
+  } else {
+    return;
+  }
+  fallen.modifiers.equipmentState = state;
+}
+
+/** A curse can kill its target, so the other side's artifacts get their turn too. */
+function settleDeathArtifacts(first: ArenaBattleParticipantSnapshot, second: ArenaBattleParticipantSnapshot) {
+  applyDeathArtifacts(first, second);
+  applyDeathArtifacts(second, first);
+  applyDeathArtifacts(first, second);
+}
+
 function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slotIndex: 0 | 1 | 2, now: number) {
   const target = normalizeTarget(state, attacker);
   if (!target) return false;
@@ -494,26 +525,18 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   target.hp = Math.max(0, target.hp - result.damage);
   const reflectedDamage = Math.round(attackerCard.finalPower * (target.modifiers.equipment?.damageReflectionPct ?? 0) / 100);
   attacker.hp = Math.max(0, attacker.hp - reflectedDamage);
-  const targetEquipment = target.modifiers.equipment;
-  const targetState = target.modifiers.equipmentState ?? { reviveUsed: false, voodooUsed: false };
-  if (target.hp === 0 && targetEquipment && !targetState.reviveUsed && targetEquipment.reviveHpPct > 0) {
-    target.hp = Math.max(1, Math.round(target.maxHp * targetEquipment.reviveHpPct / 100));
-    targetState.reviveUsed = true;
-    target.modifiers.equipmentState = targetState;
-  } else if (target.hp === 0 && targetEquipment && !targetState.voodooUsed && targetEquipment.voodooHpReductionPct > 0) {
-    attacker.hp = Math.max(0, attacker.hp - Math.round(attacker.maxHp * targetEquipment.voodooHpReductionPct / 100));
-    targetState.voodooUsed = true;
-    target.modifiers.equipmentState = targetState;
-  }
+  settleDeathArtifacts(target, attacker);
   // A strike is an exchange, as in a duel: the opposing card answers in the same lane.
+  // The answer ignores artifacts: the spear does not raise it and the shield does not soften it.
   const attackerHpBeforeCounter = attacker.hp;
   const counter = attackerHpBeforeCounter > 0 ? calculateArenaDamage({
     attacker: targetCard,
-    attackerModifiers: target.modifiers,
+    attackerModifiers: withoutArtifacts(target.modifiers),
     defender: attackerCard,
-    defenderModifiers: attacker.modifiers,
+    defenderModifiers: withoutArtifacts(attacker.modifiers),
   }).damage : 0;
   attacker.hp = Math.max(0, attacker.hp - counter);
+  settleDeathArtifacts(attacker, target);
   target.totalDamageDealt += counter;
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
@@ -737,6 +760,7 @@ function toView(row: ArenaRow, playerId: string, playerGold: number, arenaTokens
       moves: participant.moves ?? 0,
       name: participant.name,
       photoUrl: participant.photoUrl,
+      ...(participant.artifactItemIds?.length ? { artifactItemIds: participant.artifactItemIds } : {}),
       ...(participant.placement ? { placement: participant.placement } : {}),
       totalDamageDealt: participant.totalDamageDealt,
     })),
@@ -1217,6 +1241,7 @@ export class ArenaService {
         await recalculateAutomaticDeck(client, playerId);
       } else if (offer.rewardType === "equipment") {
         if (!offer.equipmentRarity) throw new ArenaShopOfferMissingError();
+        await assertEquipmentStorageSpace(client, playerId);
         const definition = selectRandomArenaEquipment(offer.equipmentRarity);
         await client.query(
           `INSERT INTO player_equipment_inventory (player_id, item_id, quantity)

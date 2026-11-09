@@ -4,23 +4,35 @@
   --hud-height: max(82px, calc(var(--hud-frame-width) / 4.9));
   --hud-avatar-size: clamp(40px, calc(var(--hud-frame-width) * .115), 48px);
   --navigation-height: var(--home-navigation-height);
+  /* The 841x1870 book page spans the column width, so its frame is a share of that width
+     (resolved against the shell when used as content padding): ruled lines sit 63px in from
+     each side, and the bottom corner ornaments reach 135px up from the page bottom. */
+  --page-frame-x: calc(100% * 63 / 841 + 4px);
+  --page-frame-bottom: calc(100% * 135 / 841);
   min-height: 0;
   background: var(--home-paper);
 }
 
+/* The 9:20 book page is narrower than phone columns, so it fits their width unstretched with
+   spine and gilded edge visible; it sits on the navigation and its top tucks under the HUD. */
 :root .app-shell::before {
   inset: 0 0 calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px));
   z-index: 0;
   opacity: 1;
-  background: var(--sprite-page) center top / cover no-repeat;
+  background: var(--sprite-page) center bottom / cover no-repeat;
 }
 
 :root .app-shell::after { opacity: 0; }
 
+/* Every other screen also keeps its content inside the ruled frame of the page. */
+:root .app-shell .app-content.app-content:not(:has(.home-screen)) {
+  padding-inline: var(--page-frame-x);
+}
+
 :root .app-content:has(.home-screen) {
   padding: calc(var(--hud-height) + env(safe-area-inset-top, 0px) + var(--home-content-block-inset))
-    var(--home-content-inset)
-    calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + var(--home-content-block-inset));
+    var(--page-frame-x)
+    calc(var(--navigation-height) + env(safe-area-inset-bottom, 0px) + var(--page-frame-bottom));
   overflow-x: hidden;
   overflow-y: auto;
   background: transparent;
@@ -28,6 +40,12 @@
 
 /* The foreground grid and the unwarped HUD sprite share the same dimensions. */
 :root .app-shell .top-hud {
+  /* Dark leather HUD: its ink is cream. */
+  --home-ink: #f3e2bd;
+  --home-ink-muted: #dcc59b;
+  /* One source pixel of the 1988x330 leather clasp plate at the HUD height. Clasp ring opening:
+     centre (267.5, 161), clear diameter ~237; ring outer edge ends at x 433; brass caps in the last 130px. */
+  --hud-px: calc(var(--hud-height) / 330);
   --text-primary: var(--home-ink);
   --text-secondary: var(--home-ink-muted);
   position: fixed;
@@ -40,13 +58,19 @@
   box-shadow: none;
 }
 
+/* Sliced only horizontally: clasp and brass caps keep their shape, the plain leather between them
+   takes up the remaining width, and the height is never stretched. */
 :root .app-shell .top-hud::before {
   position: absolute;
-  inset: env(safe-area-inset-top, 0px) 0 0;
+  inset: env(safe-area-inset-top, 0px) calc((100% - var(--hud-frame-width)) / 2) 0;
   z-index: 0;
+  box-sizing: border-box;
   content: "";
   pointer-events: none;
-  background: var(--sprite-hud) center / var(--hud-frame-width) 100% no-repeat;
+  background: none;
+  border-style: solid;
+  border-width: 0 calc(var(--hud-px) * 130) 0 calc(var(--hud-px) * 470);
+  border-image: var(--sprite-hud) 0 130 0 470 fill / 1 / 0 stretch;
   filter: var(--home-frame-shadow);
 }
 
@@ -55,13 +79,13 @@
   z-index: 1;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) min(200px, max(calc(var(--hud-frame-width) * .46), 152px));
+  grid-template-columns: minmax(0, 1fr) min(190px, max(calc(var(--hud-frame-width) * .4), 140px));
   align-items: center;
   gap: var(--home-hud-gap);
   width: var(--hud-frame-width);
   height: var(--hud-height);
   margin-inline: auto;
-  padding: var(--space-2) calc(var(--hud-frame-width) * .068) calc(var(--space-2) + 12px) var(--home-hud-inset-start);
+  padding: var(--space-2) calc(var(--hud-px) * 120) calc(var(--space-2) + 12px) calc(var(--hud-px) * 450);
   min-width: 0;
 }
 
@@ -70,11 +94,11 @@
 }
 
 :root .app-shell .top-hud__player {
-  position: relative;
+  position: static;
   top: auto;
   left: auto;
   display: grid;
-  grid-template-columns: var(--hud-avatar-size) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   width: auto;
   min-width: 0;
   align-items: center;
@@ -89,36 +113,40 @@
   background: transparent;
 }
 
+/* The portrait sits in the clasp ring's opening, a hair inside its rim. */
 :root .app-shell .player-avatar {
-  position: relative;
-  width: var(--hud-avatar-size);
-  height: var(--hud-avatar-size);
+  position: absolute;
+  top: calc(var(--hud-px) * 48);
+  left: calc(var(--hud-px) * 154.5);
+  width: calc(var(--hud-px) * 226);
+  height: calc(var(--hud-px) * 226);
   box-sizing: border-box;
-  padding: 14%;
-  overflow: visible;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 50%;
   color: var(--home-ink);
   background: none;
   border: 0;
-  border-radius: 0;
-  box-shadow: none;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 55%);
   font-size: 17px;
   font-family: var(--font-display);
   font-weight: 700;
   text-shadow: none;
 }
 
-/* The photo or initials fill the wooden frame's opening; the frame sprite sits above them. */
+/* The photo or initials fill the ring's opening; the ring itself is part of the HUD plate. */
 :root .app-shell .player-avatar > :is(img, span:not(.player-avatar__frame), .app-icon) {
   width: 100%;
   height: 100%;
-  border-radius: 2px;
+  border-radius: 50%;
+  object-fit: cover;
   background: linear-gradient(145deg, rgb(247 232 198), rgb(190 159 111));
 }
 :root .app-shell .player-avatar__frame {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: url("/assets/ui/home/hud-avatar-frame-v2.webp") center / 100% 100% no-repeat;
+  display: none;
   pointer-events: none;
 }
 
@@ -154,6 +182,12 @@
 :root .app-shell .top-hud .nickname-skin--standard .nickname { color: var(--home-ink) !important; }
 
 :root .app-shell .player-deck-power {
+  /* Light engraved metal for the numerals on dark leather (same set as the currency pills). */
+  --number-metal-top: #fff1c9;
+  --number-metal-highlight: #fffaf0;
+  --number-metal-mid: #f1dcaa;
+  --number-metal-low: #dcb878;
+  --number-metal-outline: #0d0a07;
   display: flex;
   align-items: center;
   width: fit-content;
@@ -294,13 +328,114 @@
   position: absolute;
   z-index: 2;
   bottom: 11%;
-  left: 50%;
-  width: calc(var(--hud-frame-width) * .66);
+  left: calc(50% - var(--hud-frame-width) / 2 + var(--hud-px) * 450);
+  width: calc(var(--hud-frame-width) - var(--hud-px) * 580);
   height: auto;
-  transform: translateX(-50%);
   pointer-events: none;
 }
 :root .app-shell .top-hud__xp-track { height: auto; overflow: visible; background: transparent; border-radius: 0; }
+/* Light-backed bits inside the leather HUD keep dark ink; dark ones get cream. */
+:root .app-shell .top-hud .player-avatar > :is(span:not(.player-avatar__frame):not(.skeleton), .app-icon) { color: #3a2614; }
+:root .app-shell .top-hud .player-avatar .skeleton--avatar { background: #3b2516; }
+:root .app-shell .top-hud .player-retry { color: var(--home-ink); border-color: rgb(243 226 189 / 45%); }
+/* HUD experience flask (1730x144). The first share of a level fills the glass bulb (circle centre
+   70,72; liquid spans y 9-135 of its 144px box) from the bottom up, the rest runs along the tube
+   channel between the brass collars (x 170-1570, y 35-111). Collars, bands and cork sit on top. */
+.experience-flask {
+  --flask-end: calc(100cqw * 76 / 1730 * 36 / 70);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1730 / 144;
+  container-type: inline-size;
+  background: url("/assets/ui/home/hud-xp-flask-v1.webp") center / 100% 100% no-repeat;
+}
+.experience-flask__channel {
+  position: absolute;
+  top: calc(100% * 35 / 144);
+  right: calc(100% * 160 / 1730);
+  left: calc(100% * 170 / 1730);
+  height: calc(100% * 76 / 144);
+}
+.experience-flask__bulb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% * 144 / 1730);
+  height: 100%;
+  opacity: .92;
+  background: url("/assets/ui/home/hud-xp-bulb-amber-v1.webp") center / 100% 100% no-repeat;
+  clip-path: inset(calc((9 + 126 * (1 - var(--bulb-fill))) * 100% / 144) 0 0 0);
+}
+.experience-flask__bulb--empty { opacity: 0; }
+/* The liquid's left rounded end hides under the left collar, so it emerges from it. */
+.experience-flask__liquid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--flask-end));
+  box-sizing: border-box;
+  width: calc(var(--flask-end) * 2 + (100% - var(--flask-end)) * var(--tube-fill));
+  border-style: solid;
+  border-width: 0 var(--flask-end);
+  border-image: url("/assets/ui/home/hud-xp-liquid-amber-v1.webp") 0 36 fill / 1 / 0 stretch;
+}
+.experience-flask__liquid--empty { opacity: 0; }
+.experience-flask__brass {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/home/hud-xp-flask-brass-v1.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+/* Passive pour: a seamless amber tile drifts through the liquid and the liquid breathes softly.
+   The tile is 600x70 at the channel height, so one loop moves exactly one tile width. */
+.experience-flask__flow {
+  --flow-tile: calc(100cqw * 76 / 1730 * 600 / 70);
+  position: absolute;
+  overflow: hidden;
+  opacity: .75;
+  mix-blend-mode: overlay;
+  background: url("/assets/ui/home/hud-xp-flow-amber-v1.webp") 0 50% / auto calc(100cqw * 76 / 1730) repeat-x;
+  pointer-events: none;
+  animation: experience-flask-pour 5.5s linear infinite;
+}
+.experience-flask__flow--tube {
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--flask-end));
+  width: calc(var(--flask-end) * 2 + (100% - var(--flask-end)) * var(--tube-fill));
+  border-radius: 999px;
+}
+/* Inside the bulb the flow slowly swirls the other way, clipped to the liquid's circle. */
+.experience-flask__flow--bulb {
+  inset: 0;
+  clip-path: circle(43.75% at 48.6% 50%);
+  --flow-tile: calc(100cqw * 144 / 1730 * .6 * 600 / 70);
+  background-size: auto 60%;
+  animation-duration: 8s;
+  animation-direction: reverse;
+}
+.experience-flask__liquid:not(.experience-flask__liquid--empty),
+.experience-flask__bulb:not(.experience-flask__bulb--empty) { animation: experience-flask-breathe 3.6s ease-in-out infinite; }
+@keyframes experience-flask-pour { from { background-position-x: 0; } to { background-position-x: calc(-1 * var(--flow-tile)); } }
+@keyframes experience-flask-breathe { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12) saturate(1.08); } }
+.experience-flask__tip { position: absolute; top: 50%; width: 0; height: 0; pointer-events: none; }
+.experience-flask__flash {
+  position: absolute;
+  inset: -40% 6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 214 120 / 85%), rgb(255 190 80 / 0%));
+  opacity: 0;
+  pointer-events: none;
+  animation: experience-flask-flash 900ms ease-out;
+}
+@keyframes experience-flask-flash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .experience-flask__flash,
+  .experience-flask__flow,
+  .experience-flask__liquid,
+  .experience-flask__bulb { animation: none !important; }
+}
 
 /* Experience vine: growth is scripted, only the glow pulse and tip spark loop in CSS. */
 .experience-vine { position: relative; display: block; width: 100%; aspect-ratio: 520 / 42; overflow: visible; }
@@ -367,7 +502,7 @@
   --home-mode-padding-bottom: 8px;
   --home-mode-padding-inline: 6px;
   height: auto;
-  min-height: calc(100dvh - var(--hud-height) - var(--navigation-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--home-content-block-inset));
+  min-height: 0;
   container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) var(--home-control-size);
   grid-template-rows: var(--home-header-height) auto;
@@ -376,13 +511,27 @@
   padding: 0;
   background: transparent;
 }
-.home-screen:not(:has(.guided-route)) { --home-header-height: 52px; }
+/* Without a guided route the menu starts right under the HUD; the settings hanger hangs from it. */
+.home-screen:not(:has(.guided-route)) {
+  position: relative;
+  grid-template-rows: auto;
+  grid-template-areas: "content content";
+  align-content: start;
+}
+.home-screen:not(:has(.guided-route)) .home-screen__toolbar {
+  position: absolute;
+  z-index: 3;
+  top: calc(-1 * var(--home-content-block-inset));
+  right: 0;
+}
+/* The whole hanging art (rope plate + gear) is the tap target, not just its top half. */
+.home-screen:not(:has(.guided-route)) .home-settings-button { height: 80px; min-height: 80px; flex-basis: auto; }
 .home-screen__toolbar { grid-area: tools; min-height: 0; padding: 0; align-items: flex-start; justify-content: center; }
 .home-screen__content {
   grid-area: content;
   display: grid;
   grid-template-rows: auto auto;
-  align-content: center;
+  align-content: start;
   gap: var(--home-section-gap);
   min-height: 0;
 }
@@ -416,7 +565,7 @@
 .home-screen .home-settings-button:hover { border-color: var(--home-nav-active); }
 
 .home-screen .mode-grid {
-  --home-mode-size: min(112px, calc((min(100cqw, 400px) - 2 * var(--home-mode-gap)) / 3));
+  --home-mode-size: calc((min(100cqw, 380px) - 2 * var(--home-mode-gap)) / 3);
   --mode-icon-box: min(var(--home-mode-icon-box), calc(var(--home-mode-size) * var(--home-mode-icon-ratio)));
   --mode-title-font: clamp(13px, calc(var(--home-mode-size) * .145), 16px);
   --mode-state-font: 11px;

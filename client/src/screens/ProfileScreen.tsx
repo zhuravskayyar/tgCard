@@ -1,5 +1,5 @@
 import { ScreenHeading } from "../components/ScreenHeading";
-import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDominantDeckElement, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import type { EquippedEquipment } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -78,6 +78,8 @@ export function ProfileScreen({
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const displayName = player ? getPlayerDisplayName(player) : "Гравець";
   const deckPower = deckState.status === "ready" ? deckState.deck.totalPower : null;
+  // The mage takes the element the deck leans on; fire until the deck is known.
+  const mageElement = deckState.status === "ready" ? getDominantDeckElement(deckState.deck.cards) ?? "fire" : "fire";
   const experienceRewardPct = player?.experienceRewardPct ?? 0;
   const collectionBonuses = player?.collectionBonuses ?? [];
   const collectionExperienceRewardPct = collectionBonuses.reduce(
@@ -120,7 +122,7 @@ export function ProfileScreen({
             <div className="pf-identity__guild"><GuildMembershipRow level={player.level} onOpen={onOpenGuild} /></div>
           </section>
 
-          <EquipmentDoll equipped={equipment} onSlot={() => onOpenEquipment()} />
+          <EquipmentDoll equipped={equipment} mageElement={mageElement} onSlot={() => onOpenEquipment()} />
 
           <div className="pf-power">
             <span>Сила колоди</span>

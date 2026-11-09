@@ -79,6 +79,30 @@ export interface PlayerEquipmentForgeResponse {
   resultItemId: string;
 }
 
+export interface PlayerEquipmentQuickForgeRequest {
+  /** Whole batches per material item; each batch becomes one item of the next rarity. */
+  batches: { itemId: string; count: number }[];
+}
+
+export interface PlayerEquipmentQuickForgeResponse {
+  gold: number;
+  inventory: PlayerEquipmentInventory[];
+  results: { itemId: string; count: number }[];
+}
+
+export interface PlayerEquipmentAtelierRequest {
+  element: CardElement;
+  itemId: string;
+}
+
+export interface PlayerEquipmentAtelierResponse {
+  cardShards: number;
+  equipment: PublicPlayerEquipment;
+  gold: number;
+  inventory: PlayerEquipmentInventory[];
+  resultItemId: string;
+}
+
 export interface EquipmentChestOffer {
   id: string;
   name: string;

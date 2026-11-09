@@ -281,6 +281,10 @@ export {
   type EquipmentChestOpenResponse,
   type PlayerEquipmentForgeRequest,
   type PlayerEquipmentForgeResponse,
+  type PlayerEquipmentQuickForgeRequest,
+  type PlayerEquipmentQuickForgeResponse,
+  type PlayerEquipmentAtelierRequest,
+  type PlayerEquipmentAtelierResponse,
   type PlayerEquipmentResponse,
   type PlayerEquipmentUpdateRequest,
 } from "./equipment.js";

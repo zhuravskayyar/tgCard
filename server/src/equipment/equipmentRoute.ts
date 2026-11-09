@@ -1,6 +1,8 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import {
   type PlayerEquipmentForgeResponse,
+  type PlayerEquipmentAtelierResponse,
+  type PlayerEquipmentQuickForgeResponse,
   type PlayerEquipmentResponse,
   type PlayerEquipmentUpdateRequest,
 } from "@cardastika/shared";
@@ -35,11 +37,11 @@ function sendEquipmentError(response: ServerResponse, error: unknown, headers: O
     return;
   }
   if (error instanceof EquipmentForgeError) {
-    sendJson(response, error.code === "not_enough_gold" ? 409 : 400, { error: { code: error.code, message: error.message } }, headers);
+    sendJson(response, error.code === "invalid_forge" ? 400 : 409, { error: { code: error.code, message: error.message } }, headers);
     return;
   }
   if (error instanceof EquipmentChestError) {
-    sendJson(response, error.code === "not_enough_silver" ? 409 : 404, { error: { code: error.code, message: error.message } }, headers);
+    sendJson(response, error.code === "chest_not_found" ? 404 : 409, { error: { code: error.code, message: error.message } }, headers);
     return;
   }
   if (error instanceof PlayerPersistenceError) {
@@ -105,6 +107,59 @@ export async function handlePlayerEquipmentForge(
       ...forged,
       inventory: await dependencies.players.getEquipmentInventory(player.id),
     };
+    sendJson(response, 200, result, headers);
+  } catch (error) {
+    sendEquipmentError(response, error, headers);
+  }
+}
+
+const ELEMENTS = new Set(["fire", "water", "earth", "air"]);
+
+export async function handlePlayerEquipmentQuickForge(
+  request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: Omit<EquipmentRouteDependencies, "players"> & { players: Pick<PlayerRepository, "findOrCreateFromTelegram" | "quickForgeEquipment" | "getEquipmentInventory"> },
+) {
+  const headers = dependencies.responseHeaders ?? {};
+  try {
+    const { player } = await authenticateRoutePlayer(request, dependencies);
+    if (request.method !== "POST") {
+      sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, headers);
+      return;
+    }
+    const body = await readJsonBody(request) as { batches?: unknown } | null;
+    const batches = body?.batches;
+    if (!Array.isArray(batches) || batches.length === 0 || batches.length > 200 || batches.some((batch) => (
+      !batch || typeof batch !== "object" || typeof (batch as { itemId?: unknown }).itemId !== "string" || !Number.isInteger((batch as { count?: unknown }).count)
+    ))) {
+      throw new HttpRequestError(400, "invalid_forge", "batches is required");
+    }
+    const forged = await dependencies.players.quickForgeEquipment(player.id, batches as { itemId: string; count: number }[]);
+    const result: PlayerEquipmentQuickForgeResponse = { ...forged, inventory: await dependencies.players.getEquipmentInventory(player.id) };
+    sendJson(response, 200, result, headers);
+  } catch (error) {
+    sendEquipmentError(response, error, headers);
+  }
+}
+
+export async function handlePlayerEquipmentAtelier(
+  request: IncomingMessage,
+  response: ServerResponse,
+  dependencies: Omit<EquipmentRouteDependencies, "players"> & { players: Pick<PlayerRepository, "findOrCreateFromTelegram" | "changeEquipmentElement" | "getEquipmentInventory"> },
+) {
+  const headers = dependencies.responseHeaders ?? {};
+  try {
+    const { player } = await authenticateRoutePlayer(request, dependencies);
+    if (request.method !== "POST") {
+      sendJson(response, 405, { error: { code: "method_not_allowed", message: "Method not allowed" } }, headers);
+      return;
+    }
+    const body = await readJsonBody(request) as { itemId?: unknown; element?: unknown } | null;
+    if (typeof body?.itemId !== "string" || typeof body.element !== "string" || !ELEMENTS.has(body.element)) {
+      throw new HttpRequestError(400, "invalid_forge", "itemId and element are required");
+    }
+    const changed = await dependencies.players.changeEquipmentElement(player.id, body.itemId, body.element as "fire" | "water" | "earth" | "air");
+    const result: PlayerEquipmentAtelierResponse = { ...changed, inventory: await dependencies.players.getEquipmentInventory(player.id) };
     sendJson(response, 200, result, headers);
   } catch (error) {
     sendEquipmentError(response, error, headers);
