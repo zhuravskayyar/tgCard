@@ -14,7 +14,7 @@ import {
 const NICKNAME_SKIN_PRICE = 250 as const;
 
 interface PlayerRow {
-  arena_tokens: string | number;
+  gold: string | number;
   equipped_nickname_skin: string | null;
   id: string;
 }
@@ -50,7 +50,7 @@ function toOwnedSkinIds(rows: readonly CosmeticRow[]) {
 
 async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, lock = false) {
   const result = await client.query<PlayerRow>(
-    `SELECT id, arena_tokens, equipped_nickname_skin FROM players WHERE id = $1${lock ? " FOR UPDATE" : ""}`,
+    `SELECT id, gold, equipped_nickname_skin FROM players WHERE id = $1${lock ? " FOR UPDATE" : ""}`,
     [playerId],
   );
   return result.rows[0] ?? null;
@@ -69,11 +69,11 @@ async function loadOwnedSkinRows(client: Pick<PoolClient, "query">, playerId: st
   return result.rows;
 }
 
-function toOffer(tokenBalance: number, ownedSkinIds: readonly NicknameSkinId[], equippedSkinId: NicknameSkinId | null): NicknameSkinShopOffer {
+function toOffer(goldBalance: number, ownedSkinIds: readonly NicknameSkinId[], equippedSkinId: NicknameSkinId | null): NicknameSkinShopOffer {
   return {
-    canAfford: tokenBalance >= NICKNAME_SKIN_PRICE,
+    canAfford: goldBalance >= NICKNAME_SKIN_PRICE,
     choices: NICKNAME_SKIN_IDS.map((skinId) => ({ ...NICKNAME_SKINS[skinId] })),
-    currency: "arena_tokens",
+    currency: "gold",
     equippedSkinId,
     id: NICKNAME_SKIN_PACK_ID,
     name: "Міфічне оформлення I",
@@ -81,7 +81,7 @@ function toOffer(tokenBalance: number, ownedSkinIds: readonly NicknameSkinId[], 
     price: NICKNAME_SKIN_PRICE,
     progress: { owned: ownedSkinIds.length, total: NICKNAME_SKIN_IDS.length },
     subtitle: "Обери один: Blood Moon / Starforged / Broken Signal",
-    tokenBalance,
+    goldBalance,
     type: "nickname_skin_choice",
   };
 }
@@ -124,10 +124,10 @@ export class NicknameSkinAlreadyOwnedError extends Error {
   }
 }
 
-export class NicknameSkinInsufficientTokensError extends Error {
+export class NicknameSkinInsufficientGoldError extends Error {
   constructor() {
-    super("Not enough Arena Tokens for this nickname skin");
-    this.name = "NicknameSkinInsufficientTokensError";
+    super("Not enough Gold for this nickname skin");
+    this.name = "NicknameSkinInsufficientGoldError";
   }
 }
 
@@ -156,7 +156,7 @@ export class NicknameSkinService {
       const ownedSkinIds = toOwnedSkinIds(ownedRows);
       return {
         offer: toOffer(
-          toNonNegativeInteger(player.arena_tokens, "arena tokens"),
+          toNonNegativeInteger(player.gold, "gold"),
           ownedSkinIds,
           toEquippedSkinId(player.equipped_nickname_skin),
         ),
@@ -199,41 +199,41 @@ export class NicknameSkinService {
       );
       if (ownedResult.rows.some((row) => row.cosmetic_id === choiceId)) throw new NicknameSkinAlreadyOwnedError();
 
-      const currentTokens = toNonNegativeInteger(player.arena_tokens, "arena tokens");
-      if (currentTokens < NICKNAME_SKIN_PRICE) throw new NicknameSkinInsufficientTokensError();
+      const currentGold = toNonNegativeInteger(player.gold, "gold");
+      if (currentGold < NICKNAME_SKIN_PRICE) throw new NicknameSkinInsufficientGoldError();
 
       await client.query(
         "INSERT INTO player_cosmetics (player_id, cosmetic_type, cosmetic_id) VALUES ($1, 'nickname_skin', $2)",
         [playerId, choiceId],
       );
-      const updatedResult = await client.query<{ arena_tokens: string | number }>(
+      const updatedResult = await client.query<{ gold: string | number }>(
         `
           UPDATE players
-          SET arena_tokens = arena_tokens - $2, equipped_nickname_skin = $3, updated_at = NOW()
-          WHERE id = $1 AND arena_tokens >= $2
-          RETURNING arena_tokens
+          SET gold = gold - $2, equipped_nickname_skin = $3, updated_at = NOW()
+          WHERE id = $1 AND gold >= $2
+          RETURNING gold
         `,
         [playerId, NICKNAME_SKIN_PRICE, choiceId],
       );
       const updated = updatedResult.rows[0];
-      if (!updated) throw new NicknameSkinInsufficientTokensError();
+      if (!updated) throw new NicknameSkinInsufficientGoldError();
 
-      const updatedPlayer: PlayerRow = { ...player, arena_tokens: updated.arena_tokens, equipped_nickname_skin: choiceId };
+      const updatedPlayer: PlayerRow = { ...player, gold: updated.gold, equipped_nickname_skin: choiceId };
       const inventory = await toInventory(client, updatedPlayer);
-      const offer = toOffer(toNonNegativeInteger(updated.arena_tokens, "arena tokens"), inventory.cosmetics.map(({ id }) => id), choiceId);
+      const offer = toOffer(toNonNegativeInteger(updated.gold, "gold"), inventory.cosmetics.map(({ id }) => id), choiceId);
       await client.query("COMMIT");
       return {
         acquiredSkin: choiceId,
         inventory,
         offer,
-        updatedBalance: { arenaTokens: toNonNegativeInteger(updated.arena_tokens, "arena tokens") },
+        updatedBalance: { gold: toNonNegativeInteger(updated.gold, "gold") },
       };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       if (
         error instanceof NicknameSkinAlreadyOwnedError
         || error instanceof NicknameSkinChoiceInvalidError
-        || error instanceof NicknameSkinInsufficientTokensError
+        || error instanceof NicknameSkinInsufficientGoldError
         || error instanceof NicknameSkinPlayerMissingError
       ) throw error;
       throw new NicknameSkinPersistenceError();

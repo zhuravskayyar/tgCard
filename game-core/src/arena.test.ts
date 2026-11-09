@@ -5,7 +5,9 @@ import {
   calculateArenaDamage,
   calculateArenaRatingChange,
   getArenaCardChangeCost,
-  getArenaTokenReward,
+  getArenaCycleEnd,
+  getArenaQueueDurationMs,
+  getArenaRewardCardLevelRange,
 } from "@cardastika/game-core";
 
 const modifiers: DuelBattleModifiers = {
@@ -39,7 +41,7 @@ test("Arena uses the Duel elemental damage multipliers", () => {
 });
 
 test("Arena card change costs are free three times, then progressive", () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(getArenaCardChangeCost), [0, 0, 0, 1, 2, 4, 6, 8, 10, 10]);
+  assert.deepEqual([1, 2, 3, 10].map(getArenaCardChangeCost), [0, 5, 5, 5]);
 });
 
 const evenFight = { averageDamage: 100, averageOpponentRating: 1_400, damageDealt: 100, playerRating: 1_400 };
@@ -56,14 +58,31 @@ test("Arena rating rewards strong opposition and high damage, within limits", ()
   assert.equal(calculateArenaRatingChange({ ...evenFight, placement: 3, damageDealt: 0, averageOpponentRating: 0 }), 0);
 });
 
-test("Arena tokens follow the place", () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6].map(getArenaTokenReward), [30, 24, 18, 9, 6, 3]);
-});
-
 test("Arena has its own league scale and a demotion buffer", () => {
   assert.equal(getLeagueByRating(ARENA_START_RATING, ARENA_LEAGUE_CONFIG).index, 6);
   assert.equal(getLeagueByRating(4_200, ARENA_LEAGUE_CONFIG).index, 20);
   assert.equal(getArenaLeagueIndexAfter(1_600, 6), 7);
   assert.equal(getArenaLeagueIndexAfter(1_301, 6), 6);
   assert.equal(getArenaLeagueIndexAfter(1_300, 6), 5);
+});
+
+test("Arena registration time follows the league tier and shortens as live players join", () => {
+  assert.deepEqual([0, 3, 6, 9, 12, 20].map((league) => getArenaQueueDurationMs(league, 1)), [5_000, 10_000, 15_000, 20_000, 25_000, 25_000]);
+  assert.equal(getArenaQueueDurationMs(6, 2), 10_000);
+  assert.equal(getArenaQueueDurationMs(12, 6), 5_000);
+  assert.equal(getArenaQueueDurationMs(0, 4), 5_000);
+});
+
+test("A used arena lane opens again at the end of the current nine-second cycle", () => {
+  assert.equal(getArenaCycleEnd(10_000, 5_000), 10_000);
+  assert.equal(getArenaCycleEnd(10_000, 10_000), 19_000);
+  assert.equal(getArenaCycleEnd(10_000, 18_999), 19_000);
+  assert.equal(getArenaCycleEnd(10_000, 19_000), 28_000);
+});
+
+test("The daily arena reward card is at least epic and grows with the arena league", () => {
+  assert.deepEqual(getArenaRewardCardLevelRange(0), [20, 24]);
+  assert.deepEqual(getArenaRewardCardLevelRange(6), [29, 33]);
+  assert.deepEqual(getArenaRewardCardLevelRange(20), [60, 63]);
+  for (let league = 0; league < 21; league += 1) assert.ok(getArenaRewardCardLevelRange(league)[0] >= 20);
 });

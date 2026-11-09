@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Pool } from "pg";
-import { EQUIPMENT_THING_SLOTS, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
+import { ChatError } from "../chat/chatChannel.js";
 import { ArenaService } from "./arenaService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -27,7 +27,7 @@ async function finishWithMoves(pool: Pool, service: ArenaService, playerId: stri
   return (await service.findActive(playerId)).arena!;
 }
 
-test("Arena pays rating and tokens only for a fought match, with no silver or gold per fight", { skip: !databaseUrl }, async () => {
+test("Arena pays rating only for a fought match, with no silver or gold per fight", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
@@ -42,13 +42,11 @@ test("Arena pays rating and tokens only for a fought match, with no silver or go
     assert.equal(skipped.reward.counted, false);
     assert.equal(skipped.reward.status, "loss");
     assert.equal(skipped.reward.ratingChange, -3);
-    assert.equal(skipped.reward.arenaTokens, 0);
 
     const fought = (await finishWithMoves(pool, service, playerId, 3)).result!;
     assert.equal(fought.reward.counted, true);
     assert.equal(fought.reward.status, "win");
     assert.ok(fought.reward.ratingChange > 0);
-    assert.equal(fought.reward.arenaTokens, 30);
 
     const after = (await pool.query<{ gold: string; silver: string }>("SELECT gold, silver FROM players WHERE id = $1", [playerId])).rows[0]!;
     assert.equal(after.gold, before.gold);
@@ -191,51 +189,6 @@ test("Arena starts with six participants and keeps attacker slot cooldowns indep
   }
 });
 
-test("Arena Shop spends Arena Tokens and grants shared card shards", { skip: !databaseUrl }, async () => {
-  if (!databaseUrl) return;
-  const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  let playerId = "";
-  try {
-    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
-    await pool.query("UPDATE players SET arena_tokens = 50, card_shards = 0 WHERE id = $1", [playerId]);
-    const purchase = await new ArenaService(pool).purchase(playerId, "arena_shards_25");
-    assert.equal(purchase.arenaTokens, 30);
-    assert.equal(purchase.cardShards, 25);
-  } finally {
-    if (playerId) await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
-    await pool.end();
-  }
-});
-
-test("Arena Shop grants random equipment to the player inventory", { skip: !databaseUrl }, async () => {
-  if (!databaseUrl) return;
-  const pool = new Pool({ connectionString: databaseUrl });
-  const players = new PlayerRepository(pool);
-  let playerId = "";
-  try {
-    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
-    await pool.query("UPDATE players SET arena_tokens = 60 WHERE id = $1", [playerId]);
-
-    const purchase = await new ArenaService(pool).purchase(playerId, "arena_equipment_common");
-    const inventory = await players.getEquipmentInventory(playerId);
-    const purchasedItem = inventory.find(({ quantity }) => quantity > 0);
-    const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === purchasedItem?.itemId);
-
-    assert.equal(purchase.arenaTokens, 0);
-    assert.ok(purchasedItem);
-    assert.equal(purchasedItem.quantity, 1);
-    assert.ok(definition);
-    assert.equal(definition.category, "things");
-    assert.equal(definition.rarity, "common");
-    assert.ok(EQUIPMENT_THING_SLOTS.includes(definition.slot as typeof EQUIPMENT_THING_SLOTS[number]));
-    assert.ok(definition.element);
-  } finally {
-    if (playerId) await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
-    await pool.end();
-  }
-});
-
 test("Arena keeps a 15-second registration window and puts live players into one match", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
@@ -273,6 +226,33 @@ test("Arena keeps a 15-second registration window and puts live players into one
     if (secondId) await pool.query("DELETE FROM arena_queue WHERE player_id = $1", [secondId]);
     if (firstId) await pool.query("DELETE FROM players WHERE id = $1", [firstId]);
     if (secondId) await pool.query("DELETE FROM players WHERE id = $1", [secondId]);
+    await pool.end();
+  }
+});
+
+test("Arena lobby shows today's arena task progress and a shared arena chat", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  let playerId = "";
+  try {
+    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    const service = new ArenaService(pool);
+    const before = await service.getProfile(playerId);
+    assert.deepEqual(before.dailyTasks, { play: { progress: 0, target: 10 }, win: { progress: 0, target: 5 } });
+
+    await finishWithMoves(pool, service, playerId, 3);
+    const after = await service.getProfile(playerId);
+    assert.deepEqual(after.dailyTasks, { play: { progress: 1, target: 10 }, win: { progress: 1, target: 5 } });
+
+    const sent = await service.sendChatMessage(playerId, "  Привіт, арено!  ");
+    assert.equal(sent.body, "Привіт, арено!");
+    assert.ok(sent.author.length > 0);
+    await assert.rejects(() => service.sendChatMessage(playerId, "ще раз"), (error: unknown) => error instanceof ChatError && error.code === "chat_rate_limited");
+    await assert.rejects(() => service.sendChatMessage(playerId, "   "), (error: unknown) => error instanceof ChatError && error.code === "empty_message");
+    assert.equal((await service.getChat()).messages.at(-1)?.id, sent.id);
+  } finally {
+    if (playerId) await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
     await pool.end();
   }
 });

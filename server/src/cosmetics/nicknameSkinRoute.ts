@@ -9,7 +9,7 @@ import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import {
   NicknameSkinAlreadyOwnedError,
   NicknameSkinChoiceInvalidError,
-  NicknameSkinInsufficientTokensError,
+  NicknameSkinInsufficientGoldError,
   NicknameSkinNotOwnedError,
   NicknameSkinPersistenceError,
   NicknameSkinPlayerMissingError,
@@ -54,8 +54,8 @@ function sendNicknameSkinError(response: ServerResponse, error: unknown, headers
     sendJson(response, 409, { error: { code: "nickname_skin_already_owned", message: error.message } }, headers);
     return;
   }
-  if (error instanceof NicknameSkinInsufficientTokensError) {
-    sendJson(response, 409, { error: { code: "insufficient_arena_tokens", message: error.message } }, headers);
+  if (error instanceof NicknameSkinInsufficientGoldError) {
+    sendJson(response, 409, { error: { code: "insufficient_gold", message: error.message } }, headers);
     return;
   }
   if (error instanceof NicknameSkinNotOwnedError) {

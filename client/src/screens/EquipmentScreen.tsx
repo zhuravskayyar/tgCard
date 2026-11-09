@@ -143,7 +143,7 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
         {inventoryStatus === "loading" ? <p className="eq-note">Завантаження сховища…</p> : null}
         {inventoryStatus === "unavailable" ? <p className="eq-note">Сховище доступне після входу в гру.</p> : null}
         {inventoryStatus === "error" ? <p className="eq-note">Не вдалося завантажити сховище.</p> : null}
-        {inventoryStatus === "ready" && !entries.length ? <p className="eq-note">{inventory.length ? "Таких речей у сховищі немає." : "Сховище порожнє. Спорядження можна придбати в крамниці арени."}</p> : null}
+        {inventoryStatus === "ready" && !entries.length ? <p className="eq-note">{inventory.length ? "Таких речей у сховищі немає." : "Сховище порожнє. Спорядження випадає зі скринь у магазині."}</p> : null}
       </section>
 
       {selectedItem ? (

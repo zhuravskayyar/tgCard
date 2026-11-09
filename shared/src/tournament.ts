@@ -1,22 +1,14 @@
 import type { CardElement } from "./card.js";
+import { CHAT_MAX_LENGTH, type ChatMessage, type ChatView } from "./chat.js";
 import type { DuelCardSnapshot, DuelExchange, DuelSideSnapshot, ElementMultiplier } from "./duel.js";
 
 /** Keys follow Cardastika's existing league names, not the reference's names. */
 export type TournamentLeague = "conqueror" | "champion" | "master" | "ruler" | "crown";
 export type TournamentRegularLeague = Exclude<TournamentLeague, "crown">;
 
-export const TOURNAMENT_CHAT_MAX_LENGTH = 240;
-
-export interface TournamentChatMessage {
-  id: string;
-  author: string;
-  body: string;
-  createdAt: string;
-}
-
-export interface TournamentChatView {
-  messages: TournamentChatMessage[];
-}
+export const TOURNAMENT_CHAT_MAX_LENGTH = CHAT_MAX_LENGTH;
+export type TournamentChatMessage = ChatMessage;
+export type TournamentChatView = ChatView;
 
 export interface TournamentSchedule {
   league: TournamentLeague;

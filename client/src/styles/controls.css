@@ -48,7 +48,6 @@
   .forge-action,
   .workshop-card__craft,
   .shop-offer__purchase,
-  .arena-shop-item__purchase,
   .shop-reveal__continue,
   .shop-reveal__buy-again,
   .shop-reveal__buy-batch,
@@ -96,7 +95,6 @@
   .leaderboard-tab,
   .equipment-category-tab,
   .equipment-filter-button,
-  .arena-tabs button,
   .guild-tabs button,
   .pagination button,
   .guild-roster__rank-tab,
@@ -152,7 +150,6 @@
   .forge-action,
   .workshop-card__craft,
   .shop-offer__purchase,
-  .arena-shop-item__purchase,
   .shop-reveal__continue,
   .shop-reveal__buy-again,
   .shop-reveal__buy-batch,
@@ -212,7 +209,6 @@
   .leaderboard-tab,
   .equipment-category-tab,
   .equipment-filter-button,
-  .arena-tabs button,
   .guild-tabs button,
   .pagination button,
   .guild-roster__rank-tab
@@ -226,7 +222,6 @@
 .equipment-filter-button { width: var(--control-height); padding: var(--space-2); }
 .collection-filter { flex: 1; }
 .shop-offer__purchase { bottom: -22px; }
-.arena-shop-item__purchase { flex-direction: column; gap: var(--space-1); }
 
 .shop-tabs {
   width: min(100%, 300px);

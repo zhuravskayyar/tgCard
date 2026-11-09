@@ -46,13 +46,22 @@ export interface BattlePassView {
   startsAt: string;
 }
 
+/** What one daily task pays today; currencies already include today's multiplier. */
+export interface DailyTaskReward {
+  card: { maxLevel: number; minLevel: number } | null;
+  diamonds: number;
+  equipment: CardRarity | null;
+  gold: number;
+  silver: number;
+}
+
 export interface DailyTaskView {
   claimed: boolean;
   completed: boolean;
   id: string;
   kind: "daily";
   progress: number;
-  rewardDiamonds: number;
+  reward: DailyTaskReward;
   target: number;
   title: string;
 }
@@ -77,7 +86,10 @@ export interface BattlePassClaimResponse extends BattlePassPageResponse {
 }
 
 export interface DailyTaskClaimResponse extends BattlePassPageResponse {
+  card?: PlayerCardInstance;
   claimedTaskId: string;
+  equipmentItemId?: string;
+  updatedBalance: PlayerBalance;
 }
 
 export type DailyLoginClaimResponse = LariskaDailyRewardClaimResponse & BattlePassPageResponse;

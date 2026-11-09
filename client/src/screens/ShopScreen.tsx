@@ -24,7 +24,7 @@ import { SHOP_BUNDLES } from "../shop/shopBundles";
 interface ShopScreenProps {
   onBack: () => void;
   onEquipmentInventoryChange: (inventory: PlayerEquipmentInventory[]) => void;
-  onBalanceChange: (balance: Partial<Pick<PlayerSummary, "arenaTokens" | "gold" | "silver">>) => void;
+  onBalanceChange: (balance: Partial<Pick<PlayerSummary, "gold" | "silver">>) => void;
   onCollectionCompleted: (completion: CollectionCompletionNotice) => void;
   onDeckPowerChange: (deckPower: number) => void;
   onEquippedSkinChange: (skinId: NicknameSkinId | null) => void;

@@ -17,7 +17,6 @@ interface PlayerRow {
   created_at?: Date | string;
   arena_league_index: number;
   arena_rating: number;
-  arena_tokens: string | number;
   arena_top3_count: number;
   arena_wins: number;
   account_xp: number;
@@ -97,7 +96,7 @@ function playerColumns() {
     players.rating, players.account_xp, players.card_shards, players.duel_wins,
     players.duel_rating, players.duel_highest_league_index, players.arena_rating,
     players.arena_league_index, players.arena_wins, players.arena_top3_count,
-    players.arena_tokens, players.equipped_nickname_skin, players.tutorial_eligible,
+    players.equipped_nickname_skin, players.tutorial_eligible,
     players.equipment, players.nickname, players.created_at`;
 }
 
@@ -106,7 +105,7 @@ function playerReturningColumns() {
     id, username, first_name, last_name, photo_url, level, silver, gold,
     rating, account_xp, card_shards, duel_wins, duel_rating,
     duel_highest_league_index, arena_rating, arena_league_index, arena_wins,
-    arena_top3_count, arena_tokens, equipped_nickname_skin, tutorial_eligible,
+    arena_top3_count, equipped_nickname_skin, tutorial_eligible,
     equipment, nickname, created_at`;
 }
 
@@ -125,7 +124,6 @@ function toPlayerSummary(
     accountXpRequired: getRequiredAccountXp(row.level),
     arenaLeagueIndex: toSafeNumber(row.arena_league_index, "arenaLeagueIndex"),
     arenaRating: toSafeNumber(row.arena_rating, "arenaRating"),
-    arenaTokens: toSafeNumber(row.arena_tokens, "arenaTokens"),
     arenaTop3Count: toSafeNumber(row.arena_top3_count, "arenaTop3Count"),
     arenaWins: toSafeNumber(row.arena_wins, "arenaWins"),
     cardShards: toSafeNumber(row.card_shards, "cardShards"),

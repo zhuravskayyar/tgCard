@@ -1,12 +1,9 @@
-import type { CardRarity } from "./card.js";
 import type { DuelBattleModifiers, DuelCardSnapshot, ElementMultiplier } from "./duel.js";
-import type { CollectionCompletionNotice } from "./collection.js";
 import type { LeagueDefinition } from "./leagues.js";
 import type { PlayerSummary } from "./player.js";
 
 export type ArenaStatus = "active" | "finished";
 export type ArenaOutcome = "win" | "loss";
-export type ArenaCosmeticType = "avatar" | "frame" | "card_back" | "title";
 
 export interface ArenaQueueView {
   createdAt: string;
@@ -62,7 +59,6 @@ export interface ArenaLeagueView extends Pick<LeagueDefinition, "accentColor" | 
 }
 
 export interface ArenaRewardView {
-  arenaTokens: number;
   counted: boolean;
   moves: number;
   placement: number;
@@ -95,7 +91,6 @@ export interface ArenaResult {
 }
 
 export interface ArenaView {
-  arenaTokens: number;
   battleLog: ArenaBattleLogEntry[];
   changeCardsCost: number;
   matchId: string;
@@ -110,16 +105,24 @@ export interface ArenaView {
   version: number;
 }
 
+export interface ArenaDailyTaskProgress {
+  progress: number;
+  target: number;
+}
+
+export interface ArenaDailyTasksView {
+  play: ArenaDailyTaskProgress;
+  win: ArenaDailyTaskProgress;
+}
+
 export interface ArenaProfileResponse {
+  dailyTasks: ArenaDailyTasksView;
   arenaLeague: ArenaLeagueView;
   arenaRating: number;
-  arenaTokens: number;
   arenaTop3Count: number;
   arenaWins: number;
   cardShards: number;
   nextArenaLeague: ArenaLeagueView | null;
-  cosmetics: ArenaCosmetic[];
-  equippedCosmetics: Partial<Record<ArenaCosmeticType, string>>;
 }
 
 export interface ArenaQueueResponse {
@@ -141,41 +144,6 @@ export interface ArenaActionRequest {
 export interface ArenaVersionRequest {
   expectedVersion: number;
   targetId?: string;
-}
-
-export interface ArenaShopItem {
-  cosmeticType?: ArenaCosmeticType;
-  displayName: string;
-  equipmentRarity?: CardRarity;
-  id: string;
-  price: number;
-  quantity?: number;
-  rewardType: "card" | "cosmetic" | "equipment" | "shards";
-}
-
-export interface ArenaShopCatalogResponse {
-  items: ArenaShopItem[];
-}
-
-export interface ArenaShopPurchaseRequest {
-  offerId: string;
-}
-
-export interface ArenaShopPurchaseResponse {
-  arenaTokens: number;
-  cardShards: number;
-  collectionCompleted?: CollectionCompletionNotice;
-  message: string;
-  playerGold: number;
-  silver: number;
-}
-
-export interface ArenaCosmetic {
-  displayName: string;
-  id: string;
-  owned: boolean;
-  requiredArenaLeague?: number;
-  type: ArenaCosmeticType;
 }
 
 export interface ArenaBattleParticipantSnapshot {

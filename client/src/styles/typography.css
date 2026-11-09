@@ -87,7 +87,7 @@ svg.app-icon { overflow: visible; }
 
 /* Table and currency figures align without changing their source values. */
 .currency-icon, .resource-icon { object-fit: contain; }
-:is(.guild-stats dd,.profile-stat__value,.arena-lobby__stats b,.shop-wallet,.inventory-section__heading > strong) { font-variant-numeric: tabular-nums; }
+:is(.guild-stats dd,.profile-stat__value,.shop-wallet,.inventory-section__heading > strong) { font-variant-numeric: tabular-nums; }
 
 .tutorial-overlay__finger, .tutorial-overlay__arrow { color: var(--accent-gold); }
 .tutorial-overlay__finger[data-placement="above"] .app-icon { transform: rotate(180deg); }

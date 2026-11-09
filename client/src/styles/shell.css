@@ -1,10 +1,6 @@
-/* The authenticated shell has no screen-specific variants. */
-:root.telegram-mini-app {
-  --shell-width: 100%;
-}
-
-/* Mobile screens must not inherit the desktop 430px canvas limit. Some
-   Telegram WebViews do not expose the mini-app marker at initial render. */
+/* The authenticated shell has no screen-specific variants. The game is always a
+   phone layout: on wide screens, Telegram Desktop included, it stays a 430px
+   column (tokens.css) instead of stretching; phones use their full width. */
 @media (max-width: 767px) {
   :root {
     --shell-width: 100%;

@@ -21,7 +21,7 @@ function getDailyReset(taskDate: string) {
 }
 
 /** Only daily tasks live here; campaign trials stay on the campaign screen. */
-export function TasksScreen({ onBack, onOpenTask }: {
+export function TasksScreen({ onBack, onOpenTask, onPlayerSummaryChange }: {
   onBack: () => void;
   onNavigateTrial: (target: StoryTrialNavigationTarget) => void;
   onOpenTask: (id: string) => void;
@@ -35,8 +35,9 @@ export function TasksScreen({ onBack, onOpenTask }: {
     setPendingId(id);
     setFeedback(null);
     try {
-      await claimDailyTask(id);
-      setFeedback("Щоденну нагороду отримано");
+      const response = await claimDailyTask(id);
+      onPlayerSummaryChange(response.updatedBalance);
+      setFeedback(response.card ? "Нагороду отримано: золото, срібло, річ і нова карта" : "Нагороду отримано: золото, срібло і річ");
     } catch {
       setFeedback("Завдання ще не виконано або нагорода вже забрана");
     } finally {

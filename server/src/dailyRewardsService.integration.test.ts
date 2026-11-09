@@ -20,7 +20,7 @@ test("daily currencies are atomic, streak-based, capped and credited to the curr
   const start = new Date("2026-08-30T23:59:59.000Z");
   const atDay = (day: number) => new Date(start.getTime() + (day - 1) * 86_400_000);
   try {
-    const before = (await pool.query("SELECT silver, gold, account_xp, arena_tokens FROM players WHERE id=$1", [player.id])).rows[0];
+    const before = (await pool.query("SELECT silver, gold, account_xp FROM players WHERE id=$1", [player.id])).rows[0];
     const initialCards = (await pool.query("SELECT count(*) FROM player_card_instances WHERE player_id=$1", [player.id])).rows[0].count;
     const initialView = await battlePass.getPage(player.id, start);
     assert.equal(initialView.dailyLogin.reward.kind, "currencies");
@@ -67,7 +67,6 @@ test("daily currencies are atomic, streak-based, capped and credited to the curr
     assert.equal(reset.rewardPlayer.silver, Number(before.silver) + silver + 500);
     assert.equal(reset.rewardPlayer.gold, Number(before.gold) + gold + 2);
     assert.equal(reset.rewardPlayer.accountXp, Number(before.account_xp));
-    assert.equal(reset.rewardPlayer.arenaTokens, Number(before.arena_tokens));
     assert.equal((await pool.query("SELECT count(*) FROM player_card_instances WHERE player_id=$1", [player.id])).rows[0].count, initialCards);
     assert.equal(Number((await pool.query("SELECT count(*) FROM player_lariska_daily_claims WHERE player_id=$1", [player.id])).rows[0].count), 32);
     // UTC midnight counts as the next day even if only one second has passed.

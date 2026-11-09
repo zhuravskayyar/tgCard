@@ -9,7 +9,6 @@
   .settings-section,
   .arena-lobby,
   .arena-league-panel,
-  .arena-shop-panel,
   .arena-queue-panel,
   .arena-target-panel,
   .arena-player-panel,
@@ -25,7 +24,6 @@
   .guild-forum-topic,
   .inventory-item,
   .inventory-cosmetic,
-  .arena-shop-item,
   .progression-panel,
   .absorption-panel,
   .shop-wallet,
@@ -55,7 +53,6 @@
   .settings-section,
   .arena-lobby,
   .arena-league-panel,
-  .arena-shop-panel,
   .arena-queue-panel,
   .arena-target-panel,
   .arena-player-panel,
@@ -71,7 +68,6 @@
   .guild-forum-topic,
   .inventory-item,
   .inventory-cosmetic,
-  .arena-shop-item,
   .progression-panel,
   .absorption-panel
 ):is([class*="--error"],.guild-state--error,.guild-notice--error) { color: var(--state-danger); border-color: #85524a; }

@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 import { CURRENCY_ICON_SOURCES } from "./CurrencyDisplay";
-import { ResourceIcon } from "./ResourceIcon";
 
 export type AppIconName =
   | "home"
@@ -38,8 +37,6 @@ export type AppIconName =
   | "close"
   | "silver"
   | "gold"
-  | "arena-token"
-  | "arena-shop"
   | "target"
   | "refresh"
   | "arrow-up"
@@ -222,8 +219,6 @@ const paths: Record<AppIconName, ReactNode> = {
     </>
   ),
   gold: <path d="M12 3.5 19.5 12 12 20.5 4.5 12 12 3.5Zm0 4L8 12l4 4.5 4-4.5-4-4.5Z" />,
-  "arena-token": <circle cx="12" cy="12" r="8" />,
-  "arena-shop": <path d="M4 8h16l-2 12H6L4 8Zm3-4h10l3 4H4l3-4ZM9 13h6" />,
   target: <path d="M12 3v3M12 18v3M3 12h3M18 12h3M7.2 7.2l2.1 2.1M14.7 14.7l2.1 2.1M16.8 7.2l-2.1 2.1M9.3 14.7l-2.1 2.1M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />,
   refresh: <path d="M20 11a8 8 0 0 0-14.7-4L3 10m0 0V5m0 5h5M4 13a8 8 0 0 0 14.7 4L21 14m0 0v5m0-5h-5" />,
 };
@@ -275,7 +270,6 @@ const gameIconSources: Partial<Record<AppIconName, string>> = {
   equipment: `${HOME_SPRITES}row-icon-equipment.webp`,
   tournament: `${HOME_SPRITES}mode-tournament.webp`,
   shop: `${HOME_SPRITES}row-icon-shop.webp`,
-  "arena-shop": `${UI_ICONS}icon-arena-shop-v1.webp`,
   "battle-pass": `${HOME_SPRITES}row-icon-battle-pass.webp`,
 };
 
@@ -285,10 +279,6 @@ gameIconSources.settings = `${UI_ICONS}icon-settings-v1.webp`;
 export function AppIcon({ name, size = 24 }: AppIconProps) {
   if (name === "silver" || name === "gold") {
     return <img alt="" aria-hidden="true" className={`app-icon currency-icon currency-icon--${name}`} height={size} src={CURRENCY_ICON_SOURCES[name]} width={size} />;
-  }
-
-  if (name === "arena-token") {
-    return <ResourceIcon kind="arena-token" size={size} />;
   }
 
   const svgIconSource = svgIconSources[name];
