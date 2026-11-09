@@ -47,7 +47,7 @@ import {
 import type { Pool, PoolClient } from "pg";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
-import { getBotCardArtAvatarUrl } from "../duel/botOpponent.js";
+import { getBotAvatarToken } from "../duel/botOpponent.js";
 import { loadArenaDailyTasks } from "../battlePassService.js";
 import { ChatChannel } from "../chat/chatChannel.js";
 
@@ -243,7 +243,7 @@ function createBot(snapshot: DuelSideSnapshot, index: number, random: RandomSour
     ...snapshot,
     cards,
     name: BOT_NAMES[index] ?? `Арена бот ${index + 1}`,
-    photoUrl: getBotCardArtAvatarUrl(cards, random),
+    photoUrl: getBotAvatarToken(random),
     level: Math.max(1, snapshot.level + (index % 3) - 1),
     modifiers: cloneModifiers(snapshot),
   }, id, true, random);

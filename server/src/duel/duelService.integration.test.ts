@@ -45,7 +45,7 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     const service = new DuelService(pool, () => 0);
     const found = await service.search(challenger.id);
     assert.equal(found.opponent.powerDifferencePct, -10);
-    assert.match(found.opponent.photoUrl ?? "", /^\/card-art\/.+\.(?:webp|png|jpg|jpeg)$/);
+    assert.match(found.opponent.photoUrl ?? "", /^avatar:(?:0[1-9]|1[0-9]|20)$/);
     assert.match(found.opponent.name, /^[A-Za-z]+\d+$/);
     const playerCountAfter = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM players");
     assert.equal(playerCountAfter.rows[0]?.count, playerCountBefore.rows[0]?.count);

@@ -80,7 +80,7 @@ test("Arena starts with six participants and keeps attacker slot cooldowns indep
     assert.ok(started);
     assert.equal(started.participants.length, 6);
     assert.equal(started.participants.filter(({ isBot }) => isBot).length, 5);
-    assert.ok(started.participants.filter(({ isBot }) => isBot).every(({ photoUrl }) => photoUrl?.startsWith("/card-art/")));
+    assert.ok(started.participants.filter(({ isBot }) => isBot).every(({ photoUrl }) => /^avatar:(?:0[1-9]|1[0-9]|20)$/.test(photoUrl ?? "")));
     assert.ok(started.playerSlots.every(({ card, cooldownUntil }) => card === null && cooldownUntil !== null), "cards open face down");
     const openingRow = await pool.query<{ state: { participants: Array<{ cooldownUntil: Array<string | null> }> } }>("SELECT state FROM arena_matches WHERE id = $1", [started.matchId]);
     const openingState = openingRow.rows[0]!.state;

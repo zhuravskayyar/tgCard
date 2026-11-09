@@ -27,6 +27,7 @@ const HANDLE_WORDS = [
 
 const CARD_ELEMENTS: readonly CardElement[] = ["fire", "water", "air", "earth"];
 const BOT_DECK_SIZE = 9;
+const BOT_AVATAR_COUNT = 20;
 const MIN_CARD_POWER = BASE_POWER_BY_LEVEL[0]!;
 const MIN_BOT_POWER_DIFFERENCE_PCT = 3;
 
@@ -59,18 +60,9 @@ function randomIndex(length: number, random: RandomSource): number {
   return Math.floor(value * length);
 }
 
-export function getBotCardArtAvatarUrl(cards: readonly DuelCardSnapshot[], random: RandomSource): string | null {
-  const candidates = cards.filter(({ artKey, cardId, limited }) => !limited && Boolean(artKey?.trim() || cardId?.trim()));
-  if (!candidates.length) return null;
-  const selected = candidates[randomIndex(candidates.length, random)]!;
-  const artKey = (selected.artKey?.trim() || selected.cardId.trim());
-  const path = artKey
-    .split("/")
-    .filter((segment) => segment && segment !== "." && segment !== "..")
-    .map(encodeURIComponent)
-    .join("/");
-  if (!path) return null;
-  return `/card-art/${path}${/\.[a-zA-Z0-9]+$/.test(path) ? "" : ".webp"}`;
+export function getBotAvatarToken(random: RandomSource): string {
+  const index = randomIndex(BOT_AVATAR_COUNT, random) + 1;
+  return `avatar:${String(index).padStart(2, "0")}`;
 }
 
 function capitalize(value: string): string {
@@ -217,7 +209,7 @@ export function createBotOpponentSnapshot(
   }));
   const levelOffset = randomIndex(3, random) - 1;
   const name = generateBotNickname(random);
-  const photoUrl = getBotCardArtAvatarUrl(cards, random);
+  const photoUrl = getBotAvatarToken(random);
 
   return {
     name,

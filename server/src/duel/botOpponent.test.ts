@@ -10,6 +10,7 @@ import {
 import type { CardElement, DuelSideSnapshot } from "@cardastika/shared";
 import {
   createBotOpponentSnapshot,
+  getBotAvatarToken,
   generateBotNickname,
   selectBotEffectiveDeckPower,
   type BotCardTemplate,
@@ -76,6 +77,11 @@ test("bot power varies by at least three percent inside normal and streak ranges
   assert.equal(selectBotEffectiveDeckPower(900, streakRange, () => 0.999999), 1_035);
 });
 
+test("bot portraits select one of the twenty player avatar sprites", () => {
+  assert.equal(getBotAvatarToken(() => 0), "avatar:01");
+  assert.equal(getBotAvatarToken(() => 0.999999), "avatar:20");
+});
+
 test("bot snapshot builds a distinct canonical 3/2/2/2 deck at the selected total power", () => {
   const original = structuredClone(challenger);
   const range = getMatchmakingRange(challenger.effectiveDeckPower, 0);
@@ -83,7 +89,7 @@ test("bot snapshot builds a distinct canonical 3/2/2/2 deck at the selected tota
 
   assert.equal(bot.name, "AlexAce7");
   assert.equal(bot.level, 7);
-  assert.equal(bot.photoUrl, "/card-art/bot-card-fire-1.webp");
+  assert.equal(bot.photoUrl, "avatar:01");
   assert.equal(bot.effectiveDeckPower, range.minimum);
   assert.equal(bot.startingHp, bot.effectiveDeckPower);
   assert.equal(getDeckPower(bot.cards), bot.effectiveDeckPower);
@@ -179,6 +185,7 @@ test("bot deck uses the only element catalog that can supply three distinct temp
 
 test("bot generators reject invalid random sources", () => {
   assert.throws(() => generateBotNickname(() => 1), /RNG/);
+  assert.throws(() => getBotAvatarToken(() => 1), /RNG/);
   assert.throws(
     () => selectBotEffectiveDeckPower(900, getMatchmakingRange(900, 0), () => -0.1),
     /RNG/,
