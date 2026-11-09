@@ -28,6 +28,16 @@ export function formatDate(value: string) {
   return new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
+export function formatLastSeen(value: string | null) {
+  if (!value) return "Не зафіксовано";
+  const elapsed = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(elapsed)) return "—";
+  if (elapsed < 60_000) return "щойно";
+  if (elapsed < 60 * 60_000) return `${Math.floor(elapsed / 60_000)} хв тому`;
+  if (elapsed < 24 * 60 * 60_000) return `${Math.floor(elapsed / (60 * 60_000))} год тому`;
+  return formatDate(value);
+}
+
 export function formatAction(action: string) {
   return ({
     PLAYER_ADD_SILVER: "Додано срібло",

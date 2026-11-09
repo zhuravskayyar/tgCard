@@ -10,7 +10,7 @@ import {
   loadAdminPlayer,
   removeAdminPlayerCard,
 } from "../adminApi";
-import { elementLabels, formatDate, formatNumber, playerName, rarityLabels } from "../adminFormat";
+import { elementLabels, formatDate, formatLastSeen, formatNumber, playerName, rarityLabels } from "../adminFormat";
 import { AdminPagination } from "../AdminPagination";
 import { AdminEmpty, AdminError, AdminLoading } from "../AdminStates";
 
@@ -148,6 +148,15 @@ export function AdminPlayerScreen({ onNavigate, playerId }: { onNavigate: (path:
     if (!window.confirm(`Видалити «${cardName}» з інвентарю?${deckWarning}`)) return;
     void runMutation(() => removeAdminPlayerCard(playerId, instanceId));
   };
+  const copyPlayerId = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
+      await navigator.clipboard.writeText(playerId);
+      setNotice({ kind: "success", text: "ID гравця скопійовано." });
+    } catch {
+      setNotice({ kind: "error", text: "Не вдалося скопіювати ID. Скопіюйте його вручну." });
+    }
+  };
 
   const deckPower = useMemo(() => data?.deck.reduce((sum, card) => sum + card.finalPower, 0) ?? 0, [data?.deck]);
 
@@ -162,7 +171,13 @@ export function AdminPlayerScreen({ onNavigate, playerId }: { onNavigate: (path:
       <div className="admin-player-head">
         <div className="admin-player-head__avatar">{playerName(player).slice(0, 2).toUpperCase()}</div>
         <div><p className="admin-eyebrow">ПРОФІЛЬ ГРАВЦЯ</p><h1>{playerName(player)}</h1><p>{player.username ? `@${player.username} · ` : ""}{player.telegramUserId ? `Telegram ${player.telegramUserId}` : "Без Telegram-ідентичності"}</p></div>
-        <div className="admin-player-head__meta"><span>Створено {formatDate(player.createdAt)}</span><code>{player.id}</code></div>
+        <div className="admin-player-head__meta">
+          <span>Створено {formatDate(player.createdAt)}</span>
+          <span className={`admin-player-presence admin-player-presence--${player.isOnline ? "online" : "offline"}`}><i />{player.isOnline ? "Онлайн зараз" : `Офлайн · ${formatLastSeen(player.lastSeenAt)}`}</span>
+          <small className="admin-player-last-seen">{player.lastSeenAt ? `Останній захід: ${formatDate(player.lastSeenAt)}` : "Історію входів почнемо зберігати після оновлення"}</small>
+          <div className="admin-player-head__id"><code title={player.id}>{player.id}</code><button aria-label="Скопіювати ID гравця" className="admin-copy-id" onClick={() => { void copyPlayerId(); }} type="button"><span aria-hidden="true">▢</span><span>Копіювати ID</span></button></div>
+          <button className="admin-button admin-button--secondary admin-button--compact" disabled={loading} onClick={() => setRefreshKey((key) => key + 1)} type="button"><span aria-hidden="true" className="admin-button__icon">↻</span>{loading ? "Оновлюємо…" : "Оновити профіль"}</button>
+        </div>
       </div>
       {notice ? <div className={`admin-toast admin-toast--${notice.kind}`} role="status">{notice.text}<button aria-label="Закрити" onClick={() => setNotice(null)} type="button">×</button></div> : null}
 

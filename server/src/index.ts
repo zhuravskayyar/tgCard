@@ -44,6 +44,7 @@ import { handleLeaderboardRequest } from "./leaderboards/leaderboardRoute.js";
 import { handlePlayerProfileRequest } from "./leaderboards/playerProfileRoute.js";
 import { LeaderboardRepository } from "./leaderboards/leaderboardRepository.js";
 import { PlayerRepository } from "./users/playerRepository.js";
+import { handlePlayerHeartbeat } from "./users/playerActivityRoute.js";
 import { handlePlayerNickname } from "./users/playerNicknameRoute.js";
 import { handlePlayerTutorialCompletion } from "./users/playerTutorialRoute.js";
 import { ReferralService } from "./referrals/referralService.js";
@@ -227,6 +228,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isAuthConfigRoute = url.pathname === "/api/auth/config";
   const isAuthLinkRoute = url.pathname === "/api/auth/link";
   const isAuthLogoutRoute = url.pathname === "/api/auth/logout";
+  const isPlayerHeartbeatRoute = url.pathname === "/api/player/heartbeat";
   const isPlayerCardsRoute = url.pathname === "/api/player/cards";
   const isPlayerInventoryRoute = url.pathname === "/api/player/inventory";
   const isPlayerEquipmentRoute = url.pathname === "/api/player/equipment";
@@ -271,7 +273,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -393,6 +395,16 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       auth,
       botToken: environment.telegramBotToken,
       googleClientId: environment.googleClientId,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isPlayerHeartbeatRoute) {
+    await handlePlayerHeartbeat(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
       players,
       responseHeaders: cors.headers,
     });

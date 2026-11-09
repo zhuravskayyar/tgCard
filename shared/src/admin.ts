@@ -46,9 +46,10 @@ export interface AdminDashboardResponse {
     shopActivityConnected: false;
   };
   players: {
-    activeLast24Hours: null;
+    activeLast24Hours: number;
     newLast7Days: number;
     newToday: number;
+    onlineNow: number;
     total: number;
   };
 }
@@ -65,7 +66,9 @@ export interface AdminPlayerListItem {
   firstName: string;
   gold: number;
   id: string;
+  isOnline: boolean;
   lastName: string | null;
+  lastSeenAt: string | null;
   level: number;
   nickname: string | null;
   silver: number;

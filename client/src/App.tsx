@@ -1,797 +1,1 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppShell } from "./components/AppShell";
-import { usePlayerSummary } from "./hooks/usePlayerSummary";
-import { HomeScreen } from "./screens/HomeScreen";
-import { TournamentScreen } from "./screens/TournamentScreen";
-import { DeckScreen } from "./screens/DeckScreen";
-import { ProfileScreen } from "./screens/ProfileScreen";
-import { ShopScreen } from "./screens/ShopScreen";
-import { CardDetailScreen } from "./screens/CardDetailScreen";
-import { WeakCardsScreen } from "./screens/WeakCardsScreen";
-import { BestiaryBook } from "./components/bestiary/BestiaryBook";
-import { CollectionCardScreen } from "./screens/CollectionsScreens";
-import { DuelScreen } from "./screens/DuelScreen";
-import { DuelSearchLoopPreview, isDuelSearchLoopPreview } from "./screens/DuelSearchLoopPreview";
-import { CampaignBossScreen, CampaignScreen } from "./screens/CampaignScreens";
-import { SaveProfileScreen, StoryTrialsScreen } from "./screens/StoryTrialsScreen";
-import { LeaderboardScreen } from "./screens/LeaderboardScreen";
-import { PlayerProfileScreen } from "./screens/PlayerProfileScreen";
-import { MailScreen } from "./screens/MailScreen";
-import { DungeonScreen } from "./screens/DungeonScreen";
-import { ArenaScreen } from "./screens/ArenaScreen";
-import { AuthScreen } from "./screens/AuthScreen";
-import { SettingsScreen } from "./screens/SettingsScreen";
-import { InventoryScreen } from "./screens/InventoryScreen";
-import { EquipmentScreen } from "./screens/EquipmentScreen";
-import { ForgeScreen } from "./screens/ForgeScreen";
-import { BattlePassScreen } from "./screens/BattlePassScreen";
-import { TasksScreen } from "./screens/TasksScreen";
-import { ShopRewardReveal } from "./components/ShopRewardReveal";
-import { reportDiamondBalance } from "./components/diamondGain";
-import { GuildScreen } from "./screens/GuildScreen";
-import { getRawTelegramInitData, getTelegramInitData, initializeTelegram } from "./telegram";
-import { authenticateGooglePlayer, authenticateGuestPlayer, authenticateTelegramPlayer, authenticateTelegramWebPlayer, PlayerBootstrapError } from "./telegram/authenticatePlayer";
-import { completeTutorial } from "./telegram/tutorial";
-import { changePlayerEquipmentElement, forgePlayerEquipment, quickForgePlayerEquipment, savePlayerEquipment } from "./telegram/equipment";
-import type { BottomNavItem } from "./components/BottomNav";
-import { TutorialOverlay } from "./components/TutorialOverlay";
-import { DailyLoginModal } from "./components/DailyLoginModal";
-import { ElementAmbientFx } from "./components/ElementAmbientFx";
-import { useMail } from "./hooks/useMail";
-import { useDailyLoginReward } from "./hooks/useDailyLoginReward";
-import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
-import { useTutorial } from "./hooks/useTutorial";
-import { getPlayerDisplayName, type CardElement, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
-import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
-import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
-
-type Screen = "tournament" | "home" | "profile" | "guild" | "inventory" | "equipment" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks" | "trials" | "save-profile" | "booster-preview" | "material-lab";
-
-const MaterialLab = import.meta.env.DEV ? lazy(() => import("./screens/MaterialLabScreen").then(({ MaterialLabScreen }) => ({ default: MaterialLabScreen }))) : null;
-const BoosterPreview = import.meta.env.DEV ? lazy(() => import("./screens/BoosterPreviewScreen").then(({ BoosterPreviewScreen }) => ({ default: BoosterPreviewScreen }))) : null;
-
-function isOneOf<T extends string>(value: string | null, values: readonly T[]): value is T {
-  return value !== null && values.includes(value as T);
-}
-
-function withReturnPath(path: string, returnScreen: string) {
-  return returnScreen === "home" ? path : `${path}?from=${encodeURIComponent(returnScreen)}`;
-}
-
-const TUTORIAL_DUEL_STEPS = ["duel-first-card", "duel-advantage", "duel-free-play", "duel-result"] as const;
-
-function isTutorialDuelStep(step: string | null): step is (typeof TUTORIAL_DUEL_STEPS)[number] {
-  return step !== null && TUTORIAL_DUEL_STEPS.includes(step as (typeof TUTORIAL_DUEL_STEPS)[number]);
-}
-
-export function App() {
-  const { addCollectionBonus, retry, state: playerSummaryState, updateBalance, updateNickname } = usePlayerSummary();
-  const { claim: claimMail, resolveAction: resolveMailAction, retry: retryMail, state: mailState } = useMail();
-  const tutorialPlayerId = playerSummaryState.status === "ready" ? playerSummaryState.data.id : null;
-  const tutorialEligible = INTERACTIVE_TUTORIAL_ENABLED && playerSummaryState.status === "ready" && playerSummaryState.data.tutorialEligible === true;
-  const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
-  const campaignTraining = tutorial.step === "campaign";
-  const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);
-  const tutorialDeckTraining = tutorial.isActive && tutorial.step === "deck";
-  const dailyLogin = useDailyLoginReward(playerSummaryState.status === "ready");
-  const playerEquipmentState = usePlayerEquipment(true);
-  const [tutorialDuel, setTutorialDuel] = useState<DuelView | null>(null);
-  const [tutorialCompletionError, setTutorialCompletionError] = useState<string | null>(null);
-  const [tutorialCompletionPending, setTutorialCompletionPending] = useState(false);
-  const [webAuthError, setWebAuthError] = useState<string | null>(null);
-  const initialPath = typeof window === "undefined" ? "/" : window.location.pathname;
-  const initialFrom = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("from");
-  const initialEquipmentItemId = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("item");
-  const initialPlayerProfile = initialPath.match(/^\/players\/([^/]+)$/);
-  const initialCollectionCard = initialPath.match(/^\/collections\/([^/]+)\/cards\/([^/]+)$/);
-  const initialCollection = initialPath.match(/^\/collections\/([^/]+)$/);
-  const initialCampaignStage = initialPath.match(/^\/campaign\/stages\/([^/]+)$/);
-  const initialWeak = initialPath === "/cards/weak";
-  const initialCard = initialWeak ? null : initialPath.match(/^\/cards\/([^/]+)$/);
-  const initialDeckReturnScreen = isOneOf(initialFrom, ["home", "profile", "campaign-stage", "tasks", "trials"] as const) ? initialFrom : "home";
-  const initialShopReturnScreen = isOneOf(initialFrom, ["home", "deck", "collection", "campaign-stage", "tasks", "trials"] as const) ? initialFrom : "home";
-  const initialMailReturnScreen = isOneOf(initialFrom, ["home", "profile"] as const) ? initialFrom : "home";
-  const initialDuelReturnScreen = isOneOf(initialFrom, ["home", "campaign-stage", "tasks", "trials"] as const) ? initialFrom : "home";
-  const initialWeakReturnScreen = isOneOf(initialFrom, ["card", "trials", "campaign-stage", "deck", "home"] as const) ? initialFrom : "home";
-  const initialCollectionsReturnScreen = isOneOf(initialFrom, ["home", "trials", "campaign-stage"] as const) ? initialFrom : "home";
-  const initialCardReturnScreen = isOneOf(initialFrom, ["deck", "weak", "collection-card"] as const) ? initialFrom : "deck";
-  const [screen, setScreen] = useState<Screen>(import.meta.env.DEV && initialPath === "/lab/booster" ? "booster-preview" : import.meta.env.DEV && initialPath === "/lab/materials" ? "material-lab" : initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "trials" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/tournament" ? "tournament" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/forge" ? "forge" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : initialPath === "/trials" ? "trials" : initialPath === "/trials/save" ? "save-profile" : "home");
-  const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile" | "campaign-stage" | "tasks" | "trials">(initialDeckReturnScreen);
-  const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials">(initialShopReturnScreen);
-  const [mailReturnScreen, setMailReturnScreen] = useState<"home" | "profile">(initialMailReturnScreen);
-  const [duelReturnScreen, setDuelReturnScreen] = useState<"home" | "campaign-stage" | "tasks" | "trials">(initialDuelReturnScreen);
-  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "trials" | "campaign-stage" | "deck" | "home">(initialWeakReturnScreen);
-  const [collectionsReturnScreen, setCollectionsReturnScreen] = useState<"home" | "trials" | "campaign-stage">(initialCollectionsReturnScreen);
-  const [campaignStageId] = useState(() => decodeURIComponent(initialCampaignStage?.[1] ?? "") || "stage_1");
-  const [cardInstanceId, setCardInstanceId] = useState<string | null>(() => decodeURIComponent(initialCard?.[1] ?? "") || null);
-  const [cardReturnScreen, setCardReturnScreen] = useState<"deck" | "weak" | "collection-card">(initialCardReturnScreen);
-  const [collectionId, setCollectionId] = useState<string | null>(() => decodeURIComponent(initialCollectionCard?.[1] ?? initialCollection?.[1] ?? "") || null);
-  const [collectionCardId, setCollectionCardId] = useState<string | null>(() => decodeURIComponent(initialCollectionCard?.[2] ?? "") || null);
-  const [tutorialCollectionId, setTutorialCollectionId] = useState<string | null>(null);
-  const [tutorialCardId, setTutorialCardId] = useState<string | null>(null);
-  // The card the tutorial victory paid out, shown once before the story tasks.
-  const [tutorialRewardCard, setTutorialRewardCard] = useState<PlayerCardInstance | null>(null);
-  const [playerProfileId, setPlayerProfileId] = useState<string | null>(() => decodeURIComponent(initialPlayerProfile?.[1] ?? "") || null);
-  const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
-  const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
-  const [equipmentSavePending, setEquipmentSavePending] = useState(false);
-  const [equipmentSaveError, setEquipmentSaveError] = useState<string | null>(null);
-  const equipmentSaveInFlightRef = useRef(false);
-  const [deckPowerOverride, setDeckPowerOverride] = useState<number | undefined>(undefined);
-  const [guildOpenKey, setGuildOpenKey] = useState(0);
-  const [dailyLoginDismissedDate, setDailyLoginDismissedDate] = useState<string | null>(null);
-  const [dailyLoginClaimedDate, setDailyLoginClaimedDate] = useState<string | null>(null);
-  const [campaignBossLocation, setCampaignBossLocation] = useState<number | null>(() => {
-    const value = Number(new URLSearchParams(window.location.search).get("location"));
-    return Number.isInteger(value) && value >= 1 && value <= 10 ? value : null;
-  });
-
-  // The first-win reveal belongs to the duel screen; leaving it drops the reveal (the card is already granted).
-  useEffect(() => {
-    if (screen !== "duel") setTutorialRewardCard(null);
-  }, [screen]);
-
-  const dailyLoginData = dailyLogin.state.status === "ready" ? dailyLogin.state.data : null;
-  const dailyLoginClaimed = dailyLoginData !== null && dailyLoginClaimedDate === dailyLoginData.claimDate;
-  const showDailyLogin = dailyLoginData !== null
-    && !tutorial.isActive
-    && tutorialRewardCard === null
-    && screen !== "trials" && screen !== "save-profile"
-    && dailyLoginDismissedDate !== dailyLoginData.claimDate
-    && (dailyLoginData.claimable || dailyLoginClaimed);
-
-  const handleDailyLoginClaim = useCallback(async (choiceIndex?: number) => {
-    const response = await dailyLogin.claim(choiceIndex);
-    updateBalance(response.rewardPlayer);
-    reportDiamondBalance(response.battlePass.diamonds);
-    setDailyLoginClaimedDate(response.dailyLogin.claimDate);
-    return response;
-  }, [dailyLogin.claim, updateBalance]);
-
-  const closeDailyLogin = useCallback(() => {
-    if (dailyLoginData) setDailyLoginDismissedDate(dailyLoginData.claimDate);
-  }, [dailyLoginData]);
-
-  const loadedEquipment = useMemo(() => (
-    playerEquipmentState.state.status === "ready"
-      ? reconcileEquipment(playerEquipmentState.state.data.equipment.equipped, playerEquipmentState.state.data.inventory)
-      : undefined
-  ), [playerEquipmentState.state]);
-
-  useEffect(() => {
-    initializeTelegram();
-  }, []);
-
-  useEffect(() => {
-    if (loadedEquipment) setEquipment(loadedEquipment);
-  }, [loadedEquipment]);
-
-  function updatePath(path: string) {
-    if (typeof window !== "undefined" && `${window.location.pathname}${window.location.search}` !== path) {
-      window.history.pushState(null, "", `${path}${window.location.hash}`);
-    }
-  }
-
-  function openCollections(returnScreen: "home" | "trials" | "campaign-stage" = "home") {
-    if (campaignTraining && returnScreen !== "campaign-stage") { openCampaign(); return; }
-    setCollectionsReturnScreen(returnScreen);
-    setScreen("collections");
-    updatePath(withReturnPath("/collections", returnScreen));
-  }
-
-  function openCollection(id: string) {
-    if (campaignTraining && collectionsReturnScreen !== "campaign-stage") { openCampaign(); return; }
-    setCollectionId(id);
-    setScreen("collection");
-    updatePath(withReturnPath(`/collections/${encodeURIComponent(id)}`, collectionsReturnScreen));
-  }
-
-  function openCollectionCard(id: string) {
-    if (campaignTraining && collectionsReturnScreen !== "campaign-stage") { openCampaign(); return; }
-    if (!collectionId) return;
-    setCollectionCardId(id);
-    setScreen("collection-card");
-    updatePath(withReturnPath(`/collections/${encodeURIComponent(collectionId)}/cards/${encodeURIComponent(id)}`, collectionsReturnScreen));
-  }
-
-  function goHome() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("home");
-    updatePath("/");
-  }
-
-  function openDuel(returnScreen: "home" | "campaign-stage" | "tasks" | "trials" = "home") {
-    if (campaignTraining && returnScreen !== "campaign-stage") { openCampaign(); return; }
-    setDuelReturnScreen(returnScreen);
-    setScreen("duel");
-    updatePath(withReturnPath("/duel", returnScreen));
-  }
-
-  function openDungeon() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("dungeon");
-    updatePath("/dungeon");
-  }
-
-  function openArena() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("arena");
-    updatePath("/arena");
-  }
-
-  function openTournament() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("tournament");
-    updatePath("/tournament");
-  }
-
-  function openLeagues() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("leagues");
-    updatePath("/leagues");
-  }
-
-  function openPlayerProfile(playerId: string) {
-    if (campaignTraining) { openCampaign(); return; }
-    setPlayerProfileId(playerId);
-    setScreen("player-profile");
-    updatePath(`/players/${encodeURIComponent(playerId)}`);
-  }
-
-  function openShop(returnScreen: "home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials") {
-    if (campaignTraining && returnScreen !== "campaign-stage") { openCampaign(); return; }
-    setShopReturnScreen(returnScreen);
-    setScreen("shop");
-    updatePath(withReturnPath("/shop", returnScreen));
-  }
-
-  function openMail(returnScreen: "home" | "profile" = "home") {
-    if (campaignTraining) { openCampaign(); return; }
-    retryMail();
-    setMailReturnScreen(returnScreen);
-    setScreen("mail");
-    updatePath(withReturnPath("/mail", returnScreen));
-  }
-
-  function openSettings() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("settings");
-    updatePath("/settings");
-  }
-
-  function openInventory() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("inventory");
-    updatePath("/inventory");
-  }
-
-  function openEquipment(itemId: string | null = null) {
-    if (campaignTraining) { openCampaign(); return; }
-    setEquipmentItemId(itemId);
-    setScreen("equipment");
-    updatePath(itemId ? `/equipment?item=${encodeURIComponent(itemId)}` : "/equipment");
-  }
-
-  function openForge() {
-    if (campaignTraining) { openCampaign(); return; }
-    setEquipmentItemId(null);
-    setScreen("forge");
-    updatePath("/forge");
-  }
-
-  async function handleEquipmentChange(nextEquipment: EquippedEquipment): Promise<boolean> {
-    if (equipmentSaveInFlightRef.current) return false;
-    const credential = getTelegramInitData();
-    if (!credential) {
-      setEquipmentSaveError("Ğ¡Ğ¿Ğ¾Ñ€ÑĞ´Ğ¶ĞµĞ½Ğ½Ñ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ¿Ñ–ÑĞ»Ñ Ğ·Ğ°Ğ¿ÑƒÑĞºÑƒ Ñ‡ĞµÑ€ĞµĞ· Telegram.");
-      return false;
-    }
-
-    equipmentSaveInFlightRef.current = true;
-    setEquipmentSavePending(true);
-    setEquipmentSaveError(null);
-    try {
-      const response = await savePlayerEquipment(credential, nextEquipment);
-      const savedEquipment = reconcileEquipment(response.equipment.equipped, response.inventory);
-      setEquipment(savedEquipment);
-      updateBalance({ equipment: { equipped: savedEquipment } });
-      return true;
-    } catch {
-      setEquipmentSaveError("ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ ÑĞ¿Ğ¾Ñ€ÑĞ´Ğ¶ĞµĞ½Ğ½Ñ. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ·Ğ²â€™ÑĞ·Ğ¾Ğº Ñ– ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.");
-      return false;
-    } finally {
-      equipmentSaveInFlightRef.current = false;
-      setEquipmentSavePending(false);
-    }
-  }
-
-  async function handleEquipmentForge(itemIds: readonly string[]) {
-    const credential = getTelegramInitData();
-    if (!credential) throw new Error("forge_failed");
-    const result = await forgePlayerEquipment(credential, itemIds);
-    playerEquipmentState.setInventory(result.inventory);
-    updateBalance({ gold: result.gold });
-    return result;
-  }
-
-  async function handleEquipmentQuickForge(batches: readonly { itemId: string; count: number }[]) {
-    const credential = getTelegramInitData();
-    if (!credential) throw new Error("forge_failed");
-    const result = await quickForgePlayerEquipment(credential, batches);
-    playerEquipmentState.setInventory(result.inventory);
-    updateBalance({ gold: result.gold });
-    return result;
-  }
-
-  async function handleEquipmentElementChange(itemId: string, element: CardElement) {
-    const credential = getTelegramInitData();
-    if (!credential) throw new Error("atelier_failed");
-    const result = await changePlayerEquipmentElement(credential, itemId, element);
-    playerEquipmentState.setInventory(result.inventory);
-    const nextEquipment = reconcileEquipment(result.equipment.equipped, result.inventory);
-    setEquipment(nextEquipment);
-    updateBalance({ cardShards: result.cardShards, equipment: { equipped: nextEquipment }, gold: result.gold });
-    return result;
-  }
-
-  async function handleWebLogin(login: () => Promise<unknown>) {
-    setWebAuthError(null);
-    try {
-      await login();
-      retry();
-    } catch (error) {
-      setWebAuthError(error instanceof PlayerBootstrapError && error.status === 429
-        ? "Ğ—Ğ°Ğ±Ğ°Ğ³Ğ°Ñ‚Ğ¾ Ğ³Ğ¾ÑÑ‚ÑŒĞ¾Ğ²Ğ¸Ñ… Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ñ–Ğ² Ñ–Ğ· Ñ†Ñ–Ñ”Ñ— Ğ¼ĞµÑ€ĞµĞ¶Ñ–. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ."
-        : "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ²Ğ¸ĞºĞ¾Ğ½Ğ°Ñ‚Ğ¸ Ğ²Ñ…Ñ–Ğ´. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.");
-    }
-  }
-
-  function openDeck(returnScreen: "home" | "profile" | "campaign-stage" | "tasks" | "trials") {
-    if (campaignTraining && returnScreen !== "campaign-stage") { openCampaign(); return; }
-    setDeckReturnScreen(returnScreen);
-    setScreen("deck");
-    updatePath(withReturnPath("/deck", returnScreen));
-  }
-
-  function openCard(instanceId: string, returnScreen: "deck" | "weak" | "collection-card") {
-    const fromCampaign = campaignTraining || (returnScreen === "deck" && deckReturnScreen === "campaign-stage")
-      || (returnScreen === "weak" && weakReturnScreen === "campaign-stage")
-      || (returnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage");
-    if (campaignTraining && !fromCampaign) { openCampaign(); return; }
-    setCardInstanceId(instanceId);
-    setCardReturnScreen(returnScreen);
-    setScreen("card");
-    updatePath(withReturnPath(`/cards/${encodeURIComponent(instanceId)}`, fromCampaign ? "campaign-stage" : returnScreen));
-  }
-
-  function cardOpenedFromCampaign() {
-    return campaignTraining || (cardReturnScreen === "deck" && deckReturnScreen === "campaign-stage")
-      || (cardReturnScreen === "weak" && weakReturnScreen === "campaign-stage")
-      || (cardReturnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage");
-  }
-
-  function openCardDeck() {
-    openDeck(cardOpenedFromCampaign() ? "campaign-stage" : cardReturnScreen === "deck" ? deckReturnScreen : "home");
-  }
-
-  function openDeckWeakCards() {
-    setWeakReturnScreen("deck");
-    setScreen("weak");
-    updatePath(withReturnPath("/cards/weak", "deck"));
-  }
-
-  function openCardWeakCards() {
-    const returnScreen = cardOpenedFromCampaign() ? "campaign-stage" : "card";
-    setWeakReturnScreen(returnScreen);
-    setScreen("weak");
-    updatePath(withReturnPath("/cards/weak", returnScreen));
-  }
-
-  function openCardShop() {
-    if (cardOpenedFromCampaign()) {
-      openShop("campaign-stage");
-      return;
-    }
-    openShop(cardReturnScreen === "collection-card" ? "collection" : "deck");
-  }
-
-  function returnFromCardDetail() {
-    if (cardReturnScreen === "deck") {
-      openDeck(deckReturnScreen);
-      return;
-    }
-    if (cardReturnScreen === "weak") {
-      setScreen("weak");
-      updatePath(withReturnPath("/cards/weak", weakReturnScreen));
-      return;
-    }
-    if (collectionId) {
-      openCollection(collectionId);
-      return;
-    }
-    openCollections(collectionsReturnScreen);
-  }
-
-  function continueAfterShopPurchase() {
-    if (shopReturnScreen === "tasks") {
-      openTasks();
-      return;
-    }
-    if (shopReturnScreen === "trials") {
-      openTrials();
-      return;
-    }
-    if (shopReturnScreen === "campaign-stage") {
-      openCampaignStage(campaignStageId);
-      return;
-    }
-    if (shopReturnScreen === "deck") {
-      openDeck(deckReturnScreen);
-      return;
-    }
-    if (shopReturnScreen === "collection" && collectionId) {
-      openCollection(collectionId);
-    }
-  }
-
-  function openCampaign() {
-    setScreen("campaign");
-    updatePath("/campaign");
-  }
-
-  function openTrials() {
-    setScreen("trials");
-    updatePath("/trials");
-  }
-
-  function openSaveProfile() {
-    setScreen("save-profile");
-    updatePath("/trials/save");
-  }
-
-  function navigateFromTrials(target: StoryTrialNavigationTarget) {
-    if (target === "deck") openDeck("trials");
-    if (target === "duel") openDuel("trials");
-    if (target === "shop") openShop("trials");
-    if (target === "save-profile") openSaveProfile();
-    if (target === "collections") openCollections("trials");
-    if (target === "tasks") openTasks();
-    if (target === "arena") openArena();
-    if (target === "guild") navigateFromBottom("guild");
-    if (target === "battle-pass") openBattlePass();
-    if (target === "weak") { setWeakReturnScreen("trials"); setScreen("weak"); updatePath(withReturnPath("/cards/weak", "trials")); }
-  }
-
-  async function finishTutorial() {
-    if (tutorialCompletionPending) return;
-    const initData = getTelegramInitData();
-    if (!initData) {
-      setTutorialCompletionError("ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ¿Ñ€Ğ¾Ğ³Ñ€ĞµÑ. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ Ğ·â€™Ñ”Ğ´Ğ½Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹ Ñ‰Ğµ Ñ€Ğ°Ğ·.");
-      return;
-    }
-    setTutorialCompletionError(null);
-    setTutorialCompletionPending(true);
-    try {
-      const { player, rewardCard } = await completeTutorial(initData);
-      updateBalance({ tutorialEligible: player.tutorialEligible });
-      tutorial.complete();
-      // The first victory pays out a card; its reveal leads on to the story tasks.
-      if (rewardCard) setTutorialRewardCard(rewardCard);
-      else openTrials();
-    } catch {
-      setTutorialCompletionError("ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ¿Ñ€Ğ¾Ğ³Ñ€ĞµÑ. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ Ğ·â€™Ñ”Ğ´Ğ½Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹ Ñ‰Ğµ Ñ€Ğ°Ğ·.");
-    } finally {
-      setTutorialCompletionPending(false);
-    }
-  }
-
-  function openBattlePass() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("battle-pass");
-    updatePath("/battle-pass");
-  }
-
-  function openTasks() {
-    if (campaignTraining) { openCampaign(); return; }
-    setScreen("tasks");
-    updatePath("/tasks");
-  }
-
-  function openGuild() {
-    if (campaignTraining) { openCampaign(); return; }
-    setGuildOpenKey((value) => value + 1);
-    setScreen("guild");
-    updatePath("/guild");
-  }
-
-  function openTaskTarget(taskId: string) {
-    if (taskId === "play-arenas" || taskId === "win-arenas") {
-      openArena();
-      return;
-    }
-    if (taskId === "win-duels" || taskId === "play-duels") {
-      openDuel("tasks");
-      return;
-    }
-    if (taskId === "acquire-cards") { openCampaign(); return; }
-    if (taskId === "buy-cards") {
-      openShop("tasks");
-      return;
-    }
-    if (taskId === "upgrade-card" || taskId === "absorb-cards") {
-      openDeck("tasks");
-    }
-  }
-
-  function openCampaignStage(stageId: string) {
-    void stageId;
-    openTrials();
-  }
-
-  function clickTutorialTarget(target: string) {
-    if (typeof document === "undefined") return;
-    document.querySelector<HTMLElement>(`[data-tutorial-target~="${target}"]`)?.click();
-  }
-
-  const handleTutorialDuelState = useCallback((duel: DuelView) => {
-    setTutorialDuel(duel);
-    if (!tutorial.isActive || !isTutorialDuelStep(tutorial.step)) return;
-    if (duel.result) {
-      tutorial.goTo("duel-result");
-      return;
-    }
-    if (duel.battleLog.length === 0) {
-      tutorial.goTo("duel-first-card");
-      return;
-    }
-    if (duel.battleLog.length === 1 && tutorial.step === "duel-first-card") {
-      tutorial.goTo("duel-advantage");
-      return;
-    }
-    if (duel.battleLog.length === 2 && tutorial.step === "duel-advantage") {
-      tutorial.goTo("duel-free-play");
-    }
-  }, [tutorial.goTo, tutorial.isActive, tutorial.step]);
-
-  function handleTutorialAction() {
-    switch (tutorial.step) {
-      case "intro":
-        tutorial.goTo("duel-first-card");
-        openDuel("home");
-        return;
-      case "duel-result":
-        void finishTutorial();
-        return;
-      case "deck":
-        tutorial.goTo("campaign");
-        openCampaign();
-        return;
-      case "campaign":
-        void finishTutorial();
-        return;
-      default:
-        return;
-    }
-  }
-
-  function resumeTutorial() {
-    const step = tutorial.resumeStep;
-    if (step === "campaign") { tutorial.resume(); openCampaign(); return; }
-    if (step === "deck") { tutorial.resume(); openDeck("home"); return; }
-    if (step === "intro") { tutorial.goTo("duel-first-card"); openDuel("home"); return; }
-    if (isTutorialDuelStep(step)) { tutorial.resume(); openDuel("home"); }
-  }
-
-  useEffect(() => {
-    if (!campaignTraining) return;
-    const allowed = screen === "campaign" || screen === "campaign-stage" || screen === "campaign-boss"
-      || (screen === "deck" && deckReturnScreen === "campaign-stage")
-      || (screen === "card" && cardReturnScreen === "deck" && deckReturnScreen === "campaign-stage")
-      || (screen === "card" && cardReturnScreen === "weak" && weakReturnScreen === "campaign-stage")
-      || (screen === "card" && cardReturnScreen === "collection-card" && collectionsReturnScreen === "campaign-stage")
-      || (screen === "weak" && weakReturnScreen === "campaign-stage")
-      || (screen === "duel" && duelReturnScreen === "campaign-stage")
-      || (screen === "shop" && shopReturnScreen === "campaign-stage")
-      || (screen === "collections" && collectionsReturnScreen === "campaign-stage")
-      || (screen === "collection" && collectionsReturnScreen === "campaign-stage")
-      || (screen === "collection-card" && collectionsReturnScreen === "campaign-stage");
-    if (!allowed) openCampaign();
-  }, [campaignTraining, cardReturnScreen, collectionsReturnScreen, deckReturnScreen, duelReturnScreen, screen, shopReturnScreen, weakReturnScreen]);
-
-  useEffect(() => {
-    if (!tutorial.isActive || screen !== "home" || tutorial.step === "campaign") return;
-    resumeTutorial();
-  }, [screen, tutorial.isActive, tutorial.step]);
-
-  useEffect(() => {
-    if (!tutorial.isActive || campaignTraining) return;
-    const allowed = (screen === "duel" && tutorialDuelTraining) || (screen === "deck" && tutorialDeckTraining);
-    if (!allowed) resumeTutorial();
-  }, [campaignTraining, screen, tutorial.isActive, tutorial.step, tutorialDeckTraining, tutorialDuelTraining]);
-
-  function navigateFromBottom(item: BottomNavItem) {
-    if (tutorial.isActive && tutorial.step === "intro") { resumeTutorial(); return; }
-    if (tutorial.isActive) tutorial.pause();
-    if (item === "home") { setScreen("home"); updatePath("/"); }
-    if (item === "profile") { setScreen("profile"); updatePath("/profile"); }
-    if (item === "guild") {
-      setGuildOpenKey((value) => value + 1);
-      setScreen("guild");
-      updatePath("/guild");
-    }
-  }
-
-  if (playerSummaryState.status === "unauthenticated") {
-    return (
-      <AuthScreen
-        error={webAuthError}
-        isTelegramMiniApp={Boolean(getRawTelegramInitData())}
-        loading={false}
-        onGuest={() => handleWebLogin(() => authenticateGuestPlayer(new AbortController().signal))}
-        onGoogle={(credential) => handleWebLogin(() => authenticateGooglePlayer(credential, new AbortController().signal))}
-        onTelegram={(authData) => handleWebLogin(() => authenticateTelegramWebPlayer(authData, new AbortController().signal))}
-        onTelegramMiniApp={() => {
-          const initData = getRawTelegramInitData();
-          if (!initData) {
-            setWebAuthError("ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€Ğ¸Ñ‚Ğ¸ Telegram. Ğ—Ğ°ĞºÑ€Ğ¸Ğ¹ Ñ– Ğ·Ğ½Ğ¾Ğ²Ñƒ Ğ²Ñ–Ğ´ĞºÑ€Ğ¸Ğ¹ Ğ³Ñ€Ñƒ Ğ· Telegram.");
-            return;
-          }
-          return handleWebLogin(() => authenticateTelegramPlayer(initData, new AbortController().signal));
-        }}
-      />
-    );
-  }
-
-  return (
-    <>
-    <ElementAmbientFx desktopOnly />
-    <AppShell
-      activeNavigationItem={screen === "guild" ? "guild" : screen === "profile" || screen === "inventory" || screen === "equipment" || screen === "forge" || screen === "player-profile" || (screen === "mail" && mailReturnScreen === "profile") ? "profile" : "home"}
-      onNavigate={navigateFromBottom}
-      onRetryPlayerSummary={retry}
-      playerSummaryState={playerSummaryState}
-      screenKey={screen === "collection" ? "collections" : screen}
-      deckPowerOverride={deckPowerOverride}
-      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
-      modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
-    >
-      {screen === "material-lab" && MaterialLab ? <Suspense fallback={<p role="status">Ğ—Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ĞµĞ½Ğ½Ñâ€¦</p>}><MaterialLab onBack={goHome} /></Suspense> : null}
-      {screen === "booster-preview" && BoosterPreview ? <Suspense fallback={<p role="status">Ğ“Ğ¾Ñ‚ÑƒÑ”Ğ¼Ğ¾ Ğ¼Ğ°Ğ¹ÑÑ‚ĞµÑ€Ğ½Ñâ€¦</p>}><BoosterPreview onBack={goHome} /></Suspense> : null}
-      {screen === "home" ? (
-        <HomeScreen
-          onOpenCampaign={openCampaign}
-          onOpenCollections={() => openCollections("home")}
-          onOpenDeck={() => openDeck("home")}
-          onOpenDuel={() => openDuel("home")}
-          onOpenTournament={openTournament}
-          onOpenArena={openArena}
-          onOpenDungeon={openDungeon}
-          onOpenTasks={openTasks}
-          onOpenEquipment={openEquipment}
-          onOpenLeaderboard={openLeagues}
-          onOpenBattlePass={openBattlePass}
-          onOpenShop={() => openShop("home")}
-          onOpenSettings={openSettings}
-           onResumeTutorial={resumeTutorial}
-          playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
-          tutorialStatus={tutorial.status}
-        />
-      ) : null}
-      {screen === "tasks" ? <TasksScreen onBack={goHome} onNavigateTrial={navigateFromTrials} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
-      {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
-      {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
-      {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
-      {screen === "duel" && tutorialRewardCard ? (
-        <ShopRewardReveal
-          continueLabel="Ğ”Ğ¾ Ğ·Ğ°Ğ²Ğ´Ğ°Ğ½ÑŒ"
-          onContinue={() => { setTutorialRewardCard(null); openTrials(); }}
-          packHeading="ĞĞ°Ğ³Ğ¾Ñ€Ğ¾Ğ´Ğ° Ğ·Ğ° Ğ¿ĞµÑ€ÑˆÑƒ Ğ¿ĞµÑ€ĞµĞ¼Ğ¾Ğ³Ñƒ"
-          purchases={[{
-            deckChanged: true,
-            newDiscovery: true,
-            reward: tutorialRewardCard,
-            updatedBalance: { gold: playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0, silver: playerSummaryState.status === "ready" ? playerSummaryState.data.silver : 0 },
-            updatedChances: [],
-          }]}
-          revealHeading="ĞĞ¾Ğ²Ğ° ĞºĞ°Ñ€Ñ‚Ğ° Ğ² ĞºĞ¾Ğ»Ğ¾Ğ´Ñ–"
-        />
-      ) : null}
-      {screen === "duel" && !tutorialRewardCard && !isDuelSearchLoopPreview() ? (
-        <DuelScreen
-          onOpenLeagues={openLeagues}
-          onOpenTasks={openTasks}
-          onOpenShop={() => openShop("home")}
-          key={tutorialDuelTraining ? "tutorial-duel" : "normal-duel"}
-          onBack={() => duelReturnScreen === "tasks" ? openTasks() : duelReturnScreen === "trials" ? openTrials() : duelReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
-          onPlayerSummaryChange={updateBalance}
-          onTutorialResult={finishTutorial}
-          tutorialResultError={tutorialCompletionError}
-          onTutorialDuelState={handleTutorialDuelState}
-          tutorialAllowedSlot={tutorial.step === "duel-first-card" ? 2 : tutorial.step === "duel-advantage" ? 1 : null}
-          tutorialMode={tutorialDuelTraining}
-        />
-      ) : null}
-      {screen === "tournament" ? <TournamentScreen onBack={goHome} /> : null}
-      {screen === "arena" ? <ArenaScreen onBack={goHome} onOpenTasks={openTasks} onPlayerSummaryChange={updateBalance} /> : null}
-      {screen === "dungeon" ? <DungeonScreen onBack={goHome} /> : null}
-      {screen === "profile" ? (
-        <ProfileScreen
-          equipment={equipment}
-          onOpenDeck={() => openDeck("profile")}
-          onOpenEquipment={() => openEquipment()}
-          onOpenGuild={openGuild}
-          onOpenInventory={openInventory}
-          onOpenMail={() => openMail("profile")}
-          onOpenLeagues={openLeagues}
-          onRetryPlayerSummary={retry}
-          playerSummaryState={playerSummaryState}
-          hasUnreadMail={mailState.status === "ready" && mailState.data.unreadCount > 0}
-        />
-      ) : null}
-      {screen === "settings" ? <SettingsScreen onBack={goHome} onLogout={retry} onReplayTutorial={() => { tutorial.replay(); goHome(); }} playerSummaryState={playerSummaryState} showTutorialReplay={tutorial.eligible} /> : null}
-      {screen === "inventory" ? <InventoryScreen nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Ğ“Ñ€Ğ°Ğ²ĞµÑ†ÑŒ"} onBack={() => navigateFromBottom("profile")} onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })} /> : null}
-      {screen === "equipment" ? <EquipmentScreen equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} saveError={equipmentSaveError} savePending={equipmentSavePending} /> : null}
-      {screen === "forge" ? <ForgeScreen cardShards={playerSummaryState.status === "ready" ? playerSummaryState.data.cardShards ?? 0 : 0} equipped={equipment} gold={playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0} onChangeElement={handleEquipmentElementChange} onForge={handleEquipmentForge} onQuickForge={handleEquipmentQuickForge} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={openEquipment} /> : null}
-      {screen === "mail" ? <MailScreen changeNickname={updateNickname} claim={claimMail} currentNickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : ""} onBack={() => mailReturnScreen === "profile" ? navigateFromBottom("profile") : goHome()} onBalanceChange={updateBalance} onRetry={retryMail} resolveAction={resolveMailAction} state={mailState} /> : null}
-      {screen === "leagues" ? <LeaderboardScreen onBack={() => navigateFromBottom("profile")} onOpenPlayerProfile={openPlayerProfile} playerSummaryState={playerSummaryState} /> : null}
-      {screen === "player-profile" && playerProfileId ? <PlayerProfileScreen onBack={() => { setScreen("leagues"); updatePath("/leagues"); }} playerId={playerProfileId} /> : null}
-      {screen === "deck" ? (
-        <DeckScreen
-          onBack={() => deckReturnScreen === "tasks" ? openTasks() : deckReturnScreen === "trials" ? openTrials() : deckReturnScreen === "profile" ? navigateFromBottom("profile") : deckReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
-          onOpenCampaign={openCampaign}
-          onOpenCard={(id) => openCard(id, "deck")}
-          onOpenDuel={() => openDuel()}
-          onOpenShop={() => openShop("deck")}
-          onOpenTasks={openTasks}
-          onOpenWeakCards={openDeckWeakCards}
-          showTutorialRule={tutorialDeckTraining}
-        />
-      ) : null}
-      {screen === "weak" ? (
-        <WeakCardsScreen
-          onBack={() => weakReturnScreen === "card" && cardInstanceId ? openCard(cardInstanceId, "weak") : weakReturnScreen === "trials" ? openTrials() : weakReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : weakReturnScreen === "deck" ? openDeck(deckReturnScreen) : goHome()}
-          onOpenCampaign={openCampaign}
-          onOpenCard={(id) => openCard(id, "weak")}
-          onOpenDeck={() => openDeck("home")}
-          onOpenDuel={() => openDuel()}
-          onOpenShop={() => openShop("deck")}
-        />
-      ) : null}
-      {screen === "card" && cardInstanceId ? (
-        <CardDetailScreen
-          cardInstanceId={cardInstanceId}
-          onBack={returnFromCardDetail}
-          onDeckPowerChange={setDeckPowerOverride}
-          onGoldChange={(gold) => updateBalance({ gold })}
-          onOpenDeck={openCardDeck}
-          onOpenShop={openCardShop}
-          onOpenWeakCards={openCardWeakCards}
-        />
-      ) : null}
-      {screen === "shop" ? (
-        <ShopScreen
-          onEquipmentInventoryChange={playerEquipmentState.setInventory}
-          onBack={() => shopReturnScreen === "tasks" ? openTasks() : shopReturnScreen === "trials" ? openTrials() : shopReturnScreen === "deck" ? openDeck(deckReturnScreen) : shopReturnScreen === "collection" && collectionId ? openCollection(collectionId) : shopReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()}
-          onBalanceChange={updateBalance}
-          onCollectionCompleted={addCollectionBonus}
-          onDeckPowerChange={setDeckPowerOverride}
-          onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })}
-          onOpenDeck={() => openDeck("home")}
-          onOpenTasks={openTasks}
-          playerSummaryState={playerSummaryState}
-          nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Ğ“Ñ€Ğ°Ğ²ĞµÑ†ÑŒ"}
-          returnScreen={shopReturnScreen}
-          onPurchaseContinue={continueAfterShopPurchase}
-          onOpenWeakCards={openDeckWeakCards}
-        />
-      ) : null}
-      {screen === "collections" || (screen === "collection" && collectionId) ? <BestiaryBook collectionId={screen === "collection" ? collectionId : null} onBack={() => collectionsReturnScreen === "trials" ? openTrials() : collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onBackToContents={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} onOpenShop={() => openShop("collection")} /> : null}
-      {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenDeck={() => openDeck("home")} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
-      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={(location) => { setCampaignBossLocation(location); setScreen("campaign-boss"); updatePath(`/campaign/boss?location=${location}`); }} /> : null}
-      {screen === "campaign-boss" ? <CampaignBossScreen locationNumber={campaignBossLocation} onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} onOpenTrials={openTrials} onOpenTasks={openTasks} /> : null}
-      {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} /> : null}
-      {screen === "save-profile" ? <SaveProfileScreen onBack={openTrials} onBalanceChange={updateBalance} /> : null}
-    </AppShell>
-    </>
-  );
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×¸á:-jZ.¶›­–)Ş³V–×÷'B²Æ§’Â7W7Vç6RÂW6T6ÆÆ&6²ÂW6TVffV7BÂW6TÖVÖòÂW6U&VbÂW6U7FFRÒg&öÒ'&V7B#°¦–×÷'B²6†VÆÂÒg&öÒ"âö6ö×öæVçG2ô6†VÆÂ#°¦–×÷'B²W6UÆ–W%7VÖÖ'’Òg&öÒ"âö†öö·2÷W6UÆ–W%7VÖÖ'’#°¦–×÷'B²†öÖU67&VVâÒg&öÒ"â÷67&VVç2ô†öÖU67&VVâ#°¦–×÷'B²F÷W&æÖVçE67&VVâÒg&öÒ"â÷67&VVç2õF÷W&æÖVçE67&VVâ#°¦–×÷'B²FV6µ67&VVâÒg&öÒ"â÷67&VVç2ôFV6µ67&VVâ#°¦–×÷'B²&öf–ÆU67&VVâÒg&öÒ"â÷67&VVç2õ&öf–ÆU67&VVâ#°¦–×÷'B²6†÷67&VVâÒg&öÒ"â÷67&VVç2õ6†÷67&VVâ#°¦–×÷'B²6&DFWF–Å67&VVâÒg&öÒ"â÷67&VVç2ô6&DFWF–Å67&VVâ#°¦–×÷'B²vV´6&G567&VVâÒg&öÒ"â÷67&VVç2õvV´6&G567&VVâ#°¦–×÷'B²&W7F–'”&öö²Òg&öÒ"âö6ö×öæVçG2ö&W7F–'’ô&W7F–'”&öö²#°¦–×÷'B²6öÆÆV7F–öä6&E67&VVâÒg&öÒ"â÷67&VVç2ô6öÆÆV7F–öç567&VVç2#°¦–×÷'B²GVVÅ67&VVâÒg&öÒ"â÷67&VVç2ôGVVÅ67&VVâ#°¦–×÷'B²GVVÅ6V&6„Æö÷&Wf–WrÂ—4GVVÅ6V&6„Æö÷&Wf–WrÒg&öÒ"â÷67&VVç2ôGVVÅ6V&6„Æö÷&Wf–Wr#°¦–×÷'B²6×–vä&÷7567&VVâÂ6×–vå67&VVâÒg&öÒ"â÷67&VVç2ô6×–vå67&VVç2#°¦–×÷'B²6fU&öf–ÆU67&VVâÂ7F÷'•G&–Ç567&VVâÒg&öÒ"â÷67&VVç2õ7F÷'•G&–Ç567&VVâ#°¦–×÷'B²ÆVFW&&ö&E67&VVâÒg&öÒ"â÷67&VVç2ôÆVFW&&ö&E67&VVâ#°¦–×÷'B²Æ–W%&öf–ÆU67&VVâÒg&öÒ"â÷67&VVç2õÆ–W%&öf–ÆU67&VVâ#°¦–×÷'B²Ö–Å67&VVâÒg&öÒ"â÷67&VVç2ôÖ–Å67&VVâ#°¦–×÷'B²GVævVöå67&VVâÒg&öÒ"â÷67&VVç2ôGVævVöå67&VVâ#°¦–×÷'B²&Væ67&VVâÒg&öÒ"â÷67&VVç2ô&Væ67&VVâ#°¦–×÷'B²WF…67&VVâÒg&öÒ"â÷67&VVç2ôWF…67&VVâ#°¦–×÷'B²6WGF–æw567&VVâÒg&öÒ"â÷67&VVç2õ6WGF–æw567&VVâ#°¦–×÷'B²–çfVçF÷'•67&VVâÒg&öÒ"â÷67&VVç2ô–çfVçF÷'•67&VVâ#°¦–×÷'B²WV—ÖVçE67&VVâÒg&öÒ"â÷67&VVç2ôWV—ÖVçE67&VVâ#°¦–×÷'B²f÷&vU67&VVâÒg&öÒ"â÷67&VVç2ôf÷&vU67&VVâ#°¦–×÷'B²&GFÆU7567&VVâÒg&öÒ"â÷67&VVç2ô&GFÆU7567&VVâ#°¦–×÷'B²F6·567&VVâÒg&öÒ"â÷67&VVç2õF6·567&VVâ#°¦–×÷'B²6†÷&Wv&E&WfVÂÒg&öÒ"âö6ö×öæVçG2õ6†÷&Wv&E&WfVÂ#°¦–×÷'B²&W÷'DF–ÖöæD&Ææ6RÒg&öÒ"âö6ö×öæVçG2öF–ÖöæDv–â#°¦–×÷'B²wV–ÆE67&VVâÒg&öÒ"â÷67&VVç2ôwV–ÆE67&VVâ#°¦–×÷'B²vWE&uFVÆVw&Ô–æ—DFFÂvWEFVÆVw&Ô–æ—DFFÂ–æ—F–Æ—¦UFVÆVw&ÒÒg&öÒ"â÷FVÆVw&Ò#°¦–×÷'B²6VæEÆ–W$†V'F&VBÒg&öÒ"â÷FVÆVw&Ò÷Æ–W$7F—f—G’#°¦–×÷'B²WF†VçF–6FTvöövÆUÆ–W"ÂWF†VçF–6FTwVW7EÆ–W"ÂWF†VçF–6FUFVÆVw&ÕÆ–W"ÂWF†VçF–6FUFVÆVw&ÕvV%Æ–W"ÂÆ–W$&ö÷G7G&W'&÷"Òg&öÒ"â÷FVÆVw&ÒöWF†VçF–6FUÆ–W"#°¦–×÷'B²6ö×ÆWFUGWF÷&–ÂÒg&öÒ"â÷FVÆVw&Ò÷GWF÷&–Â#°¦–×÷'B²6†ævUÆ–W$WV—ÖVçDVÆVÖVçBÂf÷&vUÆ–W$WV—ÖVçBÂV–6´f÷&vUÆ–W$WV—ÖVçBÂ6fUÆ–W$WV—ÖVçBÒg&öÒ"â÷FVÆVw&ÒöWV—ÖVçB#°¦–×÷'BG—R²&÷GFöÔæd—FVÒÒg&öÒ"âö6ö×öæVçG2ô&÷GFöÔæb#°¦–×÷'B²GWF÷&–Ä÷fW&Æ’Òg&öÒ"âö6ö×öæVçG2õGWF÷&–Ä÷fW&Æ’#°¦–×÷'B²F–Ç”Æöv–äÖöFÂÒg&öÒ"âö6ö×öæVçG2ôF–Ç”Æöv–äÖöFÂ#°¦–×÷'B²VÆVÖVçDÖ&–VçDg‚Òg&öÒ"âö6ö×öæVçG2ôVÆVÖVçDÖ&–VçDg‚#°¦–×÷'B²W6TÖ–ÂÒg&öÒ"âö†öö·2÷W6TÖ–Â#°¦–×÷'B²W6TF–Ç”Æöv–å&Wv&BÒg&öÒ"âö†öö·2÷W6TF–Ç”Æöv–å&Wv&B#°¦–×÷'B²W6UÆ–W$WV—ÖVçBÒg&öÒ"âö†öö·2÷W6UÆ–W$WV—ÖVçB#°¦–×÷'B²W6UGWF÷&–ÂÒg&öÒ"âö†öö·2÷W6UGWF÷&–Â#°¦–×÷'B²vWEÆ–W$F—7Æ”æÖRÂG—R6&DVÆVÖVçBÂG—RGVVÅf–WrÂG—RWV—VDWV—ÖVçBÂG—RÆ–W$6&D–ç7Fæ6RÂG—R7F÷'•G&–Äæf–vF–öåF&vWBÒg&öÒ$6&F7F–¶÷6†&VB#°¦–×÷'B²TÕE•ôUT•ÔTåBÂ&V6öæ6–ÆTWV—ÖVçBÒg&öÒ"âöWV—ÖVçBöWV—ÖVçE7FFR#°¦–×÷'B²”åDU$5D•dUõEUDõ$”ÅôTä$ÄTBÒg&öÒ"âö6öæf–röfVGW&W2#° §G—R67&VVâÒ'F÷W&æÖVçB"Â&†öÖR"Â'&öf–ÆR"Â&wV–ÆB"Â&–çfVçF÷'’"Â&WV—ÖVçB"Â&f÷&vR"Â'6WGF–æw2"Â'Æ–W"×&öf–ÆR"Â&Ö–Â"Â&GVVÂ"Â&&Væ"Â&GVævVöâ"Â&ÆVwVW2"Â&FV6²"Â'vV²"Â&6&B"Â'6†÷"Â&6öÆÆV7F–öç2"Â&6öÆÆV7F–öâ"Â&6öÆÆV7F–öâÖ6&B"Â&6×–vâ"Â&6×–vâ×7FvR"Â&6×–vâÖ&÷72"Â&&GFÆR×72"Â'F6·2"Â'G&–Ç2"Â'6fR×&öf–ÆR"Â&&ö÷7FW"×&Wf–Wr"Â&ÖFW&–ÂÖÆ"#° ¦6öç7BÖFW&–ÄÆ"Ò–×÷'BæÖWFæVçbäDUbòÆ§’‚‚’Óâ–×÷'B‚"â÷67&VVç2ôÖFW&–ÄÆ%67&VVâ"’çF†Vâ‚‡²ÖFW&–ÄÆ%67&VVâÒ’Óâ‡²FVfVÇC¢ÖFW&–ÄÆ%67&VVâÒ’’’¢çVÆÃ°¦6öç7B&ö÷7FW%&Wf–WrÒ–×÷'BæÖWFæVçbäDUbòÆ§’‚‚’Óâ–×÷'B‚"â÷67&VVç2ô&ö÷7FW%&Wf–Wu67&VVâ"’çF†Vâ‚‡²&ö÷7FW%&Wf–Wu67&VVâÒ’Óâ‡²FVfVÇC¢&ö÷7FW%&Wf–Wu67&VVâÒ’’’¢çVÆÃ° ¦gVæ7F–öâ—4öæTöcÅBW‡FVæG27G&–æsâ‡fÇVS¢7G&–ærÂçVÆÂÂfÇVW3¢&VFöæÇ’EµÒ“¢fÇVR—2B°¢&WGW&âfÇVRÓÒçVÆÂbbfÇVW2æ–æ6ÇVFW2‡fÇVR2B“°§Ğ ¦gVæ7F–öâv—F…&WGW&åF‚‡Fƒ¢7G&–ærÂ&WGW&å67&VVã¢7G&–ær’°¢&WGW&â&WGW&å67&VVâÓÓÒ&†öÖR"òF‚¢G·F‡Óög&öÓÒG¶Væ6öFUU$”6ö×öæVçB‡&WGW&å67&VVâ—Ö°§Ğ ¦6öç7BEUDõ$”ÅôETTÅõ5DU2Ò²&GVVÂÖf—'7BÖ6&B"Â&GVVÂÖGfçFvR"Â&GVVÂÖg&VR×Æ’"Â&GVVÂ×&W7VÇB%Ò26öç7C° ¦gVæ7F–öâ—5GWF÷&–ÄGVVÅ7FW‡7FW¢7G&–ærÂçVÆÂ“¢7FW—2‡G—VöbEUDõ$”ÅôETTÅõ5DU2•¶çVÖ&W%Ò°¢&WGW&â7FWÓÒçVÆÂbbEUDõ$”ÅôETTÅõ5DU2æ–æ6ÇVFW2‡7FW2‡G—VöbEUDõ$”ÅôETTÅõ5DU2•¶çVÖ&W%Ò“°§Ğ ¦W‡÷'BgVæ7F–öâ‚’°¢6öç7B²FD6öÆÆV7F–öä&öçW2Â&WG'’Â7FFS¢Æ–W%7VÖÖ'•7FFRÂWFFT&Ææ6RÂWFFTæ–6¶æÖRÒÒW6UÆ–W%7VÖÖ'’‚“°¢6öç7B7F—fUÆ–W$–BÒÆ–W%7VÖÖ'•7FFRç7FGW2ÓÓÒ'&VG’"òÆ–W%7VÖÖ'•7FFRæFFæ–B¢çVÆÃ°¢W6TVffV7B‚‚’Óâ°¢–b‚7F—fUÆ–W$–B’&WGW&ã°¢6öç7B6öçG&öÆÆW"ÒæWr&÷'D6öçG&öÆÆW"‚“°¢6öç7B†V'F&VBÒ‚’Óâ°¢–b†Fö7VÖVçBçf—6–&–Æ—G•7FFRÓÓÒ&†–FFVâ"’&WGW&ã°¢fö–B6VæEÆ–W$†V'F&VB†6öçG&öÆÆW"ç6–væÂ’æ6F6‚‚‚’ÓâVæFVf–æVB“°¢Ó°¢†V'F&VB‚“°¢6öç7B–çFW'fÂÒv–æF÷rç6WD–çFW'fÂ††V'F&VBÂcó“°¢Fö7VÖVçBæFDWfVçDÆ—7FVæW"‚'f—6–&–Æ—G–6†ævR"Â†V'F&VB“°¢v–æF÷ræFDWfVçDÆ—7FVæW"‚&fö7W2"Â†V'F&VB“°¢&WGW&â‚’Óâ°¢6öçG&öÆÆW"æ&÷'B‚“°¢v–æF÷ræ6ÆV$–çFW'fÂ†–çFW'fÂ“°¢Fö7VÖVçBç&VÖ÷fTWfVçDÆ—7FVæW"‚'f—6–&–Æ—G–6†ævR"Â†V'F&VB“°¢v–æF÷rç&VÖ÷fTWfVçDÆ—7FVæW"‚&fö7W2"Â†V'F&VB“°¢Ó°¢ÒÂ¶7F—fUÆ–W$–EÒ“°¢6öç7B²6Æ–Ó¢6Æ–ÔÖ–ÂÂ&W6öÇfT7F–öã¢&W6öÇfTÖ–Ä7F–öâÂ&WG'“¢&WG'”Ö–ÂÂ7FFS¢Ö–Å7FFRÒÒW6TÖ–Â‚“°¢6öç7BGWF÷&–ÅÆ–W$–BÒÆ–W%7VÖÖ'•7FFRç7FGW2ÓÓÒ'&VG’"òÆ–W%7VÖÖ'•7FFRæFFæ–B¢çVÆÃ°¢6öç7BGWF÷&–ÄVÆ–v–&ÆRÒ”åDU$5D•dUõEUDõ$”ÅôTä$ÄTBbbÆ–W%7VÖÖ'•7FFRç7FGW2ÓÓÒ'&VG’"bbÆ–W%7VÖÖ'•7FFRæFFçGWF÷&–ÄVÆ–v–&ÆRÓÓÒG'VS°¢6öç7BGWF÷&–ÂÒW6UGWF÷&–Â‡GWF÷&–ÅÆ–W$–BÂGWF÷&–ÄVÆ–v–&ÆR“°¢6öç7B6×–våG&–æ–ærÒGWF÷&–Âç7FWÓÓÒ&6×–vâ#°¢6öç7BGWF÷&–ÄGVVÅG&–æ–ærÒGWF÷&–Âæ—47F—fRbb—5GWF÷&–ÄGVVÅ7FW‡GWF÷&–Âç7FW“°¢6öç7BGWF÷&–ÄFV6µG&–æ–ærÒGWF÷&–Âæ—47F—fRbbGWF÷&–Âç7FWÓÓÒ&FV6²#°¢6öç7BF–Ç”Æöv–âÒW6TF–Ç”Æöv–å&Wv&B‡Æ–W%7VÖÖ'•7FFRç7FGW2ÓÓÒ'&VG’"“°¢6öç7BÆ–W$WV—ÖVçE7FFRÒW6UÆ–W$WV—ÖVçB‡G'VR“°¢6öç7B·GWF÷&–ÄGVVÂÂ6WEGWF÷&–ÄGVVÅÒÒW6U7FFSÄGVVÅf–WrÂçVÆÃâ†çVÆÂ“°¢6öç7B·GWF÷&–Ä6ö×ÆWF–öäW'&÷"Â6WEGWF÷&–Ä6ö×ÆWF–öäW'&÷%ÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ†çVÆÂ“°¢6öç7B·GWF÷&–Ä6ö×ÆWF–öåVæF–ærÂ6WEGWF÷&–Ä6ö×ÆWF–öåVæF–æuÒÒW6U7FFR†fÇ6R“°¢6öç7B·vV$WF„W'&÷"Â6WEvV$WF„W'&÷%ÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ†çVÆÂ“°¢6öç7B–æ—F–ÅF‚ÒG—Vöbv–æF÷rÓÓÒ'VæFVf–æVB"ò"ò"¢v–æF÷ræÆö6F–öâçF†æÖS°¢6öç7B–æ—F–Äg&öÒÒG—Vöbv–æF÷rÓÓÒ'VæFVf–æVB"òçVÆÂ¢æWrU$Å6V&6…&×2‡v–æF÷ræÆö6F–öâç6V&6‚’ævWB‚&g&öÒ"“°¢6öç7B–æ—F–ÄWV—ÖVçD—FVÔ–BÒG—Vöbv–æF÷rÓÓÒ'VæFVf–æVB"òçVÆÂ¢æWrU$Å6V&6…&×2‡v–æF÷ræÆö6F–öâç6V&6‚’ævWB‚&—FVÒ"“°¢6öç7B–æ—F–ÅÆ–W%&öf–ÆRÒ–æ—F–ÅF‚æÖF6‚‚õåÂ÷Æ–W'5Âò…µâõÒ²’Bò“°¢6öç7B–æ—F–Ä6öÆÆV7F–öä6&BÒ–æ—F–ÅF‚æÖF6‚‚õåÂö6öÆÆV7F–öç5Âò…µâõÒ²•Âö6&G5Âò…µâõÒ²’Bò“°¢6öç7B–æ—F–Ä6öÆÆV7F–öâÒ–æ—F–ÅF‚æÖF6‚‚õåÂö6öÆÆV7F–öç5Âò…µâõÒ²’Bò“°¢6öç7B–æ—F–Ä6×–vå7FvRÒ–æ—F–ÅF‚æÖF6‚‚õåÂö6×–våÂ÷7FvW5Âò…µâõÒ²’Bò“°¢6öç7B–æ—F–ÅvV²Ò–æ—F–ÅF‚ÓÓÒ"ö6&G2÷vV²#°¢6öç7B–æ—F–Ä6&BÒ–æ—F–ÅvV²òçVÆÂ¢–æ—F–ÅF‚æÖF6‚‚õåÂö6&G5Âò…µâõÒ²’Bò“°¢6öç7B–æ—F–ÄFV6µ&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&†öÖR"Â'&öf–ÆR"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–Å6†÷&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&†öÖR"Â&FV6²"Â&6öÆÆV7F–öâ"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–ÄÖ–Å&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&†öÖR"Â'&öf–ÆR%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–ÄGVVÅ&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&†öÖR"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–ÅvVµ&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&6&B"Â'G&–Ç2"Â&6×–vâ×7FvR"Â&FV6²"Â&†öÖR%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–Ä6öÆÆV7F–öç5&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&†öÖR"Â'G&–Ç2"Â&6×–vâ×7FvR%Ò26öç7B’ò–æ—F–Äg&öÒ¢&†öÖR#°¢6öç7B–æ—F–Ä6&E&WGW&å67&VVâÒ—4öæTöb†–æ—F–Äg&öÒÂ²&FV6²"Â'vV²"Â&6öÆÆV7F–öâÖ6&B%Ò26öç7B’ò–æ—F–Äg&öÒ¢&FV6²#°¢6öç7B·67&VVâÂ6WE67&VVåÒÒW6U7FFSÅ67&VVãâ†–×÷'BæÖWFæVçbäDUbbb–æ—F–ÅF‚ÓÓÒ"öÆ"ö&ö÷7FW""ò&&ö÷7FW"×&Wf–Wr"¢–×÷'BæÖWFæVçbäDUbbb–æ—F–ÅF‚ÓÓÒ"öÆ"öÖFW&–Ç2"ò&ÖFW&–ÂÖÆ""¢–æ—F–ÅÆ–W%&öf–ÆRò'Æ–W"×&öf–ÆR"¢–æ—F–Ä6öÆÆV7F–öä6&Bò&6öÆÆV7F–öâÖ6&B"¢–æ—F–Ä6öÆÆV7F–öâò&6öÆÆV7F–öâ"¢–æ—F–ÅF‚ÓÓÒ"ö6öÆÆV7F–öç2"ò&6öÆÆV7F–öç2"¢–æ—F–Ä6×–vå7FvRò'G&–Ç2"¢–æ—F–ÅF‚ÓÓÒ"ö6×–vâö&÷72"ò&6×–vâÖ&÷72"¢–æ—F–ÅF‚ÓÓÒ"ö6×–vâ"ò&6×–vâ"¢–æ—F–ÅF‚ÓÓÒ"öGVVÂ"ò&GVVÂ"¢–æ—F–ÅF‚ÓÓÒ"ö&Væ"ò&&Væ"¢–æ—F–ÅF‚ÓÓÒ"÷F÷W&æÖVçB"ò'F÷W&æÖVçB"¢–æ—F–ÅF‚ÓÓÒ"öGVævVöâ"ò&GVævVöâ"¢–æ—F–ÅF‚ÓÓÒ"öÆVwVW2"ò&ÆVwVW2"¢–æ—F–ÅF‚ÓÓÒ"öÖ–Â"ò&Ö–Â"¢–æ—F–ÅF‚ÓÓÒ"÷6WGF–æw2"ò'6WGF–æw2"¢–æ—F–ÅF‚ÓÓÒ"ö–çfVçF÷'’"ò&–çfVçF÷'’"¢–æ—F–ÅF‚ÓÓÒ"öWV—ÖVçB"ò&WV—ÖVçB"¢–æ—F–ÅF‚ÓÓÒ"öf÷&vR"ò&f÷&vR"¢–æ—F–ÅF‚ÓÓÒ"÷&öf–ÆR"ò'&öf–ÆR"¢–æ—F–ÅF‚ÓÓÒ"öwV–ÆB"ò&wV–ÆB"¢–æ—F–ÅF‚ÓÓÒ"öFV6²"ò&FV6²"¢–æ—F–ÅvV²ò'vV²"¢–æ—F–Ä6&Bò&6&B"¢–æ—F–ÅF‚ÓÓÒ"÷6†÷"ò'6†÷"¢–æ—F–ÅF‚ÓÓÒ"ö&GFÆR×72"ò&&GFÆR×72"¢–æ—F–ÅF‚ÓÓÒ"÷F6·2"ò'F6·2"¢–æ—F–ÅF‚ÓÓÒ"÷G&–Ç2"ò'G&–Ç2"¢–æ—F–ÅF‚ÓÓÒ"÷G&–Ç2÷6fR"ò'6fR×&öf–ÆR"¢&†öÖR"“°¢6öç7B¶FV6µ&WGW&å67&VVâÂ6WDFV6µ&WGW&å67&VVåÒÒW6U7FFSÂ&†öÖR"Â'&öf–ÆR"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2#â†–æ—F–ÄFV6µ&WGW&å67&VVâ“°¢6öç7B·6†÷&WGW&å67&VVâÂ6WE6†÷&WGW&å67&VVåÒÒW6U7FFSÂ&†öÖR"Â&FV6²"Â&6öÆÆV7F–öâ"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2#â†–æ—F–Å6†÷&WGW&å67&VVâ“°¢6öç7B¶Ö–Å&WGW&å67&VVâÂ6WDÖ–Å&WGW&å67&VVåÒÒW6U7FFSÂ&†öÖR"Â'&öf–ÆR#â†–æ—F–ÄÖ–Å&WGW&å67&VVâ“°¢6öç7B¶GVVÅ&WGW&å67&VVâÂ6WDGVVÅ&WGW&å67&VVåÒÒW6U7FFSÂ&†öÖR"Â&6×–vâ×7FvR"Â'F6·2"Â'G&–Ç2#â†–æ—F–ÄGVVÅ&WGW&å67&VVâ“°¢6öç7B·vVµ&WGW&å67&VVâÂ6WEvVµ&WGW&å67&VVåÒÒW6U7FFSÂ&6&B"Â'G&–Ç2"Â&6×–vâ×7FvR"Â&FV6²"Â&†öÖR#â†–æ—F–ÅvVµ&WGW&å67&VVâ“°¢6öç7B¶6öÆÆV7F–öç5&WGW&å67&VVâÂ6WD6öÆÆV7F–öç5&WGW&å67&VVåÒÒW6U7FFSÂ&†öÖR"Â'G&–Ç2"Â&6×–vâ×7FvR#â†–æ—F–Ä6öÆÆV7F–öç5&WGW&å67&VVâ“°¢6öç7B¶6×–vå7FvT–EÒÒW6U7FFR‚‚’ÓâFV6öFUU$”6ö×öæVçB†–æ—F–Ä6×–vå7FvSòå³Òóò""’ÇÂ'7FvUó"“°¢6öç7B¶6&D–ç7Fæ6T–BÂ6WD6&D–ç7Fæ6T–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ‚‚’ÓâFV6öFUU$”6ö×öæVçB†–æ—F–Ä6&Còå³Òóò""’ÇÂçVÆÂ“°¢6öç7B¶6&E&WGW&å67&VVâÂ6WD6&E&WGW&å67&VVåÒÒW6U7FFSÂ&FV6²"Â'vV²"Â&6öÆÆV7F–öâÖ6&B#â†–æ—F–Ä6&E&WGW&å67&VVâ“°¢6öç7B¶6öÆÆV7F–öä–BÂ6WD6öÆÆV7F–öä–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ‚‚’ÓâFV6öFUU$”6ö×öæVçB†–æ—F–Ä6öÆÆV7F–öä6&Còå³Òóò–æ—F–Ä6öÆÆV7F–öãòå³Òóò""’ÇÂçVÆÂ“°¢6öç7B¶6öÆÆV7F–öä6&D–BÂ6WD6öÆÆV7F–öä6&D–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ‚‚’ÓâFV6öFUU$”6ö×öæVçB†–æ—F–Ä6öÆÆV7F–öä6&Còå³%Òóò""’ÇÂçVÆÂ“°¢6öç7B·GWF÷&–Ä6öÆÆV7F–öä–BÂ6WEGWF÷&–Ä6öÆÆV7F–öä–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ†çVÆÂ“°¢6öç7B·GWF÷&–Ä6&D–BÂ6WEGWF÷&–Ä6&D–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ†çVÆÂ“°¢òòF†R6&BF†RGWF÷&–Âf–7F÷'’–B÷WBÂ6†÷vâöæ6R&Vf÷&RF†R7F÷'’F6·2à¢6öç7B·GWF÷&–Å&Wv&D6&BÂ6WEGWF÷&–Å&Wv&D6&EÒÒW6U7FFSÅÆ–W$6&D–ç7Fæ6RÂçVÆÃâ†çVÆÂ“°¢6öç7B·Æ–W%&öf–ÆT–BÂ6WEÆ–W%&öf–ÆT–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ‚‚’ÓâFV6öFUU$”6ö×öæVçB†–æ—F–ÅÆ–W%&öf–ÆSòå³Òóò""’ÇÂçVÆÂ“°¢6öç7B¶WV—ÖVçBÂ6WDWV—ÖVçEÒÒW6U7FFSÄWV—VDWV—ÖVçCâ„TÕE•ôUT•ÔTåB“°¢6öç7B¶WV—ÖVçD—FVÔ–BÂ6WDWV—ÖVçD—FVÔ–EÒÒW6U7FFSÇ7G&–ærÂçVÆÃâ†–æ—F–ÄWV—ÖVçD—FVÔ–B“°¢6öç7B¶WV—ÖVçE6fUVæF–ærÂ6WDWV—ÖVçE6fUVæF–æuÒÒW6U7FFR†fÇ6R“°¢6öç7B¶WV—ÖVçE6fTW'&÷"Â6WDWV—ÖVçE6fTW'&÷.ºã‹h‘éì¶»§q«^tñğÍÉ••¸€ôôô€‰¥¹Ù•¹Ñ½ÉäˆñğÍÉ••¸€ôôô€‰•ÅÕ¥Áµ•¹ĞˆñğÍÉ••¸€ôôô€‰™½É”ˆñğÍÉ••¸€ôôô€‰Á±…å•ÈµÁÉ½™¥±”ˆñğ€¡ÍÉ••¸€ôôô€‰µ…¥°ˆ€˜˜µ…¥±I•ÑÕÉ¹MÉ••¸€ôôô€‰ÁÉ½™¥±”ˆ¤€ü€‰ÁÉ½™¥±”ˆ€è€‰¡½µ”‰ô(€€€€€½¹9…Ù¥…Ñ”õí¹…Ù¥…Ñ•É½µ	½ÑÑ½µô(€€€€€½¹I•ÑÉåA±…å•ÉMÕµµ…ÉäõíÉ•ÑÉåô(€€€€€Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ô(€€€€€ÍÉ••¹-•äõíÍÉ••¸€ôôô€‰½±±•Ñ¥½¸ˆ€ü€‰½±±•Ñ¥½¹Ìˆ€èÍÉ••¹ô(€€€€€‘•­A½İ•É=Ù•ÉÉ¥‘”õí‘•­A½İ•É=Ù•ÉÉ¥‘•ô(€€€€€½Ù•É±…äõíÑÕÑ½É¥…°¹¥ÍÑ¥Ù”€˜˜ÑÕÑ½É¥…°¹ÍÑ•À€„ôô€‰‘Õ•°µÉ•ÍÕ±Ğˆ€ü€ñQÕÑ½É¥…±=Ù•É±…ä…Ñ¥½¹A•¹‘¥¹œõíÑÕÑ½É¥…±½µÁ±•Ñ¥½¹A•¹‘¥¹ô‘Õ•°õíÑÕÑ½É¥…±Õ•±ô•ÉÉ½ÈõíÑÕÑ½É¥…°¹ÍÑ•À€ôôô€‰…µÁ…¥¸ˆ€üÑÕÑ½É¥…±½µÁ±•Ñ¥½¹ÉÉ½È€è¹Õ±±ô½¹Ñ¥½¸õí¡…¹‘±•QÕÑ½É¥…±Ñ¥½¹ô½¹A…ÕÍ”õíÑÕÑ½É¥…°¹Á…ÕÍ•ôÍÉ••¹-•äõíÍÉ••¹ôÍÑ•ÀõíÑÕÑ½É¥…°¹ÍÑ•Áô€¼ø€è¹Õ±±ô(€€€€€µ½‘…°õíÍ¡½İ…¥±å1½¥¸€˜˜‘…¥±å1½¥¹…Ñ„€ü€ñ…¥±å1½¥¹5½‘…°‘…Ñ„õí‘…¥±å1½¥¹…Ñ…ô½¹±…¥´õí¡…¹‘±•…¥±å1½¥¹±…¥µô½¹±½Í”õí±½Í•…¥±å1½¥¹ô½¹=Á•¹Q…Í­Ìõì ¤€ôøì±½Í•…¥±å1½¥¸ ¤ì½Á•¹Q…Í­Ì ¤ìõô½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô€¼ø€è¹Õ±±ô(€€€€ø(€€€€€íÍÉ••¸€ôôô€‰µ…Ñ•É¥…°µ±…ˆˆ€˜˜5…Ñ•É¥…±1…ˆ€ü€ñMÕÍÁ•¹Í”™…±±‰…¬õìñÀÉ½±”ô‰ÍÑ…ÑÕÌˆûB_BÃBËBÃB÷FBÃBÛB×B÷B÷F?Š˜ğ½Àùôøñ5…Ñ•É¥…±1…ˆ½¹	…¬õí½!½µ•ô€¼øğ½MÕÍÁ•¹Í”ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‰½½ÍÑ•ÈµÁÉ•Ù¥•Üˆ€˜˜	½½ÍÑ•ÉAÉ•Ù¥•Ü€ü€ñMÕÍÁ•¹Í”™…±±‰…¬õìñÀÉ½±”ô‰ÍÑ…ÑÕÌˆûBOBûFFFSBóBøƒBóBÃBçFFB×FB÷F;Š˜ğ½Àùôøñ	½½ÍÑ•ÉAÉ•Ù¥•Ü½¹	…¬õí½!½µ•ô€¼øğ½MÕÍÁ•¹Í”ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰¡½µ”ˆ€ü€ (€€€€€€€€ñ!½µ•MÉ••¸(€€€€€€€€€½¹=Á•¹…µÁ…¥¸õí½Á•¹…µÁ…¥¹ô(€€€€€€€€€½¹=Á•¹½±±•Ñ¥½¹Ìõì ¤€ôø½Á•¹½±±•Ñ¥½¹Ì ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹•¬õì ¤€ôø½Á•¹•¬ ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹Õ•°õì ¤€ôø½Á•¹Õ•° ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹Q½ÕÉ¹…µ•¹Ğõí½Á•¹Q½ÕÉ¹…µ•¹Ñô(€€€€€€€€€½¹=Á•¹É•¹„õí½Á•¹É•¹…ô(€€€€€€€€€½¹=Á•¹Õ¹•½¸õí½Á•¹Õ¹•½¹ô(€€€€€€€€€½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô(€€€€€€€€€½¹=Á•¹ÅÕ¥Áµ•¹Ğõí½Á•¹ÅÕ¥Áµ•¹Ñô(€€€€€€€€€½¹=Á•¹1•…‘•É‰½…Éõí½Á•¹1•…Õ•Íô(€€€€€€€€€½¹=Á•¹	…ÑÑ±•A…ÍÌõí½Á•¹	…ÑÑ±•A…ÍÍô(€€€€€€€€€½¹=Á•¹M¡½Àõì ¤€ôø½Á•¹M¡½À ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹M•ÑÑ¥¹Ìõí½Á•¹M•ÑÑ¥¹Íô(€€€€€€€€€€½¹I•ÍÕµ•QÕÑ½É¥…°õíÉ•ÍÕµ•QÕÑ½É¥…±ô(€€€€€€€€€Á±…å•É1•Ù•°õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¹±•Ù•°€èÕ¹‘•™¥¹•‘ô(€€€€€€€€€ÑÕÑ½É¥…±MÑ…ÑÕÌõíÑÕÑ½É¥…°¹ÍÑ…ÑÕÍô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Ñ…Í­Ìˆ€ü€ñQ…Í­ÍMÉ••¸½¹	…¬õí½!½µ•ô½¹9…Ù¥…Ñ•QÉ¥…°õí¹…Ù¥…Ñ•É½µQÉ¥…±Íô½¹=Á•¹Q…Í¬õí½Á•¹Q…Í­Q…É•Ñô½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‰…ÑÑ±”µÁ…ÍÌˆ€ü€ñ	…ÑÑ±•A…ÍÍMÉ••¸½¹	…¬õí½!½µ•ô½¹ÅÕ¥Áµ•¹ÑÉ…¹Ñ•õíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹É•ÑÉåô½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Õ¥±ˆ€ü€ñÕ¥±‘MÉ••¸­•äõíÕ¥±‘=Á•¹-•åôÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ô½¹I•ÑÉåA±…å•ÉMÕµµ…ÉäõíÉ•ÑÉåô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‘Õ•°ˆ€˜˜¥ÍÕ•±M•…É¡1½½ÁAÉ•Ù¥•Ü ¤€ü€ñÕ•±M•…É¡1½½ÁAÉ•Ù¥•Ü€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‘Õ•°ˆ€˜˜ÑÕÑ½É¥…±I•İ…É‘…É€ü€ (€€€€€€€€ñM¡½ÁI•İ…É‘I•Ù•…°(€€€€€€€€€½¹Ñ¥¹Õ•1…‰•°ô‹BSBøƒBßBÃBËBÓBÃB÷F0ˆ(€€€€€€€€€½¹½¹Ñ¥¹Õ”õì ¤€ôøìÍ•ÑQÕÑ½É¥…±I•İ…É‘…É¡¹Õ±°¤ì½Á•¹QÉ¥…±Ì ¤ìõô(€€€€€€€€€Á…­!•…‘¥¹œô‹BwBÃBÏBûFBûBÓBÀƒBßBÀƒBÿB×FF#FƒBÿB×FB×BóBûBÏFˆ(€€€€€€€€€ÁÕÉ¡…Í•Ìõímì(€€€€€€€€€€€‘•­¡…¹•èÑÉÕ”°(€€€€€€€€€€€¹•İ¥Í½Ù•ÉäèÑÉÕ”°(€€€€€€€€€€€É•İ…ÉèÑÕÑ½É¥…±I•İ…É‘…É°(€€€€€€€€€€€ÕÁ‘…Ñ•‘	…±…¹”èì½±èÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¹½±€è€À°Í¥±Ù•ÈèÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¹Í¥±Ù•È€è€Àô°(€€€€€€€€€€€ÕÁ‘…Ñ•‘¡…¹•Ìèmt°(€€€€€€€€€õuô(€€€€€€€€€É•Ù•…±!•…‘¥¹œô‹BwBûBËBÀƒBëBÃFFBÀƒBÈƒBëBûBïBûBÓFXˆ(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‘Õ•°ˆ€˜˜€…ÑÕÑ½É¥…±I•İ…É‘…É€˜˜€…¥ÍÕ•±M•…É¡1½½ÁAÉ•Ù¥•Ü ¤€ü€ (€€€€€€€€ñÕ•±MÉ••¸(€€€€€€€€€½¹=Á•¹1•…Õ•Ìõí½Á•¹1•…Õ•Íô(€€€€€€€€€½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô(€€€€€€€€€½¹=Á•¹M¡½Àõì ¤€ôø½Á•¹M¡½À ‰¡½µ”ˆ¥ô(€€€€€€€€€­•äõíÑÕÑ½É¥…±Õ•±QÉ…¥¹¥¹œ€ü€‰ÑÕÑ½É¥…°µ‘Õ•°ˆ€è€‰¹½Éµ…°µ‘Õ•°‰ô(€€€€€€€€€½¹	…¬õì ¤€ôø‘Õ•±I•ÑÕÉ¹MÉ••¸€ôôô€‰Ñ…Í­Ìˆ€ü½Á•¹Q…Í­Ì ¤€è‘Õ•±I•ÑÕÉ¹MÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü½Á•¹QÉ¥…±Ì ¤€è‘Õ•±I•ÑÕÉ¹MÉ••¸€ôôô€‰…µÁ…¥¸µÍÑ…”ˆ€ü½Á•¹…µÁ…¥¹MÑ…”¡…µÁ…¥¹MÑ…•%¤€è½!½µ” ¥ô(€€€€€€€€€½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô(€€€€€€€€€½¹QÕÑ½É¥…±I•ÍÕ±Ğõí™¥¹¥Í¡QÕÑ½É¥…±ô(€€€€€€€€€ÑÕÑ½É¥…±I•ÍÕ±ÑÉÉ½ÈõíÑÕÑ½É¥…±½µÁ±•Ñ¥½¹ÉÉ½Éô(€€€€€€€€€½¹QÕÑ½É¥…±Õ•±MÑ…Ñ”õí¡…¹‘±•QÕÑ½É¥…±Õ•±MÑ…Ñ•ô(€€€€€€€€€ÑÕÑ½É¥…±±±½İ•‘M±½ĞõíÑÕÑ½É¥…°¹ÍÑ•À€ôôô€‰‘Õ•°µ™¥ÉÍĞµ…Éˆ€ü€È€èÑÕÑ½É¥…°¹ÍÑ•À€ôôô€‰‘Õ•°µ…‘Ù…¹Ñ…”ˆ€ü€Ä€è¹Õ±±ô(€€€€€€€€€ÑÕÑ½É¥…±5½‘”õíÑÕÑ½É¥…±Õ•±QÉ…¥¹¥¹ô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Ñ½ÕÉ¹…µ•¹Ğˆ€ü€ñQ½ÕÉ¹…µ•¹ÑMÉ••¸½¹	…¬õí½!½µ•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰…É•¹„ˆ€ü€ñÉ•¹…MÉ••¸½¹	…¬õí½!½µ•ô½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‘Õ¹•½¸ˆ€ü€ñÕ¹•½¹MÉ••¸½¹	…¬õí½!½µ•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰ÁÉ½™¥±”ˆ€ü€ (€€€€€€€€ñAÉ½™¥±•MÉ••¸(€€€€€€€€€•ÅÕ¥Áµ•¹Ğõí•ÅÕ¥Áµ•¹Ñô(€€€€€€€€€½¹=Á•¹•¬õì ¤€ôø½Á•¹•¬ ‰ÁÉ½™¥±”ˆ¥ô(€€€€€€€€€½¹=Á•¹ÅÕ¥Áµ•¹Ğõì ¤€ôø½Á•¹ÅÕ¥Áµ•¹Ğ ¥ô(€€€€€€€€€½¹=Á•¹Õ¥±õí½Á•¹Õ¥±‘ô(€€€€€€€€€½¹=Á•¹%¹Ù•¹Ñ½Éäõí½Á•¹%¹Ù•¹Ñ½Éåô(€€€€€€€€€½¹=Á•¹5…¥°õì ¤€ôø½Á•¹5…¥° ‰ÁÉ½™¥±”ˆ¥ô(€€€€€€€€€½¹=Á•¹1•…Õ•Ìõí½Á•¹1•…Õ•Íô(€€€€€€€€€½¹I•ÑÉåA±…å•ÉMÕµµ…ÉäõíÉ•ÑÉåô(€€€€€€€€€Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ô(€€€€€€€€€¡…ÍU¹É•…‘5…¥°õíµ…¥±MÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€˜˜µ…¥±MÑ…Ñ”¹‘…Ñ„¹Õ¹É•…‘½Õ¹Ğ€ø€Áô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Í•ÑÑ¥¹Ìˆ€ü€ñM•ÑÑ¥¹ÍMÉ••¸½¹	…¬õí½!½µ•ô½¹1½½ÕĞõíÉ•ÑÉåô½¹I•Á±…åQÕÑ½É¥…°õì ¤€ôøìÑÕÑ½É¥…°¹É•Á±…ä ¤ì½!½µ” ¤ìõôÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ôÍ¡½İQÕÑ½É¥…±I•Á±…äõíÑÕÑ½É¥…°¹•±¥¥‰±•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰¥¹Ù•¹Ñ½Éäˆ€ü€ñ%¹Ù•¹Ñ½ÉåMÉ••¸¹¥­¹…µ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€ü•ÑA±…å•É¥ÍÁ±…å9…µ”¡Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¤€è€‹BOFBÃBËB×FF0‰ô½¹	…¬õì ¤€ôø¹…Ù¥…Ñ•É½µ	½ÑÑ½´ ‰ÁÉ½™¥±”ˆ¥ô½¹ÅÕ¥ÁÁ•‘M­¥¹¡…¹”õì¡•ÅÕ¥ÁÁ•‘9¥­¹…µ•M­¥¸¤€ôøÕÁ‘…Ñ•	…±…¹”¡ì•ÅÕ¥ÁÁ•‘9¥­¹…µ•M­¥¸ô¥ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰•ÅÕ¥Áµ•¹Ğˆ€ü€ñÅÕ¥Áµ•¹ÑMÉ••¸•ÅÕ¥ÁÁ•õí•ÅÕ¥Áµ•¹Ñô¥¹¥Ñ¥…±%Ñ•µ%õí•ÅÕ¥Áµ•¹Ñ%Ñ•µ%‘ô¥¹Ù•¹Ñ½ÉäõíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…Ñ”¹‘…Ñ„¹¥¹Ù•¹Ñ½Éä€èmuô¥¹Ù•¹Ñ½ÉåMÑ…ÑÕÌõíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…ÑÕÍô½¹	…¬õì ¤€ôø¹…Ù¥…Ñ•É½µ	½ÑÑ½´ ‰ÁÉ½™¥±”ˆ¥ô½¹ÅÕ¥ÁÁ•‘¡…¹”õí¡…¹‘±•ÅÕ¥Áµ•¹Ñ¡…¹•ô½¹=Á•¹½É”õí½Á•¹½É•ôÍ…Ù•ÉÉ½Èõí•ÅÕ¥Áµ•¹ÑM…Ù•ÉÉ½ÉôÍ…Ù•A•¹‘¥¹œõí•ÅÕ¥Áµ•¹ÑM…Ù•A•¹‘¥¹ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰™½É”ˆ€ü€ñ½É•MÉ••¸…É‘M¡…É‘ÌõíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¹…É‘M¡…É‘Ì€üü€À€è€Áô•ÅÕ¥ÁÁ•õí•ÅÕ¥Áµ•¹Ñô½±õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¹½±€è€Áô½¹¡…¹•±•µ•¹Ğõí¡…¹‘±•ÅÕ¥Áµ•¹Ñ±•µ•¹Ñ¡…¹•ô½¹½É”õí¡…¹‘±•ÅÕ¥Áµ•¹Ñ½É•ô½¹EÕ¥­½É”õí¡…¹‘±•ÅÕ¥Áµ•¹ÑEÕ¥­½É•ô¥¹Ù•¹Ñ½ÉäõíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€üÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…Ñ”¹‘…Ñ„¹¥¹Ù•¹Ñ½Éä€èmuô¥¹Ù•¹Ñ½ÉåMÑ…ÑÕÌõíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹ÍÑ…ÑÕÍô½¹	…¬õí½Á•¹ÅÕ¥Áµ•¹Ñô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰µ…¥°ˆ€ü€ñ5…¥±MÉ••¸¡…¹•9¥­¹…µ”õíÕÁ‘…Ñ•9¥­¹…µ•ô±…¥´õí±…¥µ5…¥±ôÕÉÉ•¹Ñ9¥­¹…µ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€ü•ÑA±…å•É¥ÍÁ±…å9…µ”¡Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¤€è€ˆ‰ô½¹	…¬õì ¤€ôøµ…¥±I•ÑÕÉ¹MÉ••¸€ôôô€‰ÁÉ½™¥±”ˆ€ü¹…Ù¥…Ñ•É½µ	½ÑÑ½´ ‰ÁÉ½™¥±”ˆ¤€è½!½µ” ¥ô½¹	…±…¹•¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô½¹I•ÑÉäõíÉ•ÑÉå5…¥±ôÉ•Í½±Ù•Ñ¥½¸õíÉ•Í½±Ù•5…¥±Ñ¥½¹ôÍÑ…Ñ”õíµ…¥±MÑ…Ñ•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰±•…Õ•Ìˆ€ü€ñ1•…‘•É‰½…É‘MÉ••¸½¹	…¬õì ¤€ôø¹…Ù¥…Ñ•É½µ	½ÑÑ½´ ‰ÁÉ½™¥±”ˆ¥ô½¹=Á•¹A±…å•ÉAÉ½™¥±”õí½Á•¹A±…å•ÉAÉ½™¥±•ôÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Á±…å•ÈµÁÉ½™¥±”ˆ€˜˜Á±…å•ÉAÉ½™¥±•%€ü€ñA±…å•ÉAÉ½™¥±•MÉ••¸½¹	…¬õì ¤€ôøìÍ•ÑMÉ••¸ ‰±•…Õ•Ìˆ¤ìÕÁ‘…Ñ•A…Ñ  ˆ½±•…Õ•Ìˆ¤ìõôÁ±…å•É%õíÁ±…å•ÉAÉ½™¥±•%‘ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰‘•¬ˆ€ü€ (€€€€€€€€ñ•­MÉ••¸(€€€€€€€€€½¹	…¬õì ¤€ôø‘•­I•ÑÕÉ¹MÉ••¸€ôôô€‰Ñ…Í­Ìˆ€ü½Á•¹Q…Í­Ì ¤€è‘•­I•ÑÕÉ¹MÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü½Á•¹QÉ¥…±Ì ¤€è‘•­I•ÑÕÉ¹MÉ••¸€ôôô€‰ÁÉ½™¥±”ˆ€ü¹…Ù¥…Ñ•É½µ	½ÑÑ½´ ‰ÁÉ½™¥±”ˆ¤€è‘•­I•ÑÕÉ¹MÉ••¸€ôôô€‰…µÁ…¥¸µÍÑ…”ˆ€ü½Á•¹…µÁ…¥¹MÑ…”¡…µÁ…¥¹MÑ…•%¤€è½!½µ” ¥ô(€€€€€€€€€½¹=Á•¹…µÁ…¥¸õí½Á•¹…µÁ…¥¹ô(€€€€€€€€€½¹=Á•¹…Éõì¡¥¤€ôø½Á•¹…É¡¥°€‰‘•¬ˆ¥ô(€€€€€€€€€½¹=Á•¹Õ•°õì ¤€ôø½Á•¹Õ•° ¥ô(€€€€€€€€€½¹=Á•¹M¡½Àõì ¤€ôø½Á•¹M¡½À ‰‘•¬ˆ¥ô(€€€€€€€€€½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô(€€€€€€€€€½¹=Á•¹]•…­…É‘Ìõí½Á•¹•­]•…­…É‘Íô(€€€€€€€€€Í¡½İQÕÑ½É¥…±IÕ±”õíÑÕÑ½É¥…±•­QÉ…¥¹¥¹ô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰İ•…¬ˆ€ü€ (€€€€€€€€ñ]•…­…É‘ÍMÉ••¸(€€€€€€€€€½¹	…¬õì ¤€ôøİ•…­I•ÑÕÉ¹MÉ••¸€ôôô€‰…Éˆ€˜˜…É‘%¹ÍÑ…¹•%€ü½Á•¹…É¡…É‘%¹ÍÑ…¹•%°€‰İ•…¬ˆ¤€èİ•…­I•ÑÕÉ¹MÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü½Á•¹QÉ¥…±Ì ¤€èİ•…­I•ÑÕÉ¹MÉ••¸€ôôô€‰…µÁ…¥¸µÍÑ…”ˆ€ü½Á•¹…µÁ…¥¹MÑ…”¡…µÁ…¥¹MÑ…•%¤€èİ•…­I•ÑÕÉ¹MÉ••¸€ôôô€‰‘•¬ˆ€ü½Á•¹•¬¡‘•­I•ÑÕÉ¹MÉ••¸¤€è½!½µ” ¥ô(€€€€€€€€€½¹=Á•¹…µÁ…¥¸õí½Á•¹…µÁ…¥¹ô(€€€€€€€€€½¹=Á•¹…Éõì¡¥¤€ôø½Á•¹…É¡¥°€‰İ•…¬ˆ¥ô(€€€€€€€€€½¹=Á•¹•¬õì ¤€ôø½Á•¹•¬ ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹Õ•°õì ¤€ôø½Á•¹Õ•° ¥ô(€€€€€€€€€½¹=Á•¹M¡½Àõì ¤€ôø½Á•¹M¡½À ‰‘•¬ˆ¥ô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰…Éˆ€˜˜…É‘%¹ÍÑ…¹•%€ü€ (€€€€€€€€ñ…É‘•Ñ…¥±MÉ••¸(€€€€€€€€€…É‘%¹ÍÑ…¹•%õí…É‘%¹ÍÑ…¹•%‘ô(€€€€€€€€€½¹	…¬õíÉ•ÑÕÉ¹É½µ…É‘•Ñ…¥±ô(€€€€€€€€€½¹•­A½İ•É¡…¹”õíÍ•Ñ•­A½İ•É=Ù•ÉÉ¥‘•ô(€€€€€€€€€½¹½±‘¡…¹”õì¡½±¤€ôøÕÁ‘…Ñ•	…±…¹”¡ì½±ô¥ô(€€€€€€€€€½¹=Á•¹•¬õí½Á•¹…É‘•­ô(€€€€€€€€€½¹=Á•¹M¡½Àõí½Á•¹…É‘M¡½Áô(€€€€€€€€€½¹=Á•¹]•…­…É‘Ìõí½Á•¹…É‘]•…­…É‘Íô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Í¡½Àˆ€ü€ (€€€€€€€€ñM¡½ÁMÉ••¸(€€€€€€€€€½¹ÅÕ¥Áµ•¹Ñ%¹Ù•¹Ñ½Éå¡…¹”õíÁ±…å•ÉÅÕ¥Áµ•¹ÑMÑ…Ñ”¹Í•Ñ%¹Ù•¹Ñ½Éåô(€€€€€€€€€½¹	…¬õì ¤€ôøÍ¡½ÁI•ÑÕÉ¹MÉ••¸€ôôô€‰Ñ…Í­Ìˆ€ü½Á•¹Q…Í­Ì ¤€èÍ¡½ÁI•ÑÕÉ¹MÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü½Á•¹QÉ¥…±Ì ¤€èÍ¡½ÁI•ÑÕÉ¹MÉ••¸€ôôô€‰‘•¬ˆ€ü½Á•¹•¬¡‘•­I•ÑÕÉ¹MÉ••¸¤€èÍ¡½ÁI•ÑÕÉ¹MÉ••¸€ôôô€‰½±±•Ñ¥½¸ˆ€˜˜½±±•Ñ¥½¹%€ü½Á•¹½±±•Ñ¥½¸¡½±±•Ñ¥½¹%¤€èÍ¡½ÁI•ÑÕÉ¹MÉ••¸€ôôô€‰…µÁ…¥¸µÍÑ…”ˆ€ü½Á•¹…µÁ…¥¹MÑ…”¡…µÁ…¥¹MÑ…•%¤€è½!½µ” ¥ô(€€€€€€€€€½¹	…±…¹•¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô(€€€€€€€€€½¹½±±•Ñ¥½¹½µÁ±•Ñ•õí…‘‘½±±•Ñ¥½¹	½¹ÕÍô(€€€€€€€€€½¹•­A½İ•É¡…¹”õíÍ•Ñ•­A½İ•É=Ù•ÉÉ¥‘•ô(€€€€€€€€€½¹ÅÕ¥ÁÁ•‘M­¥¹¡…¹”õì¡•ÅÕ¥ÁÁ•‘9¥­¹…µ•M­¥¸¤€ôøÕÁ‘…Ñ•	…±…¹”¡ì•ÅÕ¥ÁÁ•‘9¥­¹…µ•M­¥¸ô¥ô(€€€€€€€€€½¹=Á•¹•¬õì ¤€ôø½Á•¹•¬ ‰¡½µ”ˆ¥ô(€€€€€€€€€½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô(€€€€€€€€€Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ•ô(€€€€€€€€€¹¥­¹…µ”õíÁ±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹ÍÑ…ÑÕÌ€ôôô€‰É•…‘äˆ€ü•ÑA±…å•É¥ÍÁ±…å9…µ”¡Á±…å•ÉMÕµµ…ÉåMÑ…Ñ”¹‘…Ñ„¤€è€‹BOFBÃBËB×FF0‰ô(€€€€€€€€€É•ÑÕÉ¹MÉ••¸õíÍ¡½ÁI•ÑÕÉ¹MÉ••¹ô(€€€€€€€€€½¹AÕÉ¡…Í•½¹Ñ¥¹Õ”õí½¹Ñ¥¹Õ•™Ñ•ÉM¡½ÁAÕÉ¡…Í•ô(€€€€€€€€€½¹=Á•¹]•…­…É‘Ìõí½Á•¹•­]•…­…É‘Íô(€€€€€€€€¼ø(€€€€€€¤€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰½±±•Ñ¥½¹Ìˆñğ€¡ÍÉ••¸€ôôô€‰½±±•Ñ¥½¸ˆ€˜˜½±±•Ñ¥½¹%¤€ü€ñ	•ÍÑ¥…Éå	½½¬½±±•Ñ¥½¹%õíÍÉ••¸€ôôô€‰½±±•Ñ¥½¸ˆ€ü½±±•Ñ¥½¹%€è¹Õ±±ô½¹	…¬õì ¤€ôø½±±•Ñ¥½¹ÍI•ÑÕÉ¹MÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü½Á•¹QÉ¥…±Ì ¤€è½±±•Ñ¥½¹ÍI•ÑÕÉ¹MÉ••¸€ôôô€‰…µÁ…¥¸µÍÑ…”ˆ€ü½Á•¹…µÁ…¥¹MÑ…”¡…µÁ…¥¹MÑ…•%¤€è½!½µ” ¥ô½¹	…­Q½½¹Ñ•¹ÑÌõì ¤€ôø½Á•¹½±±•Ñ¥½¹Ì¡½±±•Ñ¥½¹ÍI•ÑÕÉ¹MÉ••¸¥ô½¹=Á•¹…Éõí½Á•¹½±±•Ñ¥½¹…É‘ô½¹=Á•¹½±±•Ñ¥½¸õí½Á•¹½±±•Ñ¥½¹ô½¹=Á•¹1¥µ¥Ñ•‘…Éõì¡¥¤€ôø½Á•¹…É¡¥°€‰½±±•Ñ¥½¸µ…Éˆ¥ô½¹=Á•¹M¡½Àõì ¤€ôø½Á•¹M¡½À ‰½±±•Ñ¥½¸ˆ¥ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰½±±•Ñ¥½¸µ…Éˆ€˜˜½±±•Ñ¥½¹%€˜˜½±±•Ñ¥½¹…É‘%€ü€ñ½±±•Ñ¥½¹…É‘MÉ••¸…É‘%õí½±±•Ñ¥½¹…É‘%‘ô½±±•Ñ¥½¹%õí½±±•Ñ¥½¹%‘ô½¹	…¬õì ¤€ôø½Á•¹½±±•Ñ¥½¸¡½±±•Ñ¥½¹%¥ô½¹=Á•¹•¬õì ¤€ôø½Á•¹•¬ ‰¡½µ”ˆ¥ô½¹=Á•¹%¹ÍÑ…¹”õì¡¥¤€ôø½Á•¹…É¡¥°€‰½±±•Ñ¥½¸µ…Éˆ¥ô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰…µÁ…¥¸ˆ€ü€ñ…µÁ…¥¹MÉ••¸½¹	…¬õí½!½µ•ô½¹=Á•¹QÉ¥…±Ìõí½Á•¹QÉ¥…±Íô½¹=Á•¹	½ÍÌõì¡±½…Ñ¥½¸¤€ôøìÍ•Ñ…µÁ…¥¹	½ÍÍ1½…Ñ¥½¸¡±½…Ñ¥½¸¤ìÍ•ÑMÉ••¸ ‰…µÁ…¥¸µ‰½ÍÌˆ¤ìÕÁ‘…Ñ•A…Ñ ¡€½…µÁ…¥¸½‰½ÍÌı±½…Ñ¥½¸ô‘í±½…Ñ¥½¹õ€¤ìõô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰…µÁ…¥¸µ‰½ÍÌˆ€ü€ñ…µÁ…¥¹	½ÍÍMÉ••¸±½…Ñ¥½¹9Õµ‰•Èõí…µÁ…¥¹	½ÍÍ1½…Ñ¥½¹ô½¹…µÁ…¥¹½µÁ±•Ñ•õíÑÕÑ½É¥…°¹½µÁ±•Ñ•ô½¹•­A½İ•É¡…¹”õíÍ•Ñ•­A½İ•É=Ù•ÉÉ¥‘•ô½¹A±…å•ÉMÕµµ…Éå¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô½¹I•ÑÕÉ¸õí½Á•¹…µÁ…¥¹ô½¹=Á•¹QÉ¥…±Ìõí½Á•¹QÉ¥…±Íô½¹=Á•¹Q…Í­Ìõí½Á•¹Q…Í­Íô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰ÑÉ¥…±Ìˆ€ü€ñMÑ½ÉåQÉ¥…±ÍMÉ••¸½¹	…¬õí½Á•¹…µÁ…¥¹ô½¹	…±…¹•¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô½¹9…Ù¥…Ñ”õí¹…Ù¥…Ñ•É½µQÉ¥…±Íô€¼ø€è¹Õ±±ô(€€€€€íÍÉ••¸€ôôô€‰Í…Ù”µÁÉ½™¥±”ˆ€ü€ñM…Ù•AÉ½™¥±•MÉ••¸½¹	…¬õí½Á•¹QÉ¥…±Íô½¹	…±…¹•¡…¹”õíÕÁ‘…Ñ•	…±…¹•ô€¼ø€è¹Õ±±ô(€€€€ğ½ÁÁM¡•±°ø(€€€€ğ¼ø(€€¤ì)ô

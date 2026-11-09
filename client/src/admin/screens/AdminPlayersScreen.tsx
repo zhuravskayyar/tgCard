@@ -77,12 +77,12 @@ export function AdminPlayersScreen({ onNavigate }: { onNavigate: (path: string) 
       </form>
 
       <section className="admin-panel admin-table-panel">
-        <div className="admin-panel__heading"><div><h2>Список гравців</h2><p>{data ? `${formatNumber(data.total)} акаунтів за поточним запитом` : "Завантаження…"}</p></div></div>
+        <div className="admin-panel__heading"><div><h2>Список гравців</h2><p>{data ? `${formatNumber(data.total)} акаунтів за поточним запитом` : "Завантаження…"}</p></div><button className="admin-button admin-button--secondary admin-button--compact" disabled={loading} onClick={() => setAttempt((value) => value + 1)} type="button"><span aria-hidden="true" className="admin-button__icon">↻</span>Оновити список</button></div>
         {loading && !data ? <AdminLoading /> : error ? <AdminError message={error} onRetry={() => setAttempt((value) => value + 1)} /> : data?.players.length === 0 ? <AdminEmpty message="Змініть пошук або фільтри." /> : data ? (
           <>
             <div className={`admin-table-wrap${loading ? " admin-table-wrap--updating" : ""}`}>
               <table className="admin-table">
-                <thead><tr><th>Гравець</th><th>Telegram</th><th>Рівень</th><th>Срібло</th><th>Золото</th><th>Реєстрація</th><th><span className="admin-sr-only">Дія</span></th></tr></thead>
+                <thead><tr><th>Гравець</th><th>Telegram</th><th>Рівень</th><th>Срібло</th><th>Золото</th><th>Останній захід</th><th>Реєстрація</th><th><span className="admin-sr-only">Дія</span></th></tr></thead>
                 <tbody>{data.players.map((player) => (
                   <tr key={player.id}>
                     <td data-label="Гравець"><strong>{playerName(player)}</strong><small>{player.username ? `@${player.username}` : player.id}</small></td>
@@ -90,8 +90,9 @@ export function AdminPlayersScreen({ onNavigate }: { onNavigate: (path: string) 
                     <td data-label="Рівень"><span className="admin-level-badge">{player.level}</span></td>
                     <td data-label="Срібло"><AdminCurrencyValue kind="silver" value={player.silver} /></td>
                     <td data-label="Золото"><AdminCurrencyValue kind="gold" value={player.gold} /></td>
+                    <td className="admin-activity-cell" data-label="Останній захід"><span className={`admin-status admin-status--${player.isOnline ? "online" : "offline"}`}>{player.isOnline ? "Онлайн" : "Офлайн"}</span><small>{player.lastSeenAt ? formatDate(player.lastSeenAt) : "Не зафіксовано"}</small></td>
                     <td data-label="Реєстрація">{formatDate(player.createdAt)}</td>
-                    <td><button className="admin-table__open" onClick={() => onNavigate(`/admin/players/${player.id}`)} type="button">Відкрити →</button></td>
+                    <td><button aria-label={`Відкрити профіль ${playerName(player)}`} className="admin-table__open" onClick={() => onNavigate(`/admin/players/${player.id}`)} type="button"><span>Профіль</span><span aria-hidden="true">↗</span></button></td>
                   </tr>
                 ))}</tbody>
               </table>
