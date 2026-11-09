@@ -34,6 +34,7 @@ export function getEquipmentBonusText(definition: EquipmentDefinition) {
 
 /** The mage's sheet with things on the left and artifacts on the right. */
 export function EquipmentDoll({ equipped, mageElement, onSlot }: { equipped: EquippedEquipment; mageElement?: CardElement | null; onSlot: (slot: EquipmentSlot, definition?: EquipmentDefinition) => void }) {
+  const visibleMageElement = mageElement ?? "fire";
   const column = (slots: readonly EquipmentSlot[]) => slots.map((slot) => {
     const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === equipped[slot]);
     return (
@@ -46,8 +47,8 @@ export function EquipmentDoll({ equipped, mageElement, onSlot }: { equipped: Equ
     );
   });
   return (
-    <div aria-label="Одягнене спорядження" className={`eq-doll${mageElement ? " eq-doll--live" : ""}`}>
-      {mageElement ? <ProfileMage element={mageElement} /> : null}
+    <div aria-label="Одягнене спорядження" className="eq-doll eq-doll--live">
+      <ProfileMage element={visibleMageElement} />
       <div className="eq-doll__column eq-doll__column--left">{column(EQUIPMENT_THING_SLOTS)}</div>
       <div className="eq-doll__column eq-doll__column--right">{column(EQUIPMENT_ARTIFACT_SLOTS)}</div>
     </div>

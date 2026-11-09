@@ -1,4 +1,4 @@
-import { getCardPower, getRarityForLevel } from "@cardastika/game-core";
+import { getCardPower, getDominantDeckElement, getRarityForLevel } from "@cardastika/game-core";
 import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getLeagueByRating, getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
 import type { Pool } from "pg";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
@@ -182,6 +182,9 @@ export class LeaderboardRepository {
         })
         .sort((left, right) => right.finalPower - left.finalPower || left.instanceId.localeCompare(right.instanceId))
         .slice(0, 3);
+      const mageElement = getDominantDeckElement(
+        result.rows.flatMap(({ card_element }) => card_element ? [{ element: card_element }] : []),
+      ) ?? "fire";
       return {
         deckPower,
         displayName: getDisplayName(first.nickname, first.username, first.first_name),
@@ -191,6 +194,7 @@ export class LeaderboardRepository {
         equipment: toPublicPlayerEquipment(first.id, first.equipment),
         id: first.id,
         level: first.level,
+        mageElement,
         photoUrl: first.photo_url,
         strongestCards,
       };

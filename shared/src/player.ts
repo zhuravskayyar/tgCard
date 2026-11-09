@@ -76,6 +76,7 @@ export interface PublicPlayerProfile {
   id: string;
   equipment?: PublicPlayerEquipment;
   level: number;
+  mageElement: CardElement;
   photoUrl: string | null;
   strongestCards: PublicPlayerCard[];
 }

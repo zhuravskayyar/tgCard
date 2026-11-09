@@ -7,6 +7,7 @@ import {
   EQUIPMENT_RARITY_CONFIG,
   EQUIPMENT_SLOT_LABELS,
   EQUIPMENT_THING_SLOTS,
+  getDominantDeckElement,
   getEquipmentBattleModifiers,
   STARTER_EQUIPMENT_DEFINITIONS,
 } from "@cardastika/game-core";
@@ -16,6 +17,7 @@ import { EquipmentDoll, EquipmentItemCard, EquipmentRack, getEquipmentBonusText,
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import type { EquipmentInventoryStatus } from "../equipment/equipmentState";
+import { usePlayerDeck } from "../hooks/usePlayerDeck";
 
 interface EquipmentScreenProps {
   equipped: EquippedEquipment;
@@ -30,6 +32,8 @@ interface EquipmentScreenProps {
 }
 
 export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialItemId = null, onBack, onEquippedChange, onOpenForge, saveError, savePending }: EquipmentScreenProps) {
+  const { state: deckState } = usePlayerDeck();
+  const mageElement = deckState.status === "ready" ? getDominantDeckElement(deckState.deck.cards) ?? "fire" : "fire";
   const definitionsById = useMemo(() => new Map(STARTER_EQUIPMENT_DEFINITIONS.map((definition) => [definition.id, definition])), []);
   const initialDefinition = initialItemId ? definitionsById.get(initialItemId) : undefined;
   const [category, setCategory] = useState<EquipmentCategory>(initialDefinition?.category ?? "things");
@@ -99,7 +103,7 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
     <section className="equipment-screen eq-screen" aria-labelledby="equipment-screen-title">
       <ScreenHeading onBack={onBack} title="Спорядження" titleId="equipment-screen-title" />
 
-      <EquipmentDoll equipped={equipped} onSlot={openSlot} />
+      <EquipmentDoll equipped={equipped} mageElement={mageElement} onSlot={openSlot} />
 
       <section aria-label="Сила спорядження" className="eq-plate eq-summary">
         <div className="eq-summary__elements">

@@ -6,10 +6,11 @@ import {
   EQUIPMENT_THING_SLOTS,
   STARTER_EQUIPMENT_DEFINITIONS,
 } from "@cardastika/game-core";
-import { EQUIPMENT_SLOTS, type EquipmentDefinition, type EquipmentSlot, type EquippedEquipment } from "@cardastika/shared";
+import { EQUIPMENT_SLOTS, type CardElement, type EquipmentDefinition, type EquipmentSlot, type EquippedEquipment } from "@cardastika/shared";
 import { EquipmentIcon } from "./EquipmentIcon";
 import { EquipmentSpriteImage } from "./EquipmentSpriteImage";
 import { ElementSymbol } from "./ElementSymbol";
+import { ProfileMage } from "./ProfileMage";
 import { getEquipmentRarityClass, getEquipmentSpritePath } from "../equipment/equipmentAssets";
 
 interface EquipmentArtProps {
@@ -65,14 +66,18 @@ export function EquipmentSlotCard({ definition, onSelect, slot }: { definition?:
   );
 }
 
-export function EquipmentCharacter({ compact = false }: { compact?: boolean }) {
+export function EquipmentCharacter({ compact = false, element = "fire" }: { compact?: boolean; element?: CardElement }) {
   return (
     <div className={`equipment-character${compact ? " equipment-character--compact" : ""}`}>
-      <div aria-hidden="true" className="equipment-character__sceneBackgroundLayer characterBackground" />
+      <div
+        aria-hidden="true"
+        className="equipment-character__sceneBackgroundLayer characterBackground"
+        style={{ backgroundImage: `linear-gradient(180deg, rgb(5 5 7 / 12%), rgb(5 5 7 / 58%)), url("/assets/profile/bg-${element}.webp")` }}
+      />
       <div aria-hidden="true" className="equipment-character__sceneOverlayLayer characterOverlay" />
       <div className="equipment-character__characterLayer equipment-character__frame">
-        <div className="characterSilhouette">
-          <img alt="Силует мага" className="equipment-character__mage" src="/assets/profile/mage-silhouette.webp" />
+        <div className="characterSilhouette equipment-character__mage-hitbox">
+          <ProfileMage element={element} />
         </div>
         <div aria-hidden="true" className="equipment-character__sceneFxLayer characterAura" />
         <div aria-hidden="true" className="equipment-character__sceneFxLayer characterForegroundEffects" />
@@ -86,12 +91,14 @@ export function EquipmentLoadout({
   compact = false,
   equipped,
   hideVoodoo = false,
+  mageElement = "fire",
   onSelectSlot,
   readonly = false,
 }: {
   className?: string;
   compact?: boolean;
   equipped: EquippedEquipment;
+  mageElement?: CardElement;
   hideVoodoo?: boolean;
   onSelectSlot?: (slot: EquipmentSlot, definition?: EquipmentDefinition) => void;
   readonly?: boolean;
@@ -114,7 +121,7 @@ export function EquipmentLoadout({
           return <EquipmentSlotCard definition={definition} key={slot} onSelect={onSelectSlot && !readonly ? () => onSelectSlot(slot, definition) : undefined} slot={slot} />;
         })}
       </div>
-      <EquipmentCharacter compact={compact} />
+      <EquipmentCharacter compact={compact} element={mageElement} />
       <div className="equipment-loadout__layer equipment-loadout__layer--equipmentSlots equipment-loadout__column equipment-loadout__column--right">
         {artifactSlots.map((slot) => {
           const definition = definitionsBySlot.get(slot);

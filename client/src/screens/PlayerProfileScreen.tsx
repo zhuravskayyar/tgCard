@@ -75,7 +75,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
             ))}
           </div>
 
-          <EquipmentDoll equipped={equipment} onSlot={() => undefined} />
+          <EquipmentDoll equipped={equipment} mageElement={profile.mageElement} onSlot={() => undefined} />
 
           <Section title="Рекорди">
             <div className="pf-grid">
