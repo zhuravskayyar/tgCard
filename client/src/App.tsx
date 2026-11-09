@@ -219,6 +219,12 @@ export function App() {
     updatePath("/arena");
   }
 
+  function openTournament() {
+    if (campaignTraining) { openCampaign(); return; }
+    setScreen("tournament");
+    updatePath("/tournament");
+  }
+
   function openLeagues() {
     if (campaignTraining) { openCampaign(); return; }
     setScreen("leagues");
@@ -657,6 +663,7 @@ export function App() {
           onOpenCollections={() => openCollections("home")}
           onOpenDeck={() => openDeck("home")}
           onOpenDuel={() => openDuel("home")}
+          onOpenTournament={openTournament}
           onOpenArena={openArena}
           onOpenDungeon={openDungeon}
           onOpenTasks={openTasks}

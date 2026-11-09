@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDominantDeckElement, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
-import type { EquippedEquipment } from "@cardastika/shared";
+import type { EquippedEquipment, TournamentAwardsView } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
+import { AvatarImage } from "../components/AvatarImage";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
 import { LeagueBadge } from "../components/LeagueBadge";
@@ -11,9 +13,11 @@ import { NicknameSkinPreview } from "../components/NicknameSkinPreview";
 import { GuildMembershipRow } from "../components/GuildMembershipRow";
 import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
-import { formatUiNumber } from "../i18n";
+import { formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { ResourceIcon } from "../components/ResourceIcon";
 import type { PlayerSummaryState } from "../types/player";
+import { getTelegramInitData } from "../telegram";
+import { loadTournamentAwards } from "../telegram/tournament";
 
 interface ProfileScreenProps {
   equipment: EquippedEquipment;
@@ -31,18 +35,48 @@ interface ProfileScreenProps {
 const HONORS = [
   { image: "/assets/ui/profile/title-orb.png", label: "Найкращий титул" },
   { image: "/assets/ui/profile/dragon-medal.png", label: "Медаль дракона" },
-  { image: "/assets/ui/profile/tournament-trophy.png", label: "Нагорода турніру" },
   { image: "/assets/ui/profile/achievement-orb.png", label: "Найкраще досягнення" },
 ];
 
-function getInitials(value: string) {
-  return value
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+const TOURNAMENT_BADGE_LABELS: Record<TournamentAwardsView["awards"][number]["badge"], string> = {
+  cup_1: "Кубок за 1 місце",
+  cup_2: "Кубок за 2 місце",
+  cup_3: "Кубок за 3 місце",
+  cup_4: "Кубок за 4 місце",
+  quarterfinal: "Медаль за 1/4 фіналу",
+  eighthfinal: "Медаль за 1/8 фіналу",
+  participant: "Медаль учасника",
+};
+
+const TOURNAMENT_LEAGUE_LABELS: Record<TournamentAwardsView["awards"][number]["league"], string> = {
+  conqueror: "Ліга Підкорювачів",
+  champion: "Ліга Чемпіонів",
+  master: "Ліга Майстрів",
+  ruler: "Ліга Володарів",
+};
+
+function TournamentAwardsCabinet({ data, onRetry, status }: { data: TournamentAwardsView | null; onRetry: () => void; status: "loading" | "error" | "ready" }) {
+  const locale = getUiLocale();
+  if (status === "loading") return <p className="pf-empty" role="status">{translateUi("Завантажуємо нагороди турніру…", locale)}</p>;
+  if (status === "error" || !data) return <div className="pf-retry"><p className="pf-empty" role="alert">{translateUi("Нагороди турніру тимчасово недоступні.", locale)}</p><button className="eq-button eq-button--parchment" onClick={onRetry} type="button">{translateUi("Повторити", locale)}</button></div>;
+  if (data.awards.length === 0) return <p className="pf-empty" role="status">{translateUi("Нагород турніру поки немає.", locale)}</p>;
+
+  return <>
+    <p className="pf-sr-only" role="status">{translateUi("Нагороди турніру завантажено.", locale)}</p>
+    <div aria-label={translateUi("Кубки й медалі", locale)} className="pf-tournament-awards" role="list">
+      {data.awards.map(({ badge, count, league }) => {
+        const badgeLabel = translateUi(TOURNAMENT_BADGE_LABELS[badge], locale);
+        const leagueLabel = translateUi(TOURNAMENT_LEAGUE_LABELS[league], locale);
+        const image = badge === "participant" ? "participant.png" : `${league}-${badge}.png`;
+        return <article aria-label={`${leagueLabel}: ${badgeLabel}, ${formatUiNumber(count)}`} key={`${league}-${badge}`} role="listitem">
+          <img alt="" src={`/assets/ui/tournament/awards/${image}`} />
+          <span>{badgeLabel}</span>
+          <small>{leagueLabel}</small>
+          <strong>×{formatUiNumber(count)}</strong>
+        </article>;
+      })}
+    </div>
+  </>;
 }
 
 function winsLabel(count: number) {
@@ -92,6 +126,28 @@ export function ProfileScreen({
   const xp = player?.accountXp ?? 0;
   const xpRequired = player?.accountXpRequired ?? 0;
   const xpPct = xpRequired > 0 ? Math.min(100, Math.floor((xp / xpRequired) * 100)) : 0;
+  const [tournament, setTournament] = useState<TournamentAwardsView | null>(null);
+  const [tournamentStatus, setTournamentStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [tournamentAttempt, setTournamentAttempt] = useState(0);
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!initData) { setTournamentStatus("error"); return; }
+    const controller = new AbortController();
+    void loadTournamentAwards(initData, controller.signal).then(data => {
+      if (controller.signal.aborted) return;
+      setTournament(data);
+      setTournamentStatus("ready");
+    }).catch(() => {
+      if (!controller.signal.aborted) setTournamentStatus("error");
+    });
+    return () => controller.abort();
+  }, [tournamentAttempt]);
+  const playedTournament = Boolean(tournament && tournament.played > 0);
+  const tournamentSummary = tournamentStatus === "error"
+    ? translateUi("Дані недоступні", getUiLocale())
+    : tournamentStatus === "loading"
+      ? translateUi("Завантаження…", getUiLocale())
+      : playedTournament ? `Кубків: ${formatUiNumber(tournament!.cups)} · медалей: ${formatUiNumber(tournament!.medals)}` : "Не грав";
   const playedArena = Boolean(player && ((player.arenaWins ?? 0) > 0 || (player.arenaTop3Count ?? 0) > 0));
   const hasBonuses = collectionBonuses.length > 0 || additionalExperienceRewardPct > 0 || equipmentSummary.itemBonusTotal > 0;
 
@@ -112,7 +168,7 @@ export function ProfileScreen({
         <>
           <section aria-label="Гравець" className="eq-plate pf-identity">
             <span className="eq-frame pf-portrait">
-              {player.photoUrl ? <img alt={`Аватар ${displayName}`} src={player.photoUrl} /> : <span>{getInitials(displayName)}</span>}
+              <AvatarImage alt={`Аватар ${displayName}`} name={displayName} photoUrl={player.photoUrl} seed={player.id} />
             </span>
             <div className="pf-identity__copy">
               <NicknameSkinPreview nickname={displayName} skinId={player.equippedNicknameSkin} />
@@ -139,7 +195,7 @@ export function ProfileScreen({
           </nav>
 
           <Section title="Відзнаки">
-            <div className="pf-grid">
+            <div className="pf-grid pf-grid--honors">
               {HONORS.map((honor) => (
                 <article key={honor.label}>
                   <span className="pf-grid__title">{honor.label}</span>
@@ -148,6 +204,10 @@ export function ProfileScreen({
                 </article>
               ))}
             </div>
+          </Section>
+
+          <Section title="Кубки й медалі">
+            <TournamentAwardsCabinet data={tournament} onRetry={() => { setTournamentStatus("loading"); setTournamentAttempt(value => value + 1); }} status={tournamentStatus} />
           </Section>
 
           <Section title="Рейтинги">
@@ -173,8 +233,8 @@ export function ProfileScreen({
               <article>
                 <span className="pf-grid__title">Турнір</span>
                 <img alt="" className="pf-grid__icon" src="/assets/ui/profile/tournament-trophy.png" />
-                <strong>—</strong>
-                <small>Не грав</small>
+                <strong>{playedTournament && tournament?.rating !== null ? formatUiNumber(tournament!.rating!) : "—"}</strong>
+                <small>{tournamentSummary}</small>
               </article>
             </div>
           </Section>

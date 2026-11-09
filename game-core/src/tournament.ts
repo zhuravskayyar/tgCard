@@ -258,19 +258,19 @@ export function getTournamentStartingHp(cards: readonly { element: CardElement; 
   return Math.round(power * TOURNAMENT_RULES.hpMultiplier * (100 + hpPercent) / 100);
 }
 
-/** Damage wins first; remaining HP ratio and a stable match seed settle any exact tie. */
+/**
+ * Damage dealt wins first; with equal damage (the reference names the 0:0 case)
+ * more remaining HP wins. An exact tie is settled by a stable match seed.
+ */
 export function resolveTournamentTimeout(
-  a: { damage: number; startingHp: number },
-  b: { damage: number; startingHp: number },
+  a: { damage: number; remainingHp: number },
+  b: { damage: number; remainingHp: number },
   tieSeed: string,
 ): 0 | 1 {
   integer(a.damage, "damage"); integer(b.damage, "damage");
-  integer(a.startingHp, "starting HP", 1); integer(b.startingHp, "starting HP", 1);
+  integer(a.remainingHp, "remaining HP"); integer(b.remainingHp, "remaining HP");
   if (a.damage !== b.damage) return a.damage > b.damage ? 0 : 1;
-  const aRemaining = Math.max(0, a.startingHp - a.damage);
-  const bRemaining = Math.max(0, b.startingHp - b.damage);
-  const remainingRatio = aRemaining * b.startingHp - bRemaining * a.startingHp;
-  if (remainingRatio !== 0) return remainingRatio > 0 ? 0 : 1;
+  if (a.remainingHp !== b.remainingHp) return a.remainingHp > b.remainingHp ? 0 : 1;
 
   // FNV-1a gives the same side for the same match after retries/restarts.
   let hash = 2166136261;

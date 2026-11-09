@@ -80,14 +80,14 @@ interface DuelScreenProps extends DuelResultNavigation {
   tutorialMode?: boolean;
 }
 
-export function PlayerAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
+export function PlayerAvatar({ name, photoUrl, seed }: { name: string; photoUrl: string | null; seed?: string }) {
   // Bot avatars are card art: resolve them through the manifest, since stored paths can outlive a moved file.
   const artKey = photoUrl?.startsWith("/card-art/") ? photoUrl.slice("/card-art/".length).replace(/\.\w+$/, "") : null;
   const artwork = useCardArtworkSource(artKey, null);
   const source = artKey ? artwork.source : photoUrl;
   return (
     <span className="duel-avatar" aria-hidden="true">
-      {source && !source.startsWith("bot-avatar:") ? <img alt="" className={cardArtAvatarClassName(source)} onError={artKey ? artwork.onSourceError : undefined} src={source} /> : <AvatarImage alt="" name={name} photoUrl={photoUrl} />}
+      {source && !source.startsWith("bot-avatar:") && !source.startsWith("avatar:") ? <img alt="" className={cardArtAvatarClassName(source)} onError={artKey ? artwork.onSourceError : undefined} src={source} /> : <AvatarImage alt="" name={name} photoUrl={photoUrl} seed={seed} />}
     </span>
   );
 }
@@ -142,7 +142,7 @@ export function HpPanel({ currentHp, detail, maximumHp, side, tone, hit = false,
   currentHp: number;
   detail?: string;
   maximumHp: number;
-  side: Pick<DuelSideSnapshot, "level" | "name" | "photoUrl">;
+  side: Pick<DuelSideSnapshot, "level" | "name" | "photoUrl" | "playerId">;
   tone: "enemy" | "player";
   hit?: boolean;
   damageElement?: CardElement;
@@ -152,7 +152,7 @@ export function HpPanel({ currentHp, detail, maximumHp, side, tone, hit = false,
   const percentage = maximumHp > 0 ? Math.max(0, Math.min(100, currentHp / maximumHp * 100)) : 0;
   return (
     <section className={`duel-hp-panel duel-hp-panel--${tone}${hit ? ` duel-hp-panel--hit duel-hp-panel--hit-${damageLevel}` : ""}`} data-tutorial-target={tutorialTarget}>
-      <PlayerAvatar name={side.name} photoUrl={side.photoUrl} />
+      <PlayerAvatar name={side.name} photoUrl={side.photoUrl} seed={side.playerId} />
       <div className="duel-hp-panel__body">
         <div>
           <strong>{side.name}</strong>
@@ -286,8 +286,10 @@ function useSettledMultipliers(multipliers: readonly number[], latestTurn: numbe
   return settled.current;
 }
 
-export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionHint, actionNotice, disableCards = false, disabledSlots, tutorialAllowedSlot = null, tutorialMode }: {
+export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionHint, actionNotice, animateExchange, disableCards = false, disabledSlots, tutorialAllowedSlot = null, tutorialMode }: {
   duel: DuelView;
+  /** Live PvP logs also hold the opponent's strikes; only this exchange flies from the player's slot. */
+  animateExchange?: DuelExchange | null;
   pendingSlot: 0 | 1 | 2 | null;
   onAction: (slotIndex: 0 | 1 | 2) => void;
   actionButtons?: ReactNode;
@@ -299,8 +301,8 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
   tutorialMode?: boolean;
 }) {
   const [introActive, setIntroActive] = useState(() => duel.battleLog.length === 0);
-  const clash = useBattleExchange(duel.battleLog[0] ?? null);
-  const shownMultipliers = useSettledMultipliers(duel.pairMultipliers, duel.battleLog[0]?.turnNumber, clash);
+  const clash = useBattleExchange(animateExchange === undefined ? duel.battleLog[0] ?? null : animateExchange);
+  const shownMultipliers = useSettledMultipliers(duel.pairMultipliers, (animateExchange === undefined ? duel.battleLog[0] : animateExchange)?.turnNumber, clash);
 
   useEffect(() => {
     if (!introActive) return;
@@ -427,7 +429,8 @@ function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; d
 
 /** The stamped crest, light rays, sparks and unrolling title ribbon shared by every duel outcome screen. */
 function DuelOutcomeHeader({ won }: { won: boolean }) {
-  const title = won ? "ПЕРЕМОГА" : "ПОРАЗКА";
+  // Translate before splitting: the runtime translator cannot match single-letter spans.
+  const title = translateUi(won ? "ПЕРЕМОГА" : "ПОРАЗКА", getUiLocale());
   return (
     <header className="duel-outcome__crest">
       {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}

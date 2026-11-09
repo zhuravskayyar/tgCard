@@ -213,6 +213,7 @@ bloodthirsty_piranha:["Piranha","A fish like any other, until you dip your hand.
 battle_gryphon:["Gryphon","Half eagle, half lion, with an appetite for both.","Greif","Halb Adler, halb Löwe, mit dem Appetit von beiden.","Грифон","Наполовину орёл, наполовину лев, аппетит на обоих."],
 fire_servant:["Servant of Fire","Could burn a city, but awaits the order. For now.","Diener des Feuers","Könnte eine Stadt verbrennen, wartet aber auf den Befehl. Noch.","Служитель огня","Мог бы сжечь город, но ждёт приказа. Пока."],
 winged_hound:["Winged Hound","A fence is no longer an argument for him.","Geflügelter Hund","Ein Zaun ist für ihn kein Argument mehr.","Крылатый пёс","Забор для него больше не аргумент."],
+kostakod:["Kostakod","Roots grasp the lesson faster than his students.","Kostakod","Selbst Wurzeln verstehen den Stoff schneller als seine Schüler.","Костакод","Корни усваивают урок быстрее учеников."],
 };
 
 // Collection names not yet in coreTranslations: Ukrainian, English, German, Russian.
@@ -248,4 +249,6 @@ module.exports.__collections = [
 ["Розбите люстро","The Shattered Mirror","Der zerbrochene Spiegel","Разбитое зеркало"],
 ["Перші зміїні чари","First Serpent Spells","Erste Drachenzauber","Первые змеиные чары"],
 ["Цілющі зміїні чари","Healing Serpent Spells","Heilende Drachenzauber","Целебные змеиные чары"],
+["Легенди Twitch","Twitch Legends","Twitch-Legenden","Легенды Twitch"],
+["Бонус колекції визначимо після її розширення","The collection bonus will be set when the collection grows","Der Sammlungsbonus wird festgelegt, wenn die Sammlung wächst","Бонус коллекции определим, когда она расширится"],
 ];

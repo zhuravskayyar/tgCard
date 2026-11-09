@@ -39,6 +39,7 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     const challenger = await players.findOrCreateFromTelegram(challengerUser);
     const eligibleReal = await players.findOrCreateFromTelegram(eligibleRealUser);
     playerIds.push(challenger.id, eligibleReal.id);
+    await players.updateNickname(challenger.id, "Kostalgia");
     const playerCountBefore = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM players");
 
     const service = new DuelService(pool, () => 0);
@@ -62,6 +63,7 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     assert.equal(search.rows[0]?.opponent_snapshot.name, found.opponent.name);
 
     const duel = await service.start(challenger.id, found.searchId);
+    assert.equal(duel.player.name, "Kostalgia");
     assert.equal(duel.opponent.name, found.opponent.name);
     assert.equal(duel.opponent.cards.length, 9);
     assert.ok(duel.opponent.cards.every(({ instanceId }) => instanceId.startsWith("bot:")));

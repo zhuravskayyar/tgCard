@@ -221,3 +221,4 @@ drmagic_heal_fire | Вогнище на стоянці | drmagic_heal_fire
 the_bat | Кажан-горищанин | the_bat
 wild_boar | Вепр | wild_boar
 winged_hound | Крилатий пес | winged_hound
+kostakod | Костакод | kostakod

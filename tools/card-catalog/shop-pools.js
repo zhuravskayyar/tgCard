@@ -2,7 +2,7 @@
 module.exports = {
   card_legendary: {
     mythic: "elvish_princess snow_queen war_archangel fire_titan studded_wheel aquatank icarus_disciple goblin_grinder underground_dragon sea_dragon feathered_dragon black_dragon tremors horrible_kraken smashing_angel balrog sabretoothed_tiger northern_vyvern lightning_thrower goblin_mortar",
-    legendary: "wise_tauren south_sea_naga winged_hound orc_shaman battle_unicorn south_swamp_hydra sky_doorkeeper goblin_bomber",
+    legendary: "wise_tauren south_sea_naga winged_hound orc_shaman battle_unicorn south_swamp_hydra sky_doorkeeper goblin_bomber kostakod",
   },
   card_epic: {
     mythic: "silver_dragon ancient_leviathan north_dragon fire_dragon forest_dryad cruel_medusa beautiful_valkyrie fire_witch",

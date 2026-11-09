@@ -32,7 +32,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% картам Води на турнірі (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% картам Води на турнірі",
    "cardIds": [
     "deepsea_guard",
     "submarine_warrior",
@@ -52,7 +52,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% картам Вогню на турнірі (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% картам Вогню на турнірі",
    "cardIds": [
     "goblin_jet",
     "furious_orc",
@@ -72,7 +72,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% картам Повітря на турнірі (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% картам Повітря на турнірі",
    "cardIds": [
     "wind_fairy",
     "air_genie",
@@ -92,7 +92,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% картам Землі на турнірі (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% картам Землі на турнірі",
    "cardIds": [
     "pack_leader",
     "stone_golem",
@@ -234,7 +234,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% здоров'я на турнірі й у війнах гільдій (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка",
    "cardIds": [
     "war_archangel",
     "elvish_princess",
@@ -264,7 +264,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Посилення на турнірі ефективніше на 5% (запрацює разом із цією механікою)",
+   "bonusLabel": "Посилення на турнірі ефективніше на 5%",
    "cardIds": [
     "air_serpent",
     "mamukrajua",
@@ -817,6 +817,18 @@ export const CATALOG_DATA: {
     "drmagic_heal_earth",
     "drmagic_heal_fire",
     "drmagic_heal_water"
+   ]
+  },
+  {
+   "code": "twitch_legends",
+   "displayName": "Легенди Twitch",
+   "bonus": {
+    "type": "none",
+    "value": 1
+   },
+   "bonusLabel": "Бонус колекції визначимо після її розширення",
+   "cardIds": [
+    "kostakod"
    ]
   }
  ],
@@ -1776,6 +1788,14 @@ export const CATALOG_DATA: {
    "shopEligible": true
   },
   {
+   "id": "kostakod",
+   "displayName": "Костакод",
+   "description": "Коріння схоплює матеріал швидше за учнів.",
+   "element": "earth",
+   "minRarity": "legendary",
+   "shopEligible": true
+  },
+  {
    "id": "lakes_princess",
    "displayName": "Княжна Озерна",
    "description": "Її портрети висять у казармах. Чого не скажеш про оригінал.",
@@ -2576,7 +2596,8 @@ export const CATALOG_DATA: {
     "battle_unicorn",
     "south_swamp_hydra",
     "sky_doorkeeper",
-    "goblin_bomber"
+    "goblin_bomber",
+    "kostakod"
    ]
   },
   "card_epic": {

@@ -21,7 +21,7 @@ interface ModeItem extends HomeItem {
 const modes: ModeItem[] = [
   { title: "Дуель", icon: "duel", sprite: "mode-duel", accent: "gold" },
   { title: "Кампанія", icon: "campaign", sprite: "mode-campaign", accent: "gold" },
-  { title: "Турнір", icon: "tournament", sprite: "mode-tournament", accent: "gold", status: "Скоро" },
+  { title: "Турнір", icon: "tournament", sprite: "mode-tournament", accent: "gold" },
   { title: "Арена", icon: "arena", sprite: "mode-arena", accent: "bronze" },
   { title: "Колода", icon: "deck", sprite: "mode-deck", accent: "bronze" },
   { title: "Навала", icon: "skull", sprite: "mode-dungeon", accent: "bronze", status: "Скоро" },
@@ -44,6 +44,7 @@ interface HomeScreenProps {
   onResumeTutorial: () => void;
   tutorialStatus: TutorialStatus;
   onOpenDuel: () => void;
+  onOpenTournament: () => void;
   onOpenArena: () => void;
   onOpenDungeon: () => void;
   onOpenDeck: () => void;
@@ -57,7 +58,7 @@ interface HomeScreenProps {
   playerLevel?: number;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, onOpenSettings, playerLevel }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, onOpenSettings, playerLevel }: HomeScreenProps) {
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
   const hasDailyTaskReward = battlePassState.status === "ready"
@@ -74,7 +75,7 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
       <div className="home-screen__content">
         <section className="mode-grid" aria-label="Ігрові режими">
           {modes.map((mode) => (
-            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
+            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
           ))}
         </section>
         <section className="home-menu" aria-label="Розділи гри">

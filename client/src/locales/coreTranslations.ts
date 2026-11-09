@@ -23,6 +23,7 @@ export const CORE_TRANSLATIONS: ReadonlyArray<readonly [string, string, string, 
   ["Віднови збережений прогрес через спосіб входу, який прив’язаний до твого профілю.", "Restore your saved progress with the sign-in method linked to your profile.", "Stelle deinen Fortschritt mit der Anmeldemethode wieder her, die mit deinem Profil verknüpft ist.", "Восстанови сохранённый прогресс через способ входа, привязанный к твоему профилю."],
   // Collection bonuses and shared labels
   ["+5% картам Води на турнірі","+5% to Water cards in tournaments","+5 % für Wasserkarten im Turnier","+5% картам Воды на турнире"],
+  ["+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка","+5% health in tournaments; in guild wars once that mechanic arrives","+5 % Gesundheit im Turnier; in Gildenkriegen, sobald diese Mechanik kommt","+5% здоровья на турнире; в войнах гильдий — когда появится эта механика"],
   ["+5% картам Вогню на турнірі","+5% to Fire cards in tournaments","+5 % für Feuerkarten im Turnier","+5% картам Огня на турнире"],
   ["+5% картам Повітря на турнірі","+5% to Air cards in tournaments","+5 % für Luftkarten im Turnier","+5% картам Воздуха на турнире"],
   ["+5% картам Землі на турнірі","+5% to Earth cards in tournaments","+5 % für Erdkarten im Turnier","+5% картам Земли на турнире"],

@@ -12,6 +12,12 @@ export type {
   TournamentBracketMatch,
   TournamentMatchResult,
   TournamentBuffOption,
+  TournamentEventStatus,
+  TournamentRunMatchView,
+  TournamentRunAction,
+  TournamentAwardsView,
+  TournamentPodiumParticipant,
+  TournamentStanding,
 } from "./tournament.js";
 export { TOURNAMENT_CHAT_MAX_LENGTH } from "./tournament.js";
 export { CHAT_MAX_LENGTH, type ChatMessage, type ChatView } from "./chat.js";

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { GUILD_CONFIG, GUILD_ROLE_LABELS, canKickGuildMember, canManageGuildRole, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildMineResponse, type GuildProfileResponse, type GuildRecruitmentMode, type GuildRole, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
+import { AvatarImage } from "../../components/AvatarImage";
 import { MenuRow } from "../../components/MenuRow";
 import { RibbonTitle } from "../../components/RibbonTitle";
 import { ScreenHeading } from "../../components/ScreenHeading";
@@ -180,7 +181,7 @@ function GuildRoster({ members, treasury, memberPage, memberPages, viewer, permi
         return <div className="guild-member" key={member.playerId}>
           <div className="guild-member-row">
             <span className="guild-member-row__index">{(memberPage - 1) * 10 + index + 1}</span>
-            <span className="guild-member-row__avatar" aria-hidden="true">{member.photoUrl ? <img alt="" src={member.photoUrl} /> : member.displayName.slice(0, 1).toUpperCase()}</span>
+            <span className="guild-member-row__avatar" aria-hidden="true"><AvatarImage alt="" name={member.displayName} photoUrl={member.photoUrl} seed={member.playerId} /></span>
             <span className="guild-roster__role" aria-hidden="true"><GuildRoleBadge role={member.role} /></span>
             <span className="guild-member-row__identity"><strong>{member.displayName}{isSelf ? " · ви" : ""}</strong><small>{GUILD_ROLE_LABELS[member.role]}</small></span>
             <span className="guild-member-row__value"><strong>{metric === "rank" ? `${member.level} рів.` : formatNumber(guildRosterMetricValue(metric, treasuryMembers.get(member.playerId)))}</strong><small>{metric === "rank" ? `${Math.max(0, Math.floor((Date.now() - Date.parse(member.joinedAt)) / 86_400_000))} д у гільдії` : metric === "guildXp" ? "XP" : metric === "cardElements" ? "елементів" : metric === "gold" ? "золота" : "срібла"}</small></span>

@@ -170,12 +170,12 @@ test("round deadlines are authoritative and a free change cannot grant extra str
   assert.throws(() => useTournamentCard(cycle(), 2, at(-1)));
 });
 
-test("timeouts prefer damage, then remaining HP ratio, then a stable match tiebreak", () => {
-  assert.equal(resolveTournamentTimeout({ damage: 10, startingHp: 50 }, { damage: 9, startingHp: 100 }, "match-1"), 0);
-  assert.equal(resolveTournamentTimeout({ damage: 0, startingHp: 50 }, { damage: 0, startingHp: 100 }, "match-2"), 1);
-  assert.equal(resolveTournamentTimeout({ damage: 10, startingHp: 50 }, { damage: 10, startingHp: 100 }, "match-3"), 1);
-  const exactTie = resolveTournamentTimeout({ damage: 10, startingHp: 50 }, { damage: 10, startingHp: 50 }, "match-4:alpha:beta");
-  assert.equal(exactTie, resolveTournamentTimeout({ damage: 10, startingHp: 50 }, { damage: 10, startingHp: 50 }, "match-4:alpha:beta"));
+test("timeouts prefer damage, then more remaining HP, then a stable match tiebreak", () => {
+  assert.equal(resolveTournamentTimeout({ damage: 10, remainingHp: 40 }, { damage: 9, remainingHp: 90 }, "match-1"), 0);
+  assert.equal(resolveTournamentTimeout({ damage: 0, remainingHp: 50 }, { damage: 0, remainingHp: 100 }, "match-2"), 1);
+  assert.equal(resolveTournamentTimeout({ damage: 10, remainingHp: 40 }, { damage: 10, remainingHp: 90 }, "match-3"), 1);
+  const exactTie = resolveTournamentTimeout({ damage: 10, remainingHp: 40 }, { damage: 10, remainingHp: 40 }, "match-4:alpha:beta");
+  assert.equal(exactTie, resolveTournamentTimeout({ damage: 10, remainingHp: 40 }, { damage: 10, remainingHp: 40 }, "match-4:alpha:beta"));
   assert.ok(exactTie === 0 || exactTie === 1);
   assert.equal(getTournamentBattleXp({ damageDealt: 1500, opponentStartingHp: 1000, experiencePercent: 10, outcome: "loss" }), 1100);
   assert.equal(getTournamentBattleXp({ damageDealt: 100, opponentStartingHp: 1000, outcome: "loss" }), 100);

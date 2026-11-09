@@ -84,11 +84,19 @@
 :root[data-game-theme="light"] body .app-shell .app-content .pf-plate { gap: 8px; }
 
 .pf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pf-grid--honors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .pf-grid article { display: grid; grid-template-rows: 32px 48px auto auto; justify-items: center; align-items: center; gap: 2px; min-width: 0; text-align: center; }
 .pf-grid__title { align-self: start; color: #3a2412; font-size: 12px; font-weight: 800; line-height: 1.15; }
 .pf-grid__icon { display: grid; place-items: center; width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(40 20 5 / 45%)); }
 .pf-grid strong { color: #24140a; font-family: var(--font-number); font-size: 15px; line-height: 1.1; }
 .pf-grid small { color: #3a2412; font-size: 12px; font-weight: 600; line-height: 1.15; }
+.pf-tournament-awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px 4px; }
+.pf-tournament-awards article { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 0; color: #3a2412; text-align: center; }
+.pf-tournament-awards img { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(40 20 5 / 35%)); }
+.pf-tournament-awards span { color: #24140a; font-size: 11px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.pf-tournament-awards small { color: #3a2412; font-size: 10px; line-height: 1.15; }
+.pf-tournament-awards strong { color: #24140a; font-family: var(--font-number); font-size: 12px; line-height: 1.1; }
+.pf-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .pf-elements { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .pf-elements span { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }

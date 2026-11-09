@@ -21,7 +21,7 @@ import {
   type CyclicCardPool,
   type RandomSource,
 } from "@cardastika/game-core";
-import { applyLeagueProgression } from "@cardastika/shared";
+import { applyLeagueProgression, getPlayerDisplayName } from "@cardastika/shared";
 import type {
   CardElement,
   CollectionBonusScope,
@@ -76,6 +76,7 @@ interface ParticipantRow {
   gold: string | number;
   id: string;
   level: number;
+  nickname: string | null;
   photo_url: string | null;
   silver: string | number;
   tutorial_eligible: boolean;
@@ -340,6 +341,7 @@ function toPlayerSummary(row: ParticipantRow): PlayerSummary {
     id: row.id,
     username: row.username,
     firstName: row.first_name,
+    nickname: row.nickname,
     photoUrl: row.photo_url,
     level: row.level,
     silver: toSafeInteger(row.silver, "Silver"),
@@ -387,7 +389,7 @@ export async function loadDuelParticipant(
 ): Promise<LoadedParticipant> {
   const playerResult = await client.query<ParticipantRow>(
     `
-      SELECT id, username, first_name, photo_url, level, silver, gold,
+      SELECT id, username, nickname, first_name, photo_url, level, silver, gold,
         account_xp, duel_wins, duel_losses, duel_win_streak,
         duel_rating, duel_highest_league_index,
         duel_gold_earned_today, duel_gold_day, duel_gold_level, tutorial_eligible, equipment
@@ -457,7 +459,8 @@ export async function loadDuelParticipant(
   return {
     player,
     snapshot: {
-      name: player.first_name,
+      playerId: player.id,
+      name: getPlayerDisplayName({ firstName: player.first_name, nickname: player.nickname, username: player.username }),
       photoUrl: player.photo_url,
       level: player.level,
       cards,
@@ -757,7 +760,7 @@ export class DuelService {
       if (resolved.status !== "active") {
         const playerResult = await client.query<ParticipantRow>(
           `
-          SELECT id, username, first_name, photo_url, level, silver, gold,
+          SELECT id, username, nickname, first_name, photo_url, level, silver, gold,
             account_xp, duel_wins, duel_losses, duel_win_streak,
               duel_rating, duel_highest_league_index,
               duel_gold_earned_today, duel_gold_day, duel_gold_level, tutorial_eligible
@@ -866,7 +869,7 @@ export class DuelService {
               duel_gold_level = $13,
               updated_at = NOW()
             WHERE id = $1
-            RETURNING id, username, first_name, photo_url, level, silver, gold,
+            RETURNING id, username, nickname, first_name, photo_url, level, silver, gold,
               account_xp, duel_wins, duel_losses, duel_win_streak,
               duel_rating, duel_highest_league_index,
               duel_gold_earned_today, duel_gold_day, duel_gold_level

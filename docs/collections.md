@@ -1,7 +1,8 @@
 # Collections v1
 
-Cardastika has 50 permanent collections of 3 to 15 cards, 213 species in total (16 of
-them outside any collection). The catalog is generated from `tools/card-catalog/` into
+Cardastika has 50 established collections of 3 to 15 cards and the new one-card
+collection «Легенди Twitch», which is waiting for more members: 51 collections and
+214 species in total (16 of them outside any collection). The catalog is generated from `tools/card-catalog/` into
 `server/src/collections/catalogData.generated.ts` and readable in `docs/card-catalog-v2.md`;
 edit the sources there and rerun `node tools/card-catalog/build-catalog.js <repo path>`.
 One card may belong to several collections: membership lives in `collection_cards`, and

@@ -2,6 +2,7 @@ import { useRef } from "react";
 import type { PlayerSummaryState } from "../types/player";
 import { getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
+import { AvatarImage } from "./AvatarImage";
 import { CurrencyDisplay } from "./CurrencyDisplay";
 import { DiamondHudPill } from "./DiamondHudPill";
 import { ExperienceFlask } from "./ExperienceFlask";
@@ -13,16 +14,6 @@ interface TopHudProps {
   deckPowerOverride?: number;
   onRetry: () => void;
   state: PlayerSummaryState;
-}
-
-function getInitials(username: string) {
-  return username
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 }
 
 export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
@@ -53,10 +44,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
         <div className="top-hud__player">
           <div className="player-avatar">
             {isLoading ? <span className="skeleton skeleton--avatar" /> : null}
-            {player?.photoUrl ? <img alt={`Аватар ${displayName}`} src={player.photoUrl} /> : null}
-            {player && !player.photoUrl ? (
-              <span>{displayName ? getInitials(displayName) : <AppIcon name="profile" />}</span>
-            ) : null}
+            {player ? <AvatarImage alt={displayName ? `Аватар ${displayName}` : ""} name={displayName ?? ""} photoUrl={player.photoUrl} seed={player.id} /> : null}
             {!isLoading && !player ? <AppIcon name="profile" size={21} /> : null}
             <span aria-hidden="true" className="player-avatar__frame" />
           </div>

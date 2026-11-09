@@ -1,81 +1,108 @@
 import { useEffect, useState } from "react";
-import type { CardElement, DuelView, TournamentRunView } from "@cardastika/shared";
-import { CardArtwork } from "../../components/CardArtwork";
+import type { CardElement, DuelView, TournamentRunAction, TournamentRunView } from "@cardastika/shared";
+import { AppIcon } from "../../components/AppIcon";
+import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import { ElementSymbol } from "../../components/ElementSymbol";
 import { RibbonTitle } from "../../components/RibbonTitle";
+import { useBattleResultReady } from "../../components/useBattlePresentation";
 import { formatUiNumber } from "../../i18n";
-import { DuelBattle } from "../DuelScreen";
-
-function Standing({ place, participant, champion = false }: {
-  place: number;
-  participant: NonNullable<TournamentRunView["standings"]>[number]["participant"];
-  champion?: boolean;
-}) {
-  const card = participant.cards[0];
-  return <article className={`tournament-standing${champion ? " tournament-standing--champion" : ""}`}>
-    <strong>{place} місце</strong>
-    {card ? <span className="tournament-standing__art"><CardArtwork artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity} /></span> : null}
-    <span>{participant.name}</span>
-  </article>;
-}
+import { BattleLog, DuelBattle } from "../DuelScreen";
+import { TournamentPodium } from "./TournamentPodium";
 
 const ELEMENT_NAMES: Record<CardElement, string> = { fire: "Вогонь", water: "Вода", air: "Повітря", earth: "Земля" };
 
-export function TournamentRun({ run, pending, error, onAction, onContinue, onExit }: {
+function clock(milliseconds: number) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function signed(value: number) {
+  return value > 0 ? `+${formatUiNumber(value)}` : value < 0 ? `−${formatUiNumber(-value)}` : "0";
+}
+
+function prizeText(run: TournamentRunView) {
+  const granted = run.prizeGranted;
+  const reward = run.prize?.reward;
+  const parts = [
+    reward?.kind === "card" ? `карта ${granted?.cardName ?? ""} рівня ${reward.level}`.replace("  ", " ") : null,
+    reward?.kind === "source" ? `джерело рівня ${reward.level}` : null,
+    run.prize?.diamonds ? `${formatUiNumber(run.prize.diamonds)} алмазів` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export function TournamentRun({ run, clockOffset, pending, error, onAction, onExit }: {
   run: TournamentRunView;
-  pending: number | "buff" | null;
+  /** Server time minus local time, so countdowns follow the server's round clock. */
+  clockOffset: number;
+  pending: number | "buff" | "change" | null;
   error: string | null;
-  onAction: (action: { type: "buff"; matchId: string; element: CardElement } | { type: "attack"; matchId: string; slotIndex: 0 | 1 | 2 }) => void;
-  onContinue: () => void;
+  onAction: (action: TournamentRunAction) => void;
   onExit: () => void;
 }) {
-  const match = run.match;
-  const [now, setNow] = useState(() => Date.now());
+  const [localNow, setLocalNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!match || run.status !== "battle") return;
-    const timer = window.setTimeout(() => setNow(Date.now()), Math.max(0, match.playerCycleEndsAt - Date.now() + 40));
-    return () => window.clearTimeout(timer);
-  }, [match?.playerCycleEndsAt, run.status]);
+    const timer = window.setInterval(() => setLocalNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, []);
+  const now = localNow + clockOffset;
+  const match = run.match;
+  const live = run.status === "battle" || run.status === "buff_selection";
+  const resultReady = useBattleResultReady(run.status === "battle", Boolean(match?.outcome), match?.outcome ?? null);
 
-  if (match) {
+  if (match && (live || (match.outcome && !resultReady))) {
+    const choosingBuff = run.status === "buff_selection";
     const duel: DuelView = {
       battleLog: match.log,
       duelId: match.id,
-      enemyActiveCards: match.opponentCards as DuelView["enemyActiveCards"],
+      enemyActiveCards: match.opponentCards,
       enemyHp: match.opponentHp,
       enemyMaxHp: match.opponentMaxHp,
       opponent: match.opponent,
       pairMultipliers: match.pairMultipliers,
-      player: run.player,
-      playerActiveCards: match.playerCards as DuelView["playerActiveCards"],
+      player: run.player ?? match.opponent,
+      playerActiveCards: match.playerCards,
       playerHp: match.playerHp,
       playerMaxHp: match.playerMaxHp,
       status: "active",
       turnNumber: match.log[0]?.turnNumber ?? 0,
       version: match.log[0]?.turnNumber ?? 0,
     };
-    const choosingBuff = run.status === "buff_selection";
-    const disabledSlots: [boolean, boolean, boolean] = now < match.playerCycleEndsAt ? match.playerUsedSlots : [false, false, false];
+    const disabledSlots: [boolean, boolean, boolean] = now < match.cycleEndsAt ? match.playerUsedSlots : [false, false, false];
     const allSlotsUsed = disabledSlots.every(Boolean);
+    const stage = run.stage;
+    const hint = choosingBuff
+      ? `Бій почнеться через ${clock((stage?.battleStartsAt ?? now) - now)}`
+      : allSlotsUsed ? `Нові карти через ${clock(match.cycleEndsAt - now)}` : `${stage?.label ?? "Раунд"} · ${clock((stage?.endsAt ?? now) - now)}`;
 
     return <DuelBattle
-      key={`${match.id}:${choosingBuff ? "buff" : "battle"}`}
+      key={match.id}
       actionButtons={choosingBuff ? <div className="tournament-buff-options" aria-label="Підсилення перед боєм">
         {run.buffOptions?.map(option => <button
-          className="ui-button tournament-buff-option"
-          disabled={pending !== null}
+          aria-pressed={match.buffElement === option.element}
+          className={`ui-button tournament-buff-option${match.buffElement === option.element ? " ui-button--primary" : ""}`}
+          disabled={match.buffElement !== option.element && (pending !== null || run.goldAvailable < run.buffCost)}
           key={option.element}
-          onClick={() => onAction({ type: "buff", matchId: match.id, element: option.element })}
+          onClick={() => { if (match.buffElement !== option.element) onAction({ type: "buff", matchId: match.id, element: option.element }); }}
           type="button"
         >
           <ElementSymbol element={option.element} size={22} />
-          <span>{ELEMENT_NAMES[option.element]} · +{option.addedPower}</span>
-          {run.buffCost !== undefined ? <small>{run.buffCost === 0 ? "Безкоштовно" : `${formatUiNumber(run.buffCost)} золота`}</small> : null}
+          <span>{ELEMENT_NAMES[option.element]} · +{formatUiNumber(option.addedPower)}</span>
+          <small><CurrencyIcon kind="gold" size={13} />{formatUiNumber(run.buffCost)}</small>
         </button>)}
+        {run.goldAvailable < run.buffCost && !match.buffElement ? <p className="tournament-buff-options__note">Недостатньо золота для підсилення.</p> : null}
+      </div> : run.status === "battle" ? <div className="tournament-battle-actions">
+        <button
+          className="tournament-action"
+          disabled={pending !== null || !match.freeChangeAvailable}
+          onClick={() => onAction({ type: "change", matchId: match.id })}
+          type="button"
+        ><span aria-hidden="true" className="tournament-action__medallion"><AppIcon name="deck" size={28} /></span><span>Змінити карти</span><small>{match.freeChangeAvailable ? "безплатно" : "використано"}</small></button>
       </div> : undefined}
-      actionHint={choosingBuff ? "Оберіть стихію для цього бою" : allSlotsUsed ? "Очікуйте наступний цикл карт" : undefined}
+      actionHint={hint}
       actionNotice={error ? <p className="tournament-run-state__error" role="alert">{error}</p> : null}
-      disableCards={choosingBuff || pending !== null}
+      animateExchange={match.log.find(entry => entry.ownStrike) ?? null}
+      disableCards={choosingBuff || run.status !== "battle" || pending !== null}
       disabledSlots={choosingBuff ? undefined : disabledSlots}
       duel={duel}
       onAction={slotIndex => onAction({ type: "attack", matchId: match.id, slotIndex })}
@@ -85,25 +112,28 @@ export function TournamentRun({ run, pending, error, onAction, onContinue, onExi
 
   const finished = run.status === "finished" || run.status === "eliminated";
   const standings = run.standings ?? [];
+  const prize = prizeText(run);
   return <section className="tournament-run-state" aria-live="polite">
-    {run.status === "between_rounds" ? <>
-      <h2>Раунд завершено</h2>
-      {error ? <p className="tournament-run-state__error" role="alert">{error}</p> : null}
-      <button className="ui-button ui-button--primary" disabled={pending !== null} onClick={onContinue} type="button">Наступний бій</button>
-    </> : finished ? <>
-      <RibbonTitle as="h2" size="wide">Результати турніру</RibbonTitle>
-      {standings.length === 4 ? <div className="tournament-standings" aria-label="Місця турніру">
-        <Standing champion participant={standings[0]!.participant} place={1} />
-        <div className="tournament-standings__podium">
-          <Standing participant={standings[1]!.participant} place={2} />
-          <Standing participant={standings[2]!.participant} place={3} />
-        </div>
-        <Standing participant={standings[3]!.participant} place={4} />
-      </div> : null}
-      {run.placement !== undefined ? <p>Твоє місце: {run.placement}</p> : <p>Ти вибув із турніру</p>}
-      {run.prize ? <p className="tournament-run-state__note">Приз за місце{run.prize.reward ? ` · ${run.prize.reward.kind === "card" ? "карта" : "джерело"} рівня ${run.prize.reward.level}` : ""}{run.prize.diamonds ? ` · ${formatUiNumber(run.prize.diamonds)} алмазів` : ""}</p> : null}
-      {error ? <p className="tournament-run-state__error" role="alert">{error}</p> : null}
-      <button className="ui-button ui-button--primary" onClick={onExit} type="button">Турнір</button>
-    </> : <p className="tournament-run-state__error" role="alert">Турнірний бій недоступний.</p>}
+    <RibbonTitle as="h2" size="wide">{finished ? "Результати турніру" : run.leagueName}</RibbonTitle>
+    {run.status === "waiting" ? <>
+      <p className="tournament-run-state__lead">Турнір почнеться через {clock(Date.parse(run.startsAt) - now)}</p>
+      <p className="tournament-run-state__note">Записано учасників: {formatUiNumber(run.participants)}</p>
+    </> : null}
+    {(run.status === "battle" || run.status === "buff_selection") && !match ? <p className="tournament-run-state__lead" role="status">Готуємо бій…</p> : null}
+    {run.status === "cancelled" ? <p className="tournament-run-state__lead">Турнір не відбувся: для сітки потрібні щонайменше двоє гравців.</p> : null}
+    {run.status === "round_wait" ? <>
+      {match?.outcome ? <p className="tournament-run-state__lead">{match.outcome === "win" ? "Перемога в раунді" : "Поразка в раунді"}</p> : <p className="tournament-run-state__lead">Ти проходиш у наступний раунд без бою</p>}
+      {match?.outcome ? <p className="tournament-run-state__note">Завдана шкода {formatUiNumber(match.playerDamage)} : {formatUiNumber(match.opponentDamage)}{match.ratingChange !== null ? ` · рейтинг ${signed(match.ratingChange)}` : ""}{match.xp !== null ? ` · досвід +${formatUiNumber(match.xp)}` : ""}</p> : null}
+      {run.stage ? <p className="tournament-run-state__note">Пари наступного раунду визначаться через {clock(run.stage.pairedAt - now)}</p> : null}
+    </> : null}
+    {finished ? <>
+      {standings.length ? <TournamentPodium league={run.league} standings={standings} viewerPlace={run.placement} /> : <p className="tournament-run-state__note">Результати ще підраховуються.</p>}
+      <p className="tournament-run-state__lead">{run.placement ? `Твоє місце: ${run.placement}` : `Вибування: ${run.finishLabel ?? "раунд турніру"}`}</p>
+      <p className="tournament-run-state__note">Рейтинг турніру {formatUiNumber(run.rating)} ({signed(run.ratingChange)}) · досвід +{formatUiNumber(run.xpEarned)}</p>
+      {prize ? <p className="tournament-run-state__note">Приз: {prize}{run.prizeGranted?.sourcePending ? " (джерела з’являться в грі пізніше, приз збережено)" : ""}</p> : <p className="tournament-run-state__note">За цей результат приз не передбачений.</p>}
+    </> : null}
+    {error ? <p className="tournament-run-state__error" role="alert">{error}</p> : null}
+    {match && !live && match.log.length ? <BattleLog entries={match.log} /> : null}
+    <button className="ui-button ui-button--primary" onClick={onExit} type="button">До лобі турніру</button>
   </section>;
 }

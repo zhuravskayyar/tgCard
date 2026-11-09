@@ -23,16 +23,6 @@ const HONORS = [
   { image: "/assets/ui/profile/achievement-orb.png", label: "Найкраще досягнення" },
 ];
 
-function getInitials(value: string) {
-  return value
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 function winsLabel(count: number) {
   return `${formatUiNumber(count)} перемог`;
 }
@@ -65,7 +55,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
         <>
           <section aria-label={`Профіль гравця ${profile.displayName}`} className="eq-plate pf-identity pf-identity--public">
             <span className="eq-frame pf-portrait">
-              {profile.photoUrl ? <AvatarImage alt={`Аватар ${profile.displayName}`} name={profile.displayName} photoUrl={profile.photoUrl} /> : <span>{getInitials(profile.displayName)}</span>}
+              <AvatarImage alt={`Аватар ${profile.displayName}`} name={profile.displayName} photoUrl={profile.photoUrl} seed={playerId} />
             </span>
             <div className="pf-identity__copy">
               <strong className="pf-identity__name">{profile.displayName}</strong>

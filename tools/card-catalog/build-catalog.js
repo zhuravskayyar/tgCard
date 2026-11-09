@@ -54,21 +54,27 @@ const COLLECTIONS = [
 ["mirror_fragments","Розбите люстро","Артефакт «Алебарда» сильніший на 33%","Святковий магазин","a/mirror_scaldmaer,e/mirror_teuton,f/mirror_inquisitor,w/mirror_tide_witch"],
 ["magic_1","Перші зміїні чари","Майстерність дракона +10","Святковий магазин","a/drmagic_air,e/drmagic_earth,f/drmagic_fire,w/drmagic_water"],
 ["magic_heal","Цілющі зміїні чари","Майстерність дракона +10","Святковий магазин","a/drmagic_heal_air,e/drmagic_heal_earth,f/drmagic_heal_fire,w/drmagic_heal_water"],
+["twitch_legends","Легенди Twitch","Бонус колекції визначимо після її розширення","Магазин","e/kostakod"],
 ];
 const UNCOLLECTED = "a/giant_dragonfly,f/salamander,w/crabman,a/black_raven,a/the_bat,e/wild_boar,f/goblin_mechanic,f/beholder,w/impetuous_lizard,w/bearded_toad,a/bronze_bird,a/mountain_eagle,w/bloodthirsty_piranha,a/battle_gryphon,f/fire_servant,a/winged_hound";
 
 // Sizes the reference page reported, used to prove the copy is exact.
-const REF_SIZES = {sea_masters:9,horde:9,sky_heroes:9,forest_dwellers:9,elementals:4,highelem:4,boobs:15,power:9,dragons:3,dragons2:4,mythic:4,wizards:4,umutants:4,ugiants:4,ufavorites:4,usoldiers:8,ugenerals:4,mechanists:4,sorceresses:4,winter_reinforcement:7,dwarves_peace:4,dwarves_war:4,berserks:4,treasure_hunters:4,dragon_whisperers:4,dragon_fans:4,ancient_order:6,diamond_brotherhood:4,zodiac_air:3,zodiac_earth:3,zodiac_fire:3,zodiac_water:3,voodoo_cult:4,sacred_shores:4,great_path:4,thirtieth:4,western_wastes:4,gorgeous_cats:4,choiceof_air:4,choiceof_earth:4,choiceof_fire:4,choiceof_water:4,legion_of_flame:4,breath_of_storm:4,deep_engines:4,titans_of_forge:4,breach_wedge:4,mirror_fragments:4,magic_1:4,magic_heal:4};
+const REF_SIZES = {sea_masters:9,horde:9,sky_heroes:9,forest_dwellers:9,elementals:4,highelem:4,boobs:15,power:9,dragons:3,dragons2:4,mythic:4,wizards:4,umutants:4,ugiants:4,ufavorites:4,usoldiers:8,ugenerals:4,mechanists:4,sorceresses:4,winter_reinforcement:7,dwarves_peace:4,dwarves_war:4,berserks:4,treasure_hunters:4,dragon_whisperers:4,dragon_fans:4,ancient_order:6,diamond_brotherhood:4,zodiac_air:3,zodiac_earth:3,zodiac_fire:3,zodiac_water:3,voodoo_cult:4,sacred_shores:4,great_path:4,thirtieth:4,western_wastes:4,gorgeous_cats:4,choiceof_air:4,choiceof_earth:4,choiceof_fire:4,choiceof_water:4,legion_of_flame:4,breath_of_storm:4,deep_engines:4,titans_of_forge:4,breach_wedge:4,mirror_fragments:4,magic_1:4,magic_heal:4,twitch_legends:1};
 
 const C = require("./catalog-cards.js");
 const POOLS = require("./shop-pools.js");
 const PROMPTS = require("./catalog-prompts.js");
 const HAND_ANATOMY = "Anatomy priority for every human or humanoid: each hand has exactly five digits total, including one thumb and four fingers. A closed grip uses four naturally curled fingers and one opposing thumb. Preserve the expressive working pose and naturally connected shoulders, elbows, wrists, palms and fingers; do not add, omit, fuse or duplicate digits.";
+const HAND_ANATOMY_BY_CARD = { kostakod: "This anthropomorphic raccoon's each front paw has exactly four digits total: one thumb-like digit and three fingers. Preserve natural grips and connected wrists, with no extra, missing, fused or duplicated digits." };
 const STYLE = "Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly five digits in total: one thumb and four fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has four curled fingers and one opposing thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose with natural five-digit anatomy. Use natural five-digit anatomy consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.";
 const compositionFor = (side) => `Square 1:1 canvas. Golden ratio composition: the main focal point (eyes or the most important detail) sits on the ${side === "L" ? "left" : "right"} vertical golden line at about ${side === "L" ? "38" : "62"}% of the width and the upper horizontal golden line at about 38% of the height. The body follows a golden spiral that sweeps down toward the lower left. Draw the subject smaller than you normally would, roughly centred, floating with generous empty transparent space on all four sides so that no part touches or is cut by any edge of the canvas. Pose the subject so its whole shape naturally tapers away from the lower right, leaving that corner as open background. Every form stays complete and organically drawn, with no straight cuts or stepped edges.`;
 const promptOf = (key) => {
   const [side, subject] = PROMPTS[key].split("|");
-  return `${subject.charAt(0).toUpperCase()}${subject.slice(1)}. ${HAND_ANATOMY} ${compositionFor(side)} ${STYLE}`;
+  const anatomy = HAND_ANATOMY_BY_CARD[key] ?? HAND_ANATOMY;
+  const style = key === "kostakod"
+    ? STYLE.slice(0, STYLE.indexOf("All human and humanoid characters are clearly adults.")) + "All human and humanoid characters are clearly adults."
+    : STYLE;
+  return `${subject.charAt(0).toUpperCase()}${subject.slice(1)}. ${anatomy} ${compositionFor(side)} ${style}`;
 };
 const subjectOf = (key) => PROMPTS[key].split("|")[1];
 const RARITY_ORDER = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
@@ -107,10 +113,10 @@ if (extraPrompt.length) errors.push("extra prompt: " + extraPrompt.join(", "));
 if (Object.values(PROMPTS).some((v) => !/^[LR]\|.{20,}/.test(v))) errors.push("bad prompt format");
 const unused = Object.keys(C).filter((k) => !cardEl[k]);
 if (unused.length) errors.push("unused: " + unused.join(", "));
-if (COLLECTIONS.length !== 50) errors.push("count");
+if (COLLECTIONS.length !== 51) errors.push("count");
 const unique = Object.keys(useCount).length;
 const shared = Object.values(useCount).filter((v) => v > 1).length;
-if (unique !== 197 || shared !== 38) errors.push(`unique ${unique} shared ${shared}`);
+if (unique !== 198 || shared !== 38) errors.push(`unique ${unique} shared ${shared}`);
 const repo = process.argv[2];
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
 
@@ -123,10 +129,10 @@ const esc = (s) => s.replace(/\|/g, "\\|");
 
 let md = `# Каталог карт v2 (чернетка для правок)
 
-Структура скопійована з колекцій референсу один в один: 50 колекцій, той самий розмір кожної, ті самі спільні карти, та сама логіка бонусів і джерел. Типажі карт ті самі, що в референсі, зокрема люди й гуманоїди. Назви й описи свої, не дослівні. Стовпець «Сюжет арту» описує, що на арті; повні готові промпти зі стилем і композицією за золотим перетином лежать у \`docs/card-art-prompts.md\`.
+У каталозі збережені 50 колекцій референсу й додана наша колекція «Легенди Twitch», поки з однією картою. Для решти карт збережено розмір, спільний склад, бонуси й джерела. Типажі карт ті самі, що в референсі, зокрема люди й гуманоїди. Назви й описи свої, не дослівні. Стовпець «Сюжет арту» описує, що на арті; повні готові промпти зі стилем і композицією за золотим перетином лежать у \`docs/card-art-prompts.md\`.
 
-- Колекцій: **50**, розмір від 3 до 15.
-- Карт у колекціях: **197**, із них **38** входять у кілька колекцій.
+- Колекцій: **51**; звичний розмір 3–15, «Легенди Twitch» поки має одну карту.
+- Карт у колекціях: **198**, із них **38** входять у кілька колекцій.
 - Карт поза колекціями: **16** (у референсі їх може бути більше: сторінка показала лише ці).
 - Рідкість: ${Object.entries(rarityCount).map(([k, v]) => `${k} ${v}`).join(", ")}. Для карт із магазину вона взята з банерів референсу, для решти запропонована тут.
 
@@ -192,6 +198,12 @@ const WORKING = {
   sorceresses: { type: "altar_gold_levels", value: 2, scope: "altar" },
   dwarves_war: { type: "battle_damage_pct", value: 10, scope: "guild_raid" },
 };
+// Special labels for bonuses implemented elsewhere or still awaiting collection expansion.
+const TOURNAMENT_LABELS = {
+  sea_masters: true, horde: true, sky_heroes: true, forest_dwellers: true, ugiants: true,
+  wizards: "+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка",
+  twitch_legends: "Бонус колекції визначимо після її розширення",
+};
 const elementCode = { f: "fire", w: "water", a: "air", e: "earth" };
 const toCard = (key) => ({ id: key, displayName: C[key][0], description: C[key][2], element: elementCode[cardEl[key]], minRarity: RAR[C[key][1]], shopEligible: Boolean(shopMin[key]) });
 const data = {
@@ -199,7 +211,7 @@ const data = {
     code: CODE[code] ?? code,
     displayName: name,
     bonus: WORKING[code] ?? { type: "none", value: 1 },
-    bonusLabel: WORKING[code] ? bonus : bonus + " (запрацює разом із цією механікою)",
+    bonusLabel: WORKING[code] || TOURNAMENT_LABELS[code] === true ? bonus : typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : bonus + " (запрацює разом із цією механікою)",
     cardIds: list.split(",").map((entry) => entry.split("/")[1]),
   })),
   uncollectedCardIds: UNCOLLECTED.split(",").map((entry) => entry.split("/")[1]),

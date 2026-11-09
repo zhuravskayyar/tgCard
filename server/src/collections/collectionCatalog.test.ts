@@ -4,17 +4,17 @@ import { STARTER_CARDS } from "../inventory/starterCards.js";
 import { CATALOG_DATA } from "./catalogData.generated.js";
 import { COLLECTION_CARDS, COLLECTIONS, validateCollectionCatalog } from "./collectionCatalog.js";
 
-test("catalog has fifty collections of varied size with shared cards", () => {
-  assert.equal(COLLECTIONS.length, 50);
-  assert.equal(COLLECTION_CARDS.length, 213);
+test("catalog has fifty-one collections of varied size with shared cards", () => {
+  assert.equal(COLLECTIONS.length, 51);
+  assert.equal(COLLECTION_CARDS.length, 214);
   const sizes = COLLECTIONS.map(({ cards }) => cards.length);
-  assert.equal(Math.min(...sizes), 3);
+  assert.equal(Math.min(...sizes), 1);
   assert.equal(Math.max(...sizes), 15);
   const uses = new Map<string, number>();
   for (const { cards } of COLLECTIONS) for (const { id } of cards) uses.set(id, (uses.get(id) ?? 0) + 1);
-  assert.equal(uses.size, 197);
+  assert.equal(uses.size, 198);
   assert.equal([...uses.values()].filter((count) => count > 1).length, 38);
-  assert.equal(validateCollectionCatalog().cardCount, 213);
+  assert.equal(validateCollectionCatalog().cardCount, 214);
 });
 
 test("every card has a unique identity and a description; starters come from the catalog", () => {

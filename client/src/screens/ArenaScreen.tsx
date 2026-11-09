@@ -332,7 +332,7 @@ function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; o
   const renderParticipant = (participant: ArenaParticipantView) => (
     <li className={participant.id === match.playerId ? "is-player" : ""} key={participant.id}>
       <span className="arena-result__rank">{participant.placement}</span>
-      <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} />
+      <PlayerAvatar name={participant.name} photoUrl={participant.photoUrl} seed={participant.isBot ? undefined : participant.id} />
       <strong>{participant.name}</strong>
       <span className="arena-result__damage"><AppIcon name="duel" size={16} /> {formatUiNumber(participant.totalDamageDealt)}<small>ходи: {participant.moves}</small></span>
     </li>
@@ -377,8 +377,8 @@ function ArenaLeague({ profile, initData }: { profile: ArenaProfileResponse; ini
       <div className="arena-league-panel__stats"><span>Перемоги <b>{formatUiNumber(profile.arenaWins)}</b></span><span>Топ-3 <b>{formatUiNumber(profile.arenaTop3Count)}</b></span></div>
       <h3 className="arena-league-panel__title">Рейтинг ліги</h3>
       {board ? <ol className="arena-leaderboard">
-        {board.entries.map((entry) => <li className={entry.playerId === board.player.playerId ? "is-player" : ""} key={entry.playerId}><span>{entry.rank}</span><PlayerAvatar name={entry.name} photoUrl={entry.photoUrl} /><strong>{entry.name}</strong><b>{entry.rating}</b></li>)}
-        {!playerListed ? <li className="is-player"><span>{board.player.rank}</span><PlayerAvatar name={board.player.name} photoUrl={board.player.photoUrl} /><strong>{board.player.name}</strong><b>{board.player.rating}</b></li> : null}
+        {board.entries.map((entry) => <li className={entry.playerId === board.player.playerId ? "is-player" : ""} key={entry.playerId}><span>{entry.rank}</span><PlayerAvatar name={entry.name} photoUrl={entry.photoUrl} seed={entry.playerId} /><strong>{entry.name}</strong><b>{entry.rating}</b></li>)}
+        {!playerListed ? <li className="is-player"><span>{board.player.rank}</span><PlayerAvatar name={board.player.name} photoUrl={board.player.photoUrl} seed={board.player.playerId} /><strong>{board.player.name}</strong><b>{board.player.rating}</b></li> : null}
       </ol> : <p role={failed ? "alert" : "status"}>{failed ? "Не вдалося завантажити рейтинг ліги." : "Завантажуємо рейтинг ліги…"}</p>}
     </section>
   );

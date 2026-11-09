@@ -36,6 +36,8 @@ export interface DuelCardSnapshot {
 }
 
 export interface DuelSideSnapshot {
+  /** Real players only; bots have none. Keys the default portrait. */
+  playerId?: string;
   cards: DuelCardSnapshot[];
   effectiveDeckPower: number;
   level: number;

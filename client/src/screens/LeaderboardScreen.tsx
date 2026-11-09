@@ -32,23 +32,13 @@ function isLiveKind(tab: LeaderboardTab): tab is LeaderboardKind {
   return tab === "duels" || tab === "arena" || tab === "deck";
 }
 
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 function LeaderboardRow({ entry, mine, onOpen }: { entry: LeaderboardEntry; mine: boolean; onOpen: (id: string) => void }) {
   return (
     <li className={mine ? "is-player" : undefined}>
       <button className="leaderboard-entry" onClick={() => onOpen(entry.id)} type="button">
         <span className="leaderboard-entry__rank">{entry.rank}</span>
         <span className="leaderboard-entry__avatar">
-          {entry.photoUrl ? <AvatarImage alt={`Аватар ${entry.displayName}`} name={entry.displayName} photoUrl={entry.photoUrl} /> : getInitials(entry.displayName)}
+          <AvatarImage alt={`Аватар ${entry.displayName}`} name={entry.displayName} photoUrl={entry.photoUrl} seed={entry.id} />
         </span>
         <span className="leaderboard-entry__identity">
           <strong>{entry.displayName}</strong>

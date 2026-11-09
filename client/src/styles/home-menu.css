@@ -44,7 +44,7 @@
   --home-ink: #f3e2bd;
   --home-ink-muted: #dcc59b;
   /* One source pixel of the 1988x330 leather clasp plate at the HUD height. Clasp ring opening:
-     centre (267.5, 161), clear diameter ~237; ring outer edge ends at x 433; brass caps in the last 130px. */
+     an oval, not a circle: inner brass edge x 146-390.5, y 34.5-289 (centre 268.2, 161.8; 244 x 254); ring outer edge ends at x 433; brass caps in the last 130px. */
   --hud-px: calc(var(--hud-height) / 330);
   --text-primary: var(--home-ink);
   --text-secondary: var(--home-ink-muted);
@@ -113,13 +113,13 @@
   background: transparent;
 }
 
-/* The portrait sits in the clasp ring's opening, a hair inside its rim. */
+/* The portrait is an oval matching the clasp opening, 4 source px inside the brass on every side. */
 :root .app-shell .player-avatar {
   position: absolute;
-  top: calc(var(--hud-px) * 48);
-  left: calc(var(--hud-px) * 154.5);
-  width: calc(var(--hud-px) * 226);
-  height: calc(var(--hud-px) * 226);
+  top: calc(var(--hud-px) * 38.8);
+  left: calc(var(--hud-px) * 150.2);
+  width: calc(var(--hud-px) * 236);
+  height: calc(var(--hud-px) * 246);
   box-sizing: border-box;
   padding: 0;
   overflow: hidden;

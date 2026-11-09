@@ -213,4 +213,5 @@ bloodthirsty_piranha:"L|big toothy piranha turning toward the viewer, underbite,
 battle_gryphon:"R|war gryphon with wings raised and talons forward, eagle head screaming, lion body in a leather harness",
 fire_servant:"L|robed fire mage with a shaved head holding a blazing orb between his hands, calm cruel face",
 winged_hound:"R|big winged hound leaping a fence, ears flying, tongue out, feathered wings wide open",
+kostakod:"L|adult anthropomorphic raccoon teacher and coding streamer in a lively three-quarter teaching pose, clear raccoon mask and bold ringed tail, compact scholarly vest, round glasses and a small headset microphone; one paw points with chalk toward an irregular stone teaching slate while the other steadies it; the slate shows only a few branching root-like lines and simple geometric nodes, no text; several thick roots curl around his feet and two chunky stones float beside him; expressive natural pose, compact complete silhouette; each front paw has exactly four digits total, one thumb-like digit and three fingers; leave the lower right clear",
 };
