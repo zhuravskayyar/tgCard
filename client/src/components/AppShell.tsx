@@ -15,6 +15,7 @@ interface AppShellProps {
   overlay?: ReactNode;
   screenKey?: string;
   onNavigate: (item: BottomNavItem) => void;
+  onOpenSettings: () => void;
   onRetryPlayerSummary: () => void;
   playerSummaryState: PlayerSummaryState;
 }
@@ -27,6 +28,7 @@ export function AppShell({
   overlay,
   screenKey,
   onNavigate,
+  onOpenSettings,
   onRetryPlayerSummary,
   playerSummaryState,
 }: AppShellProps) {
@@ -47,7 +49,7 @@ export function AppShell({
 
   return (
     <div className="app-shell">
-      <TopHud deckPowerOverride={deckPowerOverride} onRetry={onRetryPlayerSummary} state={playerSummaryState} />
+      <TopHud deckPowerOverride={deckPowerOverride} onOpenSettings={onOpenSettings} onRetry={onRetryPlayerSummary} state={playerSummaryState} />
       <main className="app-content" ref={contentRef}>
         <div className={`app-screen-transition${revealed ? "" : " app-screen-transition--pending"}`} key={screenKey}>
           {children}

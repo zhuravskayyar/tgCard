@@ -1,0 +1,63 @@
+/* Shared switch. Plate 789x154 sliced 60/80 (corners hold the ornaments, rails and paper stretch both ways),
+   so a long label wraps onto more lines and the plate grows instead of cutting the text.
+   Track 192x90 and knob 96x96 are shown at a quarter scale. */
+:root .seal-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  color: var(--home-ink);
+  background: none;
+  border-style: solid;
+  border-width: 14px 18px;
+  border-radius: 0;
+  border-image: url("/assets/ui/controls/toggle-plate-v1.webp") 60 80 fill / 14px 18px stretch;
+  box-shadow: none;
+  filter: none;
+  text-align: left;
+  cursor: pointer;
+}
+:root .seal-toggle:disabled { cursor: default; }
+:root .seal-toggle[aria-busy="true"] { opacity: .8; }
+:root .seal-toggle__label {
+  min-width: 0;
+  margin-block: -6px;
+  color: var(--home-ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+:root .seal-toggle__state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:root .seal-toggle__track {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 22px;
+  margin-block: -6px;
+  background: url("/assets/ui/controls/toggle-track-off-v1.webp") center / 100% 100% no-repeat;
+}
+:root .seal-toggle--on .seal-toggle__track { background-image: url("/assets/ui/controls/toggle-track-on-v1.webp"); }
+:root .seal-toggle__knob {
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  width: 26px;
+  height: 26px;
+  background: url("/assets/ui/controls/toggle-knob-open-v1.webp") center / 100% 100% no-repeat;
+  transform: translate(0, -50%);
+  transition: transform 180ms cubic-bezier(.3, .8, .4, 1.2);
+}
+:root .seal-toggle--on .seal-toggle__knob {
+  background-image: url("/assets/ui/controls/toggle-knob-locked-v1.webp");
+  transform: translate(24px, -50%);
+}
+:root .seal-toggle:focus-visible { outline: 3px solid #895c1d; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  :root .seal-toggle__knob { transition: none; }
+}

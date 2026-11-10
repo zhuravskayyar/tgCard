@@ -34,6 +34,7 @@ export const CAMPAIGN_TRANSLATIONS: ReadonlyArray<CampaignTranslation> = [
   ["Нова пригода", "New adventure", "Neues Abenteuer", "Новое приключение"],
   ["Прогрес: {n} з {n}", "Progress: {n} of {n}", "Fortschritt: {n} von {n}", "Прогресс: {n} из {n}"],
   ["Щоб пройти пригоду «{s}», пройди всі випробування.", "Complete all trials to finish the adventure “{s}.”", "Schließe alle Prüfungen ab, um das Abenteuer „{s}“ zu beenden.", "Пройди все испытания, чтобы завершить приключение «{s}»."],
+  ["Усі випробування пройдено. Бос пригоди «{s}» чекає.", "All trials complete. The boss of “{s}” awaits.", "Alle Prüfungen bestanden. Der Boss von „{s}“ wartet.", "Все испытания пройдены. Босс приключения «{s}» ждёт."],
   ["Пройдено випробування з пригоди «{s}»", "A trial from “{s}” is complete", "Eine Prüfung aus „{s}“ wurde abgeschlossen", "Испытание из приключения «{s}» пройдено"],
 
   // Location names, quest givers, and bosses

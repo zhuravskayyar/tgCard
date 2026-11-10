@@ -47,7 +47,7 @@
   white-space: nowrap;
   text-shadow: none;
   pointer-events: none;
-  animation: battle-damage-float 1100ms cubic-bezier(.16, .7, .3, 1) both;
+  animation: battle-damage-float 800ms cubic-bezier(.16, .7, .3, 1) both;
 }
 .battle-attack__damage-value {
   position: relative;
@@ -86,7 +86,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: battle-metal-glint 650ms 80ms ease-out both;
+  animation: battle-metal-glint 450ms 60ms ease-out both;
 }
 .battle-attack__damage--strong {
   --damage-size: 46px;
@@ -122,4 +122,26 @@
 @media (prefers-reduced-motion: reduce) {
   .battle-attack__damage { animation: none; transform: translate(-50%, -100%); }
   .battle-attack__damage-value::after { animation: none; display: none; }
+}
+
+/* Element spell seals: the cast seal opens behind the attacker, the impact seal flashes on the target. */
+.magic-circle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  color: var(--mc-rim);
+  filter: drop-shadow(0 0 5px var(--mc-rim));
+  will-change: transform, opacity;
+}
+.magic-circle svg { display: block; width: 100%; height: 100%; overflow: visible; stroke: currentColor; }
+.magic-circle__disc { fill: var(--mc-rim); fill-opacity: .1; stroke: none; }
+.magic-circle__runes, .magic-circle__core { stroke: var(--mc-core); }
+.magic-circle__outer, .magic-circle__inner { transform-box: fill-box; transform-origin: center; }
+.magic-circle__outer { animation: magic-circle-spin 3.2s linear infinite; }
+.magic-circle__inner { animation: magic-circle-spin 2.2s linear infinite reverse; }
+.battle-attack__seal--cast { z-index: 1; }
+.battle-attack__seal--impact { z-index: 3; }
+@keyframes magic-circle-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .magic-circle { display: none; }
 }

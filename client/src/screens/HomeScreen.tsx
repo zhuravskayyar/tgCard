@@ -54,11 +54,10 @@ interface HomeScreenProps {
   onOpenEquipment: () => void;
   onOpenBattlePass: () => void;
   onOpenShop: () => void;
-  onOpenSettings: () => void;
   playerLevel?: number;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, onOpenSettings, playerLevel }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, playerLevel }: HomeScreenProps) {
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
   const hasDailyTaskReward = battlePassState.status === "ready"
@@ -68,9 +67,6 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
 
   return (
     <div className="home-screen">
-      <div className="home-screen__toolbar">
-        <button className="home-settings-button" aria-label="Налаштування" onClick={onOpenSettings} type="button" />
-      </div>
       <GuidedOnboarding onResume={onResumeTutorial} status={tutorialStatus} />
       <div className="home-screen__content">
         <section className="mode-grid" aria-label="Ігрові режими">

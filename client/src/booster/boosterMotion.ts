@@ -2,8 +2,12 @@ import type { BoosterPhase } from "./boosterRenderer";
 
 const ease = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
 
+// The whole reveal plays 1.5x faster than its original 3.5 s choreography (about 2.3 s now); stages keep their overlap.
+export const BOOSTER_TEMPO = 1.5;
+
 /** The wrapper first clears the card; its opaque pieces then fall out of view. */
-export function getBoosterMotion(elapsed: number) {
+export function getBoosterMotion(realElapsed: number) {
+  const elapsed = realElapsed * BOOSTER_TEMPO;
   return {
     tear: ease(elapsed / 850),
     spread: ease((elapsed - 180) / 1100),

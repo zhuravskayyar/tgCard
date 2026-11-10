@@ -47,7 +47,7 @@ const UNBOX_NEXT_STAGE: Partial<Record<UnboxStage, { after: number; next: UnboxS
   rise: { after: 1_050, next: "done" },
   forge: { after: 1_250, next: "done" },
   // The 3D pack fades out before the reward screen takes over the same card.
-  handoff: { after: 280, next: "done" },
+  handoff: { after: 200, next: "done" },
 };
 const PAPER_SCRAPS = 12;
 const REVEAL_EMBERS = 10;

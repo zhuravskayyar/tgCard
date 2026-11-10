@@ -7657,28 +7657,6 @@ button.mode-tile::before,
   .arena-result__rewards { grid-template-columns: 1fr; }
 }
 
-.home-screen__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 30px;
-  padding: 0 5px;
-}
-
-.home-screen__toolbar-line {
-  height: 1px;
-  flex: 1;
-  background: linear-gradient(90deg, transparent, var(--border-accent));
-}
-
-.home-settings-button {
-  display: grid;
-  width: 34px;
-  place-items: center;
-}
-
-.home-settings-button:active { transform: translateY(1px); }
-
 .auth-screen {
   position: relative;
   isolation: isolate;

@@ -65,13 +65,30 @@
 
 :root[data-game-theme="light"] .app-content :is(p, small, label, dt, dd) { color: var(--home-ink-muted); }
 
+/* Text fields: a recessed parchment strip in a brass rim (452x87, ornaments in the 28x36 corners), stretched as a 9-slice. */
 :root[data-game-theme="light"] .app-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   color: var(--home-ink);
-  background: linear-gradient(180deg, #f1e4cc, #e4d1ad);
-  border-color: #a98a5d;
-  border-radius: 5px;
-  box-shadow: inset 0 1px 3px rgb(90 65 34 / 12%);
+  background: none;
+  border-style: solid;
+  border-width: 9px 12px;
+  border-radius: 0;
+  border-image: url("/assets/ui/controls/input-field-v1.webp") 28 36 fill / 9px 12px stretch;
+  box-shadow: none;
 }
+
+/* Checkboxes: brass frame, inked check when ticked. */
+:root[data-game-theme="light"] .app-content input[type="checkbox"] {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  appearance: none;
+  background: url("/assets/ui/controls/checkbox-empty-v1.webp") center / 100% 100% no-repeat;
+  border: 0;
+  cursor: pointer;
+}
+:root[data-game-theme="light"] .app-content input[type="checkbox"]:checked { background-image: url("/assets/ui/controls/checkbox-checked-v1.webp"); }
+:root[data-game-theme="light"] .app-content input[type="checkbox"]:focus-visible { outline: 3px solid #895c1d; outline-offset: 2px; }
 
 /* Common panels use printed paper, a fine engraved grain, and a restrained edge. */
 
@@ -440,9 +457,11 @@
   text-shadow: none;
 }
 
+/* A disabled control stays brass and parchment, only faded: greyscale turned the bronze sprites into grey stone. */
 :root[data-game-theme="light"] .app-content button:disabled:not(.mode-tile) {
-  color: #675237;
-  filter: grayscale(.72);
+  color: #7a6448;
+  filter: sepia(.3) saturate(.6) brightness(.94);
+  opacity: .85;
 }
 
 :root[data-game-theme="light"] .app-shell .app-content :is(.shop-bundle-banner__purchase, .shop-boost-card__purchase) {

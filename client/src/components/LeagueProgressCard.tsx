@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { ExperienceFlask } from "./ExperienceFlask";
 import { getBaseSilverForLeague, getLeagueByRating, getLeagueIndexByRating, getPromotionReward, DUEL_LEAGUE_CONFIG } from "@cardastika/shared";
 import { LeagueBadge } from "./LeagueBadge";
 import { CurrencyIcon } from "./CurrencyDisplay";
@@ -38,8 +39,8 @@ export function LeagueProgressCard({ compact = false, nextLabel = "prefixed", ra
           ) : null}
         </strong>
       </header>
-      <div className="league-progress-card__track" role="progressbar" aria-valuemin={league.minRating} aria-valuemax={nextLeague?.minRating ?? safeRating} aria-valuenow={safeRating}>
-        <span style={{ width: `${progress}%` }} />
+      <div className="flask-meter league-progress-card__flask" role="progressbar" aria-valuemin={league.minRating} aria-valuemax={nextLeague?.minRating ?? safeRating} aria-valuenow={safeRating}>
+        <ExperienceFlask progress={progress / 100} tone="azure" />
       </div>
       <div className="league-progress-card__next">
         <span>{nextLeague ? `${nextLabel === "prefixed" ? "До " : ""}${nextLeague.name}` : "Найвищий ранг"}</span>

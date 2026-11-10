@@ -1,15 +1,15 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { CardElement, CardRarity, DuelExchange } from "@cardastika/shared";
-import { elementSoundCue, playSound, type SoundCue } from "../audio";
+import { elementSoundCue, flySoundCue, playSound, type SoundCue } from "../audio";
 import { ELEMENT_FINISH, GLOW, getBrightCutPlate } from "../cards/brightCutModel";
 import { holdCardMaterialAnimation } from "../cards/cardMaterialShader";
 import { CardFxWrapper } from "./CardFxWrapper";
 import { CardHud } from "./CardHud";
-import { FireEffect, type FireEffectHandle } from "./FireEffect";
+import { MagicCircle } from "./MagicCircle";
 import "./battle-attack.css";
 
 /** Longest strike (weak tier: slow flight) including the flip to the next cards; screens also wait for the end event. */
-export const BATTLE_ATTACK_DURATION_MS = 1900;
+export const BATTLE_ATTACK_DURATION_MS = 1300;
 /** Fired once the strike has really finished, so screens never cut it short when the first frames were slow. */
 export const BATTLE_ATTACK_END_EVENT = "cardastika:battle-attack-end";
 
@@ -29,20 +29,29 @@ interface Geometry {
 }
 
 // Timings per tier: a weak hit flies slowly and lands softly, a strong one is fast and heavy.
-const FLIGHT_MS: Record<Tier, number> = { weak: 480, even: 380, strong: 320 };
-const HIT_MS: Record<Tier, number> = { weak: 70, even: 120, strong: 220 };
+const FLIGHT_MS: Record<Tier, number> = { weak: 320, even: 260, strong: 220 };
+const HIT_MS: Record<Tier, number> = { weak: 60, even: 90, strong: 150 };
 const FORCE: Record<Tier, number> = { weak: 0.55, even: 1, strong: 1.8 };
-const SHAKE: Record<Tier, [number, number]> = { weak: [3, 240], even: [7, 360], strong: [15, 620] };
-const RECOIL_MS: Record<Tier, number> = { weak: 380, even: 520, strong: 760 };
+const SHAKE: Record<Tier, [number, number]> = { weak: [3, 180], even: [7, 260], strong: [15, 440] };
+const RECOIL_MS: Record<Tier, number> = { weak: 260, even: 360, strong: 520 };
 const HIT_SOUND: Record<Tier, SoundCue> = { weak: "hit-weak", even: "hit-normal", strong: "hit-strong" };
-const RISE_MS = 260;
-const RETURN_MS = 520;
-const FLIP_OUT_MS = 220;
-const FLIP_IN_MS = 340;
+const RISE_MS = 170;
+const RETURN_MS = 340;
+const FLIP_OUT_MS = 150;
+const FLIP_IN_MS = 230;
+// Spell seals: the cast seal is this many card widths across, the impact seal scales with the hit.
+const CAST_SEAL_SIZE = 1.75;
+const IMPACT_SEAL_SIZE: Record<Tier, number> = { weak: 1.1, even: 1.35, strong: 1.65 };
+const IMPACT_SEAL_MS: Record<Tier, number> = { weak: 360, even: 440, strong: 560 };
 // Particles live at most this many 60fps frames so the burst fades while the card returns.
 const MAX_PARTICLE_FRAMES = 54;
 const MAX_PARTICLES = 260;
 const TRAIL_INTERVAL_MS = 1000 / 30;
+// The comet tail keeps this many recent card positions (one per display frame) and fades over this many frames after the hit.
+const RIBBON_POINTS = 12;
+const RIBBON_FADE_FRAMES = 10;
+// Energy rings slip past the card at these points of the flight.
+const FLIGHT_RINGS = [0.3, 0.65];
 const FX_GUTTER = 64;
 
 const tierOf = (multiplier: number): Tier => multiplier < 1 ? "weak" : multiplier > 1 ? "strong" : "even";
@@ -63,7 +72,7 @@ const FRAME_SAMPLES = 16;
 
 /** Soft glows and flames are painted once into small sprites, then stamped with drawImage (no gradient per particle per frame). */
 const FX_MAX_DPR = 1.5;
-const SOURCE_OVER_KINDS: ReadonlySet<string> = new Set(["smoke", "rock", "leaf", "shred", "crack", "spike", "pillar"]);
+const SOURCE_OVER_KINDS: ReadonlySet<string> = new Set(["shred"]);
 const BLOB_SIZE = 64;
 const blobSprites = new Map<string, HTMLCanvasElement>();
 
@@ -85,7 +94,7 @@ function blobSprite(color: string): HTMLCanvasElement {
   return sprite;
 }
 
-type ParticleKind = "glow" | "smoke" | "ember" | "spark" | "drop" | "ring" | "arc" | "rock" | "leaf" | "shred" | "star" | "bolt" | "crack" | "spike" | "gust" | "pillar" | "ripple";
+type ParticleKind = "glow" | "spark" | "ring" | "shred" | "star" | "bolt";
 interface Particle {
   kind: ParticleKind;
   x: number; y: number; vx: number; vy: number;
@@ -93,9 +102,9 @@ interface Particle {
   life: number; maxLife: number; delay: number;
   size: number; grow: number; squash: number; width: number;
   rotation: number; spin: number; color: string; alpha: number;
-  /** Frames over which a bolt or crack draws itself from its first point to its last. */
+  /** Frames over which a bolt draws itself from its first point to its last. */
   reveal: number;
-  /** Width at the far end of a bolt or crack relative to the start (1 = no taper). */
+  /** Width at the far end of a bolt relative to the start (1 = no taper). */
   taper: number;
   /** Radius of the soft halo stamped along a bolt (0 = none). */
   halo: number;
@@ -105,9 +114,27 @@ interface Particle {
 /** One canvas of short-lived impact particles, ported from the Cardastika duel FX stand. */
 class ImpactCanvas {
   private particles: Particle[] = [];
+  private ribbon: { points: Array<[number, number]>; width: number; color: string; fade: number; released: boolean } | null = null;
   private frame = 0;
   private last = 0;
   constructor(private readonly context: CanvasRenderingContext2D, private readonly width: number, private readonly height: number) {}
+
+  /** The comet tail behind a flying card, newest point first. */
+  setRibbon(points: Array<[number, number]>, width: number, color: string) {
+    this.ribbon = { points, width, color, fade: 1, released: false };
+    this.wake();
+  }
+
+  /** The card has landed: the tail fades out where it is. */
+  releaseRibbon() {
+    if (this.ribbon) this.ribbon.released = true;
+  }
+
+  private wake() {
+    if (this.frame) return;
+    this.last = performance.now();
+    this.frame = requestAnimationFrame(this.loop);
+  }
 
   add(partial: Partial<Particle> & { kind: ParticleKind }) {
     if (this.particles.length >= MAX_PARTICLES) this.particles.shift();
@@ -116,28 +143,15 @@ class ImpactCanvas {
       x: 0, y: 0, vx: 0, vy: 0, gravity: 0, drag: 1, turn: 0, delay: 0, size: 3, grow: 0, squash: 1, width: 1,
       rotation: 0, spin: 0, color: "#ffffff", alpha: 1, reveal: 0, taper: 1, halo: 0, ...partial, life, maxLife: life,
     };
-    if (particle.kind === "rock") {
-      particle.points = Array.from({ length: 5 }, (_, index) => {
-        const angle = index / 5 * Math.PI * 2 + rnd(-0.3, 0.3);
-        const radius = particle.size * rnd(0.6, 1.1);
-        return [Math.cos(angle) * radius, Math.sin(angle) * radius] as [number, number];
-      });
-    }
-    if (particle.kind === "pillar") {
-      // Unit outline (x in -1..1, y in 0..-1): a broken stone column with a jagged crown, scaled by width/height when drawn.
-      particle.points = [[-1, 0], [-1 + rnd(0, 0.15), -rnd(0.35, 0.5)], [-rnd(0.4, 0.7), -rnd(0.8, 0.92)], [rnd(-0.2, 0.2), -1], [rnd(0.35, 0.7), -rnd(0.78, 0.95)], [1 - rnd(0, 0.15), -rnd(0.4, 0.55)], [1, 0]];
-    }
     this.particles.push(particle);
-    if (!this.frame) {
-      this.last = performance.now();
-      this.frame = requestAnimationFrame(this.loop);
-    }
+    this.wake();
   }
 
   stop() {
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.particles = [];
+    this.ribbon = null;
     this.clear();
   }
 
@@ -152,6 +166,11 @@ class ImpactCanvas {
     this.clear();
     context.lineCap = "round";
     context.lineJoin = "round";
+    if (this.ribbon) {
+      if (this.ribbon.released) this.ribbon.fade -= step / RIBBON_FADE_FRAMES;
+      if (this.ribbon.fade <= 0) this.ribbon = null;
+      else this.drawRibbon(this.ribbon.points, this.ribbon.width, this.ribbon.color, this.ribbon.fade);
+    }
     let kept = 0;
     for (const particle of this.particles) if (particle.life > 0) this.particles[kept++] = particle;
     this.particles.length = kept;
@@ -177,7 +196,7 @@ class ImpactCanvas {
     }
     context.globalAlpha = 1;
     context.globalCompositeOperation = "source-over";
-    if (this.particles.length) this.frame = requestAnimationFrame(this.loop);
+    if (this.particles.length || this.ribbon) this.frame = requestAnimationFrame(this.loop);
     else { this.frame = 0; this.clear(); }
   };
 
@@ -188,12 +207,32 @@ class ImpactCanvas {
     this.context.globalAlpha = 1;
   }
 
+  /** A beam of the spell: wide coloured glow, coloured body and white-hot core, each tapering from the card to the tail's end. */
+  private drawRibbon(points: Array<[number, number]>, width: number, color: string, fade: number) {
+    const context = this.context;
+    context.globalCompositeOperation = "lighter";
+    const last = points.length - 1;
+    for (let index = 0; index < last; index += 1) {
+      const head = 1 - index / last;
+      const [ax, ay] = points[index]!;
+      const [bx, by] = points[index + 1]!;
+      ([[3.2, 0.22, color], [1.4, 0.7, color], [0.55, 1, "#ffffff"]] as const).forEach(([scale, strength, stroke]) => {
+        context.strokeStyle = rgba(stroke, strength * fade * head);
+        context.lineWidth = Math.max(0.5, width * scale * head);
+        context.beginPath();
+        context.moveTo(ax, ay);
+        context.lineTo(bx, by);
+        context.stroke();
+      });
+    }
+  }
+
   private path(points: Array<[number, number]>) {
     this.context.beginPath();
     points.forEach(([x, y], index) => index ? this.context.lineTo(x, y) : this.context.moveTo(x, y));
   }
 
-  /** How many points of a self-drawing bolt/crack are visible right now. */
+  /** How many points of a self-drawing bolt are visible right now. */
   private revealed(p: Particle) {
     const total = p.points!.length;
     if (p.reveal <= 0) return total;
@@ -221,8 +260,6 @@ class ImpactCanvas {
     if (context.globalCompositeOperation !== mode) context.globalCompositeOperation = mode;
     switch (p.kind) {
       case "glow": this.blob(p.x, p.y, p.size * (1 + p.grow * (1 - remaining)), p.color, alpha); break;
-      case "smoke": this.blob(p.x, p.y, p.size * (1 + p.grow * (1 - remaining)), p.color, alpha * 0.55); break;
-      case "ember": this.blob(p.x, p.y, p.size * 4 * remaining + 2, p.color, alpha * (0.6 + 0.4 * Math.random())); break;
       case "spark":
         context.strokeStyle = rgba(p.color, alpha);
         context.lineWidth = p.size * (0.4 + remaining * 0.6);
@@ -231,175 +268,15 @@ class ImpactCanvas {
         context.lineTo(p.x - p.vx * 1.7, p.y - p.vy * 1.7);
         context.stroke();
         break;
-      case "drop":
-        context.fillStyle = rgba(p.color, alpha);
-        context.beginPath();
-        context.ellipse(p.x, p.y, p.size, p.size * Math.min(2.6, 1.2 + Math.hypot(p.vx, p.vy) * 0.12), Math.atan2(p.vy, p.vx) + Math.PI / 2, 0, Math.PI * 2);
-        context.fill();
-        break;
       case "ring": {
         const radius = p.size + p.grow * Math.sqrt(1 - remaining);
         context.strokeStyle = rgba(p.color, alpha);
         context.lineWidth = p.width * remaining + 0.5;
         context.beginPath();
-        context.ellipse(p.x, p.y, radius, radius * p.squash, 0, 0, Math.PI * 2);
+        context.ellipse(p.x, p.y, radius, radius * p.squash, p.rotation, 0, Math.PI * 2);
         context.stroke();
         break;
       }
-      case "arc": {
-        const radius = Math.max(1, p.size + p.grow * (1 - remaining));
-        context.beginPath();
-        context.ellipse(p.x, p.y, radius, radius * p.squash, p.rotation, -Math.PI * 0.75, Math.PI * 0.35);
-        context.strokeStyle = rgba(p.color, alpha * 0.2);
-        context.lineWidth = p.width * 3 * remaining;
-        context.stroke();
-        context.strokeStyle = rgba(p.color, alpha);
-        context.lineWidth = Math.max(0.5, p.width * remaining);
-        context.stroke();
-        break;
-      }
-      case "rock":
-        context.save();
-        context.translate(p.x, p.y);
-        context.rotate(p.rotation);
-        context.globalAlpha = Math.min(1, remaining * 2);
-        context.fillStyle = p.color;
-        this.path(p.points!);
-        context.closePath();
-        context.fill();
-        // Two facets: a lit one on top and a shaded one underneath, so chunks read as solid stone.
-        context.fillStyle = "rgba(255,235,190,.22)";
-        context.beginPath();
-        context.moveTo(0, 0);
-        context.lineTo(p.points![0]![0], p.points![0]![1]);
-        context.lineTo(p.points![1]![0], p.points![1]![1]);
-        context.closePath();
-        context.fill();
-        context.fillStyle = "rgba(0,0,0,.28)";
-        context.beginPath();
-        context.moveTo(0, 0);
-        context.lineTo(p.points![2]![0], p.points![2]![1]);
-        context.lineTo(p.points![3]![0], p.points![3]![1]);
-        context.closePath();
-        context.fill();
-        context.strokeStyle = "rgba(255,230,180,.35)";
-        context.lineWidth = 1;
-        context.stroke();
-        context.restore();
-        break;
-      case "spike": {
-        // A shard thrusts out fast, holds, then sinks back; its right half catches the light.
-        const progress = 1 - remaining;
-        const rise = progress < 0.22 ? 1 - (1 - progress / 0.22) ** 3 : progress > 0.72 ? 1 - (progress - 0.72) / 0.28 : 1;
-        const height = p.size * rise;
-        if (height < 0.5) break;
-        const half = p.width;
-        const lean = half * 0.3;
-        context.save();
-        context.translate(p.x, p.y);
-        context.rotate(p.rotation);
-        context.fillStyle = p.color;
-        context.beginPath();
-        context.moveTo(-half, 0);
-        context.lineTo(lean, -height);
-        context.lineTo(half, 0);
-        context.closePath();
-        context.fill();
-        context.fillStyle = "rgba(255,235,190,.28)";
-        context.beginPath();
-        context.moveTo(0, 0);
-        context.lineTo(lean, -height);
-        context.lineTo(half, 0);
-        context.closePath();
-        context.fill();
-        context.strokeStyle = "rgba(30,20,10,.55)";
-        context.lineWidth = 1;
-        context.beginPath();
-        context.moveTo(-half, 0);
-        context.lineTo(lean, -height);
-        context.lineTo(half, 0);
-        context.stroke();
-        context.restore();
-        break;
-      }
-      case "pillar": {
-        // A stone column thrusts up fast, holds, then sinks back. Left face lit, right face in shade, a crack running down from the crown.
-        const progress = 1 - remaining;
-        const rise = progress < 0.2 ? 1 - (1 - progress / 0.2) ** 3 : progress > 0.7 ? 1 - (progress - 0.7) / 0.3 : 1;
-        const height = p.size * rise;
-        if (height < 0.5) break;
-        const outline = p.points!.map(([ux, uy]) => [ux * p.width, uy * height] as [number, number]);
-        context.save();
-        context.translate(p.x, p.y);
-        context.rotate(p.rotation);
-        context.fillStyle = p.color;
-        this.path(outline);
-        context.closePath();
-        context.fill();
-        context.fillStyle = "rgba(255,235,190,.24)";
-        this.path([...outline.slice(0, 4), [0, 0]]);
-        context.closePath();
-        context.fill();
-        context.fillStyle = "rgba(0,0,0,.32)";
-        this.path([...outline.slice(3), [0, 0]]);
-        context.closePath();
-        context.fill();
-        context.strokeStyle = "rgba(255,236,190,.42)";
-        context.lineWidth = 1.4;
-        this.path(outline.slice(0, 4));
-        context.stroke();
-        context.strokeStyle = "rgba(25,15,8,.55)";
-        context.lineWidth = 1;
-        this.path([outline[3]!, [p.width * 0.05, -height * 0.58], [-p.width * 0.12, -height * 0.34], [p.width * 0.04, -height * 0.16]]);
-        context.stroke();
-        context.restore();
-        break;
-      }
-      case "ripple": {
-        // A wave ring on water: it bursts out quickly, slows as it spreads, and thins. A soft trough, a crest line and a bright highlight on the far side.
-        const progress = 1 - remaining;
-        const radius = Math.max(1, p.size + p.grow * (1 - (1 - progress) ** 2.2));
-        const radiusY = radius * p.squash;
-        const line = Math.max(0.6, p.width * (0.35 + 0.65 * remaining));
-        context.fillStyle = rgba(p.color, alpha * 0.07);
-        context.beginPath();
-        context.ellipse(p.x, p.y, radius, radiusY, 0, 0, Math.PI * 2);
-        context.fill();
-        context.strokeStyle = rgba(p.color, alpha * 0.2);
-        context.lineWidth = line * 3.4;
-        context.stroke();
-        context.strokeStyle = rgba(p.color, alpha * 0.75);
-        context.lineWidth = line;
-        context.stroke();
-        context.strokeStyle = rgba("#ffffff", alpha * 0.9);
-        context.lineWidth = Math.max(0.5, line * 0.55);
-        context.beginPath();
-        context.ellipse(p.x, p.y - line * 0.4, radius, radiusY, 0, Math.PI, Math.PI * 2);
-        context.stroke();
-        break;
-      }
-      case "gust": {
-        const tail = 3.2;
-        context.strokeStyle = rgba(p.color, alpha * 0.25);
-        context.lineWidth = p.size * 3;
-        context.beginPath();
-        context.moveTo(p.x, p.y);
-        context.lineTo(p.x - p.vx * tail, p.y - p.vy * tail);
-        context.stroke();
-        context.strokeStyle = rgba(p.color, alpha);
-        context.lineWidth = Math.max(0.6, p.size * (0.5 + remaining * 0.5));
-        context.beginPath();
-        context.moveTo(p.x, p.y);
-        context.lineTo(p.x - p.vx * tail, p.y - p.vy * tail);
-        context.stroke();
-        break;
-      }
-      case "leaf":
-        context.fillStyle = rgba(p.color, Math.min(1, remaining * 2));
-        context.beginPath();
-        context.ellipse(p.x, p.y, p.size, p.size * 0.4, p.rotation, 0, Math.PI * 2);
-        context.fill();
-        break;
       case "shred":
         context.save();
         context.translate(p.x, p.y);
@@ -427,7 +304,7 @@ class ImpactCanvas {
         break;
       }
       case "bolt": {
-        // Draws itself from the sky down, then flickers: soft halo, wide glow, coloured body and a white-hot core.
+        // A ray of light that draws itself outward, then flickers: soft halo, wide glow, coloured body and a white-hot core.
         const visible = this.revealed(p);
         const points = p.points!;
         const settled = p.maxLife - p.life > p.reveal;
@@ -439,88 +316,34 @@ class ImpactCanvas {
         });
         break;
       }
-      case "crack":
-        context.strokeStyle = rgba(p.color, alpha * 0.85);
-        this.strokeRun(p.points!, this.revealed(p), p.width, p.taper);
-        break;
     }
   }
 }
 
-/** Jagged lightning: midpoint displacement gives sharp, natural kinks instead of a random walk. */
-function lightningPath(from: Point, to: Point, sway: number, passes: number): Array<[number, number]> {
-  let points: Array<[number, number]> = [[from.x, from.y], [to.x, to.y]];
-  let offset = sway;
-  for (let pass = 0; pass < passes; pass += 1) {
-    const next: Array<[number, number]> = [points[0]!];
-    for (let index = 1; index < points.length; index += 1) {
-      const [ax, ay] = points[index - 1]!;
-      const [bx, by] = points[index]!;
-      const normalX = -(by - ay);
-      const normalY = bx - ax;
-      const norm = Math.hypot(normalX, normalY) || 1;
-      const shift = rnd(-offset, offset);
-      next.push([(ax + bx) / 2 + normalX / norm * shift, (ay + by) / 2 + normalY / norm * shift], [bx, by]);
-    }
-    points = next;
-    offset *= 0.55;
-  }
-  return points;
-}
-
-/** One strike from the sky onto the target (or a fissure along the ground). Forks peel off the main channel and fork again; `at` is how far along the main channel a fork starts. */
-type Bolt = { points: Array<[number, number]>; width: number; at: number; taper: number };
-function lightningStrike(from: Point, to: Point, width: number, branchCount: number): Bolt[] {
-  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
-  const main = lightningPath(from, to, length * 0.16, 5);
-  const bolts: Bolt[] = [{ points: main, width, at: 0, taper: 1 }];
-  const heading = Math.atan2(to.y - from.y, to.x - from.x);
-  for (let index = 0; index < branchCount; index += 1) {
-    const startIndex = Math.floor(rnd(main.length * 0.15, main.length * 0.8));
-    const start = main[startIndex]!;
-    const at = startIndex / (main.length - 1);
-    const angle = heading + (Math.random() < 0.5 ? -1 : 1) * rnd(0.35, 0.95);
-    const reach = length * rnd(0.18, 0.34);
-    const branch = lightningPath({ x: start[0], y: start[1] }, { x: start[0] + Math.cos(angle) * reach, y: start[1] + Math.sin(angle) * reach }, reach * 0.2, 4);
-    bolts.push({ points: branch, width: width * 0.5, at, taper: 0.25 });
-    if (Math.random() < 0.6) {
-      const fork = branch[Math.floor(branch.length * 0.55)]!;
-      const forkAngle = angle + (Math.random() < 0.5 ? -1 : 1) * rnd(0.4, 0.8);
-      const forkReach = reach * 0.45;
-      bolts.push({ points: lightningPath({ x: fork[0], y: fork[1] }, { x: fork[0] + Math.cos(forkAngle) * forkReach, y: fork[1] + Math.sin(forkAngle) * forkReach }, forkReach * 0.2, 3), width: width * 0.28, at: Math.min(1, at + 0.12), taper: 0.2 });
-    }
-  }
-  return bolts;
-}
-
-/** Each element leaves its own short trail, sampled at a fixed rate on every display. */
-function trailParticles(fx: ImpactCanvas, at: Point, element: CardElement, tier: Tier, direction: Point) {
+/** Around the beam: a soft bloom, a double helix of glowing motes coiling along the path and short sparks, in the element colours. */
+function trailParticles(fx: ImpactCanvas, at: Point, element: CardElement, tier: Tier, direction: Point, phase: number) {
   const { x, y } = at;
   const finish = ELEMENT_FINISH[element];
   const soft = Math.sqrt(FORCE[tier]);
   const drift = { vx: -direction.x * 1.8, vy: -direction.y * 1.8 };
-  if (element === "water") {
-    fx.add({ kind: "ripple", x, y: y + 10, ...drift, size: 3, grow: 22 * soft, width: 1.9, squash: 0.45, life: 18, color: finish.rim });
-    fx.add({ kind: "drop", x: x + rnd(-16, 16), y, ...drift, gravity: 0.1, size: 2.2, life: 18, color: finish.core });
-  } else if (element === "earth") {
-    fx.add({ kind: "rock", x: x + rnd(-18, 18), y: y + 12, ...drift, gravity: 0.2, size: rnd(2, 4) * soft, spin: rnd(-0.2, 0.2), life: 20, color: "#80633c" });
-    fx.add({ kind: "smoke", x, y: y + 12, ...drift, size: 16 * soft, grow: 0.6, life: 18, color: "#a58b5b", alpha: 0.5 });
-  } else {
-    fx.add({ kind: "arc", x, y, ...drift, size: 23 * soft, grow: 20, width: 1.7, squash: 0.35, rotation: Math.atan2(direction.y, direction.x), spin: 0.08, life: 16, color: finish.core });
-    fx.add({ kind: "spark", x: x + rnd(-16, 16), y, vx: drift.vx * 2, vy: drift.vy * 2, size: 1.5, life: 14, color: finish.rim });
-    const side = Math.random() < 0.5 ? -1 : 1;
-    fx.add({ kind: "gust", x: x + rnd(-16, 16), y: y + rnd(-16, 16), vx: drift.vx * 1.6 + rnd(-2, 2), vy: drift.vy * 1.6 + rnd(-2, 2), turn: side * rnd(0.08, 0.16), size: 1.5, life: 18, color: finish.core });
-    fx.add({ kind: "glow", x: x + rnd(-20, 20), y: y + rnd(-20, 20), ...drift, size: rnd(2.5, 5), life: 22, color: finish.core, alpha: 0.8 });
-    if (Math.random() < 0.5) {
-      // A short crackle of static jumping off the card.
-      const angle = rnd(0, Math.PI * 2);
-      const reach = rnd(22, 44) * soft;
-      fx.add({ kind: "bolt", points: lightningPath({ x, y }, { x: x + Math.cos(angle) * reach, y: y + Math.sin(angle) * reach }, reach * 0.25, 3), width: 1.3, taper: 0.3, color: GLOW[element], life: rnd(5, 9) });
-    }
+  const coil = Math.sin(phase) * 16 * soft;
+  fx.add({ kind: "glow", x, y, ...drift, size: 16 * soft, grow: 0.3, life: 12, color: GLOW[element], alpha: 0.4 });
+  for (const side of [1, -1]) {
+    fx.add({ kind: "glow", x: x - direction.y * coil * side, y: y + direction.x * coil * side, ...drift, size: rnd(3, 4.5), life: 18, color: side > 0 ? finish.core : "#ffffff", alpha: 0.9 });
   }
+  fx.add({ kind: "spark", x: x + rnd(-12, 12), y, vx: drift.vx * 2, vy: drift.vy * 2, size: 1.5, life: 14, color: finish.rim });
 }
 
-/** Attacker's element shapes the burst; the target's material decides sparks (metal) or shreds (parchment). */
+/** A thin ring of energy around the beam, seen edge-on: it opens across the path as the card slips through it. */
+function flightRing(fx: ImpactCanvas, at: Point, element: CardElement, tier: Tier, direction: Point) {
+  const finish = ELEMENT_FINISH[element];
+  const soft = Math.sqrt(FORCE[tier]);
+  const across = Math.atan2(direction.y, direction.x) + Math.PI / 2;
+  fx.add({ kind: "ring", x: at.x, y: at.y, size: 8, grow: 26 * soft, width: 2.6, squash: 0.32, rotation: across, life: 16, color: finish.rim });
+  fx.add({ kind: "ring", x: at.x, y: at.y, size: 4, grow: 18 * soft, width: 1.6, squash: 0.32, rotation: across, life: 14, delay: 2, color: finish.core });
+}
+
+/** The attacker's seal releases its element; the target's material decides sparks (metal) or shreds (parchment). */
 function burst(fx: ImpactCanvas, at: Point, element: CardElement, targetRarity: CardRarity, tier: Tier, direction: Point) {
   const force = FORCE[tier];
   const soft = Math.sqrt(force);
@@ -532,124 +355,26 @@ function burst(fx: ImpactCanvas, at: Point, element: CardElement, targetRarity: 
   const pushY = direction.y * 3 * soft;
   const { x, y } = at;
 
-  // Fire draws its own flash and ring in FireEffect.
-  if (element !== "fire") {
-    fx.add({ kind: "glow", x, y, size: 34 * soft, grow: 0.5, life: 9, color: finish.core, alpha: 0.65 });
-    fx.add({ kind: "glow", x, y, size: 76 * soft, grow: 0.5, life: 24, color: glow, alpha: 0.5 });
-    fx.add({ kind: "ring", x, y, size: 8, grow: 52 * soft, width: 3 * soft, life: 20, color: finish.rim });
+  // The impact seal releases the spell: a white-hot flash, a bloom of the element, rays of light from the seal centre,
+  // two shock rings and a spray of sparks, then a little magic dust that drifts up and fades.
+  fx.add({ kind: "glow", x, y, size: 40 * soft, grow: 0.5, life: 8, color: "#ffffff", alpha: 0.9 });
+  fx.add({ kind: "glow", x, y, size: 90 * soft, grow: 0.5, life: 22, color: glow, alpha: 0.55 });
+  fx.add({ kind: "ring", x, y, size: 10, grow: 64 * soft, width: 3.2 * soft, life: 20, color: finish.rim });
+  fx.add({ kind: "ring", x, y, size: 10, grow: 92 * soft, width: 2 * soft, life: 24, delay: 4, color: finish.core });
+  const rays = { weak: 8, even: 12, strong: 16 }[tier];
+  for (let index = 0; index < rays; index += 1) {
+    const angle = index / rays * Math.PI * 2 + rnd(-0.12, 0.12);
+    const inner = 14 * soft;
+    const reach = rnd(55, 100) * soft;
+    fx.add({ kind: "bolt", points: [[x + Math.cos(angle) * inner, y + Math.sin(angle) * inner], [x + Math.cos(angle) * reach, y + Math.sin(angle) * reach]], width: 1.6 * soft, taper: 1, reveal: 3, life: rnd(10, 14), color: glow });
   }
-  if (element === "earth") {
-    // Fissures tear across the ground: jagged, forking, opening outward from the hit with a lit seam inside.
-    const fissures = { weak: 4, even: 6, strong: 9 }[tier];
-    for (let index = 0; index < fissures; index += 1) {
-      const angle = index / fissures * Math.PI * 2 + rnd(-0.25, 0.25);
-      const reach = rnd(60, 105) * soft;
-      lightningStrike({ x, y: y + 12 }, { x: x + Math.cos(angle) * reach, y: y + 12 + Math.sin(angle) * reach * 0.5 }, 3 * soft, 2).forEach((seam) => {
-        const delay = seam.at * 5;
-        fx.add({ kind: "crack", points: seam.points, width: seam.width * 1.7, taper: seam.taper, reveal: 6, delay, color: "#2a1b0e", life: 40 });
-        fx.add({ kind: "crack", points: seam.points, width: seam.width * 0.5, taper: seam.taper, reveal: 6, delay, color: finish.rim, life: 30 });
-      });
-    }
+  for (let index = 0; index < count(18) + 6; index += 1) {
+    const angle = rnd(0, Math.PI * 2);
+    const speed = rnd(5, 13) * soft;
+    fx.add({ kind: "spark", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed + pushY, drag: 0.9, life: rnd(16, 30), size: 1.6, color: pick([finish.core, finish.rim, "#ffffff"]) });
   }
-
-  if (element === "water") {
-    // Concentric ripples leave the hit one after another, each a bright crest on a soft trough, slowing as they spread.
-    const rings = { weak: 3, even: 4, strong: 6 }[tier];
-    for (let index = 0; index < rings; index += 1) {
-      fx.add({ kind: "ripple", x, y: y + 12, size: 6, grow: (46 + index * 24) * soft, width: Math.max(1.4, 3.4 - index * 0.35) * soft, squash: 0.38, life: 30 + index * 2, delay: index * 4, color: index % 2 ? finish.core : finish.rim, alpha: 0.95 - index * 0.08 });
-    }
-    // The water column that jumps up on impact, then falls into the next rings.
-    for (let index = 0; index < 4; index += 1) {
-      fx.add({ kind: "glow", x: x + rnd(-6, 6), y: y - index * 10 * soft, vy: -rnd(2, 3.4) * soft, drag: 0.94, size: (28 - index * 3) * soft, grow: 0.5, life: 20 + index * 3, color: index % 2 ? finish.core : "#d8f2ff", alpha: 0.45 });
-    }
-    // Crown splash: drops leave on an ellipse, fastest sideways, then fall back.
-    const crown = count(16) + 6;
-    for (let index = 0; index < crown; index += 1) {
-      const angle = index / crown * Math.PI * 2;
-      fx.add({ kind: "drop", x: x + Math.cos(angle) * 14 * soft, y: y + Math.sin(angle) * 6 * soft + 8, vx: Math.cos(angle) * rnd(2, 5.5) * soft + pushX * 0.4, vy: -rnd(3.5, 8) * soft * (0.6 + 0.4 * Math.abs(Math.sin(angle))), gravity: 0.3, life: rnd(36, 60), size: rnd(1.6, 3.4), color: pick(["#d8f2ff", "#6cc8ff", "#ffffff"]) });
-    }
-    for (let index = 0; index < count(14); index += 1) {
-      const angle = -1.57 + rnd(-1.3, 1.3);
-      const speed = rnd(3, 10) * soft;
-      fx.add({ kind: "drop", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed, gravity: 0.28, life: rnd(40, 70), size: rnd(1.4, 3.2), color: pick(["#d8f2ff", "#6cc8ff", "#ffffff"]) });
-    }
-    // Drops landing back on the surface start small ripples of their own.
-    for (let index = 0; index < count(7) + 3; index += 1) {
-      fx.add({ kind: "ripple", x: x + rnd(-70, 70) * soft, y: y + 12 + rnd(-8, 14), size: 2, grow: rnd(12, 22), width: 1.4, squash: 0.4, life: 18, delay: rnd(12, 34), color: pick(["#d8f2ff", finish.core]), alpha: 0.85 });
-    }
-    for (let index = 0; index < count(4); index += 1) fx.add({ kind: "smoke", x: x + rnd(-26, 26), y: y + rnd(-18, 8), vy: -rnd(0.4, 1), life: rnd(40, 70), size: rnd(22, 36), grow: 1, color: "#cfeaff", alpha: 0.4 });
-  } else if (element === "earth") {
-    // Stone pillars burst out of the ground in a ring around the hit, back ones first so the front ones overlap them.
-    const pillars = { weak: 4, even: 7, strong: 10 }[tier];
-    const ring = Array.from({ length: pillars }, (_, index) => index / pillars * Math.PI * 2 + rnd(-0.2, 0.2)).sort((a, b) => Math.sin(a) - Math.sin(b));
-    ring.forEach((angle, index) => {
-      const reach = rnd(26, 62) * soft;
-      fx.add({ kind: "pillar", x: x + Math.cos(angle) * reach * 1.2, y: y + 16 + Math.sin(angle) * reach * 0.45, size: rnd(40, 76) * soft, width: rnd(9, 15) * soft, rotation: Math.cos(angle) * 0.12 + rnd(-0.06, 0.06), life: rnd(30, 38), delay: index * 1.2 + rnd(0, 3), color: pick(["#6b5238", "#7d6240", "#594430"]) });
-    });
-    for (let index = 0; index < count(14); index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      const speed = rnd(2, 8) * soft;
-      fx.add({ kind: "rock", x, y, vx: Math.cos(angle) * speed + pushX, vy: Math.sin(angle) * speed - 2, gravity: 0.3, drag: 0.985, life: rnd(45, 70), size: rnd(3, 7), spin: rnd(-0.3, 0.3), color: pick(["#5b4631", "#7a5f3d", "#3f3224"]) });
-    }
-    // Low dust shockwave rolling outward along the ground.
-    for (let index = 0; index < count(10); index += 1) {
-      const angle = index / count(10) * Math.PI * 2;
-      fx.add({ kind: "smoke", x: x + Math.cos(angle) * 10, y: y + Math.sin(angle) * 5 + 8, vx: Math.cos(angle) * rnd(2, 4.2) * soft, vy: Math.sin(angle) * rnd(0.6, 1.4) - 0.25, drag: 0.95, size: rnd(18, 30), grow: 1.2, life: rnd(40, 70), color: pick(["#8f7a56", "#a89168", "#6f5d42"]), alpha: 0.7 });
-    }
-    for (let index = 0; index < count(5); index += 1) fx.add({ kind: "smoke", x: x + rnd(-26, 26), y: y + rnd(-18, 18), vx: rnd(-1, 1), vy: -rnd(0.1, 0.6), life: rnd(50, 90), size: rnd(22, 38), grow: 1.1, color: "#9b845f" });
-    for (let index = 0; index < count(5); index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      const speed = rnd(1.5, 5) * soft;
-      fx.add({ kind: "leaf", x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, gravity: 0.04, drag: 0.96, spin: rnd(-0.2, 0.2), life: rnd(55, 95), size: rnd(4, 8), color: pick(["#8fdc4e", "#5aa83a", "#c6f08a"]) });
-    }
-  } else {
-    for (let index = 0; index < 3; index += 1) {
-      fx.add({ kind: "arc", x, y, size: 20 + index * 9, grow: 54 * soft, width: (2.6 - index * 0.35) * soft, squash: 0.4 + index * 0.12, rotation: index * Math.PI * 0.55, spin: 0.07 + index * 0.015, life: 30, delay: index * 2, color: index % 2 ? finish.core : finish.rim });
-    }
-    // Wind: a vortex of curling gusts, drifting motes of air and soft puffs pushed outward.
-    const turnSign = Math.random() < 0.5 ? -1 : 1;
-    for (let index = 0; index < count(14) + 6; index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      const radius = rnd(8, 26) * soft;
-      const speed = rnd(4, 9) * soft;
-      fx.add({ kind: "gust", x: x + Math.cos(angle) * radius, y: y + Math.sin(angle) * radius * 0.8, vx: -Math.sin(angle) * speed + Math.cos(angle) * 1.2, vy: Math.cos(angle) * speed * 0.8 + Math.sin(angle) * 1.2, turn: turnSign * rnd(0.07, 0.13), drag: 0.965, size: rnd(1.5, 2.4), life: rnd(22, 36), delay: rnd(0, 5), color: pick([finish.core, finish.rim, "#ffffff"]) });
-    }
-    for (let index = 0; index < count(16); index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      const speed = rnd(0.8, 3.2) * soft;
-      fx.add({ kind: "glow", x: x + rnd(-30, 30), y: y + rnd(-30, 30), vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, drag: 0.95, turn: turnSign * 0.05, size: rnd(2.5, 6), life: rnd(22, 42), color: finish.core, alpha: 0.85 });
-    }
-    for (let index = 0; index < count(5); index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      fx.add({ kind: "smoke", x, y, vx: Math.cos(angle) * rnd(1.5, 3) * soft, vy: Math.sin(angle) * rnd(1, 2.2) * soft, drag: 0.93, size: rnd(18, 30), grow: 1.2, life: rnd(26, 40), color: "#e6eeff", alpha: 0.28 });
-    }
-    // Lightning falls from the sky and draws itself down the channel with a halo, forks that fork again and a white-hot core. It flashes, afterglows and restrikes with fresh kinks.
-    const strikes = { weak: 1, even: 2, strong: 3 }[tier];
-    const forks = { weak: 2, even: 4, strong: 6 }[tier];
-    for (let strike = 0; strike < strikes; strike += 1) {
-      const from = { x: x + rnd(-45, 45) * (strike ? 1.5 : 0.4), y: Math.max(-FX_GUTTER + 6, y - rnd(170, 230) * soft) };
-      fx.add({ kind: "glow", x: from.x, y: from.y, size: 30 * soft, grow: 0.5, life: 9, color: glow, alpha: 0.55, delay: strike * 3 });
-      lightningStrike(from, { x, y }, 2.6 * soft, forks).forEach((bolt) => {
-        const delay = strike * 3 + bolt.at * 4;
-        const halo = bolt.at === 0 ? 14 * soft : 0;
-        fx.add({ kind: "bolt", points: bolt.points, width: bolt.width, taper: bolt.taper, reveal: 3, halo, color: glow, life: rnd(11, 15), delay });
-        fx.add({ kind: "bolt", points: bolt.points, width: bolt.width * 1.6, taper: bolt.taper, reveal: 3, color: glow, alpha: 0.25, life: 28, delay });
-      });
-      lightningStrike(from, { x, y }, 2 * soft, forks).forEach((bolt) => fx.add({ kind: "bolt", points: bolt.points, width: bolt.width, taper: bolt.taper, reveal: 2, color: glow, life: rnd(8, 12), delay: 7 + strike * 3 + bolt.at * 3 }));
-    }
-    fx.add({ kind: "glow", x, y, size: 110 * soft, grow: 0.4, life: 6, color: "#ffffff", alpha: 0.75, delay: 3 });
-    // Electric arcs fan out from the point of impact along the ground and the card.
-    const arcs = { weak: 3, even: 5, strong: 7 }[tier];
-    for (let index = 0; index < arcs; index += 1) {
-      const angle = index / arcs * Math.PI * 2 + rnd(-0.3, 0.3);
-      const reach = rnd(40, 85) * soft;
-      lightningStrike({ x, y }, { x: x + Math.cos(angle) * reach, y: y + Math.sin(angle) * reach }, 1.6 * soft, 1).forEach((bolt) => fx.add({ kind: "bolt", points: bolt.points, width: bolt.width, taper: bolt.at === 0 ? 0.3 : bolt.taper, reveal: 2, color: glow, life: rnd(8, 14), delay: 3 + bolt.at * 2 }));
-    }
-    for (let index = 0; index < count(18); index += 1) {
-      const angle = rnd(0, Math.PI * 2);
-      const speed = rnd(6, 15) * soft;
-      fx.add({ kind: "spark", x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, drag: 0.9, life: rnd(14, 28), size: 1.6, color: finish.core });
-    }
+  for (let index = 0; index < count(10) + 3; index += 1) {
+    fx.add({ kind: "glow", x: x + rnd(-40, 40) * soft, y: y + rnd(-30, 30) * soft, vy: -rnd(0.5, 1.5), drag: 0.97, size: rnd(2.5, 5), life: rnd(30, 45), delay: rnd(2, 10), color: finish.core, alpha: 0.85 });
   }
 
   if (material.metal) {
@@ -677,6 +402,13 @@ function shakeBoard(board: HTMLElement, tier: Tier) {
   board.animate(frames, { duration, easing: "linear" });
 }
 
+/** A square seal centred on a card box, `size` card widths across. */
+function sealBox(card: CSSProperties, size: number): CSSProperties {
+  const left = Number(card.left), top = Number(card.top), width = Number(card.width), height = Number(card.height);
+  const side = width * size;
+  return { left: left + width / 2 - side / 2, top: top + height / 2 - side / 2, width: side, height: side };
+}
+
 function damageStyle(at: Point, element: CardElement, value: number): CSSProperties {
   return {
     left: `clamp(84px, ${at.x}px, calc(100% - 84px))`,
@@ -691,8 +423,9 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
   const layer = useRef<HTMLDivElement>(null);
   const impactCanvas = useRef<HTMLCanvasElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
-  const fireRef = useRef<FireEffectHandle>(null);
   const targetRef = useRef<HTMLDivElement>(null);
+  const castSealRef = useRef<HTMLDivElement>(null);
+  const impactSealRef = useRef<HTMLDivElement>(null);
   const slotCards = useRef<{ player: HTMLElement; enemy: HTMLElement } | null>(null);
   const [geometry, setGeometry] = useState<Geometry | null>(null);
   const [damage, setDamage] = useState<{ tier: Tier; at: Point; counterAt: Point } | null>(null);
@@ -742,8 +475,10 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
     const canvas = impactCanvas.current;
     const ghost = ghostRef.current;
     const target = targetRef.current;
+    const castSeal = castSealRef.current;
+    const impactSeal = impactSealRef.current;
     const board = root?.parentElement;
-    if (!geometry || !root || !canvas || !ghost || !target || !board) return;
+    if (!geometry || !root || !canvas || !ghost || !target || !castSeal || !impactSeal || !board) return;
 
     const width = geometry.origin.width;
     const height = geometry.origin.height;
@@ -779,7 +514,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       if (reducedMotion) {
         impactSound();
         setDamage({ tier, at: impact, counterAt });
-        await new Promise<void>((resolve) => { timers.push(window.setTimeout(resolve, 700)); });
+        await new Promise<void>((resolve) => { timers.push(window.setTimeout(resolve, 500)); });
         return;
       }
       const spin = 360;
@@ -789,6 +524,11 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       // Signed along the normal so the bend points outward whichever way the strike travels.
       const arc = Math.min(46, length * 0.18) * arcSide * (Math.sign(normal.x) || 1);
       const lift = { x: -direction.x * 10, y: 20 - direction.y * 10 };
+      // The seal of the card's element opens behind it during the wind-up and fades once the card has flown through.
+      castSeal.animate([
+        { opacity: 0, transform: "scale(.3) rotate(-120deg)" },
+        { opacity: 1, transform: "scale(1) rotate(0deg)" },
+      ], { ...options, duration: RISE_MS + 60, easing: "cubic-bezier(.2,.8,.3,1)" });
       // Wind-up: a short pull back away from the target before the throw.
       await ghost.animate([
         { transform: transform(0, 0, 0, 0, 1) },
@@ -797,18 +537,29 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       if (cancelled) return;
       ghost.style.filter = `drop-shadow(0 0 14px ${glow}) drop-shadow(0 18px 14px #000a)`;
       let lastTrailAt = -Infinity;
+      const flightStart = performance.now();
+      const tail: Array<[number, number]> = [];
+      let ringsShown = 0;
       const trail = (now: number) => {
+        const rect = ghost.getBoundingClientRect();
+        const at = { x: rect.left - origin.left + rect.width / 2, y: rect.top - origin.top + rect.height / 2 };
+        // The beam follows every display frame so it stays one smooth stroke; the motes are sampled at a fixed rate.
+        tail.unshift([at.x, at.y]);
+        if (tail.length > RIBBON_POINTS) tail.length = RIBBON_POINTS;
+        if (tail.length > 1) fx.setRibbon(tail, 5 * Math.sqrt(FORCE[tier]), glow);
+        const progress = (now - flightStart) / FLIGHT_MS[tier];
+        if (ringsShown < FLIGHT_RINGS.length && progress >= FLIGHT_RINGS[ringsShown]!) {
+          ringsShown += 1;
+          flightRing(fx, at, exchange.playerCard.element, tier, direction);
+        }
         if (now - lastTrailAt >= TRAIL_INTERVAL_MS) {
           lastTrailAt = now;
-          const rect = ghost.getBoundingClientRect();
-          const at = { x: rect.left - origin.left + rect.width / 2, y: rect.top - origin.top + rect.height / 2 };
-          if (exchange.playerCard.element === "fire") fireRef.current?.trail(at, tier, direction);
-          else trailParticles(fx, at, exchange.playerCard.element, tier, direction);
+          trailParticles(fx, at, exchange.playerCard.element, tier, direction, (now - flightStart) / 28);
         }
         trailFrame = requestAnimationFrame(trail);
       };
       trailFrame = requestAnimationFrame(trail);
-      playSound("battle-fly");
+      playSound(flySoundCue(exchange.playerCard.element));
       const controlX = dx / 2 + normal.x * arc;
       const controlY = dy / 2 + normal.y * arc;
       // Accelerates into the target: slow release, fastest on contact.
@@ -819,10 +570,19 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         return { transform: transform(quadratic(lift.x, controlX, dx, p), quadratic(lift.y, controlY, dy, p), -6 + (spin + 6) * p, bank, scale) };
       }), { ...options, duration: FLIGHT_MS[tier], easing: "linear" }).finished;
       cancelAnimationFrame(trailFrame);
+      fx.releaseRibbon();
       if (cancelled) return;
+      castSeal.animate([
+        { opacity: 1, transform: "scale(1)" },
+        { opacity: 0, transform: "scale(1.2)" },
+      ], { ...options, duration: 260, easing: "ease-in" });
+      impactSeal.animate([
+        { opacity: 0, transform: "scale(.4) rotate(60deg)" },
+        { opacity: 1, transform: "scale(1) rotate(0deg)", offset: 0.3 },
+        { opacity: 0, transform: "scale(1.4) rotate(-30deg)" },
+      ], { ...options, duration: IMPACT_SEAL_MS[tier], easing: "cubic-bezier(.2,.7,.3,1)" });
 
       burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, tier, direction);
-      if (exchange.playerCard.element === "fire") fireRef.current?.burst(impact, tier, direction);
       impactSound();
       shakeBoard(board, tier);
       setDamage({ tier, at: impact, counterAt });
@@ -838,7 +598,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
           filter: t === 1 ? "none" : `brightness(${1 + flash}) saturate(${1 + flash * 0.3})`,
         };
       }), { duration: RECOIL_MS[tier], easing: "linear" });
-      if (tier === "strong") board.animate([{ scale: "1" }, { scale: "1.02" }, { scale: "1" }], { duration: 300, easing: "ease-out" });
+      if (tier === "strong") board.animate([{ scale: "1" }, { scale: "1.02" }, { scale: "1" }], { duration: 220, easing: "ease-out" });
 
       // Contact: the card squashes into the target, then bounces off.
       await ghost.animate([
@@ -890,16 +650,15 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       cancelAnimationFrame(trailFrame);
       timers.forEach((timer) => window.clearTimeout(timer));
       fx.stop();
-      fireRef.current?.stop();
     };
   }, [exchange, geometry, tier]);
 
   return (
     <div ref={layer} className="battle-attack" aria-hidden="true" style={{ "--battle-fx-gutter": `${FX_GUTTER}px` } as CSSProperties}>
       <canvas ref={impactCanvas} className="battle-attack__fx" />
-      {geometry && exchange.playerCard.element === "fire" ? <FireEffect ref={fireRef} width={geometry.origin.width} height={geometry.origin.height} gutter={FX_GUTTER} /> : null}
       {geometry ? (
         <>
+          <MagicCircle ref={castSealRef} className="battle-attack__seal--cast" element={exchange.playerCard.element} style={sealBox(geometry.player, CAST_SEAL_SIZE)} />
           <div ref={targetRef} className={`duel-card battle-attack__card battle-attack__card--enemy deck-card--${exchange.enemyCard.element} deck-card--${exchange.enemyCard.rarity}`} style={geometry.enemy}>
             <CardFxWrapper artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} compact element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity}>
               <CardHud element={exchange.enemyCard.element} power={exchange.enemyCard.finalPower} rarity={exchange.enemyCard.rarity} staticMaterial />
@@ -910,6 +669,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
               <CardHud element={exchange.playerCard.element} power={exchange.playerCard.finalPower} rarity={exchange.playerCard.rarity} staticMaterial />
             </CardFxWrapper>
           </div>
+          <MagicCircle ref={impactSealRef} className="battle-attack__seal--impact" element={exchange.playerCard.element} style={sealBox(geometry.enemy, IMPACT_SEAL_SIZE[tier])} />
         </>
       ) : null}
       {damage ? (

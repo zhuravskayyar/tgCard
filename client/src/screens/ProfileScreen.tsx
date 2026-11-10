@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ExperienceFlask } from "../components/ExperienceFlask";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDominantDeckElement, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import type { EquippedEquipment, TournamentAwardsView } from "@cardastika/shared";
@@ -173,7 +174,7 @@ export function ProfileScreen({
             <div className="pf-identity__copy">
               <NicknameSkinPreview nickname={displayName} skinId={player.equippedNicknameSkin} />
               <span className="pf-identity__level">Рівень {player.level}</span>
-              <span aria-label={`Досвід ${xpPct}%`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={xpPct} className="pf-bar" role="progressbar"><span style={{ width: `${xpPct}%` }} /></span>
+              <span aria-label={`Досвід ${xpPct}%`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={xpPct} className="flask-meter pf-flask" role="progressbar"><ExperienceFlask progress={xpPct / 100} /></span>
             </div>
             <div className="pf-identity__guild"><GuildMembershipRow level={player.level} onOpen={onOpenGuild} /></div>
           </section>

@@ -8,6 +8,7 @@ import { CardHud } from "../components/CardHud";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
+import { playSound } from "../audio";
 import { buildTrail, getMapStops, MAP_HEIGHT, toSvgPoints, walkTrail, type MapPoint } from "./battlePassMapPath";
 
 const DIAMOND_ASSET = "/assets/ui/icons/icon-diamond-v1.webp";
@@ -197,6 +198,7 @@ export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryCh
     setFeedback(null);
     try {
       const response = await claimMilestone(id);
+      playSound("reward-claim");
       setBurstId(id);
       window.setTimeout(() => setBurstId((current) => current === id ? null : current), 1_100);
       if (response.updatedBalance) onPlayerSummaryChange(response.updatedBalance);

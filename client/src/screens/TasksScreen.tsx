@@ -1,10 +1,12 @@
 import { ScreenHeading } from "../components/ScreenHeading";
+import { ExperienceFlask } from "../components/ExperienceFlask";
 import { useState } from "react";
 import { DailyTaskRow } from "../components/DailyTaskRow";
 import { Lariska } from "../components/Lariska";
 import { useBattlePass } from "../hooks/useBattlePass";
 import type { PlayerSummary, StoryTrialNavigationTarget } from "@cardastika/shared";
 import { DiamondIcon } from "../components/DiamondIcon";
+import { playSound } from "../audio";
 
 
 function getDailyReset(taskDate: string) {
@@ -37,6 +39,7 @@ export function TasksScreen({ onBack, onOpenTask, onPlayerSummaryChange }: {
     try {
       const response = await claimDailyTask(id);
       onPlayerSummaryChange(response.updatedBalance);
+      playSound("reward-claim");
       setFeedback(response.card ? "Нагороду отримано: золото, срібло, річ і нова карта" : "Нагороду отримано: золото, срібло і річ");
     } catch {
       setFeedback("Завдання ще не виконано або нагорода вже забрана");
@@ -86,10 +89,10 @@ export function TasksScreen({ onBack, onOpenTask, onPlayerSummaryChange }: {
                   aria-valuemax={state.data.daily.tasks.length}
                   aria-valuemin={0}
                   aria-valuenow={state.data.daily.completedCount}
-                  className="tasks-screen__daily-progress-track"
+                  className="flask-meter tasks-screen__daily-flask"
                   role="progressbar"
                 >
-                  <span style={{ width: `${state.data.daily.tasks.length === 0 ? 0 : state.data.daily.completedCount / state.data.daily.tasks.length * 100}%` }} />
+                  <ExperienceFlask progress={state.data.daily.tasks.length === 0 ? 0 : state.data.daily.completedCount / state.data.daily.tasks.length} />
                 </div>
                 <small>{state.data.daily.completedCount} / {state.data.daily.tasks.length}</small>
               </div>

@@ -1,4 +1,5 @@
 import { ScreenHeading } from "../../components/ScreenHeading";
+import { ExperienceFlask } from "../../components/ExperienceFlask";
 import { useEffect, useRef, useState } from "react";
 import { getCardLevelTableEntry, getUpgradeGoldPrice, getUpgradeProgress, MAX_CARD_LEVEL } from "@cardastika/game-core";
 import type { CardElement, GuildProfileResponse, PlayerCardInstance } from "@cardastika/shared";
@@ -126,7 +127,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
 
       <section className={`progression-panel progression-panel--reference ${progressionClass}`} aria-label="Прокачка карти гільдії">
         <div className="progression-panel__reference-heading"><span>Прогрес рівня</span><strong>{formatNumber(progression.percent)}%</strong></div>
-        <div className="level-progress" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><span style={{ width: `${progression.percent}%` }} /></div>
+        <div className="flask-meter" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceFlask progress={progression.percent / 100} tone="verdant" /></div>
         <div className="progression-panel__upgrade-row"><button className="level-up-button" disabled type="button"><span>Підняти рівень</span></button></div>
         <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{nextLevel?.powerIncrease === null || nextLevel?.powerIncrease === undefined ? "—" : `+${formatFullUiNumber(nextLevel.powerIncrease)}`}</strong></div><div><span>Ціна покращення</span><strong>{upgradeGold === null ? "—" : <><CurrencyIcon kind="gold" size={15} />{formatNumber(upgradeGold)}</>}</strong></div></div>
       </section>

@@ -90,10 +90,13 @@ export function CardPlateFrame({ artworkLoading = false, artworkSource, element,
   const textureKeyRef = useRef(textureKey);
   textureKeyRef.current = textureKey;
   const snapshotTiltRef = useRef(snapshot?.tilt ?? undefined);
+  const snapshotKeyRef = useRef(snapshotKey);
+  snapshotKeyRef.current = snapshotKey;
   // The card appears once, finished: never as an empty plate, a flat SVG or a half-shaded frame.
   const awaiting = !staticMaterial && !snapshot && !shaderReady && !flatFallback;
 
   // Live cards leave their last shaded frame behind; the next copy paints it before the first frame.
+  // Paint it only on mount: repainting on every power/rarity change flashed the card's old look during a level-up.
   useLayoutEffect(() => {
     const canvas = shaderCanvasRef.current;
     if (!canvas) return;
@@ -103,8 +106,8 @@ export function CardPlateFrame({ artworkLoading = false, artworkSource, element,
       canvas.getContext("2d")?.drawImage(snapshot.canvas, 0, 0);
     }
     if (staticMaterial) return;
-    return () => { if (shaderReadyRef.current) rememberShaderSnapshot(snapshotKey, canvas); };
-  }, [snapshot, snapshotKey, staticMaterial]);
+    return () => { if (shaderReadyRef.current) rememberShaderSnapshot(snapshotKeyRef.current, canvas); };
+  }, [snapshot, staticMaterial]);
 
   useEffect(() => {
     if (!awaiting || artworkLoading) return;
