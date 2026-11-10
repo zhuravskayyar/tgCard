@@ -37,7 +37,7 @@ export function AppShell({
   const revealed = useScreenReveal(screenKey, contentRef);
 
   useLayoutEffect(() => {
-    contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    contentRef.current?.scrollTo({ left: 0, top: 0, behavior: "auto" });
   }, [screenKey]);
 
   // Prepared after the first paint, so the first screen with cards has nothing left to compile or fetch.

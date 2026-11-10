@@ -175,11 +175,7 @@
   :root .app-shell .card-detail-screen .weak-cards-heading__chevron .app-icon { transition: none; }
 }
 
-/* Card detail: the shared TopHud stays unchanged; the screen keeps a readable plate and natural scrolling. */
-:root .app-shell:has(.card-detail-screen) {
-  max-width: 425px;
-}
-
+/* Card detail uses the same shell width as the persistent HUD and navigation. */
 :root .app-shell .app-content:has(.card-detail-screen) {
   overflow-x: hidden;
   overflow-y: auto;
