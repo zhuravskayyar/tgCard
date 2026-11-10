@@ -8,12 +8,12 @@ export const ARENA_QUEUE_SECONDS_BY_TIER = Object.freeze([5, 10, 15, 20, 25]);
 /** Every other live player who signs up brings the start this much closer. */
 export const ARENA_QUEUE_JOIN_SHORTENING_MS = 5_000;
 export const ARENA_QUEUE_MIN_DURATION_MS = 5_000;
-/** One battle cycle: three strikes, then the used lanes get new cards at the next cycle. */
+/** Arena refreshes used lanes at the next shared nine-second cycle boundary. */
 export const ARENA_SLOT_COOLDOWN_MS = 9_000;
 // Half a cycle: a bot strikes once in the first cycle, then twice in every later one.
 export const ARENA_BOT_ACTION_INTERVAL_MS = 4_500;
+/** Arena daily tasks count only battles with at least three player moves. */
 export const ARENA_MIN_COUNTED_MOVES = 3;
-export const ARENA_UNCOUNTED_RATING_CHANGE = -3;
 export const ARENA_IDLE_FINISH_MS = 180_000;
 export const ARENA_NO_WINNERS_ALIVE_COUNT = 4;
 
@@ -56,7 +56,7 @@ export function getArenaRewardCardLevelRange(arenaLeagueIndex: number): readonly
   return ARENA_REWARD_CARD_LEVELS_BY_TIER[Math.min(tier, ARENA_REWARD_CARD_LEVELS_BY_TIER.length - 1)]!;
 }
 
-/** The moment the current cycle ends; a lane used now opens again with a new card at that moment. */
+/** Next shared cycle boundary; a strike exactly on the boundary waits for the following one. */
 export function getArenaCycleEnd(cyclesStartAtMs: number, nowMs: number) {
   if (nowMs < cyclesStartAtMs) return cyclesStartAtMs;
   return cyclesStartAtMs + (Math.floor((nowMs - cyclesStartAtMs) / ARENA_SLOT_COOLDOWN_MS) + 1) * ARENA_SLOT_COOLDOWN_MS;

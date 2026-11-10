@@ -118,17 +118,19 @@ function ArenaRules() {
     <section className="arena-rules">
       <h2>Як проходить бій</h2>
       <ul>
-        <li>На арені б’ються шестеро. Справжні гравці, що записалися до старту, потрапляють в один бій, решту місць займають боти.</li>
+        <li>У бою шестеро учасників. Гравці та боти підбираються в межах однієї ліги; вільні місця займають боти.</li>
         <li>Час до старту залежить від ліги: від 5 до 25 секунд. Кожен новий живий гравець наближає старт на 5 секунд.</li>
-        <li>Бій іде циклами по 9 секунд; перші 9 секунд карти закриті. За цикл можна вдарити кожною з трьох карт. Використана карта закривається до кінця циклу, а невикористані лишаються на наступний.</li>
-        <li>Удар — це обмін: карта суперника на тій самій лінії відповідає одразу. Ціль можна змінити кнопкою або торкнувшись аватара.</li>
-        <li>Карти можна замінити: перша заміна безплатна, далі — 5 золота.</li>
+        <li>Бій іде спільними циклами по 9 секунд. На початку нового циклу оновлюються використані лінії, а невикористані карти залишаються. Тому після удару карта може повернутися раніше ніж за 9 секунд — на найближчій межі циклу.</li>
+        <li>Бот тримає ціль, доки вона або він не загине. У першому циклі він б’є один раз у другій половині, далі — двічі за цикл; вибирає найсильніший доступний удар. Якщо всі живі гравці залишили сторінку бою, боти після короткої затримки зупиняють атаки.</li>
+        <li>Удар — це обмін: карта суперника на тій самій лінії відповідає одразу. Ціль можна змінити кнопкою; якщо вона загине до удару, удар переходить на наступну живу ціль.</li>
+        <li>Кожен гравець може замінити карти безплатно один раз за бій; кожна наступна заміна коштує 5 золота.</li>
       </ul>
       <h2>Хто перемагає</h2>
       <ul>
-        <li>Бій триває, доки не лишиться один учасник, або завершується через три хвилини без ваших ударів.</li>
+        <li>Бій триває, доки не лишиться один учасник, або завершується через три хвилини без активності живих гравців.</li>
         <li>Перемагають троє, хто завдав найбільше шкоди; далі рахуються вбивства і залишок здоров’я.</li>
-        <li>Менше трьох ходів — бій не зараховується: −3 рейтингу без перемоги й прогресу завдань.</li>
+        <li>Для щоденних завдань потрібно зробити щонайменше три ходи.</li>
+        <li>Якщо через три хвилини в бою лишилося щонайменше четверо, переможців немає і рейтинг не змінюється.</li>
       </ul>
       <h2>Нагороди</h2>
       <ul>
@@ -227,7 +229,7 @@ function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, cla
       const now = Date.now();
       setCooldownNow(now);
       const remaining = cooldownEnd - now;
-      // Tick on the whole seconds left before the shared cycle end, so lanes closing together show the same number.
+      // Tick on whole seconds remaining in this lane's cooldown.
       if (remaining > 0) timer = window.setTimeout(refresh, remaining % 1_000 || 1_000);
     };
     timer = window.setTimeout(refresh, Math.max(0, cooldownEnd - Date.now()) % 1_000 || 1_000);
@@ -328,6 +330,8 @@ function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; o
   const result = match.result;
   if (!result) return null;
   const won = result.reward.status === "win";
+  const winners = new Set(match.winnerIds);
+  const winnerParticipants = match.participants.filter(({ id }) => winners.has(id));
   const ordered = [...match.participants].sort((left, right) => (left.placement ?? 99) - (right.placement ?? 99));
   const renderParticipant = (participant: ArenaParticipantView) => (
     <li className={participant.id === match.playerId ? "is-player" : ""} key={participant.id}>
@@ -340,14 +344,14 @@ function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; o
   return (
     <section className={`arena-result ${won ? "is-win" : "is-loss"}`}>
       <span>Арена завершена</span>
-      <h1>{won ? "ПЕРЕМОГА" : "ПОРАЗКА"}</h1>
+      <h1>{won ? "ПЕРЕМОГА" : winners.size === 0 ? "БІЙ БЕЗ ПЕРЕМОЖЦІВ" : "ПОРАЗКА"}</h1>
       {won ? <p className="arena-result__subtitle">Ви один із переможців!</p> : null}
-      {!result.reward.counted ? <p className="arena-result__subtitle">Ви не билися в цьому бою. Його не зараховано.</p> : null}
+      {!result.reward.counted ? <p className="arena-result__subtitle">Для щоденних завдань потрібно зробити щонайменше три ходи. Результат бою та рейтинг враховано.</p> : null}
       <strong className="arena-result__place">Рейтинг арени: {result.reward.ratingAfter} ({result.reward.ratingChange > 0 ? "+" : ""}{result.reward.ratingChange})</strong>
       {result.leagueAfter.index > result.leagueBefore.index ? <p className="arena-result__subtitle">Нова ліга: {result.leagueAfter.name}</p> : null}
       <div className="arena-result__standings">
-        <div className="arena-result__group arena-result__group--winners"><h2>Переможці</h2><ol>{ordered.slice(0, 3).map(renderParticipant)}</ol></div>
-        <div className="arena-result__group arena-result__group--contenders"><h2>Претенденти</h2><ol>{ordered.slice(3).map(renderParticipant)}</ol></div>
+        {winnerParticipants.length > 0 ? <div className="arena-result__group arena-result__group--winners"><h2>Переможці</h2><ol>{ordered.filter(({ id }) => winners.has(id)).map(renderParticipant)}</ol></div> : null}
+        <div className="arena-result__group arena-result__group--contenders"><h2>{winnerParticipants.length > 0 ? "Претенденти" : "Учасники"}</h2><ol>{ordered.filter(({ id }) => !winners.has(id)).map(renderParticipant)}</ol></div>
       </div>
       {result.reward.promotionSilver > 0 ? <div className="arena-result__rewards"><span><CurrencyIcon kind="silver" size={18} />+{formatUiNumber(result.reward.promotionSilver)} срібла за нову лігу</span></div> : null}
       <div className="arena-result__actions"><button className="duel-primary-button" disabled={pending !== null} onClick={onQueue} type="button">Записатися знову</button><button className="duel-secondary-button" onClick={onArena} type="button">На арену</button></div>
@@ -497,7 +501,7 @@ export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: Aren
   const menu = <ArenaMenu onOpenLeague={() => setPage("league")} onOpenTasks={onOpenTasks} />;
 
   if (!profile) return <div className="arena-screen"><ArenaHeading onBack={onBack} /><div className="arena-empty-state" role={error ? "alert" : "status"}><span>{error ?? "Завантажуємо арену…"}</span>{error && initData ? <button className="duel-secondary-button" onClick={retrySync} type="button">Повторити</button> : null}</div></div>;
-  if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.version })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.version, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.version })); }} /></div>;
+  if (match && !resultReady) return <div className="arena-screen arena-screen--battle"><ArenaBattle match={match} pending={pending} onAction={(slot) => { if (initData) void mutate(`slot-${slot}`, () => submitArenaAction(initData, match.matchId, { slotIndex: slot, expectedVersion: match.actionVersion })); }} onTarget={(targetId) => { if (initData) void mutate("target", () => changeArenaTarget(initData, match.matchId, { expectedVersion: match.actionVersion, ...(targetId ? { targetId } : {}) })); }} onCards={() => { if (initData) void mutate("cards", () => changeArenaCards(initData, match.matchId, { expectedVersion: match.actionVersion })); }} /></div>;
   if (page === "league") return <div className="arena-screen"><ArenaHeading onBack={() => setPage("lobby")} title="Рейтинг арени" /><ArenaLeague initData={initData} profile={profile} /></div>;
   if (page === "rules") return <div className="arena-screen"><ArenaHeading onBack={() => setPage("lobby")} title="Правила арени" /><ArenaRules /></div>;
   if (match?.status === "finished") return (
@@ -514,7 +518,7 @@ export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: Aren
   return (
     <div className="arena-screen">
       <ArenaHeading onBack={onBack} />
-      <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Переможці — троє з найбільшою шкодою. Менше 3 ходів — бій не зараховується."]} />
+      <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Переможці — троє з найбільшою шкодою. Для щоденних завдань потрібно зробити щонайменше три ходи."]} />
       {errorNotice}
       <ArenaLobby onOpenRules={() => setPage("rules")} onQueue={() => void queue()} onRefresh={retrySync} pending={pending} profile={profile} />
       <ArenaChat />

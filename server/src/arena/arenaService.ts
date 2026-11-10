@@ -4,9 +4,7 @@ import {
   ARENA_IDLE_FINISH_MS,
   ARENA_MIN_COUNTED_MOVES,
   ARENA_NO_WINNERS_ALIVE_COUNT,
-  ARENA_UNCOUNTED_RATING_CHANGE,
   ARENA_PARTICIPANT_COUNT,
-  ARENA_SLOT_COOLDOWN_MS,
   calculateArenaDamage,
   calculateArenaRatingChange,
   compareArenaResults,
@@ -52,9 +50,9 @@ import { loadArenaDailyTasks } from "../battlePassService.js";
 import { ChatChannel } from "../chat/chatChannel.js";
 
 const MAX_ARENA_LOG_ENTRIES = 7;
+const ARENA_PLAYER_PRESENCE_SYNC_MS = 8_000;
+const ARENA_PLAYER_PRESENCE_TIMEOUT_MS = 15_000;
 const BOT_NAMES = ["Бронзовий звір", "Пилова відьма", "Штормовий спис", "Кришталевий страж", "Чорний гладіатор"];
-// Bots mostly fight each other; only a small share of target selections may focus the player.
-const BOT_PLAYER_TARGET_CHANCE = 0.1;
 
 interface ArenaPlayerRow {
   account_xp: number;
@@ -86,15 +84,20 @@ interface ArenaRow {
 }
 
 interface ArenaState {
+  /** Per-player request versions; other participants' actions do not invalidate an open action. */
+  actionVersions?: Record<string, number>;
   battleLog: ArenaBattleLogEntry[];
-  /** Start of the first nine-second cycle; matches written before cycles keep per-lane cooldowns. */
+  /** Shared clock origin for the nine-second battle cycles; absent only in legacy states. */
   cyclesStartAt?: string;
   lastPlayerActionAt?: string;
+  /** Throttled page-presence heartbeats; only live human participants are stored here. */
+  playerLastSeenAt?: Record<string, string>;
   matchId: string;
   participants: ArenaBattleParticipantSnapshot[];
   pairStates: Record<string, ArenaPairInteractionSnapshot>;
   playerId: string;
-  rerollCount: number;
+  /** Card changes are counted separately for each human participant. */
+  rerollCountsByPlayer?: Record<string, number>;
   result: ArenaResult | null;
   resultsByPlayer?: Record<string, ArenaResult>;
   targetId: string | null;
@@ -195,33 +198,34 @@ interface QueuedArenaPlayer {
   guildCard: DuelCardSnapshot | null;
 }
 
-function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = Math.random): ArenaState {
+function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = Math.random, now = Date.now()): ArenaState {
   const firstPlayer = players[0];
   if (!firstPlayer) throw new Error("Arena queue did not contain a player");
   const participants = [
     ...players.map(({ playerId, snapshot, guildCard }) => createParticipant(snapshot, playerId, false, random, guildCard)),
     ...Array.from({ length: ARENA_PARTICIPANT_COUNT - players.length }, (_, index) => createBot(players[index % players.length]!.snapshot, index, random)),
   ];
-  // Every card opens face down for one full cycle, so nobody strikes before the table is seen.
-  const firstCardsAt = new Date(Date.now() + ARENA_SLOT_COOLDOWN_MS).toISOString();
+  const cyclesStartAt = new Date(now).toISOString();
   for (const participant of participants) {
-    participant.cooldownUntil = [firstCardsAt, firstCardsAt, firstCardsAt];
-    if (participant.isBot) participant.lastBotActionAt = firstCardsAt;
+    participant.cooldownUntil = [null, null, null];
+    if (participant.isBot) participant.lastBotActionAt = cyclesStartAt;
   }
   const state: ArenaState = {
+    actionVersions: Object.fromEntries(participants.map(({ id }) => [id, 1])),
     battleLog: [],
-    cyclesStartAt: firstCardsAt,
-    lastPlayerActionAt: firstCardsAt,
+    cyclesStartAt,
+    lastPlayerActionAt: cyclesStartAt,
     matchId: randomUUID(),
     participants,
     pairStates: {},
     playerId: firstPlayer.playerId,
-    rerollCount: 0,
+    playerLastSeenAt: Object.fromEntries(players.map(({ playerId }) => [playerId, cyclesStartAt])),
+    rerollCountsByPlayer: Object.fromEntries(players.map(({ playerId }) => [playerId, 0])),
     result: null,
     resultsByPlayer: {},
     targetId: null,
   };
-  setInitialTargets(state);
+  setInitialTargets(state, random);
   for (const attacker of state.participants) {
     for (const target of state.participants) {
       if (attacker.id !== target.id) state.pairStates[pairKey(attacker.id, target.id)] = createPairState(attacker, target, random);
@@ -254,7 +258,10 @@ function aliveParticipants(state: ArenaState) {
 }
 
 function arenaIsOver(state: ArenaState) {
-  return state.technicalFinish === true || aliveParticipants(state).length <= 1;
+  // Once every live player has fallen, the bots' remaining fight ends at once.
+  return state.technicalFinish === true
+    || aliveParticipants(state).length <= 1
+    || !state.participants.some((participant) => !participant.isBot && participant.hp > 0);
 }
 
 function findParticipant(state: ArenaState, id: string) {
@@ -271,28 +278,25 @@ function nextTarget(state: ArenaState, fromId: string) {
   return alive.find((participant) => participant.id !== fromId)?.id ?? null;
 }
 
-function nextBotTarget(state: ArenaState, fromId: string) {
-  const aliveBots = aliveParticipants(state).filter((participant) => participant.isBot && participant.id !== fromId);
-  const player = findParticipant(state, state.playerId);
-  if (aliveBots.length > 0 && Math.random() >= BOT_PLAYER_TARGET_CHANCE) {
-    const targetCounts = new Map(aliveBots.map((candidate) => [candidate.id, 0]));
-    state.participants.forEach((participant) => {
-      if (participant.isBot && targetCounts.has(participant.targetId ?? "")) {
-        const targetId = participant.targetId!;
-        targetCounts.set(targetId, (targetCounts.get(targetId) ?? 0) + 1);
-      }
-    });
-    const minimumTargetCount = Math.min(...aliveBots.map((candidate) => targetCounts.get(candidate.id) ?? 0));
-    const leastTargetedBots = aliveBots.filter((candidate) => (targetCounts.get(candidate.id) ?? 0) === minimumTargetCount);
-    return leastTargetedBots[Math.floor(Math.random() * leastTargetedBots.length)]?.id ?? aliveBots[0]!.id;
-  }
-  if (player && player.hp > 0 && player.id !== fromId) return player.id;
-  return nextTarget(state, fromId);
+function nextBotTarget(state: ArenaState, fromId: string, random: RandomSource = Math.random) {
+  const candidates = aliveParticipants(state).filter((participant) => participant.id !== fromId);
+  if (!candidates.length) return null;
+  const targetCounts = new Map(candidates.map((candidate) => [candidate.id, 0]));
+  state.participants.forEach((participant) => {
+    if (participant.isBot && participant.hp > 0 && targetCounts.has(participant.targetId ?? "")) {
+      const targetId = participant.targetId!;
+      targetCounts.set(targetId, (targetCounts.get(targetId) ?? 0) + 1);
+    }
+  });
+  const minimumTargetCount = Math.min(...candidates.map((candidate) => targetCounts.get(candidate.id) ?? 0));
+  const leastTargeted = candidates.filter((candidate) => (targetCounts.get(candidate.id) ?? 0) === minimumTargetCount);
+  const index = Math.min(leastTargeted.length - 1, Math.floor(random() * leastTargeted.length));
+  return leastTargeted[index]?.id ?? candidates[0]!.id;
 }
 
-function normalizeTarget(state: ArenaState, attacker: ArenaBattleParticipantSnapshot) {
+function normalizeTarget(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, random: RandomSource = Math.random) {
   const target = attacker.targetId ? findParticipant(state, attacker.targetId) : undefined;
-  if (!target || target.hp <= 0 || target.id === attacker.id) attacker.targetId = attacker.isBot ? nextBotTarget(state, attacker.id) : nextTarget(state, attacker.id);
+  if (!target || target.hp <= 0 || target.id === attacker.id) attacker.targetId = attacker.isBot ? nextBotTarget(state, attacker.id, random) : nextTarget(state, attacker.id);
   const normalizedTarget = attacker.targetId ? findParticipant(state, attacker.targetId) ?? null : null;
   return normalizedTarget && normalizedTarget.id !== attacker.id ? normalizedTarget : null;
 }
@@ -430,7 +434,7 @@ function advanceCooldowns(state: ArenaState, now: number, random: RandomSource) 
       const cooldownUntil = attacker.cooldownUntil[slotIndex];
       if (!cooldownUntil || !readyAt(cooldownUntil, now)) continue;
 
-      const target = normalizeTarget(state, attacker);
+      const target = normalizeTarget(state, attacker, random);
       if (target) {
         const pair = getPairState(state, attacker, target);
         const nextAttacker = rotateCardSide(attacker.cards, pair.attackerActiveSlots, pair.attackerReserveQueue, pair.attackerRotationSeenCardIds, slotIndex, attacker.guildCard, random);
@@ -484,8 +488,8 @@ function settleDeathArtifacts(first: ArenaBattleParticipantSnapshot, second: Are
   applyDeathArtifacts(first, second);
 }
 
-function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slotIndex: 0 | 1 | 2, now: number) {
-  const target = normalizeTarget(state, attacker);
+function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slotIndex: 0 | 1 | 2, now: number, random: RandomSource) {
+  const target = normalizeTarget(state, attacker, random);
   if (!target) return false;
   const pair = getPairState(state, attacker, target);
   if (!readyAt(attacker.cooldownUntil[slotIndex], now)) return false;
@@ -516,15 +520,14 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
   if (!attacker.isBot) state.lastPlayerActionAt = new Date(now).toISOString();
-  attacker.cooldownUntil[slotIndex] = new Date(state.cyclesStartAt
-    ? getArenaCycleEnd(new Date(state.cyclesStartAt).getTime(), now)
-    : now + ARENA_SLOT_COOLDOWN_MS).toISOString();
+  const cyclesStartAt = state.cyclesStartAt ? new Date(state.cyclesStartAt).getTime() : now;
+  attacker.cooldownUntil[slotIndex] = new Date(getArenaCycleEnd(cyclesStartAt, now)).toISOString();
   const targetDefeated = target.hp === 0;
   if (targetDefeated) attacker.kills += 1;
   if (attacker.hp === 0 && attackerHpBeforeCounter > 0) target.kills += 1;
   for (const fallen of [target, attacker].filter(({ hp }) => hp === 0)) {
     for (const participant of state.participants) {
-      if (participant.targetId === fallen.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id) : nextTarget(state, participant.id);
+      if (participant.targetId === fallen.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id, random) : nextTarget(state, participant.id);
     }
   }
   state.battleLog = [...state.battleLog, {
@@ -545,8 +548,8 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   return true;
 }
 
-function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, now: number) {
-  const target = normalizeTarget(state, bot);
+function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, now: number, random: RandomSource) {
+  const target = normalizeTarget(state, bot, random);
   if (!target) return null;
   const pair = getPairState(state, bot, target);
   const candidates = ([0, 1, 2] as const)
@@ -561,8 +564,50 @@ function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, n
       }).damage,
       multiplier: getElementMultiplier(pair.attackerActiveSlots[slotIndex].element, pair.targetActiveSlots[slotIndex].element),
     }))
-    .sort((left, right) => right.multiplier - left.multiplier || right.damage - left.damage);
+    .sort((left, right) => right.damage - left.damage || right.multiplier - left.multiplier);
   return candidates[0]?.slotIndex ?? null;
+}
+
+/** Align legacy active matches to one shared cycle clock once, then keep that clock fixed. */
+function ensureCycleTiming(state: ArenaState, now: number) {
+  if (state.cyclesStartAt && Number.isFinite(new Date(state.cyclesStartAt).getTime())) return false;
+  const cycleStartAt = new Date(now).toISOString();
+  const hasCombat = state.battleLog.length > 0 || state.participants.some((participant) => (participant.moves ?? 0) > 0);
+  const nextCycleAt = new Date(getArenaCycleEnd(now, now)).toISOString();
+  state.cyclesStartAt = cycleStartAt;
+  state.playerLastSeenAt ??= Object.fromEntries(state.participants.filter(({ isBot }) => !isBot).map(({ id }) => [id, cycleStartAt]));
+  for (const participant of state.participants) {
+    participant.lastBotActionAt = participant.isBot ? cycleStartAt : participant.lastBotActionAt;
+    participant.cooldownUntil = participant.cooldownUntil.map((cooldown) => cooldown ? (hasCombat ? nextCycleAt : null) : null) as ArenaBattleParticipantSnapshot["cooldownUntil"];
+  }
+  if (!hasCombat) state.lastPlayerActionAt = cycleStartAt;
+  return true;
+}
+
+function hasRecentLivingPlayerPresence(state: ArenaState, now: number) {
+  return state.participants.some((participant) => {
+    if (participant.isBot || participant.hp <= 0) return false;
+    const lastSeenAt = state.playerLastSeenAt?.[participant.id];
+    return Boolean(lastSeenAt && now - new Date(lastSeenAt).getTime() <= ARENA_PLAYER_PRESENCE_TIMEOUT_MS);
+  });
+}
+
+/** Skip missed bot turns while humans are away; resume at the next cycle-aligned turn. */
+function alignBotScheduleAfterPause(state: ArenaState, now: number) {
+  if (!state.participants.some((participant) => !participant.isBot && participant.hp > 0)
+    || hasRecentLivingPlayerPresence(state, now)) return false;
+  const cycleStartAt = new Date(state.cyclesStartAt ?? new Date(now).toISOString()).getTime();
+  const latestScheduledAt = now < cycleStartAt + ARENA_BOT_ACTION_INTERVAL_MS
+    ? cycleStartAt
+    : cycleStartAt + Math.floor((now - cycleStartAt) / ARENA_BOT_ACTION_INTERVAL_MS) * ARENA_BOT_ACTION_INTERVAL_MS;
+  let changed = false;
+  for (const bot of state.participants.filter((participant) => participant.isBot && participant.hp > 0)) {
+    const scheduledAt = new Date(latestScheduledAt).toISOString();
+    if (bot.lastBotActionAt === scheduledAt) continue;
+    bot.lastBotActionAt = scheduledAt;
+    changed = true;
+  }
+  return changed;
 }
 
 function advanceBots(state: ArenaState, now: number, random: RandomSource) {
@@ -571,33 +616,65 @@ function advanceBots(state: ArenaState, now: number, random: RandomSource) {
     state.technicalFinish = true;
     return true;
   }
+  let changed = ensureCycleTiming(state, now);
   const pairStateCountBefore = state.pairStates ? Object.keys(state.pairStates).length : 0;
   ensurePairStates(state);
   const pairStateCountAfter = Object.keys(state.pairStates).length;
-  let changed = pairStateCountAfter !== pairStateCountBefore || migrateLegacyPairCooldowns(state) || advanceCooldowns(state, now, random);
+  const pairStatesChanged = pairStateCountAfter !== pairStateCountBefore;
+  const legacyCooldownsMigrated = migrateLegacyPairCooldowns(state);
+  const cooldownsAdvanced = advanceCooldowns(state, now, random);
+  changed = pairStatesChanged || legacyCooldownsMigrated || cooldownsAdvanced || changed;
+  const livingPlayers = state.participants.filter((participant) => !participant.isBot && participant.hp > 0);
+  if (livingPlayers.length > 0 && !hasRecentLivingPlayerPresence(state, now)) return alignBotScheduleAfterPause(state, now) || changed;
   for (const bot of state.participants.filter((participant) => participant.isBot && participant.hp > 0)) {
-    const lastAction = bot.lastBotActionAt ? new Date(bot.lastBotActionAt).getTime() : 0;
-    if (lastAction && now - lastAction < ARENA_BOT_ACTION_INTERVAL_MS) continue;
-    const slotIndex = selectBotSlot(state, bot, now);
-    bot.lastBotActionAt = new Date(now).toISOString();
+    const cycleStartAt = new Date(state.cyclesStartAt!).getTime();
+    const lastAction = bot.lastBotActionAt ? new Date(bot.lastBotActionAt).getTime() : cycleStartAt;
+    const scheduledAt = lastAction + ARENA_BOT_ACTION_INTERVAL_MS;
+    if (now < scheduledAt) continue;
+    const slotIndex = selectBotSlot(state, bot, scheduledAt, random);
+    bot.lastBotActionAt = new Date(scheduledAt).toISOString();
+    changed = true;
     if (slotIndex === null) continue;
-    changed = attack(state, bot, slotIndex, now) || changed;
+    changed = attack(state, bot, slotIndex, scheduledAt, random) || changed;
     if (arenaIsOver(state)) break;
   }
   return changed;
 }
 
-function setInitialTargets(state: ArenaState) {
+/** Avoid taking the match row lock for the common read-only poll between game events. */
+function arenaNeedsAdvance(state: ArenaState, playerId: string, now: number) {
+  if (arenaIsOver(state)) return true;
+  if (!state.cyclesStartAt) return true;
+  if (state.lastPlayerActionAt && now - new Date(state.lastPlayerActionAt).getTime() >= ARENA_IDLE_FINISH_MS) return true;
+  const lastSeenAt = state.playerLastSeenAt?.[playerId];
+  if (!lastSeenAt || now - new Date(lastSeenAt).getTime() >= ARENA_PLAYER_PRESENCE_SYNC_MS) return true;
+  const participantCount = state.participants.length;
+  if (Object.keys(state.pairStates ?? {}).length < participantCount * Math.max(0, participantCount - 1)) return true;
+  if (Object.values(state.pairStates ?? {}).some((pair) => pair.cooldownUntil?.some((cooldown) => cooldown !== null))) return true;
+  return state.participants.some((participant) =>
+    participant.cooldownUntil.some((cooldown) => cooldown !== null && readyAt(cooldown, now))
+    || (participant.isBot && participant.hp > 0 && (!participant.lastBotActionAt
+      || now - new Date(participant.lastBotActionAt).getTime() >= ARENA_BOT_ACTION_INTERVAL_MS)),
+  );
+}
+
+function currentActionVersion(state: ArenaState, playerId: string) {
+  return state.actionVersions?.[playerId] ?? 1;
+}
+
+function currentRerollCount(state: ArenaState, playerId: string) {
+  return state.rerollCountsByPlayer?.[playerId] ?? 0;
+}
+
+function setInitialTargets(state: ArenaState, random: RandomSource) {
   state.participants.forEach((participant) => {
-    participant.targetId = participant.isBot ? nextBotTarget(state, participant.id) : nextTarget(state, participant.id);
+    participant.targetId = participant.isBot ? nextBotTarget(state, participant.id, random) : nextTarget(state, participant.id);
   });
   state.targetId = findParticipant(state, state.playerId)?.targetId ?? null;
 }
 
 function resultPlacement(state: ArenaState) {
-  // A player who barely struck cannot take a winning place, however much the counters dealt.
-  const fought = (participant: ArenaBattleParticipantSnapshot) => participant.isBot || (participant.moves ?? 0) >= ARENA_MIN_COUNTED_MOVES;
-  const ordered = [...state.participants].sort((left, right) => Number(fought(right)) - Number(fought(left)) || compareArenaResults(
+  const ordered = [...state.participants].sort((left, right) => compareArenaResults(
     { remainingHp: left.hp, kills: left.kills, totalDamageDealt: left.totalDamageDealt },
     { remainingHp: right.hp, kills: right.kills, totalDamageDealt: right.totalDamageDealt },
   ));
@@ -633,16 +710,14 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
     const placement = participant.placement;
     const moves = participant.moves ?? 0;
     const counted = moves >= ARENA_MIN_COUNTED_MOVES;
-    const won = counted && !noWinners && placement <= 3;
+    const won = !noWinners && placement <= 3;
     const ratingBefore = toSafeInteger(player.arena_rating, "arena rating");
     // Bots are matched to the player's league, so they count at the player's own rating.
     const opponentRatings = ordered.filter(({ id }) => id !== participant.id).map(({ id }) => ratingOf.get(id) ?? ratingBefore);
     const averageOpponentRating = opponentRatings.reduce((sum, rating) => sum + rating, 0) / opponentRatings.length;
     const ratingChange = noWinners
       ? 0
-      : counted
-        ? calculateArenaRatingChange({ averageDamage, averageOpponentRating, damageDealt: participant.totalDamageDealt, placement, playerRating: ratingBefore })
-        : ARENA_UNCOUNTED_RATING_CHANGE;
+      : calculateArenaRatingChange({ averageDamage, averageOpponentRating, damageDealt: participant.totalDamageDealt, placement, playerRating: ratingBefore });
     const leagueBeforeIndex = toSafeInteger(player.arena_league_index, "arena league");
     const highestBefore = toSafeInteger(player.arena_highest_league_index, "arena highest league");
     const ratingAfter = Math.max(0, ratingBefore + ratingChange);
@@ -711,14 +786,16 @@ function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView 
   if (!player) throw new Error("Arena player participant is missing");
   const target = player.targetId && player.targetId !== player.id ? findParticipant(row.state, player.targetId) : null;
   const pair = target ? getPairState(row.state, player, target) : null;
-  const now = Date.now();
+  const noWinners = row.state.technicalFinish === true && aliveParticipants(row.state).length >= ARENA_NO_WINNERS_ALIVE_COUNT;
   const toSlot = (card: DuelCardSnapshot, cooldownUntil: string | null): ArenaCardSlot => ({
-    card: readyAt(cooldownUntil, now) ? card : null,
+    // Expired lanes stay face down until advanceCooldowns rotates their cards.
+    card: cooldownUntil === null ? card : null,
     cooldownUntil,
   });
   return {
+    actionVersion: currentActionVersion(row.state, playerId),
     battleLog: [...row.state.battleLog].reverse(),
-    changeCardsCost: getArenaCardChangeCost(row.state.rerollCount + 1),
+    changeCardsCost: getArenaCardChangeCost(currentRerollCount(row.state, playerId) + 1),
     matchId: row.id,
     participants: row.state.participants.map((participant) => ({
       alive: participant.hp > 0,
@@ -737,6 +814,7 @@ function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView 
       ...(participant.placement ? { placement: participant.placement } : {}),
       totalDamageDealt: participant.totalDamageDealt,
     })),
+    winnerIds: noWinners ? [] : row.state.participants.filter((participant) => (participant.placement ?? Infinity) <= 3).map(({ id }) => id),
     playerGold,
     playerId,
     playerSlots: pair
@@ -766,23 +844,40 @@ function rowToArena(row: { id: string; player_id: string; state: ArenaState; res
   return row;
 }
 
-interface QueueHeadRow { arena_league_index: number; created_at: string | Date; participant_count: number | string; }
+interface QueueHeadRow { arena_league_index: number; created_at: string | Date; id: string; participant_count: number | string; }
+interface QueueHead { createdAt: number; leagueIndex: number; participantCount: number; queueId: string; startsAt: number; }
 
-/** Everyone in the queue shares one start: the first registration, its league timer, minus a step per extra live player. */
-async function loadQueueHead(client: Pick<PoolClient, "query">, lock = false) {
-  const result = await client.query<QueueHeadRow>(
-    `SELECT q.created_at, p.arena_league_index, (SELECT COUNT(*)::integer FROM arena_queue) AS participant_count
-     FROM arena_queue q JOIN players p ON p.id = q.player_id
-     ORDER BY q.created_at ASC LIMIT 1 ${lock ? "FOR UPDATE OF q SKIP LOCKED" : ""}`,
-  );
-  const head = result.rows[0];
-  if (!head) return null;
-  const createdAt = new Date(head.created_at).getTime();
-  const participantCount = Math.min(ARENA_PARTICIPANT_COUNT, toSafeInteger(head.participant_count, "arena queue size"));
-  return { createdAt, participantCount, startsAt: createdAt + getArenaQueueDurationMs(toSafeInteger(head.arena_league_index, "arena league"), participantCount) };
+function toQueueHead(row: QueueHeadRow): QueueHead {
+  const createdAt = new Date(row.created_at).getTime();
+  const participantCount = Math.min(ARENA_PARTICIPANT_COUNT, toSafeInteger(row.participant_count, "arena queue size"));
+  const leagueIndex = toSafeInteger(row.arena_league_index, "arena league");
+  return { createdAt, leagueIndex, participantCount, queueId: row.id, startsAt: createdAt + getArenaQueueDurationMs(leagueIndex, participantCount) };
 }
 
-function toQueueView(queueId: string, head: { createdAt: number; participantCount: number; startsAt: number }): ArenaQueueView {
+/** Queue timers and their participants are isolated by Arena league. */
+async function loadQueueHead(client: Pick<PoolClient, "query">, leagueIndex: number) {
+  const result = await client.query<QueueHeadRow>(
+    `SELECT q.id, q.created_at, p.arena_league_index,
+       (SELECT COUNT(*)::integer FROM arena_queue q2 JOIN players p2 ON p2.id = q2.player_id WHERE p2.arena_league_index = p.arena_league_index) AS participant_count
+     FROM arena_queue q JOIN players p ON p.id = q.player_id
+     WHERE p.arena_league_index = $1
+     ORDER BY q.created_at ASC, q.id ASC LIMIT 1`,
+    [leagueIndex],
+  );
+  return result.rows[0] ? toQueueHead(result.rows[0]) : null;
+}
+
+async function loadQueueHeads(client: Pick<PoolClient, "query">) {
+  const result = await client.query<QueueHeadRow>(
+    `SELECT DISTINCT ON (p.arena_league_index) q.id, q.created_at, p.arena_league_index,
+       (SELECT COUNT(*)::integer FROM arena_queue q2 JOIN players p2 ON p2.id = q2.player_id WHERE p2.arena_league_index = p.arena_league_index) AS participant_count
+     FROM arena_queue q JOIN players p ON p.id = q.player_id
+     ORDER BY p.arena_league_index ASC, q.created_at ASC, q.id ASC`,
+  );
+  return result.rows.map(toQueueHead).sort((left, right) => left.startsAt - right.startsAt || left.createdAt - right.createdAt);
+}
+
+function toQueueView(queueId: string, head: QueueHead): ArenaQueueView {
   return {
     createdAt: new Date(head.createdAt).toISOString(),
     maxParticipants: ARENA_PARTICIPANT_COUNT,
@@ -884,52 +979,66 @@ export class ArenaService {
   }
 
   private async startReadyQueue(client: PoolClient, now: number) {
-    const head = await loadQueueHead(client, true);
-    if (!head || now < head.startsAt) return null;
-
-    const queued = await client.query<{ created_at: string | Date; id: string; player_id: string }>(
-      `SELECT id, player_id, created_at FROM arena_queue ORDER BY created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED`,
-      [ARENA_PARTICIPANT_COUNT],
-    );
-    const players: QueuedArenaPlayer[] = [];
-    for (const entry of queued.rows) {
-      try {
-        const loaded = await loadDuelParticipant(client, entry.player_id, "arena");
-        players.push({
-          createdAt: entry.created_at,
-          guildCard: toGuildDuelCard(loaded.guildCard),
-          id: entry.id,
-          playerId: entry.player_id,
-          snapshot: loaded.snapshot,
-        });
-      } catch {
-        // A deck can become invalid while a player is waiting. It must not hold
-        // the rest of the registration window hostage.
-        await client.query("DELETE FROM arena_queue WHERE id = $1", [entry.id]);
-      }
-    }
-    if (!players.length) return null;
-
-    const state = createArenaState(players, this.random);
-    await client.query(
-      `INSERT INTO arena_matches (id, player_id, status, state) VALUES ($1, $2, 'active', $3)`,
-      [state.matchId, state.playerId, JSON.stringify(state)],
-    );
-    for (const player of players) {
-      await client.query(
-        "INSERT INTO arena_match_players (match_id, player_id, joined_at) VALUES ($1, $2, $3)",
-        [state.matchId, player.playerId, player.createdAt],
+    const heads = await loadQueueHeads(client);
+    for (const head of heads) {
+      if (now < head.startsAt) continue;
+      const lockedHead = await client.query<{ id: string }>(
+        "SELECT id FROM arena_queue WHERE id = $1 FOR UPDATE SKIP LOCKED",
+        [head.queueId],
       );
-      await client.query("DELETE FROM arena_queue WHERE id = $1", [player.id]);
+      if (!lockedHead.rows[0]) continue;
+
+      const queued = await client.query<{ created_at: string | Date; id: string; player_id: string }>(
+        `SELECT q.id, q.player_id, q.created_at
+         FROM arena_queue q JOIN players p ON p.id = q.player_id
+         WHERE p.arena_league_index = $1
+         ORDER BY q.created_at ASC, q.id ASC LIMIT $2 FOR UPDATE OF q SKIP LOCKED`,
+        [head.leagueIndex, ARENA_PARTICIPANT_COUNT],
+      );
+      const players: QueuedArenaPlayer[] = [];
+      for (const entry of queued.rows) {
+        try {
+          const loaded = await loadDuelParticipant(client, entry.player_id, "arena");
+          players.push({
+            createdAt: entry.created_at,
+            guildCard: toGuildDuelCard(loaded.guildCard),
+            id: entry.id,
+            playerId: entry.player_id,
+            snapshot: loaded.snapshot,
+          });
+        } catch {
+          // A deck can become invalid while a player is waiting. It must not hold
+          // the rest of this league's registration window hostage.
+          await client.query("DELETE FROM arena_queue WHERE id = $1", [entry.id]);
+        }
+      }
+      if (!players.length) continue;
+
+      const state = createArenaState(players, this.random, now);
+      await client.query(
+        `INSERT INTO arena_matches (id, player_id, status, state) VALUES ($1, $2, 'active', $3)`,
+        [state.matchId, state.playerId, JSON.stringify(state)],
+      );
+      for (const player of players) {
+        await client.query(
+          "INSERT INTO arena_match_players (match_id, player_id, joined_at) VALUES ($1, $2, $3)",
+          [state.matchId, player.playerId, player.createdAt],
+        );
+        await client.query("DELETE FROM arena_queue WHERE id = $1", [player.id]);
+      }
+      return rowToArena({ id: state.matchId, player_id: state.playerId, result: null, state, status: "active", version: 1 });
     }
-    return rowToArena({ id: state.matchId, player_id: state.playerId, result: null, state, status: "active", version: 1 });
+    return null;
   }
 
   private async queueView(client: Pick<PoolClient, "query">, playerId: string) {
-    const own = await client.query<{ id: string }>("SELECT id FROM arena_queue WHERE player_id = $1", [playerId]);
+    const own = await client.query<{ arena_league_index: number; id: string }>(
+      "SELECT q.id, p.arena_league_index FROM arena_queue q JOIN players p ON p.id = q.player_id WHERE q.player_id = $1",
+      [playerId],
+    );
     const ownRow = own.rows[0];
     if (!ownRow) return null;
-    const head = await loadQueueHead(client);
+    const head = await loadQueueHead(client, toSafeInteger(ownRow.arena_league_index, "arena league"));
     return head ? toQueueView(ownRow.id, head) : null;
   }
 
@@ -967,7 +1076,15 @@ export class ArenaService {
 
   async findActive(playerId: string): Promise<ActiveArenaResponse> {
     const active = await loadActiveArenaRow(this.pool, playerId);
-    if (active) return { arena: await this.advanceAndView(playerId, active), queue: null };
+    if (active) {
+      if (!arenaNeedsAdvance(active.state, playerId, Date.now())) {
+        const balance = await this.pool.query<{ gold: string | number }>("SELECT gold FROM players WHERE id = $1", [playerId]);
+        const row = balance.rows[0];
+        if (!row) throw new ArenaPlayerMissingError();
+        return { arena: toView(active, playerId, toSafeInteger(row.gold, "gold")), queue: null };
+      }
+      return { arena: await this.advanceAndView(playerId, active), queue: null };
+    }
 
     const client = await this.pool.connect();
     try {
@@ -1029,12 +1146,20 @@ export class ArenaService {
       );
       const row = locked.rows[0];
       if (!row) throw new ArenaMissingError();
-      const changed = row.status === "active" ? advanceBots(row.state, Date.now(), this.random) : false;
+      const now = Date.now();
+      const pausedScheduleAligned = row.status === "active" && alignBotScheduleAfterPause(row.state, now);
+      const previousSeenAt = row.state.playerLastSeenAt?.[playerId];
+      const presenceChanged = row.status === "active" && (!previousSeenAt || now - new Date(previousSeenAt).getTime() >= ARENA_PLAYER_PRESENCE_SYNC_MS);
+      if (presenceChanged) {
+        row.state.playerLastSeenAt ??= {};
+        row.state.playerLastSeenAt[playerId] = new Date(now).toISOString();
+      }
+      const changed = row.status === "active" ? advanceBots(row.state, now, this.random) : false;
       if (row.status === "active" && arenaIsOver(row.state)) {
         await finishMatch(client, row, row.state, this.guildActivity);
         row.status = "finished";
         row.version += 1;
-      } else if (changed) {
+      } else if (changed || presenceChanged || pausedScheduleAligned) {
         await client.query("UPDATE arena_matches SET state = $2, version = version + 1, updated_at = NOW() WHERE id = $1", [row.id, JSON.stringify(row.state)]);
         row.version += 1;
       }
@@ -1049,9 +1174,8 @@ export class ArenaService {
     return this.mutate(playerId, matchId, input.expectedVersion, (state, now) => {
       const player = findParticipant(state, playerId);
       if (!player || player.hp <= 0) return false;
-      const target = normalizeTarget(state, player);
-      if (!target) return false;
-      return attack(state, player, input.slotIndex, now);
+      if (!normalizeTarget(state, player, this.random)) return false;
+      return attack(state, player, input.slotIndex, now, this.random);
     });
   }
 
@@ -1088,17 +1212,18 @@ export class ArenaService {
         }
       }
       return false;
-    }, "target");
+    });
   }
 
   async changeCards(playerId: string, matchId: string, input: ArenaVersionRequest): Promise<ArenaView> {
     return this.mutate(playerId, matchId, input.expectedVersion, async (state, now, client) => {
       const player = findParticipant(state, playerId);
       if (!player || player.hp <= 0) return false;
-      const target = normalizeTarget(state, player);
+      const target = normalizeTarget(state, player, this.random);
       if (!target) return false;
       const pair = getPairState(state, player, target);
-      const cost = getArenaCardChangeCost(state.rerollCount + 1);
+      const changeNumber = currentRerollCount(state, playerId) + 1;
+      const cost = getArenaCardChangeCost(changeNumber);
       const balance = await client.query<{ gold: string | number }>("SELECT gold FROM players WHERE id = $1 FOR UPDATE", [playerId]);
       const gold = toSafeInteger(balance.rows[0]?.gold ?? 0, "gold");
       if (gold < cost) throw new ArenaInsufficientGoldError();
@@ -1115,7 +1240,8 @@ export class ArenaService {
         }
       });
       syncParticipantAttackerState(player, pair);
-      state.rerollCount += 1;
+      state.rerollCountsByPlayer ??= {};
+      state.rerollCountsByPlayer[playerId] = changeNumber;
       return true;
     });
   }
@@ -1125,7 +1251,6 @@ export class ArenaService {
     matchId: string,
     expectedVersion: number,
     callback: (state: ArenaState, now: number, client: PoolClient) => boolean | Promise<boolean>,
-    mutationKind?: "target",
   ) {
     const client = await this.pool.connect();
     try {
@@ -1144,25 +1269,33 @@ export class ArenaService {
       );
       const row = locked.rows[0];
       if (!row) throw new ArenaMissingError();
-      if (row.status !== "active" || row.version !== expectedVersion) throw new ArenaStateConflictError();
-      const player = findParticipant(row.state, playerId);
-      const playerCardsBeforeAdvance = mutationKind === "target" && player ? {
-        attackerActiveSlots: copyActiveCards(player.activeSlots),
-        attackerReserveQueue: [...player.reserveQueue],
-        attackerRotationSeenCardIds: [...player.rotationSeenCardIds],
-      } : null;
-      advanceBots(row.state, Date.now(), this.random);
-      if (player && playerCardsBeforeAdvance) syncParticipantAttackerState(player, playerCardsBeforeAdvance);
-      const changed = await callback(row.state, Date.now(), client);
+      const playerActionVersion = currentActionVersion(row.state, playerId);
+      // Accept this player's revision across unrelated match updates, while still
+      // accepting a current match revision from older clients.
+      if (row.status !== "active" || (row.version !== expectedVersion && playerActionVersion !== expectedVersion)) throw new ArenaStateConflictError();
+      const now = Date.now();
+      const pausedScheduleAligned = alignBotScheduleAfterPause(row.state, now);
+      const previousSeenAt = row.state.playerLastSeenAt?.[playerId];
+      const presenceChanged = !previousSeenAt || now - new Date(previousSeenAt).getTime() >= ARENA_PLAYER_PRESENCE_SYNC_MS;
+      if (presenceChanged) {
+        row.state.playerLastSeenAt ??= {};
+        row.state.playerLastSeenAt[playerId] = new Date(now).toISOString();
+      }
+      const advanced = advanceBots(row.state, now, this.random);
+      const changed = await callback(row.state, now, client);
+      if (changed) {
+        row.state.actionVersions ??= {};
+        row.state.actionVersions[playerId] = playerActionVersion + 1;
+        row.state.lastPlayerActionAt = new Date(now).toISOString();
+      }
       if (arenaIsOver(row.state)) {
         await finishMatch(client, row, row.state, this.guildActivity);
         row.status = "finished";
         row.version += 1;
-      } else {
+      } else if (advanced || changed || presenceChanged || pausedScheduleAligned) {
         await client.query("UPDATE arena_matches SET state = $2, version = version + 1, updated_at = NOW() WHERE id = $1", [row.id, JSON.stringify(row.state)]);
         row.version += 1;
       }
-      if (!changed && row.status === "active") row.version -= 0;
       const balance = await loadBalance(client, playerId);
       await client.query("COMMIT");
       return toView(row, playerId, balance.playerGold);

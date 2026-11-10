@@ -169,7 +169,6 @@ export {
   ARENA_RATING_CHANGES,
   ARENA_REWARD_CARD_LEVELS_BY_TIER,
   ARENA_SLOT_COOLDOWN_MS,
-  ARENA_UNCOUNTED_RATING_CHANGE,
   calculateArenaDamage,
   calculateArenaRatingChange,
   compareArenaResults,

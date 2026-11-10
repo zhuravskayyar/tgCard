@@ -50,10 +50,9 @@ function isVersionRequest(value: unknown): value is ArenaVersionRequest {
 }
 
 function isActionRequest(value: unknown): value is ArenaActionRequest {
-  return isVersionRequest(value)
-    && ((value as unknown as Record<string, unknown>).slotIndex === 0
-      || (value as unknown as Record<string, unknown>).slotIndex === 1
-      || (value as unknown as Record<string, unknown>).slotIndex === 2);
+  if (!isVersionRequest(value)) return false;
+  const body = value as unknown as Record<string, unknown>;
+  return body.slotIndex === 0 || body.slotIndex === 1 || body.slotIndex === 2;
 }
 
 async function authenticate(request: IncomingMessage, dependencies: ArenaRouteDependencies) {

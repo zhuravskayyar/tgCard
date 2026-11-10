@@ -6,34 +6,41 @@ page `/forum/3/218665/` again on 2026-11-08.
 
 ## Match flow
 
-Entering creates a registration record. The first registration opens the
-timer: 5, 10, 15, 20 or 25 seconds by its league tier (grey, green, blue, epic,
-higher), 5 seconds shorter for every other live player in the queue, never
-below 5 (`getArenaQueueDurationMs`). Everyone in the queue sees that one start.
-All real players who enter before the timer expires share one match; bots fill the free
-places afterwards and never receive limited cards. The server stores the shared
-state in `arena_matches.state` and links live participants through
+Entering creates a registration record. Each Arena league has its own queue.
+The first registration in that league opens the timer: 5, 10, 15, 20 or 25
+seconds by league tier (grey, green, blue, epic, higher), 5 seconds shorter for
+every other live player in that same league, never below 5
+(`getArenaQueueDurationMs`). All real players who enter before the timer expires
+share one match; bots from the same league fill the free places and never
+receive limited cards. The server stores the shared state in `arena_matches.state` and links live participants through
 `arena_match_players`. The client polls the queue and match about once a second.
 
-Every card stays face down for the first nine seconds. The battle then runs in
-nine-second cycles counted from that moment (`state.cyclesStartAt`): a lane used
-in a cycle closes on both rows until the cycle ends and opens with new cards;
-unused lanes keep their cards (`getArenaCycleEnd`). The first card change is
-free, every later one costs 5 gold.
+The battle starts with its cards available and runs in shared nine-second cycles
+counted from match start (`state.cyclesStartAt`). At the next cycle boundary,
+used lanes open with new cards; unused lanes keep their cards
+(`getArenaCycleEnd`). This means a card used late in a cycle may return in about
+4–5 seconds. Each player gets one free card change per battle; every later
+change costs 5 gold.
 A strike is an exchange: the opposing card in that lane answers in the same
 action, and both damage values are logged. The player cycles through living
-targets with Change target and can replace ready cards.
+targets with Change target; if a target dies before a strike is processed, the
+strike moves to the next living target. Players can replace ready cards.
 
-Bots keep one target until it or they fall, strike once in the first cycle and
-then twice per cycle (one action per 4.5 seconds).
+Bots select among all living players and bots, then keep that target until it
+or they fall. They strike once in the second half of the first cycle, then
+twice in every later cycle, at 4.5-second intervals. They choose the available
+strike with the highest calculated damage. When all living humans' page
+presence expires, bots pause and resume at a future half-cycle without catching
+up missed strikes. When every human has fallen, the match ends at once; the
+manual says the bots' remaining fight finishes within seconds.
 
 ## Result
 
 The match ends when one participant is left, or technically three minutes after
-the last player strike. The three highest damage dealers win, then kills, then
-remaining HP. A player with fewer than three moves did not fight: they rank after
-those who did, lose 3 rating, and receive no win or task progress. If a
-technical finish leaves four or more alive, nobody wins and rating does not move.
+the last action by a living player. The three highest damage dealers win, then
+kills, then remaining HP. Fewer than three moves do not count toward Arena daily
+tasks, but placement and rating still follow the battle results. If a technical
+finish leaves four or more alive, nobody wins and rating does not move.
 
 ## Screen layout
 

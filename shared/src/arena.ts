@@ -91,10 +91,13 @@ export interface ArenaResult {
 }
 
 export interface ArenaView {
+  /** Per-player action revision; changes by other participants do not invalidate this player's request. */
+  actionVersion: number;
   battleLog: ArenaBattleLogEntry[];
   changeCardsCost: number;
   matchId: string;
   participants: ArenaParticipantView[];
+  winnerIds: string[];
   playerGold: number;
   playerId: string;
   playerSlots: [ArenaCardSlot, ArenaCardSlot, ArenaCardSlot];
@@ -137,11 +140,13 @@ export interface ActiveArenaResponse {
 }
 
 export interface ArenaActionRequest {
+  /** This player's action version, independent from other participants' events. */
   expectedVersion: number;
   slotIndex: 0 | 1 | 2;
 }
 
 export interface ArenaVersionRequest {
+  /** This player's action version, independent from other participants' events. */
   expectedVersion: number;
   targetId?: string;
 }
