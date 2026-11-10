@@ -364,6 +364,8 @@ export const SCREEN_TRANSLATIONS: ReadonlyArray<readonly [string, string, string
   ["ЗНАЙДЕНО СУПЕРНИКА","OPPONENT FOUND","GEGNER GEFUNDEN","НАЙДЕН СОПЕРНИК"],
   ["ВИ","YOU","DU","ВЫ"],
   ["СУПЕРНИК","OPPONENT","GEGNER","СОПЕРНИК"],
+  ["ВАША СИЛА В ДУЕЛІ","YOUR DUEL POWER","DEINE DUELLSTÄRKE","ВАША СИЛА В ДУЭЛИ"],
+  ["Колекції","Collections","Sammlungen","Коллекции"],
   ["⌕ ШУКАТИ ІНШОГО","⌕ FIND ANOTHER","⌕ ANDEREN SUCHEN","⌕ ИСКАТЬ ДРУГОГО"],
   // Campaign
   ["Слід обривається тут… Ні. Воно вже знає, що ми прийшли.","The trail ends here… No. It already knows we have come.","Die Spur endet hier… Nein. Es weiß schon, dass wir gekommen sind.","След обрывается здесь… Нет. Оно уже знает, что мы пришли."],

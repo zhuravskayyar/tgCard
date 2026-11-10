@@ -137,6 +137,8 @@ export interface LoadedParticipant {
   player: ParticipantRow;
   snapshot: DuelSideSnapshot;
   guildCard: PlayerCardInstance | null;
+  deckPower: number;
+  equipmentPowerBonus: number;
 }
 
 const DUEL_COLUMNS = `
@@ -454,10 +456,14 @@ export async function loadDuelParticipant(
     ...card,
     finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element],
   }));
-  const effectiveDeckPower = getEffectiveDeckPower(getDeckPower(cards), modifiers.deckPowerPct);
+  const deckPower = getDeckPower(rawCards);
+  const equippedDeckPower = getDeckPower(cards);
+  const effectiveDeckPower = getEffectiveDeckPower(equippedDeckPower, modifiers.deckPowerPct);
   const guildCard = await loadGuildCardForMember(client, playerId);
   return {
     player,
+    deckPower,
+    equipmentPowerBonus: equippedDeckPower - deckPower,
     snapshot: {
       playerId: player.id,
       name: getPlayerDisplayName({ firstName: player.first_name, nickname: player.nickname, username: player.username }),
@@ -545,7 +551,13 @@ export class DuelService {
           / challenger.snapshot.effectiveDeckPower * 100,
         ),
       };
-      return { searchId, opponent: preview };
+      const player = {
+        deckPower: challenger.deckPower,
+        equipmentPowerBonus: challenger.equipmentPowerBonus,
+        collectionPowerBonus: challenger.snapshot.effectiveDeckPower - challenger.deckPower - challenger.equipmentPowerBonus,
+        effectiveDeckPower: challenger.snapshot.effectiveDeckPower,
+      };
+      return { searchId, opponent: preview, player };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;

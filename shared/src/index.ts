@@ -74,6 +74,7 @@ export type {
   DuelLogVisualState,
   DuelOpponentPreview,
   DuelOutcome,
+  DuelPlayerPowerPreview,
   DuelResult,
   DuelSearchResponse,
   DuelSideSnapshot,

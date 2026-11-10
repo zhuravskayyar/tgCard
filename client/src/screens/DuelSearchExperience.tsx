@@ -43,11 +43,6 @@ function strengthCategory(powerDifferencePct: number) {
   return { label: "НЕБЕЗПЕЧНИЙ СУПЕРНИК", tone: "stronger" };
 }
 
-function estimatePlayerPower(opponentPower: number, powerDifferencePct: number) {
-  const ratio = 1 + powerDifferencePct / 100;
-  return ratio > 0 ? Math.max(0, Math.round(opponentPower / ratio)) : opponentPower;
-}
-
 function DuelOpponentPortrait({ name, photoUrl }: { name: string; photoUrl: string | null }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [photoUrl]);
@@ -391,7 +386,7 @@ function DuelSearchExperience({
 }) {
   const opponent = search?.opponent;
   const category = opponent ? strengthCategory(opponent.powerDifferencePct) : null;
-  const playerPower = opponent ? estimatePlayerPower(opponent.effectiveDeckPower, opponent.powerDifferencePct) : 0;
+  const playerPower = search?.player.deckPower ?? 0;
   const [seconds, setSeconds] = useState(0);
   const [hintIndex, setHintIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -549,6 +544,13 @@ function DuelSearchExperience({
                   {DUEL_SEARCH_SPRITES.seal ? <img alt="" src={DUEL_SEARCH_SPRITES.seal} /> : <BattleSwordIcon tone="gold" />}
                 </span>
                 <div><strong>{visibleOpponentPower}</strong><span>СУПЕРНИК</span></div>
+                {search.player.equipmentPowerBonus > 0 || search.player.collectionPowerBonus > 0 ? (
+                  <small className="duel-search-power__breakdown">
+                    <span><span>ВАША СИЛА В ДУЕЛІ</span> {search.player.effectiveDeckPower}</span>
+                    {search.player.equipmentPowerBonus > 0 ? <span><span>Спорядження</span> +{search.player.equipmentPowerBonus}</span> : null}
+                    {search.player.collectionPowerBonus > 0 ? <span><span>Колекції</span> +{search.player.collectionPowerBonus}</span> : null}
+                  </small>
+                ) : null}
               </div>
               <div className="duel-search-actions">
                 <button className="duel-search-button duel-search-button--attack" disabled={!revealed} onClick={() => onAttack(search.searchId)} type="button">

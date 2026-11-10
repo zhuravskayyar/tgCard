@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getDeckPower, validateDeckElementBalance } from "@cardastika/game-core";
+import { getDeckPower, getEquipmentRarityBonus, STARTER_EQUIPMENT_DEFINITIONS, validateDeckElementBalance } from "@cardastika/game-core";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
+import { DeckRepository } from "../decks/deckRepository.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { DuelService, DuelStateConflictError } from "./duelService.js";
 
@@ -40,10 +41,17 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     const eligibleReal = await players.findOrCreateFromTelegram(eligibleRealUser);
     playerIds.push(challenger.id, eligibleReal.id);
     await players.updateNickname(challenger.id, "Kostalgia");
+    const fireEquipment = STARTER_EQUIPMENT_DEFINITIONS.find((item) => item.isEnabled && item.category === "things" && item.element === "fire");
+    assert.ok(fireEquipment);
+    await pool.query("UPDATE players SET equipment = $2::jsonb WHERE id = $1", [challenger.id, JSON.stringify({ equipped: { [fireEquipment.slot]: fireEquipment.id } })]);
     const playerCountBefore = await pool.query<{ count: string }>("SELECT COUNT(*) AS count FROM players");
 
     const service = new DuelService(pool, () => 0);
     const found = await service.search(challenger.id);
+    const hudDeck = await new DeckRepository(pool).findByPlayerId(challenger.id);
+    assert.equal(found.player.deckPower, hudDeck.totalPower);
+    assert.equal(found.player.equipmentPowerBonus, hudDeck.cards.filter((card) => card.element === "fire").length * getEquipmentRarityBonus(fireEquipment.rarity));
+    assert.equal(found.player.deckPower + found.player.equipmentPowerBonus + found.player.collectionPowerBonus, found.player.effectiveDeckPower);
     assert.equal(found.opponent.powerDifferencePct, -10);
     assert.match(found.opponent.photoUrl ?? "", /^avatar:(?:0[1-9]|1[0-9]|20)$/);
     assert.match(found.opponent.name, /^[A-Za-z]+\d+$/);
@@ -62,9 +70,14 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     assert.equal(search.rows[0]?.opponent_id, null);
     assert.equal(search.rows[0]?.opponent_snapshot.name, found.opponent.name);
 
-    const duel = await service.start(challenger.id, found.searchId);
+    const nextFound = await new DuelService(pool, () => 0.999999).search(challenger.id);
+    assert.notEqual(nextFound.opponent.effectiveDeckPower, found.opponent.effectiveDeckPower);
+    assert.deepEqual(nextFound.player, found.player);
+
+    const duel = await service.start(challenger.id, nextFound.searchId);
+    assert.equal(found.player.effectiveDeckPower, duel.player.effectiveDeckPower);
     assert.equal(duel.player.name, "Kostalgia");
-    assert.equal(duel.opponent.name, found.opponent.name);
+    assert.equal(duel.opponent.name, nextFound.opponent.name);
     assert.equal(duel.opponent.cards.length, 9);
     assert.ok(duel.opponent.cards.every(({ instanceId }) => instanceId.startsWith("bot:")));
     assert.equal(validateDeckElementBalance(duel.opponent.cards).valid, true);

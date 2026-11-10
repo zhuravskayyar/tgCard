@@ -57,8 +57,17 @@ export interface DuelOpponentPreview {
   powerDifferencePct: number;
 }
 
+export interface DuelPlayerPowerPreview {
+  /** Unmodified deck power, identical to the value shown in TopHud. */
+  deckPower: number;
+  equipmentPowerBonus: number;
+  collectionPowerBonus: number;
+  effectiveDeckPower: number;
+}
+
 export interface DuelSearchResponse {
   opponent: DuelOpponentPreview;
+  player: DuelPlayerPowerPreview;
   searchId: string;
 }
 
