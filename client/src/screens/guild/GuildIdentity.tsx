@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { ExperienceFlask } from "../../components/ExperienceFlask";
 import type { GuildProfileResponse } from "@cardastika/shared";
 import { GuildScrollTitle } from "./GuildScrollTitle";
 import { ELEMENT_LABELS, GuildEmblem, GuildRoleBadge, LANGUAGE_LABELS, MODE_LABELS, formatNumber } from "./GuildUi";
@@ -46,7 +47,7 @@ export function GuildIdentity({ profile, includeStickyTitle = true }: { profile:
     </div>
     <div className="guild-hero__xp" aria-label={guild.nextLevelExperience === null ? `Досвід гільдії: ${formatNumber(guild.experience)} XP, максимальний рівень` : `Досвід гільдії: ${formatNumber(guild.experience)} з ${formatNumber(guild.nextLevelExperience)} XP`}>
       <div><span>Досвід гільдії</span><strong>{guild.nextLevelExperience === null ? `${formatNumber(guild.experience)} XP · максимум` : `${formatNumber(guild.experience)} / ${formatNumber(guild.nextLevelExperience)} XP`}</strong></div>
-      <div className="guild-progress" role="progressbar" aria-valuemax={guild.nextLevelExperience ?? undefined} aria-valuemin={0} aria-valuenow={guild.experience}><span style={{ width: `${guildExperiencePercent}%` }} /></div>
+      <div className="flask-meter guild-flask" role="progressbar" aria-valuemax={guild.nextLevelExperience ?? undefined} aria-valuemin={0} aria-valuenow={guild.experience}><ExperienceFlask progress={guildExperiencePercent / 100} /></div>
     </div>
     {guild.description ? <p className="guild-description guild-hero__description">{guild.description}</p> : null}
   </>;

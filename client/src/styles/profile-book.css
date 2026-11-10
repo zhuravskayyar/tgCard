@@ -18,8 +18,6 @@
 .pf-identity__copy { display: grid; gap: 3px; min-width: 0; }
 .pf-identity__copy .nickname-skin { justify-self: start; max-width: 100%; color: #24140a; font-size: 20px; font-weight: 800; }
 .pf-identity__level { color: #3a2412; font-size: 14px; font-weight: 700; }
-.pf-bar { display: block; height: 7px; overflow: hidden; background: rgb(60 35 15 / 28%); }
-.pf-bar > span { display: block; height: 100%; background: #8f1d12; }
 .pf-identity__guild { grid-column: 1 / -1; }
 :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card {
   display: grid;

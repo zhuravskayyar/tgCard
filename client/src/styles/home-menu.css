@@ -329,10 +329,35 @@
   z-index: 2;
   bottom: 11%;
   left: calc(50% - var(--hud-frame-width) / 2 + var(--hud-px) * 450);
-  width: calc(var(--hud-frame-width) - var(--hud-px) * 580);
+  width: calc(var(--hud-frame-width) - var(--hud-px) * 570 - var(--hud-settings-size) - 6px);
   height: auto;
   pointer-events: none;
 }
+:root .app-shell .top-hud { --hud-settings-size: 24px; }
+
+/* Settings plate at the right end of the XP row, centred on the bar and right-aligned with the currency pills; reachable from every screen. */
+:root .app-shell .top-hud__settings {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  translate: 0 -50%;
+  pointer-events: auto;
+  width: var(--hud-settings-size);
+  height: var(--hud-settings-size);
+  min-height: 0;
+  padding: 0;
+  background: var(--sprite-settings) center / contain no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 55%));
+  cursor: pointer;
+}
+/* Larger tap target around the small plate; it stops short of the gold pill above. */
+:root .app-shell .top-hud__settings::before { position: absolute; inset: -1px -10px -10px; content: ""; }
+:root .app-shell .top-hud__settings:hover { filter: drop-shadow(0 1px 2px rgb(0 0 0 / 55%)) brightness(1.1); }
+:root .app-shell .top-hud__settings:active { transform: translateY(1px); }
+:root .app-shell .top-hud__settings:focus-visible { outline: 2px solid var(--home-ink); outline-offset: 2px; }
 :root .app-shell .top-hud__xp-track { height: auto; overflow: visible; background: transparent; border-radius: 0; }
 /* Light-backed bits inside the leather HUD keep dark ink; dark ones get cream. */
 :root .app-shell .top-hud .player-avatar > :is(span:not(.player-avatar__frame):not(.skeleton), .app-icon) { color: #3a2614; }
@@ -506,27 +531,18 @@
   container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) var(--home-control-size);
   grid-template-rows: var(--home-header-height) auto;
-  grid-template-areas: "route tools" "content content";
+  grid-template-areas: "route route" "content content";
   gap: var(--home-header-gap);
   padding: 0;
   background: transparent;
 }
-/* Without a guided route the menu starts right under the HUD; the settings hanger hangs from it. */
+/* Without a guided route the menu starts right under the HUD. */
 .home-screen:not(:has(.guided-route)) {
   position: relative;
   grid-template-rows: auto;
   grid-template-areas: "content content";
   align-content: start;
 }
-.home-screen:not(:has(.guided-route)) .home-screen__toolbar {
-  position: absolute;
-  z-index: 3;
-  top: calc(-1 * var(--home-content-block-inset));
-  right: 0;
-}
-/* The whole hanging art (rope plate + gear) is the tap target, not just its top half. */
-.home-screen:not(:has(.guided-route)) .home-settings-button { height: 80px; min-height: 80px; flex-basis: auto; }
-.home-screen__toolbar { grid-area: tools; min-height: 0; padding: 0; align-items: flex-start; justify-content: center; }
 .home-screen__content {
   grid-area: content;
   display: grid;
@@ -536,34 +552,6 @@
   min-height: 0;
 }
 .home-screen:not(:has(.guided-route)) .home-screen__content { transform: translateY(var(--home-content-shift)); }
-.home-screen .home-settings-button {
-  position: relative;
-  z-index: 2;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  min-width: 44px;
-  min-height: 44px;
-  margin-top: -10px;
-  padding: 0;
-  background: var(--sprite-settings) center top / 36px 72px no-repeat;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-.home-screen .home-settings-button::after {
-  position: absolute;
-  top: 36px;
-  left: 50%;
-  width: 36px;
-  height: 36px;
-  content: "";
-  transform: translateX(-50%);
-  background: var(--sprite-settings) center bottom / 36px 72px no-repeat;
-  pointer-events: none;
-}
-.home-screen .home-settings-button:hover { border-color: var(--home-nav-active); }
-
 .home-screen .mode-grid {
   --home-mode-size: calc((min(100cqw, 380px) - 2 * var(--home-mode-gap)) / 3);
   --mode-icon-box: min(var(--home-mode-icon-box), calc(var(--home-mode-size) * var(--home-mode-icon-ratio)));

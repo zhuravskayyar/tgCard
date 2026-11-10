@@ -1,4 +1,5 @@
 import { ScreenHeading } from "../components/ScreenHeading";
+import { ExperienceFlask } from "../components/ExperienceFlask";
 import { AvatarImage } from "../components/AvatarImage";
 import { useEffect, useState } from "react";
 import { ARENA_LEAGUE_CONFIG, DUEL_LEAGUE_CONFIG, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind } from "@cardastika/shared";
@@ -90,8 +91,8 @@ export function LeaderboardScreen({ onBack, onOpenPlayerProfile, playerSummarySt
             <AppIcon name="lock" size={34} />
             <strong>Рейтинг ще не відкритий</strong>
             <p>Виграйте ще {Math.max(0, LEADERBOARD_REQUIRED_DUEL_WINS - duelWins)} дуелей, щоб побачити найкращих гравців.</p>
-            <div className="leaderboard-lock__progress" role="progressbar" aria-valuemin={0} aria-valuemax={LEADERBOARD_REQUIRED_DUEL_WINS} aria-valuenow={Math.min(LEADERBOARD_REQUIRED_DUEL_WINS, duelWins)}>
-              <span style={{ width: `${Math.min(100, (duelWins / LEADERBOARD_REQUIRED_DUEL_WINS) * 100)}%` }} />
+            <div className="flask-meter leaderboard-lock__flask" role="progressbar" aria-valuemin={0} aria-valuemax={LEADERBOARD_REQUIRED_DUEL_WINS} aria-valuenow={Math.min(LEADERBOARD_REQUIRED_DUEL_WINS, duelWins)}>
+              <ExperienceFlask progress={Math.min(1, duelWins / LEADERBOARD_REQUIRED_DUEL_WINS)} tone="crimson" />
             </div>
             <small>{duelWins}/{LEADERBOARD_REQUIRED_DUEL_WINS} перемог</small>
           </section>

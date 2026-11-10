@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { ExperienceFlask } from "../components/ExperienceFlask";
 import type { PlayerSummary, StoryTrialNavigationTarget, StoryTrialView, StoryTrialsView } from "@cardastika/shared";
 import { AccountProtectionTask } from "../components/AccountProtectionTask";
 import { AppIcon, type AppIconName } from "../components/AppIcon";
@@ -6,6 +7,7 @@ import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { formatFullUiNumber, getUiLocale, translateUi } from "../i18n";
 import { getTelegramInitData } from "../telegram";
+import { playSound } from "../audio";
 import { claimStoryTrial, loadStoryTrials, SAVE_PROFILE_TRIAL_ID } from "../telegram/storyTrials";
 import { CampaignGiver } from "./CampaignScreens";
 
@@ -48,8 +50,8 @@ function StoryTrialRow({ onClaim, onOpen, pending, trial }: {
         </header>
         <div className="quest-paper__progress">
           <div className="quest-paper__progress-head"><span>{tx("Прогрес")}</span><strong>{formatFullUiNumber(trial.progress)} / {formatFullUiNumber(trial.target)}</strong></div>
-          <span aria-label={tx(`Прогрес: ${formatFullUiNumber(trial.progress)} з ${formatFullUiNumber(trial.target)}`)} aria-valuemax={trial.target} aria-valuemin={0} aria-valuenow={trial.progress} className="quest-paper__track" role="progressbar">
-            <span style={{ width: `${Math.min(100, trial.progress / trial.target * 100)}%` }} />
+          <span aria-label={tx(`Прогрес: ${formatFullUiNumber(trial.progress)} з ${formatFullUiNumber(trial.target)}`)} aria-valuemax={trial.target} aria-valuemin={0} aria-valuenow={trial.progress} className="flask-meter quest-paper__flask" role="progressbar">
+            <ExperienceFlask progress={Math.min(1, trial.progress / trial.target)} />
           </span>
         </div>
         <footer className="quest-paper__footer">
@@ -116,6 +118,7 @@ function useStoryTrials(onBalanceChange: (player: Pick<PlayerSummary, "gold" | "
     try {
       const response = await claimStoryTrial(initData, trialId);
       onBalanceChange(response.player);
+      playSound("reward-claim");
       // The notice stays on the board while its reward flies out.
       await new Promise((resolve) => window.setTimeout(resolve, 1_100));
       setState({ status: "ready", view: response.trials });
@@ -188,10 +191,12 @@ export function CampaignTasksBoard({ onBalanceChange, onNavigate }: {
   );
 }
 
-export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate }: {
+export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenBoss }: {
   onBack: () => void;
   onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
   onNavigate: (target: StoryTrialNavigationTarget) => void;
+  /** Opens this location's boss; offered right after the last trial reward is claimed. */
+  onOpenBoss: (location: number) => void;
 }) {
   const { claim, claimError, claimNotice, load, pendingId, state } = useStoryTrials(onBalanceChange);
   const view = state.status === "ready" ? state.view : null;
@@ -202,7 +207,14 @@ export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate }: {
       {view ? (
         <>
           <CampaignGiver view={view} />
-          <p className="adventure-plate">{tx(`Щоб пройти пригоду «${tx(view.story.caveName)}», пройди всі випробування.`)}</p>
+          {view.totalCount > 0 && view.completedCount >= view.totalCount ? (
+            <div className="adventure-plate story-trials__boss-call">
+              <p>{tx(`Усі випробування пройдено. Бос пригоди «${tx(view.story.caveName)}» чекає.`)}</p>
+              <button className="adventure-button ui-button ui-button--primary" onClick={() => onOpenBoss(view.location.number)} type="button">{tx("Бити боса")}</button>
+            </div>
+          ) : (
+            <p className="adventure-plate">{tx(`Щоб пройти пригоду «${tx(view.story.caveName)}», пройди всі випробування.`)}</p>
+          )}
           {claimNotice ? <p className="adventure-plate" role="status">{tx(claimNotice)}</p> : null}
           {claimError ? <p className="campaign-claim-error" role="alert">{tx(claimError)}</p> : null}
           <StoryTrialsList claim={claim} onNavigate={onNavigate} pendingId={pendingId} view={view} />
@@ -220,7 +232,7 @@ export function SaveProfileScreen({ onBack, onBalanceChange }: {
     const initData = getTelegramInitData();
     if (!initData) return;
     void claimStoryTrial(initData, SAVE_PROFILE_TRIAL_ID)
-      .then((response) => onBalanceChange(response.player))
+      .then((response) => { onBalanceChange(response.player); playSound("reward-claim"); })
       .catch(() => undefined);
   }, [onBalanceChange]);
 

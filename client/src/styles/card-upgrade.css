@@ -546,18 +546,8 @@
   :root .card-detail-screen .fx-layer.protected .fx-outline { animation: none; opacity: .55; }
 }
 
-/* Absorption progress: the same hand-drawn vine as the HUD experience bar, growing with absorbed elements. */
-:root .app-shell .card-detail-screen .progression-panel .level-progress {
-  height: auto;
-  margin: 0 4px;
-  padding: 0;
-  overflow: visible;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-:root .app-shell .card-detail-screen .progression-panel .level-progress .experience-vine { width: 100%; }
+/* Absorption progress: the HUD experience flask, filled with green liquid instead of amber. */
+:root .app-shell .card-detail-screen .progression-panel .card-level-flask { display: block; margin: 2px 6px; }
 
 /* The absorption expander wears the same clasp strip and engraved icon as the menu rows below it. */
 :root .app-shell .card-detail-screen .weak-cards-heading {

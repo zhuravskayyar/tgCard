@@ -12,11 +12,12 @@ import { NicknameSkinPreview } from "./NicknameSkinPreview";
 
 interface TopHudProps {
   deckPowerOverride?: number;
+  onOpenSettings: () => void;
   onRetry: () => void;
   state: PlayerSummaryState;
 }
 
-export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
+export function TopHud({ deckPowerOverride, onOpenSettings, onRetry, state }: TopHudProps) {
   const isLoading = state.status === "loading";
   const player = state.status === "ready" ? state.data : null;
   const { state: deckState } = usePlayerDeck();
@@ -95,6 +96,7 @@ export function TopHud({ deckPowerOverride, onRetry, state }: TopHudProps) {
         >
           {player ? <ExperienceFlask progress={experienceProgress} tipRef={experienceTrackRef} /> : null}
         </div>
+        <button className="top-hud__settings" aria-label="Налаштування" onClick={onOpenSettings} type="button" />
       </div>
     </header>
   );

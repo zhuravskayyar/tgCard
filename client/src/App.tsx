@@ -444,6 +444,12 @@ export function App() {
     updatePath("/trials");
   }
 
+  function openCampaignBoss(location: number) {
+    setCampaignBossLocation(location);
+    setScreen("campaign-boss");
+    updatePath(`/campaign/boss?location=${location}`);
+  }
+
   function openSaveProfile() {
     setScreen("save-profile");
     updatePath("/trials/save");
@@ -648,6 +654,7 @@ export function App() {
     <AppShell
       activeNavigationItem={screen === "guild" ? "guild" : screen === "profile" || screen === "inventory" || screen === "equipment" || screen === "forge" || screen === "player-profile" || (screen === "mail" && mailReturnScreen === "profile") ? "profile" : "home"}
       onNavigate={navigateFromBottom}
+      onOpenSettings={openSettings}
       onRetryPlayerSummary={retry}
       playerSummaryState={playerSummaryState}
       screenKey={screen === "collection" ? "collections" : screen}
@@ -671,7 +678,6 @@ export function App() {
           onOpenLeaderboard={openLeagues}
           onOpenBattlePass={openBattlePass}
           onOpenShop={() => openShop("home")}
-          onOpenSettings={openSettings}
            onResumeTutorial={resumeTutorial}
           playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
           tutorialStatus={tutorial.status}
@@ -787,9 +793,9 @@ export function App() {
       ) : null}
       {screen === "collections" || (screen === "collection" && collectionId) ? <BestiaryBook collectionId={screen === "collection" ? collectionId : null} onBack={() => collectionsReturnScreen === "trials" ? openTrials() : collectionsReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : goHome()} onBackToContents={() => openCollections(collectionsReturnScreen)} onOpenCard={openCollectionCard} onOpenCollection={openCollection} onOpenLimitedCard={(id) => openCard(id, "collection-card")} onOpenShop={() => openShop("collection")} /> : null}
       {screen === "collection-card" && collectionId && collectionCardId ? <CollectionCardScreen cardId={collectionCardId} collectionId={collectionId} onBack={() => openCollection(collectionId)} onOpenDeck={() => openDeck("home")} onOpenInstance={(id) => openCard(id, "collection-card")} /> : null}
-      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={(location) => { setCampaignBossLocation(location); setScreen("campaign-boss"); updatePath(`/campaign/boss?location=${location}`); }} /> : null}
+      {screen === "campaign" ? <CampaignScreen onBack={goHome} onOpenTrials={openTrials} onOpenBoss={openCampaignBoss} /> : null}
       {screen === "campaign-boss" ? <CampaignBossScreen locationNumber={campaignBossLocation} onCampaignCompleted={tutorial.complete} onDeckPowerChange={setDeckPowerOverride} onPlayerSummaryChange={updateBalance} onReturn={openCampaign} onOpenTrials={openTrials} onOpenTasks={openTasks} /> : null}
-      {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} /> : null}
+      {screen === "trials" ? <StoryTrialsScreen onBack={openCampaign} onBalanceChange={updateBalance} onNavigate={navigateFromTrials} onOpenBoss={openCampaignBoss} /> : null}
       {screen === "save-profile" ? <SaveProfileScreen onBack={openTrials} onBalanceChange={updateBalance} /> : null}
     </AppShell>
     </>

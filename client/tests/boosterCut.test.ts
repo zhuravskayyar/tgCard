@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { polygonArea, prepareBoosterCut, triangulateCutPolygon, type CutPoint } from "../src/booster/boosterCut";
 import { createFoilPiece, createFoilWalls, foilSurface } from "../src/booster/boosterGeometry";
-import { getBoosterMotion } from "../src/booster/boosterMotion";
+import { BOOSTER_TEMPO, getBoosterMotion as motionAtRealTime } from "../src/booster/boosterMotion";
+
+// Choreography checks are written in the original 3.5 s timeline; the reveal now plays BOOSTER_TEMPO times faster.
+const getBoosterMotion = (choreographyMs: number) => motionAtRealTime(choreographyMs / BOOSTER_TEMPO);
 import { BOOSTER_FRAGMENT_FRONT_LIMIT, BOOSTER_PAPER_CURL_DEPTH, BOOSTER_PAPER_RIPPLE_DEPTH, getBoosterFragmentPose, getBoosterFragmentShape } from "../src/booster/boosterFragments";
 
 function verifyCut(path: CutPoint[]) {

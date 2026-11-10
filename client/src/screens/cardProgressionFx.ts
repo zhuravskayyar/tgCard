@@ -1,4 +1,10 @@
+import { playSound } from "../audio";
 import { playCardMaterialDestruction } from "../cards/cardMaterialShader";
+
+// Absorption reads about a third faster than the original 2.3 s dissolve.
+const DESTRUCTION_MS = 1500;
+const DESTRUCTION_SHAKE_MS = 1250;
+const DESTRUCTION_FADE_MS = 950;
 
 type Point = { x: number; y: number };
 
@@ -128,7 +134,7 @@ function animatePowerIncrease(target: HTMLElement, delta: number, initialPower: 
   const startCount = (goal: number) => {
     resolveCount?.();
     countFinished = new Promise<void>((resolve) => { resolveCount = resolve; });
-    countAnimation = { from: shownPower, to: goal, startedAt: performance.now(), duration: 320 };
+    countAnimation = { from: shownPower, to: goal, startedAt: performance.now(), duration: 240 };
     if (!countFrame) countFrame = window.requestAnimationFrame(countStep);
   };
 
@@ -148,8 +154,8 @@ function animatePowerIncrease(target: HTMLElement, delta: number, initialPower: 
       x: middleX + normalX / normalLength * bend * sign,
       y: middleY + normalY / normalLength * bend * sign,
     };
-    const duration = 620 + Math.random() * 320;
-    const delay = index * (count > 8 ? 55 : 85);
+    const duration = 420 + Math.random() * 220;
+    const delay = index * (count > 8 ? 40 : 60);
 
     for (let trailIndex = 0; trailIndex < 3; trailIndex += 1) {
       const trail = trailIndex < 2;
@@ -165,13 +171,14 @@ function animatePowerIncrease(target: HTMLElement, delta: number, initialPower: 
         control,
         { x: tx, y: ty },
         duration,
-        delay + (trail ? (trailIndex + 1) * 42 : 0),
+        delay + (trail ? (trailIndex + 1) * 30 : 0),
         1,
         isHead ? () => {
           left -= 1;
           fxGoal += part;
           startCount(fxGoal);
           void fxBurst(tx, ty, left === 0);
+          playSound(left === 0 ? "card-level-up" : "power-tick");
           target.animate([
             { translate: "0 0" },
             { translate: "0 -3px" },
@@ -194,7 +201,8 @@ function animatePowerIncrease(target: HTMLElement, delta: number, initialPower: 
 export async function playCardDestructionFx(source: HTMLElement | null) {
   if (!source) return;
   const reduceMotion = prefersReducedMotion();
-  const shaderDestruction = !reduceMotion ? playCardMaterialDestruction(source, 2300) : null;
+  playSound("card-absorb");
+  const shaderDestruction = !reduceMotion ? playCardMaterialDestruction(source, DESTRUCTION_MS) : null;
   if (shaderDestruction) {
     const card = source.querySelector<HTMLElement>(".deck-card") ?? source;
     const shake = card.animate(Array.from({ length: 26 }, (_, index) => {
@@ -202,18 +210,23 @@ export async function playCardDestructionFx(source: HTMLElement | null) {
       return {
         translate: `${((Math.random() - 0.5) * amplitude * 2).toFixed(1)}px ${((Math.random() - 0.5) * amplitude * 2).toFixed(1)}px`,
       };
-    }), { duration: 1900, easing: "linear" }).finished.catch(() => undefined);
+    }), { duration: DESTRUCTION_SHAKE_MS, easing: "linear" }).finished.catch(() => undefined);
     await Promise.all([shaderDestruction, shake]);
     return;
   }
-  source.style.transition = reduceMotion ? "none" : "opacity 1.4s ease-in,filter 1.4s ease-in";
+  source.style.transition = reduceMotion ? "none" : `opacity ${DESTRUCTION_FADE_MS}ms ease-in,filter ${DESTRUCTION_FADE_MS}ms ease-in`;
   source.style.opacity = "0";
   source.style.filter = "blur(8px) brightness(2.4)";
-  if (!reduceMotion) await new Promise<void>((resolve) => window.setTimeout(resolve, 1400));
+  if (!reduceMotion) await new Promise<void>((resolve) => window.setTimeout(resolve, DESTRUCTION_FADE_MS));
 }
 
 export async function playCardPowerFx(target: HTMLElement | null, powerDelta: number, rarityChanged: boolean, initialPower = 0, onPowerValueChange?: (power: number) => void) {
-  if (!target || prefersReducedMotion()) return;
+  if (!target) return;
+  const delta = Math.max(0, Math.floor(powerDelta));
+  if (rarityChanged) playSound("reveal-epic");
+  // Without flying numbers (reduced motion, or no power gain) the result still gets its chime.
+  if (prefersReducedMotion()) { if (!rarityChanged) playSound("card-level-up"); return; }
+  if (delta === 0 && !rarityChanged) playSound("card-level-up");
   const effects: Promise<unknown>[] = [];
 
   if (rarityChanged) {
@@ -222,9 +235,8 @@ export async function playCardPowerFx(target: HTMLElement | null, powerDelta: nu
       { scale: 1.01, offset: 0.25 },
       { scale: 1.08, offset: 0.5 },
       { scale: 1 },
-    ], { duration: 1500, easing: "ease-in-out" }).finished.catch(() => undefined));
+    ], { duration: 1100, easing: "ease-in-out" }).finished.catch(() => undefined));
   }
-  const delta = Math.max(0, Math.floor(powerDelta));
   if (delta > 0) effects.push(animatePowerIncrease(target, delta, initialPower, onPowerValueChange));
   await Promise.all(effects);
 }

@@ -1,4 +1,5 @@
 import type { DailyTaskView } from "@cardastika/shared";
+import { ExperienceFlask } from "./ExperienceFlask";
 import { AppIcon, type AppIconName } from "./AppIcon";
 import { DiamondIcon } from "./DiamondIcon";
 import { CurrencyIcon } from "./CurrencyDisplay";
@@ -45,9 +46,9 @@ export function DailyTaskRow({ task, onClaim, onOpen, pending }: { task: DailyTa
             aria-valuemax={task.target}
             aria-valuemin={0}
             aria-valuenow={task.progress}
-            className="quest-paper__track"
+            className="flask-meter quest-paper__flask"
             role="progressbar"
-          ><span style={{ width: `${percent}%` }} /></span>
+          ><ExperienceFlask progress={percent / 100} /></span>
         </div>
 
         <footer className="quest-paper__footer">

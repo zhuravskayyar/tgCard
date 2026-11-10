@@ -1,19 +1,20 @@
 import { ScreenHeading } from "../components/ScreenHeading";
 import { RibbonTitle } from "../components/RibbonTitle";
 import { ElementMedallion } from "../components/ElementMedallion";
-import { ExperienceVine } from "../components/ExperienceVine";
+import { ExperienceFlask } from "../components/ExperienceFlask";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
-import { AppIcon } from "../components/AppIcon";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
+import { SealToggle } from "../components/SealToggle";
 import { Pagination } from "../components/Pagination";
 import { formatFullUiNumber } from "../i18n";
+import { preloadSounds, PROGRESSION_SOUND_CUES } from "../audio";
 import { playCardDestructionFx, playCardPowerFx } from "./cardProgressionFx";
 import { CardProtectionFx } from "./CardProtectionFx";
 import { getTelegramInitData } from "../telegram";
@@ -62,6 +63,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const [candidatePage, setCandidatePage] = useState(1);
   const [candidateAttempt, setCandidateAttempt] = useState(0);
   const [candidates, setCandidates] = useState<CandidatesState>({ status: "loading" });
+  const candidatesCardRef = useRef<string | null>(null);
   const [cardDisplayPower, setCardDisplayPower] = useState<number | null>(null);
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
@@ -72,6 +74,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const cardDetailRef = useRef<HTMLDivElement>(null);
   const absorptionCardRefs = useRef(new Map<string, HTMLDivElement>());
   useGyroscopeCardTilt(cardDetailRef);
+  useEffect(() => { preloadSounds(PROGRESSION_SOUND_CUES); }, []);
 
   useEffect(() => {
     if (!actionSuccess) return;
@@ -97,7 +100,11 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     const initData = getTelegramInitData();
     if (!initData) return;
     const controller = new AbortController();
-    setCandidates({ status: "loading" });
+    // A refresh after absorbing (or a page switch) keeps the current list on screen until the new one arrives;
+    // blanking it collapsed the panel for a moment and made the page jump. Only another card starts from "loading".
+    const sameCard = candidatesCardRef.current === cardInstanceId;
+    candidatesCardRef.current = cardInstanceId;
+    if (!sameCard) setCandidates({ status: "loading" });
     void loadAbsorptionCandidates(initData, cardInstanceId, candidatePage, controller.signal)
       .then((data) => setCandidates({ status: "ready", data }))
       .catch((error: unknown) => {
@@ -267,9 +274,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       : progression.availability === "insufficient_gold" ? "Недостатньо золота. Поглинання може зменшити ціну."
       : availabilityText;
   const hasAbsorptionAction = candidates.status === "ready" && candidates.data.totalCards > 0;
-  // The upgrade plate appears only when there is something to act on: weak cards to absorb, a golden level, or a free upgrade.
-  const showUpgradePlate = progression.availability !== "maximum_level"
-    && (hasAbsorptionAction || progression.isGoldLevel || (progression.availability === "ready" && progression.requiredGold === 0) || pendingAction === "level");
+  // The level progress stays visible until the maximum level, even with no weak cards left to absorb.
+  const showUpgradePlate = progression.availability !== "maximum_level";
 
   return <section className="card-detail-screen" data-expanded-panel="progress">
     <ScreenHeading backTutorialTarget="card-back" onBack={onBack} title={card.displayName ?? "Карта"} description={<span className="card-detail-meta"><span>{card.displayName ?? "Назва недоступна"}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-element">{elementLabels[card.element]}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></span>} />
@@ -298,26 +304,21 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
             <strong aria-label={inActiveDeck ? "Карта входить до бойової колоди" : "Карта поза бойовою колодою"}>{inActiveDeck ? 1 : 0}</strong>
           </div>
           </div>
-          <button
-            aria-checked={card.protectedFromAbsorption}
-            aria-busy={pendingAction === "protection"}
-            className={`card-protection-toggle${card.protectedFromAbsorption ? " card-protection-toggle--active" : ""}`}
+          <SealToggle
+            busy={pendingAction === "protection"}
+            checked={card.protectedFromAbsorption}
             disabled={pendingAction !== null}
-            onClick={performProtectionToggle}
-            role="switch"
-            type="button"
-          >
-            <AppIcon name="lock" size={17} />
-            <span>{pendingAction === "protection" ? "Оновлення…" : <>Захист<span className="card-protection-toggle__state"> {card.protectedFromAbsorption ? "увімкнено" : "вимкнено"}</span></>}</span>
-            <span aria-hidden="true" className="card-protection-toggle__switch"><span /></span>
-          </button>
+            label={pendingAction === "protection" ? "Оновлення…" : "Захист"}
+            onToggle={() => void performProtectionToggle()}
+            stateLabel={card.protectedFromAbsorption ? "увімкнено" : "вимкнено"}
+          />
         </div>
       </div>
 
       {showUpgradePlate ? <section className={`progression-panel progression-panel--reference progression-panel--${progression.availability}${progression.isGoldLevel ? " progression-panel--gold" : ""}`} aria-label="Прокачка карти">
         <div className="progression-panel__content" id="card-progression-content">
         {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
-        <div className="level-progress" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceVine level={card.level} progress={progression.percent / 100} /></div>
+        <div className="card-level-flask" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceFlask key={card.instanceId} level={card.level} progress={progression.percent / 100} tone="verdant" /></div>
         <div className="progression-panel__upgrade-row"><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
           <span>{pendingAction === "level" ? "Підвищення…" : progression.requiredGold === 0 ? "Покращити безкоштовно" : "Підняти рівень"}</span>
         </button></div>

@@ -6,6 +6,7 @@ import { AppIcon } from "../components/AppIcon";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import type { MailState } from "../hooks/useMail";
 import { getUiNumberLocale } from "../i18n";
+import { playSound } from "../audio";
 import { PlayerNicknameApiError } from "../telegram/nickname";
 
 interface MailScreenProps {
@@ -37,7 +38,7 @@ export function MailScreen({ changeNickname, claim, currentNickname, onBack, onB
     setClaimingId(messageId);
     setClaimError(false);
     const result = await claim(messageId);
-    if (result) onBalanceChange(result.updatedBalance);
+    if (result) { onBalanceChange(result.updatedBalance); playSound("reward-claim"); }
     else setClaimError(true);
     setClaimingId(null);
   }

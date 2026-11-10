@@ -1242,7 +1242,7 @@
 :root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card__visual-heading { padding-inline: 4px; }
 
 /* 3D pack → reward screen: the card was already turned in 3D, so it only settles here; no second flip. */
-.shop-unbox-stage--leaving { opacity: 0; transform: scale(1.04); transition: opacity 260ms ease-in, transform 260ms ease-in; pointer-events: none; }
+.shop-unbox-stage--leaving { opacity: 0; transform: scale(1.04); transition: opacity 180ms ease-in, transform 180ms ease-in; pointer-events: none; }
 :root[data-game-theme="light"] body .app-shell .app-content .shop-reveal--from-booster .shop-reveal__stage .shop-reveal__card-shell { animation: shop-card-handoff 520ms cubic-bezier(.2, .8, .25, 1) both; }
 @keyframes shop-card-handoff {
   from { opacity: 0; transform: perspective(900px) translateY(34px) scale(1.16); filter: brightness(1.5); }
