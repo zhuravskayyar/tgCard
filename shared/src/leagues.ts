@@ -71,6 +71,15 @@ export const DUEL_LEAGUE_CONFIG: LeagueConfig = Object.freeze({
 const ARENA_LEAGUE_MIN_RATINGS = [0, 500, 600, 800, 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_200, 2_400, 2_600, 2_800, 3_000, 3_200, 3_400, 3_600, 3_800, 4_000, 4_200] as const;
 
 export const ARENA_START_RATING = 1_400;
+/** The arena opens once a player has reached this duel rating, as in the reference manual. */
+export const ARENA_UNLOCK_DUEL_RATING = 2_000;
+
+/** Reaching the rating once is enough: a later duel loss does not close the arena again. */
+export function isArenaUnlocked(duelRating = 0, duelHighestLeagueIndex = 0) {
+  const leagues = DUEL_LEAGUE_CONFIG.leagues;
+  const highestReached = leagues[Math.max(0, Math.min(duelHighestLeagueIndex, leagues.length - 1))]?.minRating ?? 0;
+  return Math.max(duelRating, highestReached) >= ARENA_UNLOCK_DUEL_RATING;
+}
 export const ARENA_DEMOTION_BUFFER = 100;
 
 // Same 21 leagues and promotion silver as duels, on the Arena's own rating scale.

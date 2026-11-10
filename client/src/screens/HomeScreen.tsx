@@ -1,9 +1,13 @@
+import { useEffect, useState } from "react";
+import { ARENA_UNLOCK_DUEL_RATING } from "@cardastika/shared";
 import { MenuRow } from "../components/MenuRow";
 import { ModeTile, type ModeAccent } from "../components/ModeTile";
 import type { AppIconName } from "../components/AppIcon";
 import { GuidedOnboarding } from "../components/GuidedOnboarding";
 import { useBattlePass } from "../hooks/useBattlePass";
 import type { TutorialStatus } from "../hooks/useTutorial";
+import { getTelegramInitData } from "../telegram";
+import { loadArenaPresence } from "../telegram/arena";
 
 interface HomeItem {
   available?: boolean;
@@ -37,6 +41,24 @@ const secondaryActions: HomeItem[] = [
 ];
 
 const homeSprite = (name: string) => `/assets/ui/home/sprites/${name}.webp`;
+const ARENA_PRESENCE_REFRESH_MS = 15_000;
+
+/** "Someone is in the arena" while arena tasks are unfinished and a same-league player is queued. */
+function useArenaPresence(enabled: boolean) {
+  const [someoneQueued, setSomeoneQueued] = useState(false);
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!enabled || !initData) return;
+    const controller = new AbortController();
+    const refresh = () => void loadArenaPresence(initData, controller.signal)
+      .then(({ someoneQueued: queued }) => setSomeoneQueued(queued))
+      .catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, ARENA_PRESENCE_REFRESH_MS);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [enabled]);
+  return enabled && someoneQueued;
+}
 
 interface HomeScreenProps {
   campaignTitle?: string;
@@ -55,11 +77,15 @@ interface HomeScreenProps {
   onOpenBattlePass: () => void;
   onOpenShop: () => void;
   playerLevel?: number;
+  /** Undefined while the player summary is loading. */
+  arenaUnlocked?: boolean;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, playerLevel }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
+  const arenaLocked = arenaUnlocked === false;
+  const arenaOccupied = useArenaPresence(!novice && arenaUnlocked === true);
   const hasDailyTaskReward = battlePassState.status === "ready"
     && battlePassState.data.daily.tasks.some((task) => task.completed && !task.claimed);
   const hasBattlePassReward = battlePassState.status === "ready"
@@ -71,7 +97,7 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
       <div className="home-screen__content">
         <section className="mode-grid" aria-label="Ігрові режими">
           {modes.map((mode) => (
-            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
+            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "arena" && arenaLocked ? `Дуелі ${ARENA_UNLOCK_DUEL_RATING}` : mode.icon === "arena" && arenaOccupied ? "Хтось є" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
           ))}
         </section>
         <section className="home-menu" aria-label="Розділи гри">

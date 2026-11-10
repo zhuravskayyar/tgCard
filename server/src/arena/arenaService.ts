@@ -5,12 +5,12 @@ import {
   ARENA_MIN_COUNTED_MOVES,
   ARENA_NO_WINNERS_ALIVE_COUNT,
   ARENA_PARTICIPANT_COUNT,
+  ARENA_SLOT_COOLDOWN_MS,
   calculateArenaDamage,
   calculateArenaRatingChange,
   compareArenaResults,
   cycleCardPoolSlotWithGuildCard,
   getArenaCardChangeCost,
-  getArenaCycleEnd,
   getArenaQueueDurationMs,
   getElementMultiplier,
   getStartingHp,
@@ -20,6 +20,7 @@ import {
 } from "@cardastika/game-core";
 import {
   ARENA_LEAGUE_CONFIG,
+  isArenaUnlocked,
   getArenaLeagueIndexAfter,
   getLeagueByRating,
   type ArenaActionRequest,
@@ -32,6 +33,7 @@ import {
   type ChatView,
   type ArenaLeagueView,
   type ArenaPairInteractionSnapshot,
+  type ArenaPresenceResponse,
   type ArenaProfileResponse,
   type ArenaQueueResponse,
   type ArenaQueueView,
@@ -49,7 +51,11 @@ import { getBotAvatarToken } from "../duel/botOpponent.js";
 import { loadArenaDailyTasks } from "../battlePassService.js";
 import { ChatChannel } from "../chat/chatChannel.js";
 
+/** Each player sees the last seven strikes that concern them, as in the reference log. */
 const MAX_ARENA_LOG_ENTRIES = 7;
+
+/** The reference drops players from the arena top list after a day without an arena fight. */
+const ARENA_RECENT_FIGHT_SQL = "EXISTS (SELECT 1 FROM arena_match_players mp WHERE mp.player_id = players.id AND mp.joined_at > NOW() - INTERVAL '1 day')";
 const ARENA_PLAYER_PRESENCE_SYNC_MS = 8_000;
 const ARENA_PLAYER_PRESENCE_TIMEOUT_MS = 15_000;
 const BOT_NAMES = ["Бронзовий звір", "Пилова відьма", "Штормовий спис", "Кришталевий страж", "Чорний гладіатор"];
@@ -268,9 +274,10 @@ function findParticipant(state: ArenaState, id: string) {
   return state.participants.find((participant) => participant.id === id);
 }
 
-function nextTarget(state: ArenaState, fromId: string) {
+/** Next living participant after `afterId` in list order, as the manual cycles targets. */
+function nextTarget(state: ArenaState, fromId: string, afterId = fromId) {
   const alive = aliveParticipants(state);
-  const index = state.participants.findIndex((participant) => participant.id === fromId);
+  const index = state.participants.findIndex((participant) => participant.id === afterId);
   for (let offset = 1; offset <= state.participants.length; offset += 1) {
     const candidate = state.participants[(index + offset + state.participants.length) % state.participants.length];
     if (candidate && candidate.id !== fromId && candidate.hp > 0) return candidate.id;
@@ -296,7 +303,7 @@ function nextBotTarget(state: ArenaState, fromId: string, random: RandomSource =
 
 function normalizeTarget(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, random: RandomSource = Math.random) {
   const target = attacker.targetId ? findParticipant(state, attacker.targetId) : undefined;
-  if (!target || target.hp <= 0 || target.id === attacker.id) attacker.targetId = attacker.isBot ? nextBotTarget(state, attacker.id, random) : nextTarget(state, attacker.id);
+  if (!target || target.hp <= 0 || target.id === attacker.id) attacker.targetId = attacker.isBot ? nextBotTarget(state, attacker.id, random) : nextTarget(state, attacker.id, target?.id ?? attacker.id);
   const normalizedTarget = attacker.targetId ? findParticipant(state, attacker.targetId) ?? null : null;
   return normalizedTarget && normalizedTarget.id !== attacker.id ? normalizedTarget : null;
 }
@@ -520,14 +527,14 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
   if (!attacker.isBot) state.lastPlayerActionAt = new Date(now).toISOString();
-  const cyclesStartAt = state.cyclesStartAt ? new Date(state.cyclesStartAt).getTime() : now;
-  attacker.cooldownUntil[slotIndex] = new Date(getArenaCycleEnd(cyclesStartAt, now)).toISOString();
+  // Each used card returns exactly one cooldown after its own strike.
+  attacker.cooldownUntil[slotIndex] = new Date(now + ARENA_SLOT_COOLDOWN_MS).toISOString();
   const targetDefeated = target.hp === 0;
   if (targetDefeated) attacker.kills += 1;
   if (attacker.hp === 0 && attackerHpBeforeCounter > 0) target.kills += 1;
   for (const fallen of [target, attacker].filter(({ hp }) => hp === 0)) {
     for (const participant of state.participants) {
-      if (participant.targetId === fallen.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id, random) : nextTarget(state, participant.id);
+      if (participant.targetId === fallen.id) participant.targetId = participant.isBot ? nextBotTarget(state, participant.id, random) : nextTarget(state, participant.id, fallen.id);
     }
   }
   state.battleLog = [...state.battleLog, {
@@ -544,7 +551,8 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     targetDefeated,
     targetId: target.id,
     targetName: target.name,
-  }].slice(-MAX_ARENA_LOG_ENTRIES);
+  }];
+  pruneBattleLog(state);
   return true;
 }
 
@@ -573,7 +581,7 @@ function ensureCycleTiming(state: ArenaState, now: number) {
   if (state.cyclesStartAt && Number.isFinite(new Date(state.cyclesStartAt).getTime())) return false;
   const cycleStartAt = new Date(now).toISOString();
   const hasCombat = state.battleLog.length > 0 || state.participants.some((participant) => (participant.moves ?? 0) > 0);
-  const nextCycleAt = new Date(getArenaCycleEnd(now, now)).toISOString();
+  const nextCycleAt = new Date(now + ARENA_SLOT_COOLDOWN_MS).toISOString();
   state.cyclesStartAt = cycleStartAt;
   state.playerLastSeenAt ??= Object.fromEntries(state.participants.filter(({ isBot }) => !isBot).map(({ id }) => [id, cycleStartAt]));
   for (const participant of state.participants) {
@@ -781,6 +789,30 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
   return state.result;
 }
 
+/**
+ * The reference log shows the player's strikes, strikes on the player, other participants' strikes on
+ * the player's current target, and every death with its killer.
+ */
+function concernsPlayer(entry: ArenaBattleLogEntry, player: ArenaBattleParticipantSnapshot) {
+  return entry.attackerId === player.id
+    || entry.targetId === player.id
+    || (player.targetId !== null && entry.targetId === player.targetId)
+    || entry.targetDefeated;
+}
+
+function playerBattleLog(state: ArenaState, player: ArenaBattleParticipantSnapshot) {
+  return state.battleLog.filter((entry) => concernsPlayer(entry, player)).slice(-MAX_ARENA_LOG_ENTRIES).reverse();
+}
+
+/** Keeps only strikes still among some live player's last seven, so the stored match state stays small. */
+function pruneBattleLog(state: ArenaState) {
+  const kept = new Set<string>();
+  for (const player of state.participants.filter(({ isBot }) => !isBot)) {
+    for (const entry of state.battleLog.filter((candidate) => concernsPlayer(candidate, player)).slice(-MAX_ARENA_LOG_ENTRIES)) kept.add(entry.id);
+  }
+  state.battleLog = state.battleLog.filter(({ id }) => kept.has(id));
+}
+
 function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView {
   const player = findParticipant(row.state, playerId);
   if (!player) throw new Error("Arena player participant is missing");
@@ -794,7 +826,7 @@ function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView 
   });
   return {
     actionVersion: currentActionVersion(row.state, playerId),
-    battleLog: [...row.state.battleLog].reverse(),
+    battleLog: playerBattleLog(row.state, player),
     changeCardsCost: getArenaCardChangeCost(currentRerollCount(row.state, playerId) + 1),
     matchId: row.id,
     participants: row.state.participants.map((participant) => ({
@@ -915,6 +947,14 @@ export class ArenaMissingError extends Error {
 export class ArenaStateConflictError extends Error {
   constructor() { super("Arena state version is stale or the match is already finished"); this.name = "ArenaStateConflictError"; }
 }
+export class ArenaLockedError extends Error {
+  constructor() { super("Arena opens at the required duel rating"); this.name = "ArenaLockedError"; }
+}
+
+function playerArenaUnlocked(player: Pick<ArenaPlayerRow, "duel_highest_league_index" | "duel_rating">) {
+  return isArenaUnlocked(toSafeInteger(player.duel_rating, "duel rating"), toSafeInteger(player.duel_highest_league_index, "duel league"));
+}
+
 export class ArenaDeckInvalidError extends DuelDeckInvalidError {
   constructor() { super(); this.name = "ArenaDeckInvalidError"; }
 }
@@ -954,6 +994,7 @@ export class ArenaService {
       arenaTop3Count: toSafeInteger(player.arena_top3_count, "arena top 3 count"),
       arenaWins: toSafeInteger(player.arena_wins, "arena wins"),
       cardShards: toSafeInteger(player.card_shards, "card shards"),
+      unlocked: playerArenaUnlocked(player),
     };
   }
 
@@ -962,12 +1003,12 @@ export class ArenaService {
     const leagueIndex = toSafeInteger(player.arena_league_index, "arena league");
     const name = "COALESCE(NULLIF(nickname, ''), NULLIF(first_name, ''), username, 'Гравець')";
     const top = await this.pool.query<{ id: string; name: string; photo_url: string | null; arena_rating: number }>(
-      `SELECT id, ${name} AS name, photo_url, arena_rating FROM players WHERE arena_league_index = $1 ORDER BY arena_rating DESC, id LIMIT 100`,
+      `SELECT id, ${name} AS name, photo_url, arena_rating FROM players WHERE arena_league_index = $1 AND ${ARENA_RECENT_FIGHT_SQL} ORDER BY arena_rating DESC, id LIMIT 100`,
       [leagueIndex],
     );
     const rating = toSafeInteger(player.arena_rating, "arena rating");
     const ahead = await this.pool.query<{ count: string }>(
-      "SELECT COUNT(*) FROM players WHERE arena_league_index = $1 AND (arena_rating > $2 OR (arena_rating = $2 AND id < $3))",
+      `SELECT COUNT(*) FROM players WHERE arena_league_index = $1 AND ${ARENA_RECENT_FIGHT_SQL} AND (arena_rating > $2 OR (arena_rating = $2 AND id < $3))`,
       [leagueIndex, rating, playerId],
     );
     const entries = top.rows.map((entry, index) => ({ name: entry.name, photoUrl: entry.photo_url, playerId: entry.id, rank: index + 1, rating: toSafeInteger(entry.arena_rating, "arena rating") }));
@@ -1047,6 +1088,7 @@ export class ArenaService {
     try {
       await client.query("BEGIN");
       if (await loadActiveArenaRow(client, playerId)) throw new ArenaAlreadyActiveError();
+      if (!playerArenaUnlocked(await loadPlayer(client, playerId))) throw new ArenaLockedError();
       await loadDuelParticipant(client, playerId, "arena").catch(() => { throw new ArenaDeckInvalidError(); });
       const queued = await client.query<{ created_at: string | Date; id: string }>("SELECT id, created_at FROM arena_queue WHERE player_id = $1 FOR UPDATE", [playerId]);
       const queueId = queued.rows[0]?.id ?? randomUUID();
@@ -1070,8 +1112,38 @@ export class ArenaService {
   }
 
   async leaveQueue(playerId: string) {
-    await this.pool.query("DELETE FROM arena_queue WHERE player_id = $1", [playerId]);
+    // The league's timer stays anchored to the first registration: when that player
+    // leaves, the next one inherits the start, so leaving only adds the 5-second step.
+    await this.pool.query(
+      `WITH gone AS (
+         DELETE FROM arena_queue WHERE player_id = $1
+         RETURNING created_at, (SELECT arena_league_index FROM players WHERE id = $1) AS league
+       ), next_head AS (
+         SELECT q.id FROM arena_queue q JOIN players p ON p.id = q.player_id, gone
+         WHERE p.arena_league_index = gone.league AND q.player_id <> $1
+         ORDER BY q.created_at ASC, q.id ASC LIMIT 1
+       )
+       UPDATE arena_queue SET created_at = gone.created_at
+       FROM gone, next_head
+       WHERE arena_queue.id = next_head.id AND arena_queue.created_at > gone.created_at`,
+      [playerId],
+    );
     return { left: true };
+  }
+
+  /** "Someone is in the arena": unfinished arena tasks and another player of this league in the queue. */
+  async getPresence(playerId: string): Promise<ArenaPresenceResponse> {
+    if (!playerArenaUnlocked(await loadPlayer(this.pool, playerId))) return { someoneQueued: false };
+    const tasks = await loadArenaDailyTasks(this.pool, playerId);
+    if (tasks.play.progress >= tasks.play.target && tasks.win.progress >= tasks.win.target) return { someoneQueued: false };
+    const queued = await this.pool.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM arena_queue q JOIN players p ON p.id = q.player_id
+         WHERE q.player_id <> $1 AND p.arena_league_index = (SELECT arena_league_index FROM players WHERE id = $1)
+       ) AS exists`,
+      [playerId],
+    );
+    return { someoneQueued: queued.rows[0]?.exists === true };
   }
 
   async findActive(playerId: string): Promise<ActiveArenaResponse> {

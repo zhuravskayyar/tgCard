@@ -4,6 +4,14 @@ Arena is an independent six-participant free-for-all mode, checked against the
 elem.mobi manual and real reference matches on 2026-10-31, and the manual
 page `/forum/3/218665/` again on 2026-11-08.
 
+## Access
+
+The arena opens once a player has reached 2000 duel rating
+(`ARENA_UNLOCK_DUEL_RATING`, `isArenaUnlocked` in `shared`). Reaching it once is
+enough: the highest duel league reached also counts, so a later duel loss does
+not close the arena again. The server refuses the queue with `arena_locked`
+(403); the lobby disables sign-up and the home tile shows the requirement.
+
 ## Match flow
 
 Entering creates a registration record. Each Arena league has its own queue.
@@ -14,13 +22,17 @@ every other live player in that same league, never below 5
 share one match; bots from the same league fill the free places and never
 receive limited cards. The server stores the shared state in `arena_matches.state` and links live participants through
 `arena_match_players`. The client polls the queue and match about once a second.
+When the first registered player leaves, the next one inherits that start, so
+leaving only adds the 5-second step back. While a player's arena daily tasks are
+unfinished and another player of the same league is queued, the home Arena tile
+shows "Хтось є" (`GET /api/arena/presence`, refreshed every 15 seconds).
 
-The battle starts with its cards available and runs in shared nine-second cycles
-counted from match start (`state.cyclesStartAt`). At the next cycle boundary,
-used lanes open with new cards; unused lanes keep their cards
-(`getArenaCycleEnd`). This means a card used late in a cycle may return in about
-4–5 seconds. Each player gets one free card change per battle; every later
-change costs 5 gold.
+The battle starts with its cards available. A used card closes for exactly nine
+seconds from its own strike (`ARENA_SLOT_COOLDOWN_MS`), then its lane opens with
+a new card; unused lanes keep their cards. So in nine seconds a player can strike
+with each of the three cards once. `state.cyclesStartAt` is only the clock for
+the bots' half-cycle schedule. Each player gets one free card change per battle;
+every later change costs 5 gold.
 A strike is an exchange: the opposing card in that lane answers in the same
 action, and both damage values are logged. The player cycles through living
 targets with Change target; if a target dies before a strike is processed, the
@@ -49,6 +61,13 @@ The block order follows the reference; the look is our parchment book.
 - Lobby: banner, queue note, Sign up and Refresh, arena rating with a rail to
   the next league, remaining arena tasks, Arena rules link, arena chat, then
   the `MenuRow`s Arena rating and Tasks.
+- Animated scene (prepared, waiting for art): `ArenaScene` stacks transparent
+  layers from `ARENA_SCENE_LAYERS` behind the lobby and replaces the static
+  banner once the list is filled. Layers drift, sway, flicker, pulse or rise
+  in CSS and stand still under reduced motion. Art is the fairy-tale tarot
+  woodcut (black ink, cream, sparing gold); `node tools/arena-scene/prepare-scene.cjs`
+  turns `~/Downloads/1-scene.png` … `9-mages.png` into webp files in
+  `client/public/assets/ui/arena/scene/`.
 - Battle fits one screen with no heading: target bar, the 2×3 card board
   (a closed card shows its cooldown on the card back), player bar, then three
   medallion actions Refresh, Change target and Change cards.
@@ -76,17 +95,28 @@ when outside the list.
 
 ## Rewards
 
-As in the reference, a fight pays no silver, gold or arena currency. Rewards are:
+Checked against the reference manuals for rating and leagues (`/forum/3/226703/`)
+and daily tasks (`/forum/3/228564/`) on 2026-11-10. A fight pays no silver, gold
+or arena currency. Rewards are:
 
-- rating, every counted fight;
-- one-time silver for each league first reached;
-- daily tasks: 10 fights and 5 wins (`play-arenas`, `win-arenas`).
+- rating, every fight (fewer than three moves only withholds task progress);
+- one-time silver for each league first reached, the reference table exactly
+  (1000 for second grey up to 200000 for first master);
+- daily tasks: 10 fights pay 3 gold plus a random item; 5 wins pay a card plus
+  an item. The card level follows the arena league exactly as the reference
+  table (`ARENA_REWARD_CARD_LEVELS_BY_LEAGUE`): 20-24 up to third epic, then
+  24-28, 29-33, legendary 35-42 / 44-50 / 50-56, mythic 60-63, master 70 / 72 / 74.
+  Second and first blue offer several level sets; we use one range covering them.
+- Arena tasks are offered only once the arena is open (2000 duel rating reached).
 
 Differences from the reference, kept on purpose:
 
-- The daily tasks pay diamonds. The reference pays gold for fights and a
-  league-based card for five wins; the daily task system only supports diamonds.
-- There is no 2000 duel rating gate.
+- Daily tasks also pay diamonds and silver for the battle pass.
+- There are no "buy 200 / 1000 gold" tasks, so their bonus arena progress and
+  the "Arena champion" task discount do not exist. "Buy 5 cards" and "Absorb 10
+  cards" stay after 2000 duel rating instead of being replaced, so eight tasks
+  and the triple reward stay reachable.
+- Arena achievements and titles are not implemented yet.
 
 ## HTTP surface
 

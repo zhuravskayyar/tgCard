@@ -228,11 +228,14 @@ function BattleLogSeal({ multiplier }: { multiplier: number }) {
   return <span className={`battle-log-seal battle-log-seal--${String(multiplier).replace(".", "-")}`}>×{multiplier}</span>;
 }
 
-function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; latest?: boolean }) {
+/** Arena rows may be a bystander's strike on the player's target (muted) or a killing blow (fatal). */
+export type BattleLogExchange = DuelExchange & { fatal?: boolean; muted?: boolean };
+
+function BattleLogRow({ exchange, latest = false }: { exchange: BattleLogExchange; latest?: boolean }) {
   const playerStrong = exchange.visualState === "player_strong";
   const enemyStrong = exchange.visualState === "enemy_strong";
   return (
-    <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}`}>
+    <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}${exchange.muted ? " battle-log-row--muted" : ""}${exchange.fatal ? " battle-log-row--fatal" : ""}`}>
       <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
       <strong className="battle-log-damage battle-log-damage--player">{exchange.playerDamage}</strong>
       {/* One seal per exchange: the multiplier of the player's own strike. */}
@@ -243,13 +246,13 @@ function BattleLogRow({ exchange, latest = false }: { exchange: DuelExchange; la
         <BattleLogSeal multiplier={exchange.playerMultiplier} />
       </span>
       <strong className="battle-log-damage battle-log-damage--enemy">{exchange.enemyDamage}</strong>
-      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} /></span>
+      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} />{exchange.fatal ? <span aria-label="Загинув" className="battle-log-fatal" role="img"><AppIcon name="skull" size={22} /></span> : null}</span>
     </li>
   );
 }
 
 export function BattleLog({ entries, animateLatest = false, emptyMessage = "Оберіть одну зі своїх карт, щоб розпочати обмін.", headerAction }: {
-  entries: DuelExchange[];
+  entries: BattleLogExchange[];
   animateLatest?: boolean;
   emptyMessage?: string;
   headerAction?: ReactNode;

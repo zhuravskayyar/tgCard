@@ -3,6 +3,7 @@ import type {
   ArenaActionRequest,
   ActiveArenaResponse,
   ArenaLeaderboardResponse,
+  ArenaPresenceResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
   ArenaVersionRequest,
@@ -17,6 +18,7 @@ import { ChatError } from "../chat/chatChannel.js";
 import {
   ArenaAlreadyActiveError,
   ArenaDeckInvalidError,
+  ArenaLockedError,
   ArenaInsufficientGoldError,
   ArenaMissingError,
   ArenaPlayerMissingError,
@@ -32,6 +34,7 @@ interface ArenaOperations {
   getLeaderboard(playerId: string): Promise<ArenaLeaderboardResponse>;
   getProfile(playerId: string): Promise<ArenaProfileResponse>;
   joinQueue(playerId: string): Promise<ArenaQueueResponse>;
+  getPresence(playerId: string): Promise<ArenaPresenceResponse>;
   leaveQueue(playerId: string): Promise<{ left: boolean }>;
   sendChatMessage(playerId: string, body: string): Promise<ChatMessage>;
 }
@@ -70,6 +73,7 @@ function sendArenaError(response: ServerResponse, error: unknown, headers: Outgo
   }
   if (error instanceof ChatError) return sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers), true;
   if (error instanceof ArenaAlreadyActiveError) return sendJson(response, 409, { error: { code: "arena_active_match", message: error.message } }, headers), true;
+  if (error instanceof ArenaLockedError) return sendJson(response, 403, { error: { code: "arena_locked", message: error.message } }, headers), true;
   if (error instanceof ArenaDeckInvalidError) return sendJson(response, 409, { error: { code: "invalid_battle_deck", message: error.message } }, headers), true;
   if (error instanceof ArenaStateConflictError) return sendJson(response, 409, { error: { code: "arena_state_conflict", message: error.message } }, headers), true;
   if (error instanceof ArenaMissingError) return sendJson(response, 404, { error: { code: "arena_not_found", message: error.message } }, headers), true;
@@ -94,6 +98,10 @@ export async function handleArenaRequest(
     const player = await authenticate(request, dependencies);
     if (request.method === "GET" && url.pathname === "/api/arena/profile") {
       sendJson(response, 200, await dependencies.arena.getProfile(player.id), headers);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/arena/presence") {
+      sendJson(response, 200, await dependencies.arena.getPresence(player.id), headers);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/arena/leaderboard") {

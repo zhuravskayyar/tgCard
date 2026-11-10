@@ -42,7 +42,7 @@ import { useMail } from "./hooks/useMail";
 import { useDailyLoginReward } from "./hooks/useDailyLoginReward";
 import { usePlayerEquipment } from "./hooks/usePlayerEquipment";
 import { useTutorial } from "./hooks/useTutorial";
-import { getPlayerDisplayName, type CardElement, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
+import { getPlayerDisplayName, isArenaUnlocked, type CardElement, type DuelView, type EquippedEquipment, type PlayerCardInstance, type StoryTrialNavigationTarget } from "@cardastika/shared";
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
 import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
@@ -700,6 +700,7 @@ export function App() {
           onOpenShop={() => openShop("home")}
            onResumeTutorial={resumeTutorial}
           playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
+          arenaUnlocked={playerSummaryState.status === "ready" ? isArenaUnlocked(playerSummaryState.data.duelRating, playerSummaryState.data.duelHighestLeagueIndex) : undefined}
           tutorialStatus={tutorial.status}
         />
       ) : null}

@@ -14,6 +14,13 @@ function telegramUser(): ValidatedTelegramUser {
   return { id: String(BigInt(Date.now()) * 1_000_000n + BigInt(process.pid) * 100n + telegramSequence), username: null, firstName: "Arena tester", lastName: null, photoUrl: null };
 }
 
+/** A fresh player who has reached the duel rating that opens the arena. */
+async function arenaPlayer(pool: Pool, players: PlayerRepository) {
+  const id = (await players.findOrCreateFromTelegram(telegramUser())).id;
+  await pool.query("UPDATE players SET duel_rating = 2000 WHERE id = $1", [id]);
+  return id;
+}
+
 async function finishWithMoves(pool: Pool, service: ArenaService, playerId: string, moves: number) {
   await service.joinQueue(playerId);
   await pool.query("UPDATE arena_queue SET created_at = NOW() - INTERVAL '31 seconds' WHERE player_id = $1", [playerId]);
@@ -33,7 +40,7 @@ test("Arena pays rating only for a fought match, with no silver or gold per figh
   const players = new PlayerRepository(pool);
   let playerId = "";
   try {
-    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    playerId = await arenaPlayer(pool, players);
     const service = new ArenaService(pool);
     const before = (await pool.query<{ arena_rating: number; gold: string; silver: string }>("SELECT arena_rating, gold, silver FROM players WHERE id = $1", [playerId])).rows[0]!;
     assert.equal(before.arena_rating, 1_400);
@@ -64,13 +71,37 @@ test("Arena pays rating only for a fought match, with no silver or gold per figh
   }
 });
 
-test("Arena ends as soon as every live player has fallen", { skip: !databaseUrl }, async () => {
+test("Arena stays closed until the player reaches 2000 duel rating", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
   let playerId = "";
   try {
     playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    const service = new ArenaService(pool);
+    await pool.query("UPDATE players SET duel_rating = 1999 WHERE id = $1", [playerId]);
+    assert.equal((await service.getProfile(playerId)).unlocked, false);
+    await assert.rejects(service.joinQueue(playerId), { name: "ArenaLockedError" });
+    // Reaching the rating once is enough, even after a later duel loss.
+    await pool.query("UPDATE players SET duel_rating = 1900, duel_highest_league_index = 20 WHERE id = $1", [playerId]);
+    assert.equal((await service.getProfile(playerId)).unlocked, true);
+    assert.ok((await service.joinQueue(playerId)).queue);
+  } finally {
+    if (playerId) {
+      await pool.query("DELETE FROM arena_queue WHERE player_id = $1", [playerId]);
+      await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
+    }
+    await pool.end();
+  }
+});
+
+test("Arena ends as soon as every live player has fallen", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  let playerId = "";
+  try {
+    playerId = await arenaPlayer(pool, players);
     const service = new ArenaService(pool);
     await service.joinQueue(playerId);
     await pool.query("UPDATE arena_queue SET created_at = NOW() - INTERVAL '31 seconds' WHERE player_id = $1", [playerId]);
@@ -91,13 +122,45 @@ test("Arena ends as soon as every live player has fallen", { skip: !databaseUrl 
   }
 });
 
+test("Arena moves a strike to the next participant after a target that already fell", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  let playerId = "";
+  try {
+    playerId = await arenaPlayer(pool, players);
+    const service = new ArenaService(pool);
+    await service.joinQueue(playerId);
+    await pool.query("UPDATE arena_queue SET created_at = NOW() - INTERVAL '31 seconds' WHERE player_id = $1", [playerId]);
+    const match = (await service.findActive(playerId)).arena!;
+    const row = await pool.query<{ state: { participants: Array<{ hp: number; id: string; targetId: string | null }>; targetId: string | null } }>("SELECT state FROM arena_matches WHERE id = $1", [match.matchId]);
+    const state = row.rows[0]!.state;
+    const player = state.participants.find(({ id }) => id === playerId)!;
+    const playerIndex = state.participants.indexOf(player);
+    const fallen = state.participants[(playerIndex + 2) % state.participants.length]!;
+    const expected = state.participants[(playerIndex + 3) % state.participants.length]!;
+    fallen.hp = 0;
+    player.targetId = fallen.id;
+    state.targetId = fallen.id;
+    await pool.query("UPDATE arena_matches SET state = $2 WHERE id = $1", [match.matchId, JSON.stringify(state)]);
+    const struck = await service.action(playerId, match.matchId, { expectedVersion: match.actionVersion, slotIndex: 0 });
+    assert.equal(struck.battleLog.find(({ attackerId }) => attackerId === playerId)?.targetId, expected.id);
+  } finally {
+    if (playerId) {
+      await pool.query("DELETE FROM arena_matches WHERE player_id = $1", [playerId]);
+      await pool.query("DELETE FROM players WHERE id = $1", [playerId]);
+    }
+    await pool.end();
+  }
+});
+
 test("Arena starts with six participants and keeps attacker slot cooldowns independent of target", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
   let playerId = "";
   try {
-    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    playerId = await arenaPlayer(pool, players);
     const service = new ArenaService(pool);
     const queued = await service.joinQueue(playerId);
     assert.equal(queued.match, null);
@@ -114,8 +177,12 @@ test("Arena starts with six participants and keeps attacker slot cooldowns indep
     assert.equal(match.playerSlots.filter(({ cooldownUntil }) => cooldownUntil === null).length, 3);
     const initialTargetId = match.targetId!;
 
+    const strikeFrom = Date.now();
     const attacked = await service.action(playerId, match.matchId, { expectedVersion: match.version, slotIndex: 0 });
+    const strikeTo = Date.now();
     assert.ok(attacked.playerSlots[0].cooldownUntil);
+    const cardReturnsAt = new Date(attacked.playerSlots[0].cooldownUntil).getTime();
+    assert.ok(cardReturnsAt >= strikeFrom + 9_000 && cardReturnsAt <= strikeTo + 9_000, "a used card returns exactly nine seconds after its strike");
     assert.equal(attacked.playerSlots[0].card, null);
     assert.equal(attacked.playerSlots[1].cooldownUntil, null);
     assert.equal(attacked.playerSlots[2].cooldownUntil, null);
@@ -213,6 +280,40 @@ test("Arena starts with six participants and keeps attacker slot cooldowns indep
   }
 });
 
+test("Arena keeps the league timer when the first player leaves and reports someone in the queue", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const service = new ArenaService(pool);
+  let firstId = "";
+  let secondId = "";
+  try {
+    firstId = await arenaPlayer(pool, players);
+    secondId = await arenaPlayer(pool, players);
+    // Clear the shared default league so other test data cannot start this queue.
+    await pool.query("DELETE FROM arena_queue q USING players p WHERE p.id = q.player_id AND p.arena_league_index = (SELECT arena_league_index FROM players WHERE id = $1)", [firstId]);
+    assert.equal((await service.getPresence(secondId)).someoneQueued, false);
+    const first = await service.joinQueue(firstId);
+    assert.equal((await service.getPresence(secondId)).someoneQueued, true);
+    assert.equal((await service.getPresence(firstId)).someoneQueued, false, "a player's own registration does not count");
+    const second = await service.joinQueue(secondId);
+    assert.ok(first.queue && second.queue);
+    assert.equal(new Date(second.queue.startsAt).getTime(), new Date(first.queue.startsAt).getTime() - 5_000);
+
+    await service.leaveQueue(firstId);
+    const after = (await service.findActive(secondId)).queue;
+    assert.ok(after);
+    // Leaving adds the 5-second step back instead of restarting the whole window.
+    assert.equal(new Date(after.startsAt).getTime(), new Date(first.queue.startsAt).getTime());
+  } finally {
+    for (const id of [firstId, secondId].filter(Boolean)) {
+      await pool.query("DELETE FROM arena_queue WHERE player_id = $1", [id]);
+      await pool.query("DELETE FROM players WHERE id = $1", [id]);
+    }
+    await pool.end();
+  }
+});
+
 test("Arena keeps a 15-second registration window and puts live players into one match", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
@@ -222,8 +323,8 @@ test("Arena keeps a 15-second registration window and puts live players into one
   let secondId = "";
   let matchId = "";
   try {
-    firstId = (await players.findOrCreateFromTelegram(telegramUser())).id;
-    secondId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    firstId = await arenaPlayer(pool, players);
+    secondId = await arenaPlayer(pool, players);
     const firstQueued = await service.joinQueue(firstId);
     assert.equal(firstQueued.match, null);
     assert.equal(firstQueued.queue?.participantCount, 1);
@@ -260,7 +361,7 @@ test("Arena lobby shows today's arena task progress and a shared arena chat", { 
   const players = new PlayerRepository(pool);
   let playerId = "";
   try {
-    playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
+    playerId = await arenaPlayer(pool, players);
     const service = new ArenaService(pool);
     const before = await service.getProfile(playerId);
     assert.deepEqual(before.dailyTasks, { play: { progress: 0, target: 10 }, win: { progress: 0, target: 5 } });

@@ -84,9 +84,16 @@ test("daily tasks pay gold, silver and an item, and five arena wins pay an epic-
     [player.id, eventType, now, count],
   );
   try {
+    // Below 2000 duel rating the arena is closed, so its tasks are not offered.
+    const locked = await battlePass.getPage(player.id, now);
+    assert.ok(!locked.daily.tasks.some(({ id }) => id === "play-arenas" || id === "win-arenas"));
+    await assert.rejects(() => battlePass.claimDailyTask(player.id, "play-arenas", now));
+    await pool.query("UPDATE players SET duel_rating = 2000 WHERE id = $1", [player.id]);
+
     const page = await battlePass.getPage(player.id, now);
     const winArenas = page.daily.tasks.find(({ id }) => id === "win-arenas")!;
-    assert.deepEqual(winArenas.reward, { card: { maxLevel: 33, minLevel: 29 }, diamonds: 3, equipment: "common", gold: 0, silver: 3_000 });
+    // A new arena player starts in third blue, where the reference pays a level 20-24 epic card.
+    assert.deepEqual(winArenas.reward, { card: { maxLevel: 24, minLevel: 20 }, diamonds: 3, equipment: "common", gold: 0, silver: 3_000 });
     const before = (await pool.query<{ gold: string; silver: string }>("SELECT gold, silver FROM players WHERE id = $1", [player.id])).rows[0]!;
 
     await addEvents("ARENA_FINISHED", 10);
@@ -100,7 +107,7 @@ test("daily tasks pay gold, silver and an item, and five arena wins pay an epic-
     await addEvents("ARENA_WON", 5);
     const won = await battlePass.claimDailyTask(player.id, "win-arenas", now);
     assert.ok(won.card);
-    assert.ok(won.card.level >= 29 && won.card.level <= 33);
+    assert.ok(won.card.level >= 20 && won.card.level <= 24);
     assert.equal(won.card.rarity, "epic");
     assert.equal(won.updatedBalance.silver, Number(before.silver) + 6_000);
     assert.equal(won.battlePass.diamonds, 6);

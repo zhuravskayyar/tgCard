@@ -233,6 +233,8 @@ export class LeaderboardRepository {
         SELECT id, nickname, username, first_name, photo_url, level, arena_rating
         FROM players
         WHERE arena_league_index = $1 AND (arena_wins > 0 OR arena_rating <> $2)
+          -- As in the reference, players without an arena fight in the last day leave the list.
+          AND EXISTS (SELECT 1 FROM arena_match_players mp WHERE mp.player_id = players.id AND mp.joined_at > NOW() - INTERVAL '1 day')
         ORDER BY arena_rating DESC, arena_wins DESC, id ASC
       `,
       [leagueIndex, ARENA_START_RATING],

@@ -1,12 +1,13 @@
 /* Liquid colours for the shared ExperienceFlask. The amber liquid sprites are hue-shifted; glass, brass and cork keep their colours.
-   amber (default) — experience and quests; verdant — card growth; crimson — duel wins; azure — league rating. */
+   amber (default) — experience and quests; verdant — card growth; crimson — duel wins; azure — league rating; violet — arena countdown. */
 .experience-flask--verdant { --flask-tint: hue-rotate(72deg) saturate(.9); --flask-flash: rgb(170 235 120 / 85%); }
 .experience-flask--crimson { --flask-tint: hue-rotate(-34deg) saturate(1.35) brightness(.92); --flask-flash: rgb(255 140 110 / 85%); }
 .experience-flask--azure { --flask-tint: hue-rotate(168deg) saturate(1.1); --flask-flash: rgb(140 200 255 / 85%); }
+.experience-flask--violet { --flask-tint: hue-rotate(-135deg) saturate(.95); --flask-flash: rgb(205 150 255 / 85%); }
 
-:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure) :is(.experience-flask__liquid, .experience-flask__bulb, .experience-flask__flow) { filter: var(--flask-tint); }
-:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure) :is(.experience-flask__liquid:not(.experience-flask__liquid--empty), .experience-flask__bulb:not(.experience-flask__bulb--empty)) { animation-name: experience-flask-tint-breathe; }
-:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure) .experience-flask__flash { background: radial-gradient(closest-side, var(--flask-flash), transparent); }
+:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure, .experience-flask--violet) :is(.experience-flask__liquid, .experience-flask__bulb, .experience-flask__flow) { filter: var(--flask-tint); }
+:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure, .experience-flask--violet) :is(.experience-flask__liquid:not(.experience-flask__liquid--empty), .experience-flask__bulb:not(.experience-flask__bulb--empty)) { animation-name: experience-flask-tint-breathe; }
+:is(.experience-flask--verdant, .experience-flask--crimson, .experience-flask--azure, .experience-flask--violet) .experience-flask__flash { background: radial-gradient(closest-side, var(--flask-flash), transparent); }
 @keyframes experience-flask-tint-breathe {
   0%, 100% { filter: var(--flask-tint); }
   50% { filter: var(--flask-tint) brightness(1.12); }

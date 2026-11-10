@@ -126,6 +126,13 @@ export interface ArenaProfileResponse {
   arenaWins: number;
   cardShards: number;
   nextArenaLeague: ArenaLeagueView | null;
+  /** False until the player has reached the arena's duel-rating threshold. */
+  unlocked: boolean;
+}
+
+export interface ArenaPresenceResponse {
+  /** True when arena daily tasks are unfinished and another player of the same league is queued. */
+  someoneQueued: boolean;
 }
 
 export interface ArenaQueueResponse {

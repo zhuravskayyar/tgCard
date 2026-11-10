@@ -2,6 +2,7 @@ import type {
   ArenaActionRequest,
   ActiveArenaResponse,
   ArenaLeaderboardResponse,
+  ArenaPresenceResponse,
   ArenaProfileResponse,
   ArenaQueueResponse,
   ArenaVersionRequest,
@@ -56,6 +57,10 @@ async function request<T>(
 
 export function loadArenaProfile(initData: string, signal?: AbortSignal) {
   return request<ArenaProfileResponse>(initData, "/api/arena/profile", { signal });
+}
+
+export function loadArenaPresence(initData: string, signal?: AbortSignal) {
+  return request<ArenaPresenceResponse>(initData, "/api/arena/presence", { signal });
 }
 
 export function loadActiveArena(initData: string, signal?: AbortSignal) {

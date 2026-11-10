@@ -5,7 +5,6 @@ import {
   calculateArenaDamage,
   calculateArenaRatingChange,
   getArenaCardChangeCost,
-  getArenaCycleEnd,
   getArenaQueueDurationMs,
   getArenaRewardCardLevelRange,
 } from "@cardastika/game-core";
@@ -73,16 +72,14 @@ test("Arena registration time follows the league tier and shortens as live playe
   assert.equal(getArenaQueueDurationMs(0, 4), 5_000);
 });
 
-test("A used arena lane opens again at the end of the current nine-second cycle", () => {
-  assert.equal(getArenaCycleEnd(10_000, 5_000), 10_000);
-  assert.equal(getArenaCycleEnd(10_000, 10_000), 19_000);
-  assert.equal(getArenaCycleEnd(10_000, 18_999), 19_000);
-  assert.equal(getArenaCycleEnd(10_000, 19_000), 28_000);
-});
-
 test("The daily arena reward card is at least epic and grows with the arena league", () => {
+  // Reference table: third blue, third epic, first epic, third legendary, mythic, first master.
   assert.deepEqual(getArenaRewardCardLevelRange(0), [20, 24]);
-  assert.deepEqual(getArenaRewardCardLevelRange(6), [29, 33]);
-  assert.deepEqual(getArenaRewardCardLevelRange(20), [60, 63]);
+  assert.deepEqual(getArenaRewardCardLevelRange(6), [20, 24]);
+  assert.deepEqual(getArenaRewardCardLevelRange(9), [20, 24]);
+  assert.deepEqual(getArenaRewardCardLevelRange(11), [29, 33]);
+  assert.deepEqual(getArenaRewardCardLevelRange(12), [35, 42]);
+  assert.deepEqual(getArenaRewardCardLevelRange(16), [60, 63]);
+  assert.deepEqual(getArenaRewardCardLevelRange(20), [74, 74]);
   for (let league = 0; league < 21; league += 1) assert.ok(getArenaRewardCardLevelRange(league)[0] >= 20);
 });

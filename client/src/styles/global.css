@@ -7481,8 +7481,6 @@ button.mode-tile::before,
 .arena-queue-panel > span { color: #cda66e; font-size: var(--font-micro); font-weight: 800; letter-spacing: .13em; }
 .arena-queue-panel h2 { margin: 2px 0 0; color: var(--text-primary); font-family: var(--font-display); font-size: var(--font-lg); }
 .arena-queue-panel__timer { color: #e0bd79; font-family: var(--font-display); font-size: 2.35rem; letter-spacing: .08em; text-shadow: 0 0 16px rgb(224 189 121 / 20%); }
-.arena-queue-panel__progress { width: min(100%, 290px); height: 6px; overflow: hidden; background: #24171a; border: 1px solid rgb(255 255 255 / 8%); border-radius: 99px; }
-.arena-queue-panel__progress span { display: block; height: 100%; background: linear-gradient(90deg, #8e4c48, #d4aa68); border-radius: inherit; transition: width 250ms linear; }
 .arena-queue-panel p, .arena-queue-panel small { margin: 0; font-size: var(--font-xs); line-height: 1.45; }
 .arena-queue-panel p b { color: var(--text-primary); }
 .arena-queue-panel small { max-width: 310px; color: var(--text-muted); }

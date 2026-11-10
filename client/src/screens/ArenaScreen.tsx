@@ -2,7 +2,9 @@ import { ScreenHeading } from "../components/ScreenHeading";
 import { useBattleExchange, useBattleResultReady } from "../components/useBattlePresentation";
 import { BattleAttackAnimation } from "../components/BattleAttackAnimation";
 import { CardBack } from "../components/CardBack";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ArenaScene } from "../components/ArenaScene";
+import { ExperienceFlask } from "../components/ExperienceFlask";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type {
   ArenaBattleLogEntry,
   ArenaCardSlot,
@@ -15,12 +17,12 @@ import type {
   DuelExchange,
   PlayerSummary,
 } from "@cardastika/shared";
-import { EQUIPMENT_SLOT_LABELS, getArenaQueueDurationMs, getElementMultiplier, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { ARENA_UNLOCK_DUEL_RATING } from "@cardastika/shared";
+import { ARENA_SLOT_COOLDOWN_MS, EQUIPMENT_SLOT_LABELS, getArenaQueueDurationMs, getElementMultiplier, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { EquipmentSprite, rarityStyle } from "../components/EquipmentBook";
 import { AppIcon } from "../components/AppIcon";
-import { BattleCard, BattleLog, getEffectLevel, HpPanel, PlayerAvatar } from "./DuelScreen";
+import { BattleCard, BattleLog, getEffectLevel, HpPanel, PlayerAvatar, type BattleLogExchange } from "./DuelScreen";
 import type { DuelEffectLevel } from "./DuelScreen";
-import { FirstVisitHint } from "../components/FirstVisitHint";
 import { GameChat } from "../components/GameChat";
 import { MenuRow } from "../components/MenuRow";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
@@ -91,7 +93,7 @@ function ArenaRatingMeter({ profile }: { profile: ArenaProfileResponse }) {
   return (
     <div className="arena-rating-meter">
       <strong>Ваш рейтинг арени: {profile.arenaRating}</strong>
-      <div aria-label={next ? `До ліги ${next.name}: ${Math.round(progress)}%` : "Найвища ліга"} className="arena-rating-meter__rail"><i style={{ width: `${progress}%` }} /></div>
+      <div aria-label={next ? `До ліги ${next.name}` : "Найвища ліга"} aria-valuemax={100} aria-valuemin={0} aria-valuenow={Math.round(progress)} aria-valuetext={next ? `${profile.arenaRating} з ${next.minRating}` : String(profile.arenaRating)} className="flask-meter arena-rating-meter__flask" role="progressbar"><ExperienceFlask progress={progress / 100} tone="azure" /></div>
       <small>{next ? `Ліга «${profile.arenaLeague.name}» · до «${next.name}» ${Math.max(0, next.minRating - profile.arenaRating)}` : `Ліга «${profile.arenaLeague.name}» — найвища`}</small>
     </div>
   );
@@ -100,10 +102,12 @@ function ArenaRatingMeter({ profile }: { profile: ArenaProfileResponse }) {
 function ArenaLobby({ profile, pending, onQueue, onRefresh, onOpenRules }: { profile: ArenaProfileResponse; pending: string | null; onQueue: () => void; onRefresh: () => void; onOpenRules: () => void }) {
   return (
     <section className="arena-lobby">
-      <img alt="" className="arena-lobby__banner" height={260} src={homeSprite("mode-arena")} width={456} />
-      <p className="arena-lobby__wait">Час очікування в черзі — не більше {getArenaQueueDurationMs(profile.arenaLeague.index, 1) / 1_000} секунд.</p>
+      <ArenaScene />
+      {profile.unlocked
+        ? <p className="arena-lobby__wait">Час очікування в черзі — не більше {getArenaQueueDurationMs(profile.arenaLeague.index, 1) / 1_000} секунд.</p>
+        : <p className="arena-lobby__wait">Арена відкривається з {ARENA_UNLOCK_DUEL_RATING} рейтингу дуелей.</p>}
       <div className="arena-lobby__actions">
-        <button className="duel-primary-button" disabled={pending !== null} onClick={onQueue} type="button">{pending === "queue" ? "Записуємо…" : "Записатися"}</button>
+        <button className="duel-primary-button" disabled={pending !== null || !profile.unlocked} onClick={onQueue} type="button">{pending === "queue" ? "Записуємо…" : "Записатися"}</button>
         <button className="duel-secondary-button" disabled={pending !== null} onClick={onRefresh} type="button">Оновити</button>
       </div>
       <ArenaRatingMeter profile={profile} />
@@ -120,7 +124,7 @@ function ArenaRules() {
       <ul>
         <li>У бою шестеро учасників. Гравці та боти підбираються в межах однієї ліги; вільні місця займають боти.</li>
         <li>Час до старту залежить від ліги: від 5 до 25 секунд. Кожен новий живий гравець наближає старт на 5 секунд.</li>
-        <li>Бій іде спільними циклами по 9 секунд. На початку нового циклу оновлюються використані лінії, а невикористані карти залишаються. Тому після удару карта може повернутися раніше ніж за 9 секунд — на найближчій межі циклу.</li>
+        <li>Після удару карта закривається рівно на 9 секунд, а потім на її місці з’являється нова. Невикористані карти лишаються, тож за 9 секунд можна вдарити кожною з трьох карт.</li>
         <li>Бот тримає ціль, доки вона або він не загине. У першому циклі він б’є один раз у другій половині, далі — двічі за цикл; вибирає найсильніший доступний удар. Якщо всі живі гравці залишили сторінку бою, боти після короткої затримки зупиняють атаки.</li>
         <li>Удар — це обмін: карта суперника на тій самій лінії відповідає одразу. Ціль можна змінити кнопкою; якщо вона загине до удару, удар переходить на наступну живу ціль.</li>
         <li>Кожен гравець може замінити карти безплатно один раз за бій; кожна наступна заміна коштує 5 золота.</li>
@@ -134,6 +138,7 @@ function ArenaRules() {
       </ul>
       <h2>Нагороди</h2>
       <ul>
+        <li>Арена відкривається, щойно рейтинг дуелей сягне {ARENA_UNLOCK_DUEL_RATING} очок.</li>
         <li>Рейтинг арени окремий від дуелей і починається з 1400.</li>
         <li>Кожна нова ліга, досягнута вперше, дає срібло. Пониження настає, лише коли рейтинг на 100 нижчий за межу ліги.</li>
         <li>Щоденні завдання: 10 боїв і 5 перемог на арені.</li>
@@ -168,7 +173,7 @@ function sameArenaView(left: ArenaView | null, right: ArenaView | null) {
     && left.targetId === right.targetId;
 }
 
-function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, turnNumber: number): DuelExchange | null {
+function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, turnNumber: number): BattleLogExchange | null {
   if (!entry.attackerCard || !entry.targetCard) return null;
   const playerAttack = entry.attackerId === playerId;
   const playerHit = entry.targetId === playerId;
@@ -183,6 +188,9 @@ function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, tu
     playerDamage: playerAttack || botExchange ? entry.damage : entry.counterDamage ?? 0,
     playerMultiplier: botExchange ? entry.multiplier : playerMultiplier,
     slotIndex: entry.slotIndex,
+    fatal: entry.targetDefeated,
+    // Other participants' strikes on the player's target are dimmed, as in the reference log.
+    muted: botExchange,
     turnNumber,
     visualState: (playerAttack || botExchange) && entry.multiplier === 1.5
       ? "player_strong"
@@ -206,16 +214,32 @@ function ArenaQueuePanel({ queue, pending, onLeave }: { queue: ArenaQueueView; p
   const shownRemaining = Math.min(remaining, total);
   const progress = Math.max(0, Math.min(100, (1 - shownRemaining / total) * 100));
   return (
-    <section aria-live="polite" className="arena-queue-panel">
-      <div className="arena-queue-panel__crest"><AppIcon name="arena" size={42} /></div>
+    <section className="arena-queue-panel">
+      <ArenaScene />
       <span>РЕЄСТРАЦІЯ НА АРЕНУ</span>
       <h2>Бій почнеться через</h2>
       <strong className="arena-queue-panel__timer">00:{String(shownRemaining).padStart(2, "0")}</strong>
-      <div aria-label={`Підготовка бою: ${Math.round(progress)}%`} className="arena-queue-panel__progress"><span style={{ width: `${progress}%` }} /></div>
-      <p><b>{queue.participantCount} / {queue.maxParticipants}</b> живих учасників у черзі</p>
+      <div aria-label="Підготовка бою" aria-valuemax={100} aria-valuemin={0} aria-valuenow={Math.round(progress)} aria-valuetext={`Залишилось ${shownRemaining} с`} className="flask-meter arena-queue-panel__flask" role="progressbar"><ExperienceFlask linear pourMs={1_000} progress={Math.min(1, (total - Math.max(0, shownRemaining - 1)) / total)} tone="violet" /></div>
+      <p aria-live="polite"><b>{queue.participantCount} / {queue.maxParticipants}</b> живих учасників у черзі</p>
       <small>Справжні гравці можуть приєднатися до завершення таймера. Вільні місця заповнять боти після відліку.</small>
       <button className="duel-secondary-button" disabled={pending !== null} onClick={onLeave} type="button">Скасувати запис</button>
     </section>
+  );
+}
+
+/** An ink veil drains down the card back like sand while the engraved seconds count down. */
+function ArenaCooldown({ until, seconds }: { until: string; seconds: number }) {
+  // Measured once per cooldown: the CSS animation drains the rest without re-renders.
+  const [remainingMs] = useState(() => Math.max(0, new Date(until).getTime() - Date.now()));
+  const style = {
+    "--arena-cooldown-ms": `${remainingMs}ms`,
+    "--arena-cooldown-start": Math.min(1, remainingMs / ARENA_SLOT_COOLDOWN_MS),
+  } as CSSProperties;
+  return (
+    <>
+      <span className="arena-hidden-card__veil" style={style} />
+      <span className="arena-hidden-card__timer"><span className="arena-hidden-card__seconds">{seconds}</span></span>
+    </>
   );
 }
 
@@ -243,7 +267,7 @@ function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, cla
   };
   return (
     <div className={`arena-slot${cooldown > 0 ? " is-cooldown" : " is-ready"}${defeated ? " is-defeated" : ""}${slot.card ? "" : " is-hidden"}`}>
-      {slot.card ? <BattleCard card={slot.card} clashLevel={clashLevel} clashing={clashing} enemy={enemy} disabled={!canAttack} key={`${slot.card.instanceId}-${lane}`} onClick={handleClick} /> : <div aria-label={cooldown > 0 ? `Лінія ${lane + 1}: карта відкриється через ${cooldown} с` : `Лінія ${lane + 1}: карта прихована`} className="arena-hidden-card"><CardBack className="arena-hidden-card__back" />{cooldown > 0 ? <span className="arena-hidden-card__timer">{cooldown}</span> : null}</div>}
+      {slot.card ? <BattleCard card={slot.card} clashLevel={clashLevel} clashing={clashing} enemy={enemy} disabled={!canAttack} key={`${slot.card.instanceId}-${lane}`} onClick={handleClick} /> : <div aria-label={cooldown > 0 ? `Лінія ${lane + 1}: карта відкриється через ${cooldown} с` : `Лінія ${lane + 1}: карта прихована`} className="arena-hidden-card"><CardBack className="arena-hidden-card__back" />{cooldown > 0 && slot.cooldownUntil ? <ArenaCooldown key={slot.cooldownUntil} until={slot.cooldownUntil} seconds={cooldown} /> : null}</div>}
     </div>
   );
 }
@@ -252,7 +276,7 @@ function ArenaLog({ animateLatest, match }: { animateLatest: boolean; match: Are
   const [expanded, setExpanded] = useState(false);
   const exchanges = match.battleLog
     .map((entry, index) => arenaLogToDuelExchange(entry, match.playerId, match.battleLog.length - index))
-    .filter((entry): entry is DuelExchange => entry !== null);
+    .filter((entry): entry is BattleLogExchange => entry !== null);
   const entries = expanded ? exchanges : exchanges.slice(0, 7);
   return (
     <BattleLog
@@ -376,7 +400,7 @@ function ArenaLeague({ profile, initData }: { profile: ArenaProfileResponse; ini
       <div className="arena-league-panel__crest"><AppIcon name="arena" size={48} /></div>
       <span>Ліга арени</span><h2>{profile.arenaLeague.name}</h2>
       <strong>Рейтинг арени: {profile.arenaRating}</strong>
-      <div className="arena-league-panel__progress" aria-label={next ? `До ліги ${next.name}: ${Math.round(progress)}%` : "Найвища ліга"}><i style={{ width: `${progress}%` }} /></div>
+      <div aria-label={next ? `До ліги ${next.name}` : "Найвища ліга"} aria-valuemax={100} aria-valuemin={0} aria-valuenow={Math.round(progress)} className="flask-meter arena-league-panel__flask" role="progressbar"><ExperienceFlask progress={progress / 100} tone="azure" /></div>
       {next ? <p>До ліги «{next.name}»: {Math.max(0, next.minRating - profile.arenaRating)} рейтингу. Перший перехід: +{next.promotionReward.toLocaleString("uk-UA")} срібла.</p> : <p>Це найвища ліга арени.</p>}
       <div className="arena-league-panel__stats"><span>Перемоги <b>{formatUiNumber(profile.arenaWins)}</b></span><span>Топ-3 <b>{formatUiNumber(profile.arenaTop3Count)}</b></span></div>
       <h3 className="arena-league-panel__title">Рейтинг ліги</h3>
@@ -518,7 +542,6 @@ export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: Aren
   return (
     <div className="arena-screen">
       <ArenaHeading onBack={onBack} />
-      <FirstVisitHint id="arena" title="Арена" items={["Обери суперника.", "Обери карту для атаки.", "Переможці — троє з найбільшою шкодою. Для щоденних завдань потрібно зробити щонайменше три ходи."]} />
       {errorNotice}
       <ArenaLobby onOpenRules={() => setPage("rules")} onQueue={() => void queue()} onRefresh={retrySync} pending={pending} profile={profile} />
       <ArenaChat />

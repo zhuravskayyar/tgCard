@@ -8,8 +8,14 @@ interface ExperienceFlaskProps {
   progress: number;
   /** Zero-width anchor at the liquid's leading edge, where gained experience flies to. */
   tipRef?: RefObject<HTMLSpanElement | null>;
-  /** Liquid colour: amber experience/quests (HUD default), verdant card growth, crimson duel wins, azure league rating. */
-  tone?: "amber" | "verdant" | "crimson" | "azure";
+  /** Skip the pour: the HUD bar is already animated by `useExperienceFly`. */
+  instant?: boolean;
+  /** Pour length for a full flask; a countdown passes its tick so the liquid flows without steps. */
+  pourMs?: number;
+  /** Constant flow instead of easing out, for timers. */
+  linear?: boolean;
+  /** Liquid colour: amber experience/quests (HUD default), verdant card growth, crimson duel wins, azure league rating, violet arena countdown. */
+  tone?: "amber" | "verdant" | "crimson" | "azure" | "violet";
 }
 
 /** Share of a level that fills the glass bulb before the liquid runs on into the tube. */
@@ -23,26 +29,31 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
-const POUR_MS = 650;
+const POUR_MS = 900;
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
+const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
+interface PourOptions { instant: boolean; pourMs: number; linear: boolean }
+
 /**
- * Pours the liquid to a new level instead of jumping. When `level` rises the flask first fills to the top,
- * then starts again from empty, so a level-up reads as a full flask. Off (instant) when `level` is undefined.
+ * Pours the liquid to a new level instead of jumping, starting from empty when the flask appears.
+ * When `level` rises the flask first fills to the top, then starts again from empty, so a level-up
+ * reads as a full flask. Instant under reduced motion or when `instant` is set.
  */
-function usePouredProgress(target: number, level: number | undefined) {
-  const [shown, setShown] = useState(target);
-  const shownRef = useRef(target);
+function usePouredProgress(target: number, level: number | undefined, { instant, pourMs, linear }: PourOptions) {
+  const [shown, setShown] = useState(() => (instant || prefersReducedMotion() ? target : 0));
+  const shownRef = useRef(shown);
   const levelRef = useRef(level);
   useEffect(() => {
     const previousLevel = levelRef.current;
     levelRef.current = level;
-    if (level === undefined || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    if (instant || prefersReducedMotion()) {
       shownRef.current = target;
       setShown(target);
       return;
     }
-    const levelledUp = previousLevel !== undefined && level > previousLevel;
+    const levelledUp = previousLevel !== undefined && level !== undefined && level > previousLevel;
     // Legs of the pour: up to the brim on a level-up, then from empty to the new level.
     const legs: Array<[number, number]> = levelledUp ? [[shownRef.current, 1], [0, target]] : [[shownRef.current, target]];
     let frame = 0;
@@ -51,9 +62,9 @@ function usePouredProgress(target: number, level: number | undefined) {
     const step = (now: number) => {
       const [from, to] = legs[leg]!;
       const span = Math.abs(to - from);
-      const duration = Math.max(1, POUR_MS * Math.max(0.35, span));
+      const duration = linear ? pourMs : Math.max(1, pourMs * Math.max(0.35, span));
       const t = Math.min(1, (now - startedAt) / duration);
-      const value = from + (to - from) * easeOut(t);
+      const value = from + (to - from) * (linear ? t : easeOut(t));
       shownRef.current = value;
       setShown(value);
       if (t < 1) { frame = requestAnimationFrame(step); return; }
@@ -61,13 +72,13 @@ function usePouredProgress(target: number, level: number | undefined) {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [target, level]);
+  }, [target, level, instant, pourMs, linear]);
   return shown;
 }
 
 /** HUD experience bar: an alchemical flask; amber liquid fills the bulb first, then the tube. */
-export function ExperienceFlask({ level, progress, tipRef, tone = "amber" }: ExperienceFlaskProps) {
-  const value = clamp01(usePouredProgress(clamp01(progress), level));
+export function ExperienceFlask({ instant = false, level, linear = false, pourMs = POUR_MS, progress, tipRef, tone = "amber" }: ExperienceFlaskProps) {
+  const value = clamp01(usePouredProgress(clamp01(progress), level, { instant, linear, pourMs }));
   const bulbFill = Math.min(1, value / BULB_SHARE);
   const tubeFill = value <= BULB_SHARE ? 0 : (value - BULB_SHARE) / (1 - BULB_SHARE);
   const tipX = tubeFill > 0 ? TUBE_LEFT + TUBE_WIDTH * tubeFill : BULB_TIP_X;

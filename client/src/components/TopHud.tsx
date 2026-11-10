@@ -94,7 +94,7 @@ export function TopHud({ deckPowerOverride, onOpenSettings, onRetry, state }: To
           className="top-hud__xp-track"
           role="progressbar"
         >
-          {player ? <ExperienceFlask progress={experienceProgress} tipRef={experienceTrackRef} /> : null}
+          {player ? <ExperienceFlask instant progress={experienceProgress} tipRef={experienceTrackRef} /> : null}
         </div>
         <button className="top-hud__settings" aria-label="Налаштування" onClick={onOpenSettings} type="button" />
       </div>

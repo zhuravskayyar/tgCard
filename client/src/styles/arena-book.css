@@ -42,17 +42,14 @@
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel { display: grid; justify-items: center; gap: var(--space-1); text-align: center; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel > strong { font-size: var(--font-md); }
 
-/* Lobby, top to bottom: banner, queue note, sign-up and refresh, rating rail, tasks, rules link. */
+/* Lobby, top to bottom: animated scene, queue note, sign-up and refresh, rating rail, tasks, rules link. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby { display: grid; justify-items: center; gap: var(--space-2); text-align: center; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__banner { display: block; width: min(100%, 300px); height: auto; aspect-ratio: 456 / 260; object-fit: contain; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__wait { margin: 0; font-weight: 700; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__actions { display: grid; justify-items: center; gap: var(--space-2); width: 100%; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__actions button { width: min(100%, 240px); min-height: 48px; margin: 0; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-lobby__tasks { margin: 0; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter { display: grid; justify-items: center; gap: var(--space-1); width: 100%; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter strong { font-size: var(--font-md); }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter__rail { width: 100%; height: 14px; overflow: hidden; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rating-meter__rail i { display: block; height: 100%; background: #7a2f16; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules-link { min-height: 44px; padding: 0 var(--space-2); color: #7a2f16; font: 700 var(--font-sm) / 1 var(--font-body, inherit); text-decoration: underline; text-underline-offset: 3px; border: 0; background: none; box-shadow: none; }
 
 /* Rating and tasks rows: the shared MenuRow, stacked like every mode menu. */
@@ -66,8 +63,6 @@
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-rules li { font-size: var(--font-sm); line-height: 1.4; }
 
 /* League progress and table. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__progress { width: 100%; height: 14px; overflow: hidden; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__progress i { display: block; height: 100%; background: #7a2f16; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-league-panel__title { margin: var(--space-1) 0 0; color: var(--book-ink); font-size: var(--font-md); }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-leaderboard { display: grid; gap: var(--space-1); width: 100%; margin: 0; padding: 0; list-style: none; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-leaderboard li { display: grid; grid-template-columns: 22px 32px minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); text-align: left; }
@@ -80,9 +75,10 @@
 
 /* Queue. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel { display: grid; justify-items: center; gap: var(--space-1); text-align: center; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen :is(.arena-queue-panel__flask, .arena-rating-meter__flask, .arena-league-panel__flask) { width: min(100%, 340px); margin: 2px auto; }
+/* Short phones keep Cancel sign-up on screen: the queue scene shrinks. */
+@media (max-height: 720px) { :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel .arena-scene { width: 54%; margin-inline: auto; margin-bottom: 4px; } :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel > small { display: none; } }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel__timer { color: var(--book-ink); font-size: 2.5rem; line-height: 1.1; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel__progress { width: 100%; height: 14px; overflow: hidden; border: 0; border-radius: 0; background: var(--sprite-progress-rail) center / 100% 100% no-repeat; box-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-queue-panel__progress span { display: block; height: 100%; background: #7a2f16; box-shadow: none; }
 
 /* Hint button keeps its word inside the plate. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .first-visit-hint button { min-width: 112px; font-size: var(--font-xs); white-space: nowrap; }
@@ -98,7 +94,13 @@
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card { position: relative; display: block; width: 100%; height: 100%; aspect-ratio: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; filter: none; opacity: 1; }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__back { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; isolation: isolate; }
 /* Cooldown sits on the card itself, in the painted medallion. */
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { position: absolute; top: 50%; left: 50%; z-index: 2; display: grid; width: 52px; height: 52px; place-items: center; color: #f6ead0; font: 700 1.5rem/1 var(--font-display); text-shadow: 0 0 2px #1a100a, 0 1px 3px #1a100a, 0 0 8px rgb(26 16 10 / 85%); border: 0; border-radius: 0; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; transform: translate(-50%, -50%); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__timer { position: absolute; top: 50%; left: 50%; z-index: 2; display: grid; width: 62px; height: 62px; place-items: center; border: 0; border-radius: 0; background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 3px rgb(26 16 10 / 45%)); }
+/* Engraved metal seconds, the same numerals as the queue countdown. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__seconds { --number-metal-top: #fff5d3; --number-metal-highlight: #f4dfa5; --number-metal-mid: #e0bd7b; --number-metal-low: #b98b4b; --number-metal-outline: #1a100a; font-size: 1.95rem; line-height: 1; filter: drop-shadow(0 1px 1px #1a100a) drop-shadow(0 0 3px rgb(26 16 10 / 80%)); }
+/* The ink veil drains from the top over the remaining cooldown, like sand in a glass. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__veil { position: absolute; inset: 0; z-index: 1; background: rgb(38 18 5 / 52%); box-shadow: 0 -1px 0 rgb(26 16 10 / 55%); transform-origin: 50% 100%; transform: scaleY(var(--arena-cooldown-start, 1)); animation: arena-cooldown-drain var(--arena-cooldown-ms, 9000ms) linear forwards; pointer-events: none; }
+@keyframes arena-cooldown-drain { from { transform: scaleY(var(--arena-cooldown-start, 1)); } to { transform: scaleY(0); } }
+@media (prefers-reduced-motion: reduce) { :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-hidden-card__veil { display: none; } }
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .arena-multiplier--none { visibility: hidden; }
 
 /* Controls. */
@@ -140,3 +142,8 @@
 .arena-artifacts { display: flex; justify-content: center; gap: 4px; margin-top: -2px; }
 .arena-artifacts__item { position: relative; display: grid; width: 24px; height: 24px; place-items: center; background: url("/assets/equipment/rarity-v3/tile.webp") center / 100% 100% no-repeat; background-color: color-mix(in srgb, var(--eq-rarity) 62%, #fff); background-blend-mode: multiply; }
 .arena-artifacts__item > .eq-sprite { width: 20px; height: 20px; filter: none; }
+
+/* Battle log, as in the reference: bystanders' strikes on the target are dimmed; a killing blow shows a skull. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-row--muted { opacity: .58; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-art { position: relative; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-fatal { position: absolute; right: 0; bottom: 0; z-index: 1; display: grid; width: 24px; height: 24px; place-items: center; filter: drop-shadow(0 1px 2px rgb(26 16 10 / 70%)); }

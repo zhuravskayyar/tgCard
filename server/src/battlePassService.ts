@@ -19,6 +19,7 @@ import type {
   PlayerBalance,
   PlayerCardInstance,
 } from "@cardastika/shared";
+import { isArenaUnlocked } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { CURRENCY_BOOST_DURATION_MS, getCurrencyBoostStatus } from "./boosts/currencyBoost.js";
 import {
@@ -86,6 +87,19 @@ function toInteger(value: number | string) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed)) throw new Error("Battle pass stored integer is invalid");
   return parsed;
+}
+
+const ARENA_TASK_IDS: ReadonlySet<string> = new Set(["play-arenas", "win-arenas"]);
+
+/** Arena tasks appear only once the arena is open (2000 duel rating reached), as in the reference. */
+async function loadAvailableDailyTasks(database: Database, playerId: string) {
+  const result = await database.query<{ duel_highest_league_index: number | string; duel_rating: number | string }>(
+    "SELECT duel_rating, duel_highest_league_index FROM players WHERE id = $1",
+    [playerId],
+  );
+  const row = result.rows[0];
+  const arenaOpen = row ? isArenaUnlocked(toInteger(row.duel_rating), toInteger(row.duel_highest_league_index)) : false;
+  return arenaOpen ? DAILY_TASKS : DAILY_TASKS.filter((task) => !ARENA_TASK_IDS.has(task.id));
 }
 
 function multiplierForCompletedTasks(completedCount: number): 1 | 2 | 3 {
@@ -191,7 +205,8 @@ async function loadMilestoneClaims(database: Database, playerId: string, seasonI
 async function loadCompletedTaskCount(database: Database, playerId: string, now: Date) {
   const day = getDayWindow(new Date(now.getTime() - 24 * 60 * 60 * 1_000));
   const progress = await loadEventProgress(database, playerId, day.startsAt, day.endsAt);
-  return DAILY_TASKS.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
+  const tasks = await loadAvailableDailyTasks(database, playerId);
+  return tasks.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
 }
 
 function toBalance(row: BalanceRow): PlayerBalance {
@@ -325,7 +340,8 @@ export class BattlePassService {
     const dailyLogin = await this.dailyRewards.getView(database, playerId, now);
     const dailyClaims = await loadDailyClaims(database, playerId, day.taskDate);
     const progress = await loadEventProgress(database, playerId, day.startsAt, day.endsAt);
-    const completedCount = DAILY_TASKS.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
+    const availableTasks = await loadAvailableDailyTasks(database, playerId);
+    const completedCount = availableTasks.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
     const currentRewardMultiplier = multiplierForCompletedTasks(await loadCompletedTaskCount(database, playerId, now));
     const arenaLeagueIndex = await loadArenaLeagueIndex(database, playerId);
     const allThresholds = BATTLE_PASS_CIRCLES.flatMap(({ thresholds }) => thresholds);
@@ -376,7 +392,7 @@ export class BattlePassService {
         currentRewardMultiplier,
         multiplierForTomorrow: multiplierForCompletedTasks(completedCount),
         taskDate: day.taskDate,
-        tasks: DAILY_TASKS.map((task) => {
+        tasks: availableTasks.map((task) => {
           const taskProgress = Math.min(task.target, progress.get(task.id) ?? 0);
           return {
             claimed: dailyClaims.has(task.id),
@@ -453,6 +469,7 @@ export class BattlePassService {
   async claimDailyTask(playerId: string, taskId: string, now: Date = new Date()): Promise<DailyTaskClaimResponse> {
     const task = getDailyTask(taskId);
     if (!task) throw new DailyTaskNotClaimableError();
+    if (!(await loadAvailableDailyTasks(this.pool, playerId)).some(({ id }) => id === task.id)) throw new DailyTaskNotClaimableError();
     const season = getSeasonWindow(now);
     const day = getDayWindow(now);
     const client = await this.pool.connect();

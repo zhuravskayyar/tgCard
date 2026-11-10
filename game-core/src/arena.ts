@@ -8,7 +8,7 @@ export const ARENA_QUEUE_SECONDS_BY_TIER = Object.freeze([5, 10, 15, 20, 25]);
 /** Every other live player who signs up brings the start this much closer. */
 export const ARENA_QUEUE_JOIN_SHORTENING_MS = 5_000;
 export const ARENA_QUEUE_MIN_DURATION_MS = 5_000;
-/** Arena refreshes used lanes at the next shared nine-second cycle boundary. */
+/** A used arena card returns this long after its own strike. */
 export const ARENA_SLOT_COOLDOWN_MS = 9_000;
 // Half a cycle: a bot strikes once in the first cycle, then twice in every later one.
 export const ARENA_BOT_ACTION_INTERVAL_MS = 4_500;
@@ -38,29 +38,30 @@ export function getArenaQueueDurationMs(leagueIndex: number, participantCount: n
 }
 
 /**
- * Level range of the daily "win arenas" reward card by arena league tier (three leagues per tier).
- * Never below epic (level 20); higher tiers give stronger cards. Our own balance on the reference idea.
+ * Level range of the daily "win arenas" reward card for each of the 21 arena leagues, copied from the
+ * reference daily-tasks manual. Rarity follows the level: epic up to 34, legendary 35-59, mythic from 60.
+ * Second blue offers 20-24, 25-29 or 30-32 and first blue 25-29 or 30-32; one range spans those options.
  */
-export const ARENA_REWARD_CARD_LEVELS_BY_TIER: readonly (readonly [number, number])[] = Object.freeze([
-  Object.freeze([20, 24] as const),
-  Object.freeze([24, 28] as const),
-  Object.freeze([29, 33] as const),
-  Object.freeze([35, 42] as const),
-  Object.freeze([44, 50] as const),
-  Object.freeze([50, 56] as const),
-  Object.freeze([60, 63] as const),
-]);
+export const ARENA_REWARD_CARD_LEVELS_BY_LEAGUE: readonly (readonly [number, number])[] = Object.freeze([
+  // Grey III-I, green III-I
+  [20, 24], [20, 24], [20, 24], [20, 24], [20, 24], [20, 24],
+  // Blue III, II, I
+  [20, 24], [20, 32], [25, 32],
+  // Epic III, II, I
+  [20, 24], [24, 28], [29, 33],
+  // Legendary III, II, I
+  [35, 42], [44, 50], [50, 56],
+  // Mythic III, II, I
+  [60, 63], [60, 63], [60, 63],
+  // Master III, II, I
+  [70, 70], [72, 72], [74, 74],
+].map((range) => Object.freeze(range as [number, number])));
 
 export function getArenaRewardCardLevelRange(arenaLeagueIndex: number): readonly [number, number] {
-  const tier = Math.max(0, Math.floor(arenaLeagueIndex / 3));
-  return ARENA_REWARD_CARD_LEVELS_BY_TIER[Math.min(tier, ARENA_REWARD_CARD_LEVELS_BY_TIER.length - 1)]!;
+  const league = Math.max(0, Math.min(Math.floor(arenaLeagueIndex), ARENA_REWARD_CARD_LEVELS_BY_LEAGUE.length - 1));
+  return ARENA_REWARD_CARD_LEVELS_BY_LEAGUE[league]!;
 }
 
-/** Next shared cycle boundary; a strike exactly on the boundary waits for the following one. */
-export function getArenaCycleEnd(cyclesStartAtMs: number, nowMs: number) {
-  if (nowMs < cyclesStartAtMs) return cyclesStartAtMs;
-  return cyclesStartAtMs + (Math.floor((nowMs - cyclesStartAtMs) / ARENA_SLOT_COOLDOWN_MS) + 1) * ARENA_SLOT_COOLDOWN_MS;
-}
 
 export function calculateArenaDamage(input: {
   attacker: DuelCardSnapshot;
