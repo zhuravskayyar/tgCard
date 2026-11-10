@@ -340,7 +340,7 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
         {introActive ? <DuelIntroOverlay /> : null}
         {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
         <div className="duel-card-row duel-card-row--enemy">
-          {duel.enemyActiveCards.map((card, index) => (
+          {duel.enemyActiveCards.slice(0, 3).map((card, index) => (
             <BattleCard
               card={card}
               clashLevel={clashSlot === index && clash ? getEffectLevel(clash.enemyMultiplier) : undefined}
@@ -364,7 +364,7 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
           })}
         </div>
         <div className="duel-card-row duel-card-row--player">
-          {duel.playerActiveCards.map((card, index) => (
+          {duel.playerActiveCards.slice(0, 3).map((card, index) => (
             <BattleCard
               card={card}
               clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined}

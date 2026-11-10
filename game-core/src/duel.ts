@@ -317,7 +317,17 @@ export function cycleCardPoolSlotWithGuildCard(
   random: RandomSource = Math.random,
 ) {
   const usedCard = pool.activeCards[slotIndex];
-  const guildCardAvailable = Boolean(guildCard && !pool.activeCards.some((card) => card.source === "guild"));
+  // The guild leader's selected card is already part of their own deck. Let it
+  // rotate as a normal card instead of injecting a second copy as a guild draw.
+  const guildCardAlreadyInPool = Boolean(guildCard && (
+    pool.activeCards.some((card) => card.instanceId === guildCard.instanceId)
+      || pool.reserveQueue.some((card) => card.instanceId === guildCard.instanceId)
+  ));
+  const guildCardAvailable = Boolean(
+    guildCard
+      && !guildCardAlreadyInPool
+      && !pool.activeCards.some((card) => card.source === "guild")
+  );
   if (guildCardAvailable) {
     const roll = random();
     if (!Number.isFinite(roll) || roll < 0 || roll >= 1) {

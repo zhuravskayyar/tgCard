@@ -90,9 +90,9 @@ test("deterministic initial pool has three active cards and a cyclic six-card re
   assert.equal(new Set([...pool.activeCards, ...pool.reserveQueue].map(({ code }) => code)).size, 9);
 });
 
-test("Guild Card draw is injectable, additive, and never becomes a tenth deck card", () => {
+test("Guild Card draw is external to the deck and never becomes a tenth deck card", () => {
   const deckCards = "ABCDEFGHI".split("").map((code) => card(code));
-  const guildCard = { ...card("G", "water", 240), source: "guild" as const };
+  const guildCard = { ...card("G", "water", 240), instanceId: "guild-instance-G", source: "guild" as const };
   const pool = initializeCyclicCardPool(deckCards, () => 0.999999);
 
   const missed = cycleCardPoolSlotWithGuildCard(pool, 1, guildCard, () => GUILD_CARD_APPEARANCE_CHANCE);
@@ -110,6 +110,22 @@ test("Guild Card draw is injectable, additive, and never becomes a tenth deck ca
   assert.equal(returnedToDeck.pool.activeCards[1]?.code, "D");
   assert.equal(returnedToDeck.pool.reserveQueue.length, 6);
   assert.equal(returnedToDeck.pool.activeCards.some(({ source }) => source === "guild"), false);
+});
+
+test("a guild card already in the player's deck remains a single normal rotation card", () => {
+  const deckCards = "ABCDEFGHI".split("").map((code) => card(code));
+  const guildCard = { ...card("E", "water", 240), source: "guild" as const };
+  let pool = initializeCyclicCardPool(deckCards, () => 0.999999);
+
+  const firstRotation = cycleCardPoolSlotWithGuildCard(pool, 1, guildCard, () => 0);
+  assert.equal(firstRotation.guildCardAppeared, false);
+  assert.equal(firstRotation.pool.activeCards[1]?.code, "D");
+  assert.equal(firstRotation.pool.reserveQueue.length, 6);
+
+  pool = cycleCardPoolSlotWithGuildCard(firstRotation.pool, 1, guildCard, () => 0).pool;
+  assert.equal(pool.activeCards[1]?.instanceId, guildCard.instanceId);
+  assert.equal(pool.activeCards[1]?.source, undefined);
+  assert.equal(new Set([...pool.activeCards, ...pool.reserveQueue].map(({ instanceId }) => instanceId)).size, 9);
 });
 
 test("mirrored exchange uses the same selected slot and preserves historical card snapshots", () => {
