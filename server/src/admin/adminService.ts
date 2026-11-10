@@ -146,11 +146,31 @@ const PLAYER_PROJECTION = `
   players.account_xp,
   players.silver,
   players.gold,
-  players.last_seen_at,
-  (players.last_seen_at >= NOW() - INTERVAL '5 minutes') AS is_online,
   players.created_at,
   players.updated_at
 `;
+
+function playerProjection(activityTracking: boolean) {
+  const activityColumns = activityTracking
+    ? `players.last_seen_at,
+      COALESCE(players.last_seen_at >= NOW() - INTERVAL '5 minutes', FALSE) AS is_online`
+    : `NULL::timestamptz AS last_seen_at, FALSE AS is_online`;
+  return `${PLAYER_PROJECTION},
+    ${activityColumns}`;
+}
+
+async function hasPlayerActivityColumn(database: Queryable) {
+  const result = await database.query<{ available: boolean }>(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = current_schema()
+        AND table_name = 'players'
+        AND column_name = 'last_seen_at'
+    ) AS available`,
+  );
+  return result.rows[0]?.available === true;
+}
 
 const OWNED_CARD_PROJECTION = `
   instances.id AS instance_id,
@@ -224,9 +244,10 @@ function pagination(page: number, limit: number, total: number) {
 }
 
 async function loadPlayer(database: Queryable, playerId: string, lock = false) {
+  const activityTracking = await hasPlayerActivityColumn(database);
   const result = await database.query<PlayerRow>(
     `
-      SELECT ${PLAYER_PROJECTION}
+      SELECT ${playerProjection(activityTracking)}
       FROM players
       LEFT JOIN LATERAL (
         SELECT provider_user_id
@@ -252,13 +273,17 @@ export class AdminService {
 
   async getDashboard(): Promise<AdminDashboardResponse> {
     try {
+      const activityTracking = await hasPlayerActivityColumn(this.pool);
+      const activityStats = activityTracking
+        ? `COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '24 hours') AS active_last_24_hours,
+            COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '5 minutes') AS online_now`
+        : `0::bigint AS active_last_24_hours, 0::bigint AS online_now`;
       const [players, economy, cardTotals, rarityLevels, popularCard, gameData] = await Promise.all([
         this.pool.query<{ active_last_24_hours: string; new_last_7_days: string; new_today: string; online_now: string; total: string }>(
           `SELECT COUNT(*) AS total,
             COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) AS new_today,
             COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS new_last_7_days,
-            COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '24 hours') AS active_last_24_hours,
-            COUNT(*) FILTER (WHERE last_seen_at >= NOW() - INTERVAL '5 minutes') AS online_now
+            ${activityStats}
            FROM players`,
         ),
         this.pool.query<{ average_gold: string | null; average_silver: string | null; total_gold: string; total_silver: string }>(
@@ -374,6 +399,8 @@ export class AdminService {
       } as const;
       const order = `${sortColumns[options.sort]} ${options.direction.toUpperCase()}, players.id ASC`;
       const countValues = [...values];
+      const activityTracking = await hasPlayerActivityColumn(this.pool);
+      const projection = playerProjection(activityTracking);
       const limitParameter = add(options.limit);
       const offsetParameter = add((options.page - 1) * options.limit);
       const from = `
@@ -386,7 +413,7 @@ export class AdminService {
       `;
       const [rows, totalResult] = await Promise.all([
         this.pool.query<PlayerRow>(
-          `SELECT ${PLAYER_PROJECTION} ${from} ${where} ORDER BY ${order} LIMIT ${limitParameter} OFFSET ${offsetParameter}`,
+          `SELECT ${projection} ${from} ${where} ORDER BY ${order} LIMIT ${limitParameter} OFFSET ${offsetParameter}`,
           values,
         ),
         this.pool.query<{ total: string }>(`SELECT COUNT(*) AS total ${from} ${where}`, countValues),

@@ -164,6 +164,16 @@ export class PlayerRepository {
 
   async recordActivity(playerId: string) {
     try {
+      const tracking = await this.pool.query<{ available: boolean }>(
+        `SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'players'
+            AND column_name = 'last_seen_at'
+        ) AS available`,
+      );
+      if (tracking.rows[0]?.available !== true) return;
       await this.pool.query(
         `UPDATE players
          SET last_seen_at = NOW()
