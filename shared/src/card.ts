@@ -170,6 +170,11 @@ export interface AbsorptionPreviewResponse {
   selectedCards: number;
 }
 
+/** "Поглинути слабкі" preview: the weak cards the server picked and the resulting level progress. */
+export interface BulkAbsorptionPreviewResponse extends AbsorptionPreviewResponse {
+  fodderInstanceIds: string[];
+}
+
 export interface CardProgressionActionResponse extends PlayerCardDetailResponse {
   consumedInstanceIds: string[];
   deckPower?: number;

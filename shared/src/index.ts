@@ -37,6 +37,7 @@ export {
   type AbsorbCardsRequest,
   type AbsorptionCandidatesResponse,
   type AbsorptionPreviewResponse,
+  type BulkAbsorptionPreviewResponse,
   type PlayerCard,
   type PlayerCardInstance,
   type PlayerCardsResponse,

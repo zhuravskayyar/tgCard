@@ -20,6 +20,7 @@ import {
   getTransferableElementValue,
   getUpgradeGoldPrice,
   isGoldLevel,
+  selectBulkAbsorption,
   selectGeneratedLevelForRarity,
 } from "./cardProgression.js";
 
@@ -171,4 +172,21 @@ test("upgrade badges distinguish free progress, mandatory gold, and maximum leve
   assert.equal(absorbable.water, 0);
   assert.equal(getCardUpgradeIndicator(89, getRequiredProgressElements(89)), "gold");
   assert.equal(getCardUpgradeIndicator(MAX_CARD_LEVEL, 0), undefined);
+});
+
+test("bulk absorption takes the weakest cards that fit into the current level", () => {
+  const candidates = [
+    { id: "big", transferableElements: 10.56 },
+    { id: "b", transferableElements: 0.14 },
+    { id: "mid", transferableElements: 4.08 },
+    { id: "a", transferableElements: 0.14 },
+  ];
+  // Level 21 needs 4.8: 0.14 + 0.14 + 4.08 = 4.36 fits, the 10.56 card would overflow it.
+  assert.deepEqual(selectBulkAbsorption(candidates, 4.8), ["a", "b", "mid"]);
+  assert.deepEqual(selectBulkAbsorption(candidates, 0.2), ["a"]);
+  assert.deepEqual(selectBulkAbsorption(candidates, 0), []);
+  // Collection bonus counts towards the limit.
+  assert.deepEqual(selectBulkAbsorption(candidates, 4.4, (base) => Math.round(base * 110) / 100), ["a", "b"]);
+  assert.deepEqual(selectBulkAbsorption(candidates, 100, undefined, 2), ["a", "b"]);
+  assert.deepEqual(selectBulkAbsorption([], 5), []);
 });

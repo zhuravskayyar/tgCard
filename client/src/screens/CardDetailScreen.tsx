@@ -4,7 +4,7 @@ import { ElementMedallion } from "../components/ElementMedallion";
 import { ExperienceFlask } from "../components/ExperienceFlask";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { AbsorptionCandidatesResponse, PlayerCardDetailResponse } from "@cardastika/shared";
+import type { AbsorptionCandidatesResponse, BulkAbsorptionPreviewResponse, PlayerCardDetailResponse } from "@cardastika/shared";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
@@ -18,7 +18,7 @@ import { preloadSounds, PROGRESSION_SOUND_CUES } from "../audio";
 import { playCardDestructionFx, playCardPowerFx } from "./cardProgressionFx";
 import { CardProtectionFx } from "./CardProtectionFx";
 import { getTelegramInitData } from "../telegram";
-import { absorbCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, previewCardAbsorption, toggleCardProtection } from "../telegram/playerCards";
+import { absorbCards, absorbWeakCards, levelUpCard, loadAbsorptionCandidates, loadCardDetail, previewCardAbsorption, previewWeakAbsorption, toggleCardProtection } from "../telegram/playerCards";
 import { PlayerDataError } from "../telegram/playerDeck";
 import { useGyroscopeCardTilt } from "../hooks/useGyroscopeCardTilt";
 
@@ -45,6 +45,7 @@ function requestErrorMessage(error: unknown) {
   if (error instanceof PlayerDataError && error.code === "unsupported_level_data") return "Для цього рівня в джерелі немає підтвердженого значення.";
   if (error instanceof PlayerDataError && error.code === "fodder_in_deck") return "Одна з обраних карт уже увійшла до бойової колоди.";
   if (error instanceof PlayerDataError && error.code === "protected_card") return "Захищену карту не можна поглинути.";
+  if (error instanceof PlayerDataError && error.code === "nothing_to_absorb") return "Жодна слабка карта не вміщується в поточний рівень.";
   if (error instanceof PlayerDataError && error.code === "insufficient_gold") return "Недостатньо золота для підняття рівня.";
   if (error instanceof PlayerDataError && error.code === "insufficient_elements") return "Недостатньо магічних елементів для підвищення рівня.";
   return "Дію не виконано. Оновіть дані та спробуйте ще раз.";
@@ -66,6 +67,10 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const candidatesCardRef = useRef<string | null>(null);
   const [cardDisplayPower, setCardDisplayPower] = useState<number | null>(null);
   const [levelConfirmationOpen, setLevelConfirmationOpen] = useState(false);
+  // Snapshot of the preview the player confirms, so a background refresh cannot unmount the open dialog.
+  const [bulkConfirmation, setBulkConfirmation] = useState<BulkAbsorptionPreviewResponse | null>(null);
+  const bulkConfirmationOpen = bulkConfirmation !== null;
+  const [bulkPreview, setBulkPreview] = useState<BulkAbsorptionPreviewResponse | null>(null);
   const [pendingAction, setPendingAction] = useState<"level" | "absorb" | "protection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -133,6 +138,23 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     return () => controller.abort();
   }, [candidates, cardInstanceId]);
 
+  // "Поглинути слабкі": the server picks the weakest same-element cards that fit into the current level.
+  const progressKey = detail.status === "ready"
+    ? `${detail.data.card.level}:${detail.data.card.levelProgressElements}:${detail.data.card.storedElements}`
+    : null;
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!initData || progressKey === null || candidates.status !== "ready" || candidates.data.totalCards === 0) {
+      setBulkPreview(null);
+      return;
+    }
+    const controller = new AbortController();
+    void previewWeakAbsorption(initData, cardInstanceId, controller.signal)
+      .then((preview) => { if (!controller.signal.aborted) setBulkPreview(preview); })
+      .catch(() => { if (!controller.signal.aborted) setBulkPreview(null); });
+    return () => controller.abort();
+  }, [candidates, cardInstanceId, progressKey]);
+
   async function performLevelUp() {
     const initData = getTelegramInitData();
     if (!initData || actionInFlightRef.current) return;
@@ -173,14 +195,19 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     void performLevelUp();
   }
 
-  async function performAbsorption(fodderInstanceIds: readonly string[]) {
+  async function performAbsorption(fodderInstanceIds: readonly string[] | "weak") {
     const initData = getTelegramInitData();
-    if (!initData || actionInFlightRef.current || fodderInstanceIds.length === 0) return;
+    const bulk = fodderInstanceIds === "weak";
+    if (!initData || actionInFlightRef.current || (!bulk && fodderInstanceIds.length === 0)) return;
     const previousCard = detail.status === "ready" ? detail.data.card : null;
     actionInFlightRef.current = true;
     setPendingAction("absorb"); setActionError(null);
     try {
-      const result = await absorbCards(initData, cardInstanceId, [...fodderInstanceIds]);
+      const result = bulk
+        ? await absorbWeakCards(initData, cardInstanceId)
+        : await absorbCards(initData, cardInstanceId, [...fodderInstanceIds]);
+      setBulkConfirmation(null);
+      setBulkPreview(null);
       const consumedIds = new Set(result.consumedInstanceIds);
       setDetail({ status: "ready", data: result });
       onGoldChange(result.playerGold);
@@ -219,7 +246,9 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       });
       setCandidatePage(1);
       setCandidateAttempt((current) => current + 1);
-      setActionSuccess("Карту поглинуто. Сила основної карти оновлена.");
+      setActionSuccess(result.consumedInstanceIds.length > 1
+        ? `Поглинуто карт: ${result.consumedInstanceIds.length}. Прогрес рівня оновлено.`
+        : "Карту поглинуто. Сила основної карти оновлена.");
     } catch (error) {
       setActionError(requestErrorMessage(error));
       setCandidateAttempt((current) => current + 1);
@@ -232,6 +261,13 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     setActionSuccess(null);
     // Weak cards are cheap and the gain is shown on the button, so absorb at once without a dialog.
     void performAbsorption([candidate.instanceId]);
+  }
+
+  function requestBulkAbsorption() {
+    if (actionInFlightRef.current || pendingAction || !bulkPreview || bulkPreview.selectedCards === 0) return;
+    setActionError(null);
+    setActionSuccess(null);
+    setBulkConfirmation(bulkPreview);
   }
 
   async function performProtectionToggle() {
@@ -276,6 +312,12 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
   const hasAbsorptionAction = candidates.status === "ready" && candidates.data.totalCards > 0;
   // The level progress stays visible until the maximum level, even with no weak cards left to absorb.
   const showUpgradePlate = progression.availability !== "maximum_level";
+  const bulkGainPercent = bulkPreview && bulkPreview.requiredElements > 0
+    ? (bulkPreview.addedElements / bulkPreview.requiredElements) * 100
+    : 0;
+  const canBulkAbsorb = bulkPreview !== null && bulkPreview.selectedCards > 0;
+  const levelAlreadyFilled = bulkPreview !== null && bulkPreview.beforeElements >= bulkPreview.requiredElements;
+  const gainPercentOf = (preview: BulkAbsorptionPreviewResponse) => preview.requiredElements > 0 ? (preview.addedElements / preview.requiredElements) * 100 : 0;
 
   return <section className="card-detail-screen" data-expanded-panel="progress">
     <ScreenHeading backTutorialTarget="card-back" onBack={onBack} title={card.displayName ?? "Карта"} description={<span className="card-detail-meta"><span>{card.displayName ?? "Назва недоступна"}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-element">{elementLabels[card.element]}</span><span aria-hidden="true"> · </span><span data-tutorial-target="card-rarity">{rarityLabels[card.rarity]}</span></span>} />
@@ -327,9 +369,9 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       </section> : null}
     </div>
 
-    {typeof document !== "undefined" && (actionError && !levelConfirmationOpen || actionSuccess) ? createPortal(
+    {typeof document !== "undefined" && (actionError && !levelConfirmationOpen && !bulkConfirmationOpen || actionSuccess) ? createPortal(
       <div className="card-detail-feedback-layer">
-        {actionError && !levelConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
+        {actionError && !levelConfirmationOpen && !bulkConfirmationOpen ? <p className="card-action-error" role="alert">{actionError}</p> : null}
         {actionSuccess ? <p className="action-feedback action-feedback--success" key={actionSuccess} role="status">{actionSuccess}</p> : null}
       </div>,
       document.body,
@@ -337,6 +379,16 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
     {candidates.status === "ready" && candidates.data.totalCards === 0 ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />Немає слабких карт стихії {ELEMENT_GENITIVE[card.element]}</p> : null}
     {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
+    {hasAbsorptionAction && showUpgradePlate ? <div className="absorb-weak-row">
+      <button className="level-up-button absorb-weak-button" disabled={!canBulkAbsorb || pendingAction !== null} onClick={requestBulkAbsorption} type="button">
+        <span>{pendingAction === "absorb" && bulkConfirmationOpen ? "Поглинання…" : "Поглинути слабкі"}</span>
+      </button>
+      <p className="absorb-weak-row__gain">{bulkPreview === null ? "Прогрес рівня: …"
+        : canBulkAbsorb ? <>Прогрес рівня: <strong>+{formatGainPercent(bulkGainPercent)}</strong></>
+          : levelAlreadyFilled ? "Рівень заповнено — підніміть його."
+            : "Слабкі карти переповнять рівень — поглинайте їх поштучно."}</p>
+    </div> : null}
+
     {hasAbsorptionAction && candidates.status === "ready" ? (
       <section aria-label="Слабкі карти для поглинання" className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>
         <RibbonTitle as="h2" className="absorption-panel__title" size="wide">Слабкі карти</RibbonTitle>
@@ -356,6 +408,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     ) : null}
 
     <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow chevron icon="deck" iconSrc={homeSprite("mode-deck")} illustrationSrc={homeSprite("row-deck")} onClick={onOpenDeck} title="Колода" /><MenuRow chevron icon="weak-cards" attention={hasAbsorptionAction} iconSrc={homeSprite("row-icon-weak-cards")} illustrationSrc={homeSprite("row-weak-cards")} onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow chevron icon="shop" iconSrc={homeSprite("row-icon-shop")} illustrationSrc={homeSprite("row-shop")} onClick={onOpenShop} title="Магазин" /></nav>
+
+    {bulkConfirmation ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути" description={<><p>{`Буде знищено слабких карт: ${bulkConfirmation.selectedCards}.`}</p><p>Прогрес рівня: <strong>+{formatGainPercent(gainPercentOf(bulkConfirmation))}</strong></p></>} error={actionError} onCancel={() => setBulkConfirmation(null)} onConfirm={() => void performAbsorption("weak")} restoreFocusTargetRef={absorptionPanelRef} title="Поглинути слабкі карти?" variant="primary" /> : null}
 
     {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
   </section>;

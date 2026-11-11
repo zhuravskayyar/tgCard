@@ -15,13 +15,15 @@ export type CardProgressionRouteAction =
   | "absorption-candidates"
   | "absorption-preview"
   | "absorb"
+  | "absorb-weak"
+  | "absorb-weak-preview"
   | "level-up"
   | "protection";
 
 interface CardProgressionRouteDependencies extends RouteAuthDependencies {
   progression: Pick<
     CardProgressionService,
-    "getDetail" | "getAbsorptionCandidates" | "previewAbsorption" | "absorb" | "levelUp" | "toggleProtection"
+    "getDetail" | "getAbsorptionCandidates" | "previewAbsorption" | "previewBulkAbsorption" | "absorb" | "absorbWeak" | "levelUp" | "toggleProtection"
   >;
   responseHeaders?: OutgoingHttpHeaders;
   campaign?: {
@@ -115,7 +117,15 @@ export async function handleCardProgressionRequest(
       sendJson(response, 200, result, headers);
       return;
     }
-  if (action === "level-up" && request.method === "POST") {
+    if (action === "absorb-weak-preview" && request.method === "GET") {
+      sendJson(response, 200, await dependencies.progression.previewBulkAbsorption(player.id, instanceId), headers);
+      return;
+    }
+    if (action === "absorb-weak" && request.method === "POST") {
+      sendJson(response, 200, await dependencies.progression.absorbWeak(player.id, instanceId), headers);
+      return;
+    }
+    if (action === "level-up" && request.method === "POST") {
       sendJson(response, 200, await dependencies.progression.levelUp(player.id, instanceId), headers);
       return;
     }

@@ -2,6 +2,7 @@ import type {
   AbsorbCardsRequest,
   AbsorptionCandidatesResponse,
   AbsorptionPreviewResponse,
+  BulkAbsorptionPreviewResponse,
   CardProgressionActionResponse,
   PlayerCardDetailResponse,
   WeakPlayerCardsResponse,
@@ -99,8 +100,13 @@ export async function previewCardAbsorption(
     signal,
     { fodderInstanceIds },
   );
+  if (!isAbsorptionPreview(value)) throw new PlayerDataError(502);
+  return value;
+}
+
+function isAbsorptionPreview(value: unknown): value is AbsorptionPreviewResponse {
   const preview = value as Partial<AbsorptionPreviewResponse>;
-  if (
+  return !(
     !value || typeof value !== "object"
     || !Number.isFinite(preview.beforePercent)
     || !Number.isFinite(preview.afterPercent)
@@ -109,8 +115,18 @@ export async function previewCardAbsorption(
     || !Number.isFinite(preview.requiredElements)
     || !Number.isSafeInteger(preview.selectedCards)
     || !Number.isFinite(preview.resultingStoredElements)
-  ) throw new PlayerDataError(502);
-  return value as AbsorptionPreviewResponse;
+    || !Number.isFinite(preview.addedElements)
+  );
+}
+
+/** "Поглинути слабкі" preview: the server picks the weak cards that fit into the current level. */
+export async function previewWeakAbsorption(initData: string, instanceId: string, signal?: AbortSignal) {
+  const value = await request(initData, `/api/player/cards/${encodeURIComponent(instanceId)}/absorb-weak-preview`, signal);
+  const ids = (value as Partial<BulkAbsorptionPreviewResponse> | null)?.fodderInstanceIds;
+  if (!isAbsorptionPreview(value) || !Array.isArray(ids) || !ids.every((id) => typeof id === "string")) {
+    throw new PlayerDataError(502);
+  }
+  return value as BulkAbsorptionPreviewResponse;
 }
 
 function parseAction(value: unknown) {
@@ -132,6 +148,16 @@ export async function absorbCards(initData: string, instanceId: string, fodderIn
     `/api/player/cards/${encodeURIComponent(instanceId)}/absorb`,
     undefined,
     { fodderInstanceIds },
+  ));
+}
+
+export async function absorbWeakCards(initData: string, instanceId: string) {
+  return parseAction(await request(
+    initData,
+    `/api/player/cards/${encodeURIComponent(instanceId)}/absorb-weak`,
+    undefined,
+    undefined,
+    "POST",
   ));
 }
 

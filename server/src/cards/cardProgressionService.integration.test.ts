@@ -212,3 +212,68 @@ test("weak pagination returns the 17-card complement as 9 then 8 in deterministi
     await pool.end();
   }
 });
+
+test("absorbing weak cards takes the weakest same-element cards that fit into the level in one transaction", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const progression = new CardProgressionService(pool, new InventoryRepository(pool));
+  const user = createTelegramUser("bulk");
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    const targetId = randomUUID();
+    const tinyIds = [randomUUID(), randomUUID()];
+    const mediumId = randomUUID();
+    const overflowId = randomUUID();
+    const protectedId = randomUUID();
+    const otherElementId = randomUUID();
+    // Level 21 needs 4.8 elements; level 1 gives 0.02, level 10 gives 0.8, level 20 gives 4.
+    await pool.query(
+      `INSERT INTO player_card_instances
+        (id, player_id, card_id, level, bonus_power, protected_from_absorption)
+       VALUES
+        ($1, $7, $8, 21, 0, FALSE),
+        ($2, $7, $8, 1, 0, FALSE),
+        ($3, $7, $8, 1, 0, FALSE),
+        ($4, $7, $8, 10, 0, FALSE),
+        ($5, $7, $8, 20, 0, FALSE),
+        ($6, $7, $8, 1, 0, TRUE),
+        ($9, $7, $10, 1, 0, FALSE)`,
+      [targetId, tinyIds[0], tinyIds[1], mediumId, overflowId, protectedId, player.id, DRAGONFLY_ID, otherElementId, STARTER_CARDS[2]!.id],
+    );
+    await recalculateAutomaticDeckForPlayer(pool, player.id);
+    const deck = await new DeckRepository(pool).findByPlayerId(player.id);
+    // The level-20 card may sit in the deck; either way it must never be consumed by the bulk action.
+    const inDeck = new Set(deck.cards.map(({ instanceId }) => instanceId));
+
+    const preview = await progression.previewBulkAbsorption(player.id, targetId);
+    for (const id of [...tinyIds, mediumId]) {
+      if (!inDeck.has(id)) assert.ok(preview.fodderInstanceIds.includes(id), "small weak cards are selected");
+    }
+    for (const id of [overflowId, protectedId, otherElementId, targetId]) {
+      assert.ok(!preview.fodderInstanceIds.includes(id), "overflowing, protected, other-element and target cards stay");
+    }
+    assert.ok(preview.fodderInstanceIds.every((id) => !inDeck.has(id)), "deck cards are never selected");
+    assert.ok(preview.addedElements <= preview.requiredElements);
+    assert.equal(preview.selectedCards, preview.fodderInstanceIds.length);
+
+    const absorbed = await progression.absorbWeak(player.id, targetId);
+    assert.deepEqual([...absorbed.consumedInstanceIds].sort(), [...preview.fodderInstanceIds].sort());
+    assert.equal(absorbed.card.levelProgressElements, preview.afterElements);
+    assert.equal(absorbed.card.storedElements, 0);
+    const remaining = await pool.query<{ id: string }>(
+      "SELECT id FROM player_card_instances WHERE id = ANY($1::uuid[])",
+      [preview.fodderInstanceIds],
+    );
+    assert.equal(remaining.rowCount, 0);
+
+    // Only the level-20 card is left and it would overflow the level, so nothing is absorbed.
+    await expectCode(progression.absorbWeak(player.id, targetId), "nothing_to_absorb");
+    assert.equal((await progression.previewBulkAbsorption(player.id, targetId)).selectedCards, 0);
+  } finally {
+    await cleanupPlayers(pool, [user.id]);
+    await pool.end();
+  }
+});

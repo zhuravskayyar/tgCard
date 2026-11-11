@@ -727,3 +727,7 @@
 :root .app-shell .card-detail-screen .absorption-card-slot__action > span { color: #24140a; font-size: 13px; font-weight: 800; text-decoration: none; }
 :root .app-shell .card-detail-screen .absorption-card-slot__action > strong { color: #1f4d10; font: 800 16px/1 var(--font-number); }
 :root .app-shell .card-detail-screen .absorption-card-slot__action > small { color: #3a2412; font-size: 11px; font-weight: 700; line-height: 1; }
+/* "Поглинути слабкі": between the level plate and the weak-card list, as in the reference. Reuses the level-up button sprite. */
+:root .app-shell .card-detail-screen .absorb-weak-row { display: grid; justify-items: center; gap: 2px; margin: 6px 0 2px; }
+:root .app-shell .card-detail-screen .absorb-weak-row__gain { margin: 0; color: #3a2412; font-size: 13px; font-weight: 700; line-height: 1.2; text-align: center; }
+:root .app-shell .card-detail-screen .absorb-weak-row__gain > strong { color: var(--state-success); font: 800 15px/1 var(--font-display); }

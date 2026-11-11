@@ -226,6 +226,36 @@ export function getTransferableElementValue(state: CardProgressionState) {
   return roundProgressValue(nativeValue + state.levelProgressElements + state.storedElements);
 }
 
+export interface BulkAbsorptionCandidate {
+  id: string;
+  transferableElements: number;
+}
+
+/**
+ * "Поглинути слабкі": weakest weak cards first, as many as fit into what the current level still
+ * needs, without overshooting it. A card that alone would overflow the level stays for a manual absorb.
+ * `toAddedElements` converts raw transferable value to the amount the target gains (collection bonus).
+ */
+export function selectBulkAbsorption(
+  candidates: readonly BulkAbsorptionCandidate[],
+  remainingElements: number,
+  toAddedElements: (baseElements: number) => number = (value) => value,
+  maxCards = Number.POSITIVE_INFINITY,
+): string[] {
+  const ordered = [...candidates].sort((left, right) =>
+    left.transferableElements - right.transferableElements || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
+  const selected: string[] = [];
+  let baseTotal = 0;
+  for (const candidate of ordered) {
+    if (selected.length >= maxCards) break;
+    const nextBase = roundProgressValue(baseTotal + candidate.transferableElements);
+    if (toAddedElements(nextBase) > remainingElements + 1e-9) break;
+    baseTotal = nextBase;
+    selected.push(candidate.id);
+  }
+  return selected;
+}
+
 export function applyElementalPotential(
   state: CardProgressionState,
   addedElements: number,

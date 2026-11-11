@@ -65,6 +65,27 @@ The client submits only instance IDs. Absorption preview, transferable values,
 price, resulting power/rarity, balance, and replacement deck are authoritative
 server calculations. A confirmation dialog is mandatory before deletion.
 
+### Absorb weak cards (bulk)
+
+The reference card page shows one «Поглотить слабые» button between the level-up
+block and the weak-card list, with the summed level-progress gain under it. We
+mirror it as «Поглинути слабкі» on Card Detail:
+
+- Candidates are the player's weak cards of the target's element: outside the
+  active deck, unprotected, not the target.
+- `game-core` `selectBulkAbsorption` takes them weakest first (by transferable
+  elements, collection absorption bonus included) while the sum still fits into
+  what the current level needs. A card that would overflow the level is left for
+  a manual, per-card absorb; the bulk action never spills into stored overflow.
+  At most 100 cards per action.
+- `GET /api/player/cards/:id/absorb-weak-preview` returns the picked IDs and the
+  resulting progress; the UI shows it as «Прогрес рівня: +N%».
+- `POST /api/player/cards/:id/absorb-weak` re-selects the cards under row locks
+  and absorbs them in one transaction through the same validation as a manual
+  absorb. The client sends no IDs. Nothing fitting returns `nothing_to_absorb`.
+- A confirmation dialog (count + gain) is shown before deletion. The button is
+  disabled when nothing fits and hidden at maximum level or without weak cards.
+
 ### Gold alternative and gold levels
 
 For ordinary transitions, filled progress proportionally reduces the confirmed
@@ -101,6 +122,6 @@ Each instance can be protected from absorption. A protected card is excluded
 from weak-card candidates and server-side absorption validation rejects it until
 the owner removes the protection.
 
-Magic-source conversion, protection, bulk consumption, recommended fodder,
+Magic-source conversion, recommended fodder,
 free-upgrade items, and unrelated world/event systems remain outside this
 milestone.

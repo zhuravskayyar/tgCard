@@ -270,7 +270,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isCampaignBossRoute = url.pathname.startsWith("/api/player/campaign/boss");
   const isBattlePassRoute = url.pathname.startsWith("/api/player/battle-pass");
   const cardProgressionMatch = url.pathname.match(
-    /^\/api\/player\/cards\/([^/]+?)(?:\/(absorption-candidates|absorption-preview|absorb|level-up|protection))?$/,
+    /^\/api\/player\/cards\/([^/]+?)(?:\/(absorption-candidates|absorption-preview|absorb-weak-preview|absorb-weak|absorb|level-up|protection))?$/,
   );
   const collectionMatch = url.pathname.match(
     /^\/api\/player\/collections(?:\/([^/]+?)(?:\/cards\/([^/]+?))?)?$/,

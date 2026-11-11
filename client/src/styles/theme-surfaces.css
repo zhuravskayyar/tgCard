@@ -191,3 +191,48 @@
   border-width: 12px 14px;
   border-image: var(--sprite-panel-frame) 62 fill / 13px stretch;
 }
+
+/* Shared ConfirmationDialog: the painted parchment plate and the sprite buttons instead of a flat CSS box. */
+:root .confirmation-modal.confirmation-modal {
+  padding: 22px 24px 20px;
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 20px stretch;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 6px 12px rgb(40 24 10 / 45%));
+}
+:root .confirmation-modal.confirmation-modal h2 { color: var(--text-on-parchment); text-align: center; }
+:root .confirmation-modal.confirmation-modal .confirmation-modal__description,
+:root .confirmation-modal.confirmation-modal .confirmation-modal__description p { text-align: center; }
+/* The generic `.confirmation-modal > div` two-column rule is meant for the button row only. */
+:root .confirmation-modal.confirmation-modal .confirmation-modal__description { grid-template-columns: minmax(0, 1fr); }
+:root .confirmation-modal.confirmation-modal .confirmation-modal__actions > button {
+  min-height: 42px;
+  padding: 2px 18px;
+  color: var(--home-ink);
+  font-family: var(--font-display);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-button-secondary) 0 120 0 120 fill / 0 32px / 0 stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root .confirmation-modal.confirmation-modal .confirmation-modal__actions > button:last-child {
+  color: var(--action-ink);
+  border-image-source: var(--sprite-button-primary);
+}
+:root .confirmation-modal.confirmation-modal .confirmation-modal__actions > button:disabled { opacity: .7; }
+/* Prices inside the dialog sit on the text line in the same ink, like the price on the level plate. */
+:root .confirmation-modal.confirmation-modal .confirmation-modal__description strong {
+  display: inline;
+  color: var(--home-ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+:root .confirmation-modal.confirmation-modal .confirmation-modal__description .currency-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  vertical-align: -3px;
+}

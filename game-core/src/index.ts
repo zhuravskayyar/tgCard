@@ -103,6 +103,8 @@ export {
   selectGeneratedLevelForRarity,
   selectShopLevelForRarity,
   SHOP_LEVEL_RANGES,
+  selectBulkAbsorption,
+  type BulkAbsorptionCandidate,
   type CardPowerInput,
   type CardLevelTableEntry,
   type CardProgressionState,

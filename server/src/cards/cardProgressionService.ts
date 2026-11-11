@@ -10,10 +10,12 @@ import {
   getUpgradeProgress,
   isGoldLevel,
   getPlayerCollectionModifiers,
+  selectBulkAbsorption,
 } from "@cardastika/game-core";
 import type {
   AbsorptionCandidatesResponse,
   AbsorptionPreviewResponse,
+  BulkAbsorptionPreviewResponse,
   CardProgressionActionResponse,
   CardProgressionView,
   PlayerCardDetailResponse,
@@ -69,7 +71,8 @@ export type CardProgressionErrorCode =
   | "insufficient_gold"
   | "insufficient_elements"
   | "maximum_level"
-  | "protected_card";
+  | "protected_card"
+  | "nothing_to_absorb";
 
 export class CardProgressionDomainError extends Error {
   constructor(public readonly code: CardProgressionErrorCode, message: string) {
@@ -269,6 +272,76 @@ async function loadValidatedAbsorption(
   };
 }
 
+/**
+ * Picks the fodder for "Поглинути слабкі" from the player's current weak cards of the target's element
+ * (outside the active deck, unprotected). With `lock` the rows stay locked for the absorbing transaction.
+ */
+async function selectBulkFodderIds(
+  database: Queryable,
+  playerId: string,
+  target: ProgressionCardRow,
+  lock: boolean,
+) {
+  const targetCard = mapCardInstanceRow(target);
+  if (targetCard.level === MAX_CARD_LEVEL) return [];
+  const progress = getUpgradeProgress(targetCard.levelProgressElements, targetCard.level);
+  const remaining = progress.requiredElements - progress.filledElements - targetCard.storedElements;
+  if (remaining <= 0) return [];
+  const result = await database.query<ProgressionCardRow>(
+    `
+      SELECT ${CARD_PROJECTION}
+      FROM player_card_instances
+      INNER JOIN cards ON cards.id = player_card_instances.card_id
+      WHERE player_card_instances.player_id = $1
+        AND player_card_instances.id <> $2
+        AND cards.element = $3
+        AND player_card_instances.protected_from_absorption = FALSE
+        AND NOT EXISTS (
+          SELECT 1
+          FROM player_decks
+          INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
+          WHERE player_decks.player_id = $1
+            AND deck_slots.card_instance_id = player_card_instances.id
+        )
+      ORDER BY player_card_instances.id
+      ${lock ? "FOR UPDATE OF player_card_instances" : ""}
+    `,
+    [playerId, target.instance_id, target.element],
+  );
+  if (result.rows.length === 0) return [];
+  const modifiers = getPlayerCollectionModifiers(
+    await getCompletedCollectionModifiers(database, playerId),
+    "absorption",
+  );
+  return selectBulkAbsorption(
+    result.rows.map((row) => ({
+      id: row.instance_id,
+      transferableElements: getTransferableElementValue({
+        level: toNonNegativeInteger(row.level, "fodder level"),
+        levelProgressElements: toProgressNumber(row.level_progress_elements, "fodder progress"),
+        storedElements: toProgressNumber(row.stored_elements, "fodder stored elements"),
+      }),
+    })),
+    remaining,
+    (base) => applyAbsorptionEfficiency(base, modifiers),
+    MAX_FODDER_CARDS,
+  );
+}
+
+async function loadOwnedTarget(database: Queryable, playerId: string, instanceId: string, lock: boolean) {
+  const result = await database.query<ProgressionCardRow>(
+    `SELECT ${CARD_PROJECTION}
+     FROM player_card_instances
+     INNER JOIN cards ON cards.id = player_card_instances.card_id
+     WHERE player_card_instances.player_id = $1 AND player_card_instances.id = $2
+     ${lock ? "FOR UPDATE OF player_card_instances" : ""}`,
+    [playerId, instanceId],
+  );
+  const row = result.rows[0];
+  if (!row) throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
+  return row;
+}
+
 export class CardProgressionService {
   constructor(
     private readonly pool: Pool,
@@ -350,6 +423,35 @@ export class CardProgressionService {
     }
   }
 
+  /** Preview for "Поглинути слабкі": which cards the server would take and the resulting progress. */
+  async previewBulkAbsorption(playerId: string, targetInstanceId: string): Promise<BulkAbsorptionPreviewResponse> {
+    let fodderInstanceIds: string[];
+    let target: ProgressionCardRow;
+    try {
+      target = await loadOwnedTarget(this.pool, playerId, targetInstanceId, false);
+      fodderInstanceIds = await selectBulkFodderIds(this.pool, playerId, target, false);
+    } catch (error) {
+      if (error instanceof CardProgressionDomainError) throw error;
+      throw new CardProgressionPersistenceError({ cause: error });
+    }
+    if (fodderInstanceIds.length > 0) {
+      return { ...(await this.previewAbsorption(playerId, targetInstanceId, fodderInstanceIds)), fodderInstanceIds };
+    }
+    const card = mapCardInstanceRow(target);
+    const progress = getUpgradeProgress(card.levelProgressElements, card.level);
+    return {
+      addedElements: 0,
+      afterElements: progress.filledElements,
+      afterPercent: progress.percent,
+      beforeElements: progress.filledElements,
+      beforePercent: progress.percent,
+      fodderInstanceIds: [],
+      requiredElements: progress.requiredElements,
+      resultingStoredElements: card.storedElements,
+      selectedCards: 0,
+    };
+  }
+
   async previewAbsorption(
     playerId: string,
     targetInstanceId: string,
@@ -387,10 +489,16 @@ export class CardProgressionService {
     }
   }
 
+  /** "Поглинути слабкі": the server picks the fodder itself and absorbs it in one transaction. */
+  async absorbWeak(playerId: string, targetInstanceId: string): Promise<CardProgressionActionResponse> {
+    return this.absorb(playerId, targetInstanceId, null);
+  }
+
+  /** `requestedFodderIds === null` lets the server choose the fodder for the bulk action under the same locks. */
   async absorb(
     playerId: string,
     targetInstanceId: string,
-    fodderInstanceIds: readonly string[],
+    requestedFodderIds: readonly string[] | null,
   ): Promise<CardProgressionActionResponse> {
     const client = await this.pool.connect();
     try {
@@ -401,6 +509,11 @@ export class CardProgressionService {
       );
       const player = playerResult.rows[0];
       if (!player) throw new Error("Progression player is missing");
+      const fodderInstanceIds = requestedFodderIds
+        ?? await selectBulkFodderIds(client, playerId, await loadOwnedTarget(client, playerId, targetInstanceId, true), true);
+      if (fodderInstanceIds.length === 0) {
+        throw new CardProgressionDomainError("nothing_to_absorb", "No weak cards fit into the current level");
+      }
       const validated = await loadValidatedAbsorption(
         client,
         playerId,
