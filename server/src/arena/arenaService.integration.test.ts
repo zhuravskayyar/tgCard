@@ -172,6 +172,10 @@ test("Arena starts with six participants and keeps attacker slot cooldowns indep
     assert.equal(started.participants.length, 6);
     assert.equal(started.participants.filter(({ isBot }) => isBot).length, 5);
     assert.ok(started.participants.filter(({ isBot }) => isBot).every(({ photoUrl }) => /^avatar:(?:0[1-9]|1[0-9]|20)$/.test(photoUrl ?? "")));
+    // As in the reference: bots have distinct names and the league's fixed set of portraits (third blue = league 6).
+    const bots = started.participants.filter(({ isBot }) => isBot);
+    assert.equal(new Set(bots.map(({ name }) => name)).size, bots.length);
+    assert.deepEqual(bots.map(({ photoUrl }) => photoUrl), ["avatar:11", "avatar:12", "avatar:13", "avatar:14", "avatar:15"]);
     assert.ok(started.playerSlots.every(({ card, cooldownUntil }) => card !== null && cooldownUntil === null), "cards open available");
     const match = (await service.findActive(playerId)).arena!;
     assert.equal(match.playerSlots.filter(({ cooldownUntil }) => cooldownUntil === null).length, 3);

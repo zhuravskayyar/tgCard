@@ -592,6 +592,10 @@ export class PlayerRepository {
          DO UPDATE SET quantity = player_equipment_inventory.quantity + 1, updated_at = NOW()`,
         [playerId, result.id],
       );
+      await client.query(
+        "INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'EQUIPMENT_FORGED', $2)",
+        [playerId, JSON.stringify({ category: result.category, count: 1 })],
+      );
       await client.query("COMMIT");
       return { gold: Number(updated.rows[0].gold), resultItemId: result.id };
     } catch (error) {
@@ -631,6 +635,14 @@ export class PlayerRepository {
       if (!updated.rows[0]) throw new EquipmentForgeError("not_enough_gold", "Not enough gold");
       for (const [itemId, count] of requested) await this.changeEquipmentQuantity(client, playerId, itemId, -count * options.get(itemId)!.inputCount);
       for (const [itemId, count] of results) await this.changeEquipmentQuantity(client, playerId, itemId, count);
+      for (const [itemId, count] of results) {
+        const definition = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === itemId);
+        if (!definition) throw new EquipmentForgeError("invalid_forge", "Unknown forged item");
+        await client.query(
+          "INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'EQUIPMENT_FORGED', $2)",
+          [playerId, JSON.stringify({ category: definition.category, count })],
+        );
+      }
       await client.query("COMMIT");
       return { gold: Number(updated.rows[0].gold), results: [...results].map(([itemId, count]) => ({ itemId, count })) };
     } catch (error) {

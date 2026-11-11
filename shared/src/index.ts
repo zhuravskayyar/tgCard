@@ -87,6 +87,7 @@ export type {
   ArenaActionRequest,
   ActiveArenaResponse,
   ArenaBattleLogEntry,
+  ArenaLogArtifact,
   ArenaBattleParticipantSnapshot,
   ArenaCardSlot,
   ArenaDailyTaskProgress,
@@ -379,3 +380,8 @@ export type {
   AdminPlayersResponse,
   AdminSessionResponse,
 } from "./admin.js";
+export {
+  ACHIEVEMENT_STATISTIC_KEYS,
+  type AchievementStatisticKey,
+  type PlayerAchievementProgressResponse,
+} from "./achievements.js";

@@ -143,7 +143,16 @@
 .arena-artifacts__item { position: relative; display: grid; width: 24px; height: 24px; place-items: center; background: url("/assets/equipment/rarity-v3/tile.webp") center / 100% 100% no-repeat; background-color: color-mix(in srgb, var(--eq-rarity) 62%, #fff); background-blend-mode: multiply; }
 .arena-artifacts__item > .eq-sprite { width: 20px; height: 20px; filter: none; }
 
-/* Battle log, as in the reference: bystanders' strikes on the target are dimmed; a killing blow shows a skull. */
+/* Battle log, as in the reference: portraits of who struck, bystanders' strikes on the target dimmed,
+   badges for a death (skull) and a fired artifact beside the owner's portrait. */
 :root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-row--muted { opacity: .58; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-art { position: relative; }
-:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-fatal { position: absolute; right: 0; bottom: 0; z-index: 1; display: grid; width: 24px; height: 24px; place-items: center; filter: drop-shadow(0 1px 2px rgb(26 16 10 / 70%)); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-art { position: relative; overflow: visible; }
+/* Duel battle styles clip the frame; let arena badges sit over its edge while the avatar clips its own art. */
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .duel-page.arena-battle .battle-log-art { overflow: visible; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-art .duel-avatar { display: block; width: 100%; height: 100%; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-art .duel-avatar :is(img, .avatar-image) { width: 100%; height: 100%; object-fit: cover; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-badges { position: absolute; right: 0; bottom: 0; z-index: 1; display: grid; grid-auto-rows: 14px; gap: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-badge { display: grid; width: 14px; height: 14px; place-items: center; filter: drop-shadow(0 1px 2px rgb(26 16 10 / 70%)); }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-badge:only-child { width: 20px; height: 20px; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-badge .app-icon { width: 100%; height: 100%; }
+:root[data-game-theme="light"] .app-shell .app-content .arena-screen .battle-log-badge--artifact > * { width: 100%; height: 100%; }

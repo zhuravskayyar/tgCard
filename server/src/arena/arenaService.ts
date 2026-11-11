@@ -27,6 +27,7 @@ import {
   type ActiveArenaResponse,
   type ArenaLeaderboardResponse,
   type ArenaBattleLogEntry,
+  type ArenaLogArtifact,
   type ArenaBattleParticipantSnapshot,
   type ArenaCardSlot,
   type ChatMessage,
@@ -47,7 +48,6 @@ import {
 import type { Pool, PoolClient } from "pg";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
-import { getBotAvatarToken } from "../duel/botOpponent.js";
 import { loadArenaDailyTasks } from "../battlePassService.js";
 import { ChatChannel } from "../chat/chatChannel.js";
 
@@ -58,7 +58,26 @@ const MAX_ARENA_LOG_ENTRIES = 7;
 const ARENA_RECENT_FIGHT_SQL = "EXISTS (SELECT 1 FROM arena_match_players mp WHERE mp.player_id = players.id AND mp.joined_at > NOW() - INTERVAL '1 day')";
 const ARENA_PLAYER_PRESENCE_SYNC_MS = 8_000;
 const ARENA_PLAYER_PRESENCE_TIMEOUT_MS = 15_000;
-const BOT_NAMES = ["Бронзовий звір", "Пилова відьма", "Штормовий спис", "Кришталевий страж", "Чорний гладіатор"];
+/** As in the reference, a bot is named "quality adjective + creature" or by a plain first name. */
+const BOT_NAMES = [
+  "Спритний солдат", "Обережний воїн", "Швидкий лучник", "Хитра принцеса", "Важкий здоровань",
+  "Сміливий мандрівник", "Тихий вартовий", "Лютий найманець", "Мудра чарівниця", "Відважний лицар",
+  "Похмурий мисливець", "Весела травниця", "Залізний страж", "Сонний велетень", "Бронзовий звір",
+  "Пилова відьма", "Кришталевий страж", "Чорний гладіатор", "Остап", "Мирослава", "Тарас", "Олеся",
+];
+/** Five portraits per league, fixed for that league, so bots look the same within it as in the reference. */
+const BOTS_PER_MATCH = 5;
+const ARENA_BOT_AVATAR_COUNT = 20;
+
+function arenaBotAvatar(leagueIndex: number, botIndex: number) {
+  const avatar = ((leagueIndex * BOTS_PER_MATCH + botIndex) % ARENA_BOT_AVATAR_COUNT) + 1;
+  return `avatar:${String(avatar).padStart(2, "0")}`;
+}
+
+function pickBotNames(count: number, random: RandomSource) {
+  const pool = [...BOT_NAMES];
+  return Array.from({ length: count }, () => pool.splice(Math.min(pool.length - 1, Math.floor(random() * pool.length)), 1)[0]!);
+}
 
 interface ArenaPlayerRow {
   account_xp: number;
@@ -204,12 +223,16 @@ interface QueuedArenaPlayer {
   guildCard: DuelCardSnapshot | null;
 }
 
-function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = Math.random, now = Date.now()): ArenaState {
+function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = Math.random, now = Date.now(), leagueIndex = 0): ArenaState {
   const firstPlayer = players[0];
   if (!firstPlayer) throw new Error("Arena queue did not contain a player");
   const participants = [
     ...players.map(({ playerId, snapshot, guildCard }) => createParticipant(snapshot, playerId, false, random, guildCard)),
-    ...Array.from({ length: ARENA_PARTICIPANT_COUNT - players.length }, (_, index) => createBot(players[index % players.length]!.snapshot, index, random)),
+    ...(() => {
+      const botCount = ARENA_PARTICIPANT_COUNT - players.length;
+      const names = pickBotNames(botCount, random);
+      return Array.from({ length: botCount }, (_, index) => createBot(players[index % players.length]!.snapshot, index, names[index]!, leagueIndex, random));
+    })(),
   ];
   const cyclesStartAt = new Date(now).toISOString();
   for (const participant of participants) {
@@ -240,7 +263,7 @@ function createArenaState(players: QueuedArenaPlayer[], random: RandomSource = M
   return state;
 }
 
-function createBot(snapshot: DuelSideSnapshot, index: number, random: RandomSource = Math.random): ArenaBattleParticipantSnapshot {
+function createBot(snapshot: DuelSideSnapshot, index: number, name: string, leagueIndex: number, random: RandomSource = Math.random): ArenaBattleParticipantSnapshot {
   const id = `arena-bot:${randomUUID()}`;
   const nonLimitedCards = snapshot.cards.filter(({ limited }) => !limited);
   if (nonLimitedCards.length < 3) throw new ArenaDeckInvalidError();
@@ -252,8 +275,8 @@ function createBot(snapshot: DuelSideSnapshot, index: number, random: RandomSour
   return createParticipant({
     ...snapshot,
     cards,
-    name: BOT_NAMES[index] ?? `Арена бот ${index + 1}`,
-    photoUrl: getBotAvatarToken(random),
+    name,
+    photoUrl: arenaBotAvatar(leagueIndex, index),
     level: Math.max(1, snapshot.level + (index % 3) - 1),
     modifiers: cloneModifiers(snapshot),
   }, id, true, random);
@@ -472,27 +495,30 @@ function withoutArtifacts(modifiers: ArenaBattleParticipantSnapshot["modifiers"]
 }
 
 /** At zero HP the amulet revives first; on the next death the doll curses the killer. Each works once. */
-function applyDeathArtifacts(fallen: ArenaBattleParticipantSnapshot, killer: ArenaBattleParticipantSnapshot) {
+function applyDeathArtifacts(fallen: ArenaBattleParticipantSnapshot, killer: ArenaBattleParticipantSnapshot): ArenaLogArtifact | null {
   const equipment = fallen.modifiers.equipment;
-  if (fallen.hp > 0 || !equipment) return;
+  if (fallen.hp > 0 || !equipment) return null;
   const state = fallen.modifiers.equipmentState ?? { reviveUsed: false, voodooUsed: false };
+  let slot: ArenaLogArtifact["slot"];
   if (!state.reviveUsed && equipment.reviveHpPct > 0) {
     fallen.hp = Math.max(1, Math.round(fallen.maxHp * equipment.reviveHpPct / 100));
     state.reviveUsed = true;
+    slot = "amulet";
   } else if (!state.voodooUsed && equipment.voodooHpReductionPct > 0) {
     killer.hp = Math.max(0, killer.hp - Math.round(killer.maxHp * equipment.voodooHpReductionPct / 100));
     state.voodooUsed = true;
+    slot = "voodoo";
   } else {
-    return;
+    return null;
   }
   fallen.modifiers.equipmentState = state;
+  return { ownerId: fallen.id, slot };
 }
 
 /** A curse can kill its target, so the other side's artifacts get their turn too. */
 function settleDeathArtifacts(first: ArenaBattleParticipantSnapshot, second: ArenaBattleParticipantSnapshot) {
-  applyDeathArtifacts(first, second);
-  applyDeathArtifacts(second, first);
-  applyDeathArtifacts(first, second);
+  return [applyDeathArtifacts(first, second), applyDeathArtifacts(second, first), applyDeathArtifacts(first, second)]
+    .filter((fired): fired is ArenaLogArtifact => fired !== null);
 }
 
 function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slotIndex: 0 | 1 | 2, now: number, random: RandomSource) {
@@ -511,7 +537,7 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
   target.hp = Math.max(0, target.hp - result.damage);
   const reflectedDamage = Math.round(attackerCard.finalPower * (target.modifiers.equipment?.damageReflectionPct ?? 0) / 100);
   attacker.hp = Math.max(0, attacker.hp - reflectedDamage);
-  settleDeathArtifacts(target, attacker);
+  const artifacts = settleDeathArtifacts(target, attacker);
   // A strike is an exchange, as in a duel: the opposing card answers in the same lane.
   // The answer ignores artifacts: the spear does not raise it and the shield does not soften it.
   const attackerHpBeforeCounter = attacker.hp;
@@ -522,7 +548,7 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     defenderModifiers: withoutArtifacts(attacker.modifiers),
   }).damage : 0;
   attacker.hp = Math.max(0, attacker.hp - counter);
-  settleDeathArtifacts(attacker, target);
+  artifacts.push(...settleDeathArtifacts(attacker, target));
   target.totalDamageDealt += counter;
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
@@ -538,7 +564,9 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     }
   }
   state.battleLog = [...state.battleLog, {
+    ...(artifacts.length ? { artifacts } : {}),
     attackerCard,
+    ...(attacker.hp === 0 ? { attackerDefeated: true } : {}),
     attackerId: attacker.id,
     attackerName: attacker.name,
     attackerPhotoUrl: attacker.photoUrl,
@@ -797,7 +825,9 @@ function concernsPlayer(entry: ArenaBattleLogEntry, player: ArenaBattleParticipa
   return entry.attackerId === player.id
     || entry.targetId === player.id
     || (player.targetId !== null && entry.targetId === player.targetId)
-    || entry.targetDefeated;
+    || entry.targetDefeated
+    || entry.attackerDefeated === true
+    || Boolean(entry.artifacts?.length);
 }
 
 function playerBattleLog(state: ArenaState, player: ArenaBattleParticipantSnapshot) {
@@ -1055,7 +1085,7 @@ export class ArenaService {
       }
       if (!players.length) continue;
 
-      const state = createArenaState(players, this.random, now);
+      const state = createArenaState(players, this.random, now, head.leagueIndex);
       await client.query(
         `INSERT INTO arena_matches (id, player_id, status, state) VALUES ($1, $2, 'active', $3)`,
         [state.matchId, state.playerId, JSON.stringify(state)],

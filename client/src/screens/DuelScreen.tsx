@@ -228,15 +228,35 @@ function BattleLogSeal({ multiplier }: { multiplier: number }) {
   return <span className={`battle-log-seal battle-log-seal--${String(multiplier).replace(".", "-")}`}>×{multiplier}</span>;
 }
 
-/** Arena rows may be a bystander's strike on the player's target (muted) or a killing blow (fatal). */
-export type BattleLogExchange = DuelExchange & { fatal?: boolean; muted?: boolean };
+interface BattleLogPortrait { name: string; photoUrl: string | null }
+
+/**
+ * Arena rows show who struck instead of the card (as in the reference log), mark a bystander's strike on the
+ * player's target as muted, and carry badges such as a skull for a death or a fired artifact.
+ */
+export type BattleLogExchange = DuelExchange & {
+  enemyBadges?: ReactNode;
+  enemyPortrait?: BattleLogPortrait;
+  muted?: boolean;
+  playerBadges?: ReactNode;
+  playerPortrait?: BattleLogPortrait;
+};
+
+function BattleLogSide({ badges, card, portrait }: { badges?: ReactNode; card: DuelExchange["playerCard"]; portrait?: BattleLogPortrait }) {
+  return (
+    <span className="battle-log-art">
+      {portrait ? <PlayerAvatar name={portrait.name} photoUrl={portrait.photoUrl} /> : <CardArtwork artOnly artKey={card.artKey} cardId={card.cardId} element={card.element} rarity={card.rarity} />}
+      {badges ? <span className="battle-log-badges">{badges}</span> : null}
+    </span>
+  );
+}
 
 function BattleLogRow({ exchange, latest = false }: { exchange: BattleLogExchange; latest?: boolean }) {
   const playerStrong = exchange.visualState === "player_strong";
   const enemyStrong = exchange.visualState === "enemy_strong";
   return (
-    <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}${exchange.muted ? " battle-log-row--muted" : ""}${exchange.fatal ? " battle-log-row--fatal" : ""}`}>
-      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.playerCard.artKey} cardId={exchange.playerCard.cardId} element={exchange.playerCard.element} rarity={exchange.playerCard.rarity} /></span>
+    <li className={`battle-log-row battle-log-row--${exchange.visualState}${latest ? " battle-log-row--latest" : ""}${exchange.muted ? " battle-log-row--muted" : ""}`}>
+      <BattleLogSide badges={exchange.playerBadges} card={exchange.playerCard} portrait={exchange.playerPortrait} />
       <strong className="battle-log-damage battle-log-damage--player">{exchange.playerDamage}</strong>
       {/* One seal per exchange: the multiplier of the player's own strike. */}
       <span
@@ -246,7 +266,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: BattleLogExchang
         <BattleLogSeal multiplier={exchange.playerMultiplier} />
       </span>
       <strong className="battle-log-damage battle-log-damage--enemy">{exchange.enemyDamage}</strong>
-      <span className="battle-log-art"><CardArtwork artOnly artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity} />{exchange.fatal ? <span aria-label="Загинув" className="battle-log-fatal" role="img"><AppIcon name="skull" size={22} /></span> : null}</span>
+      <BattleLogSide badges={exchange.enemyBadges} card={exchange.enemyCard} portrait={exchange.enemyPortrait} />
     </li>
   );
 }

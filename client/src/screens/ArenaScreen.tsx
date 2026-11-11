@@ -173,14 +173,40 @@ function sameArenaView(left: ArenaView | null, right: ArenaView | null) {
     && left.targetId === right.targetId;
 }
 
-function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, turnNumber: number): BattleLogExchange | null {
+/** Badges beside a log portrait: a skull for a death, the artifact that fired for its owner. */
+function arenaLogBadges(participant: ArenaParticipantView | undefined, defeated: boolean, artifacts: ArenaBattleLogEntry["artifacts"]) {
+  const fired = (artifacts ?? []).filter(({ ownerId }) => ownerId === participant?.id).flatMap(({ slot }) => {
+    const definition = (participant?.artifactItemIds ?? []).map((itemId) => ARTIFACT_DEFINITIONS_BY_ID.get(itemId)).find((candidate) => candidate?.slot === slot);
+    return definition ? [definition] : [];
+  });
+  if (!defeated && !fired.length) return undefined;
+  return (
+    <>
+      {fired.map((definition) => <span aria-label={`Спрацював артефакт: ${definition.name}`} className="battle-log-badge battle-log-badge--artifact" key={definition.id} role="img"><EquipmentSprite definition={definition} /></span>)}
+      {defeated ? <span aria-label="Загинув" className="battle-log-badge battle-log-badge--fatal" role="img"><AppIcon name="skull" size={20} /></span> : null}
+    </>
+  );
+}
+
+function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, turnNumber: number, participants: readonly ArenaParticipantView[] = []): BattleLogExchange | null {
   if (!entry.attackerCard || !entry.targetCard) return null;
   const playerAttack = entry.attackerId === playerId;
   const playerHit = entry.targetId === playerId;
   const botExchange = !playerAttack && !playerHit;
+  const attacker = participants.find(({ id }) => id === entry.attackerId);
+  const target = participants.find(({ id }) => id === entry.targetId);
+  // The reference log shows who struck, not the card: the attacker's side and the target's side get portraits.
+  const attackerSide = { badges: arenaLogBadges(attacker, entry.attackerDefeated === true, entry.artifacts), portrait: { name: entry.attackerName, photoUrl: entry.attackerPhotoUrl } };
+  const targetSide = { badges: arenaLogBadges(target, entry.targetDefeated, entry.artifacts), portrait: { name: entry.targetName, photoUrl: target?.photoUrl ?? null } };
+  const playerSide = playerHit ? targetSide : attackerSide;
+  const enemySide = playerHit ? attackerSide : targetSide;
   const playerMultiplier = playerAttack ? entry.multiplier : 0.5;
   const enemyMultiplier = playerHit ? entry.multiplier : 0.5;
   return {
+    enemyBadges: enemySide.badges,
+    enemyPortrait: enemySide.portrait,
+    playerBadges: playerSide.badges,
+    playerPortrait: playerSide.portrait,
     enemyCard: playerAttack || botExchange ? entry.targetCard : entry.attackerCard,
     enemyDamage: playerHit ? entry.damage : entry.counterDamage ?? 0,
     enemyMultiplier,
@@ -188,7 +214,6 @@ function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, tu
     playerDamage: playerAttack || botExchange ? entry.damage : entry.counterDamage ?? 0,
     playerMultiplier: botExchange ? entry.multiplier : playerMultiplier,
     slotIndex: entry.slotIndex,
-    fatal: entry.targetDefeated,
     // Other participants' strikes on the player's target are dimmed, as in the reference log.
     muted: botExchange,
     turnNumber,
@@ -275,7 +300,7 @@ function ArenaSlot({ slot, enemy, disabled, defeated = false, onClick, lane, cla
 function ArenaLog({ animateLatest, match }: { animateLatest: boolean; match: ArenaView }) {
   const [expanded, setExpanded] = useState(false);
   const exchanges = match.battleLog
-    .map((entry, index) => arenaLogToDuelExchange(entry, match.playerId, match.battleLog.length - index))
+    .map((entry, index) => arenaLogToDuelExchange(entry, match.playerId, match.battleLog.length - index, match.participants))
     .filter((entry): entry is BattleLogExchange => entry !== null);
   const entries = expanded ? exchanges : exchanges.slice(0, 7);
   return (

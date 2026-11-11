@@ -124,6 +124,18 @@ test("a guild raid runs one realtime turn against the selected witch", { skip: !
     assert.equal(reset.level, 2);
     assert.equal(reset.battle?.status, "won");
     assert.ok(reset.bosses.every((boss) => boss.currentHealth === boss.health));
+    const recordedWin = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM player_campaign_events WHERE player_id = $1 AND event_type = 'WITCH_BATTLE_WON'",
+      [player.id],
+    );
+    assert.equal(Number(recordedWin.rows[0]?.count), 1);
+    await pool.query("UPDATE guild_witch_raids SET week_key = CURRENT_DATE - INTERVAL '7 days' WHERE id = $1", [next.id]);
+    await raids.getActiveRaid(guildId, player.id);
+    const afterWeeklyReset = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM player_campaign_events WHERE player_id = $1 AND event_type = 'WITCH_BATTLE_WON'",
+      [player.id],
+    );
+    assert.equal(Number(afterWeeklyReset.rows[0]?.count), 1);
   } finally {
     await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     await pool.query("DELETE FROM players WHERE id = $1", [player.id]);

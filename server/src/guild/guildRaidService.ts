@@ -1094,6 +1094,12 @@ export class GuildRaidService {
         [battle.id, status, playerHp, JSON.stringify(playerCards), JSON.stringify(playerQueue), JSON.stringify(witchCards), JSON.stringify(witchQueues), input.bossSlot, JSON.stringify(uniqueCards), JSON.stringify(battleLog), nextTurn, JSON.stringify([...healThresholds]), new Date(lastCurseAt)],
       );
       await client.query("UPDATE guild_witch_raid_participants SET status = $3, last_activity_at = NOW() WHERE raid_id = $1 AND player_id = $2", [raid.id, playerId, status === "active" ? "active" : status === "won" ? "finished" : "defeated"]);
+      if (status === "won") {
+        await client.query(
+          "INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'WITCH_BATTLE_WON', $2)",
+          [playerId, JSON.stringify({ battleId: battle.id })],
+        );
+      }
       if (status === "won" && health.every((value) => value === 0)) {
         await this.createRaidResult(client, raid);
         await this.advanceRaidLevel(client, raid);

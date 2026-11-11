@@ -16,6 +16,8 @@ import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { ResourceIcon } from "../components/ResourceIcon";
+import { getFeaturedAchievements, isCompactAchievementImage } from "../records/recordsCatalog";
+import { useAchievementProgress } from "../records/useAchievementProgress";
 import type { PlayerSummaryState } from "../types/player";
 import { getTelegramInitData } from "../telegram";
 import { loadTournamentAwards } from "../telegram/tournament";
@@ -28,16 +30,11 @@ interface ProfileScreenProps {
   onOpenInventory: () => void;
   onOpenMail: () => void;
   onOpenLeagues: () => void;
+  onOpenRecords: () => void;
   onRetryPlayerSummary: () => void;
   playerSummaryState: PlayerSummaryState;
   hasUnreadMail: boolean;
 }
-
-const HONORS = [
-  { image: "/assets/ui/profile/title-orb.png", label: "Найкращий титул" },
-  { image: "/assets/ui/profile/dragon-medal.png", label: "Медаль дракона" },
-  { image: "/assets/ui/profile/achievement-orb.png", label: "Найкраще досягнення" },
-];
 
 const TOURNAMENT_BADGE_LABELS: Record<TournamentAwardsView["awards"][number]["badge"], string> = {
   cup_1: "Кубок за 1 місце",
@@ -105,11 +102,15 @@ export function ProfileScreen({
   onOpenInventory,
   onOpenMail,
   onOpenLeagues,
+  onOpenRecords,
   onRetryPlayerSummary,
   playerSummaryState,
   hasUnreadMail,
 }: ProfileScreenProps) {
   const { retry: retryDeck, state: deckState } = usePlayerDeck();
+  const { retry: retryAchievements, state: achievementState } = useAchievementProgress();
+  const locale = getUiLocale();
+  const featuredAchievements = achievementState.status === "ready" ? getFeaturedAchievements(achievementState.data.statistics) : [];
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const displayName = player ? getPlayerDisplayName(player) : "Гравець";
   const deckPower = deckState.status === "ready" ? deckState.deck.totalPower : null;
@@ -192,19 +193,22 @@ export function ProfileScreen({
             <MenuRow active={deckState.status === "ready"} compact icon="deck" metalTexture onClick={onOpenDeck} title="Бойова колода" />
             <MenuRow compact icon="equipment" metalTexture onClick={onOpenEquipment} title="Спорядження" />
             <MenuRow compact icon="inventory" metalTexture onClick={onOpenInventory} title="Інвентар" />
+            <MenuRow compact icon="tournament" metalTexture onClick={onOpenRecords} title="Рекорди" />
             <MenuRow compact icon="record" metalTexture onClick={onOpenLeagues} title="Рейтинг магів" />
           </nav>
 
           <Section title="Відзнаки">
-            <div className="pf-grid pf-grid--honors">
-              {HONORS.map((honor) => (
-                <article key={honor.label}>
-                  <span className="pf-grid__title">{honor.label}</span>
-                  <img alt="" className="pf-grid__icon" src={honor.image} />
-                  <small>Немає</small>
-                </article>
-              ))}
-            </div>
+            {achievementState.status === "loading" ? <p className="pf-empty" role="status">{translateUi("Завантажуємо прогрес нагород…", locale)}</p> : null}
+            {achievementState.status === "unavailable" ? <p className="pf-empty" role="status">{translateUi("Увійди в гру, щоб побачити особистий прогрес.", locale)}</p> : null}
+            {achievementState.status === "error" ? <div className="pf-retry"><p className="pf-empty" role="alert">{translateUi("Не вдалося завантажити прогрес нагород.", locale)}</p><button className="eq-button eq-button--parchment" onClick={retryAchievements} type="button">{translateUi("Повторити", locale)}</button></div> : null}
+            {achievementState.status === "ready" && featuredAchievements.length === 0 ? <p className="pf-empty" role="status">{translateUi("Здобутих відзнак поки немає.", locale)}</p> : null}
+            {featuredAchievements.length > 0 ? <div className={`pf-grid pf-grid--honors pf-grid--honors-${featuredAchievements.length}`}>
+              {featuredAchievements.map(({ earnedLevel, record }) => <article key={record.id}>
+                <span className="pf-grid__title">{translateUi(record.title, locale)}</span>
+                <img alt="" className={`pf-grid__icon${isCompactAchievementImage(record) ? " pf-grid__icon--compact" : ""}`} src={record.image} />
+                <small>{record.levels.length > 1 ? `${translateUi("Рівень", locale)} ${earnedLevel}` : translateUi("Здобуто", locale)}</small>
+              </article>)}
+            </div> : null}
           </Section>
 
           <Section title="Кубки й медалі">

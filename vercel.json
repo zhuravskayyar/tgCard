@@ -10,7 +10,7 @@
   ],
   "headers": [
     {
-      "source": "/:section(admin|api|arena|battle-pass|campaign|cards|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|players|profile|settings|shop|tasks|trials)/:path*",
+      "source": "/:section(admin|api|arena|battle-pass|campaign|cards|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|players|profile|records|settings|shop|tasks|trials)/:path*",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, follow" }]
     }
   ],
@@ -19,7 +19,7 @@
       "source": "/api/:path*",
       "destination": "/api?__cardastika_api_path=:path*"
     },
-    { "source": "/:screen(arena|battle-pass|campaign|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|profile|settings|shop|tasks|trials)", "destination": "/index.html" },
+    { "source": "/:screen(arena|battle-pass|campaign|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|profile|records|settings|shop|tasks|trials)", "destination": "/index.html" },
     { "source": "/cards/:cardId", "destination": "/index.html" },
     { "source": "/collections/:collectionId", "destination": "/index.html" },
     { "source": "/collections/:collectionId/cards/:cardId", "destination": "/index.html" },

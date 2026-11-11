@@ -37,8 +37,18 @@ export interface ArenaParticipantView {
   totalDamageDealt: number;
 }
 
+/** A death artifact that fired during a strike: the amulet revives its owner, the voodoo doll curses the killer. */
+export interface ArenaLogArtifact {
+  ownerId: string;
+  slot: "amulet" | "voodoo";
+}
+
 export interface ArenaBattleLogEntry {
+  /** Artifacts that fired during this exchange, as the reference log records them. */
+  artifacts?: ArenaLogArtifact[];
   attackerCard?: DuelCardSnapshot;
+  /** The attacker fell to the counter strike or a curse in this exchange. */
+  attackerDefeated?: boolean;
   attackerId: string;
   attackerName: string;
   attackerPhotoUrl: string | null;

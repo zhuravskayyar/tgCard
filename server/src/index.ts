@@ -17,6 +17,8 @@ import { SessionRepository } from "./auth/sessionRepository.js";
 import { GuestCreationRateLimiter } from "./auth/guestCreationRateLimiter.js";
 import { handleCardProgressionRequest, type CardProgressionRouteAction } from "./cards/cardProgressionRoute.js";
 import { CardProgressionService } from "./cards/cardProgressionService.js";
+import { handlePlayerAchievementProgress } from "./achievements/achievementProgressRoute.js";
+import { AchievementProgressService } from "./achievements/achievementProgressService.js";
 import { handleCampaignRequest } from "./campaign/campaignRoute.js";
 import { handleStoryTrialsRequest } from "./trials/storyTrialsRoute.js";
 import { StoryTrialsService } from "./trials/storyTrialsService.js";
@@ -105,6 +107,7 @@ const shop = new ShopService(pool, { campaign, limitedCards });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
 const leaderboards = new LeaderboardRepository(pool);
+const achievementProgress = new AchievementProgressService(pool, decks, leaderboards);
 const cardProgression = new CardProgressionService(pool, inventory, campaign);
 const collections = new CollectionRepository(pool);
 const duels = new DuelService(pool, Math.random, campaign, guilds);
@@ -241,6 +244,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isNicknameSkinEquipRoute = url.pathname === "/api/player/inventory/nickname-skin/equip";
   const isWeakPlayerCardsRoute = url.pathname === "/api/player/cards/weak";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
+  const isPlayerAchievementProgressRoute = url.pathname === "/api/player/achievements";
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const shopCardInfoMatch = url.pathname.match(/^\/api\/shop\/cards\/info\/([^/]+)$/);
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
@@ -273,7 +277,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -571,6 +575,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       responseHeaders: cors.headers,
     }, collectionMatch[1] ? decodeURIComponent(collectionMatch[1]) : undefined,
     collectionMatch[2] ? decodeURIComponent(collectionMatch[2]) : undefined);
+    return;
+  }
+
+  if (isPlayerAchievementProgressRoute) {
+    await handlePlayerAchievementProgress(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      progress: achievementProgress,
+      responseHeaders: cors.headers,
+    });
     return;
   }
 
