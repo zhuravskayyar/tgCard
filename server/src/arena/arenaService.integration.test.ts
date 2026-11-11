@@ -71,7 +71,7 @@ test("Arena pays rating only for a fought match, with no silver or gold per figh
   }
 });
 
-test("Arena stays closed until the player reaches 2000 duel rating", { skip: !databaseUrl }, async () => {
+test("Arena stays closed until the player reaches the third epic duel league (900)", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });
   const players = new PlayerRepository(pool);
@@ -79,11 +79,11 @@ test("Arena stays closed until the player reaches 2000 duel rating", { skip: !da
   try {
     playerId = (await players.findOrCreateFromTelegram(telegramUser())).id;
     const service = new ArenaService(pool);
-    await pool.query("UPDATE players SET duel_rating = 1999 WHERE id = $1", [playerId]);
+    await pool.query("UPDATE players SET duel_rating = 899 WHERE id = $1", [playerId]);
     assert.equal((await service.getProfile(playerId)).unlocked, false);
     await assert.rejects(service.joinQueue(playerId), { name: "ArenaLockedError" });
     // Reaching the rating once is enough, even after a later duel loss.
-    await pool.query("UPDATE players SET duel_rating = 1900, duel_highest_league_index = 20 WHERE id = $1", [playerId]);
+    await pool.query("UPDATE players SET duel_rating = 850, duel_highest_league_index = 9 WHERE id = $1", [playerId]);
     assert.equal((await service.getProfile(playerId)).unlocked, true);
     assert.ok((await service.joinQueue(playerId)).queue);
   } finally {

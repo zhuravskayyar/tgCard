@@ -6,8 +6,10 @@ page `/forum/3/218665/` again on 2026-11-08.
 
 ## Access
 
-The arena opens once a player has reached 2000 duel rating
-(`ARENA_UNLOCK_DUEL_RATING`, `isArenaUnlocked` in `shared`). Reaching it once is
+The arena opens once a player reaches the duel league Підкорювач III: the
+reference's 2000 duel rating (third epic) on its 0-4200 scale. Our duels use a
+100-step scale, so this is 900 (`ARENA_UNLOCK_DUEL_LEAGUE_INDEX` = 9,
+`ARENA_UNLOCK_DUEL_RATING`, `isArenaUnlocked` in `shared`). Reaching it once is
 enough: the highest duel league reached also counts, so a later duel loss does
 not close the arena again. The server refuses the queue with `arena_locked`
 (403); the lobby disables sign-up and the home tile shows the requirement.
@@ -107,14 +109,14 @@ or arena currency. Rewards are:
   table (`ARENA_REWARD_CARD_LEVELS_BY_LEAGUE`): 20-24 up to third epic, then
   24-28, 29-33, legendary 35-42 / 44-50 / 50-56, mythic 60-63, master 70 / 72 / 74.
   Second and first blue offer several level sets; we use one range covering them.
-- Arena tasks are offered only once the arena is open (2000 duel rating reached).
+- Arena tasks are offered only once the arena is open (duel league Підкорювач III reached).
 
 Differences from the reference, kept on purpose:
 
 - Daily tasks also pay diamonds and silver for the battle pass.
 - There are no "buy 200 / 1000 gold" tasks, so their bonus arena progress and
   the "Arena champion" task discount do not exist. "Buy 5 cards" and "Absorb 10
-  cards" stay after 2000 duel rating instead of being replaced, so eight tasks
+  cards" stay after the arena opens instead of being replaced, so eight tasks
   and the triple reward stay reachable.
 - Arena achievements and titles are not implemented yet.
 

@@ -71,14 +71,18 @@ export const DUEL_LEAGUE_CONFIG: LeagueConfig = Object.freeze({
 const ARENA_LEAGUE_MIN_RATINGS = [0, 500, 600, 800, 1_000, 1_200, 1_400, 1_600, 1_800, 2_000, 2_200, 2_400, 2_600, 2_800, 3_000, 3_200, 3_400, 3_600, 3_800, 4_000, 4_200] as const;
 
 export const ARENA_START_RATING = 1_400;
-/** The arena opens once a player has reached this duel rating, as in the reference manual. */
-export const ARENA_UNLOCK_DUEL_RATING = 2_000;
+/**
+ * The reference opens the arena at 2000 duel rating on its 0-4200 scale: the third epic
+ * league, index 9 of 21. Our duels use a 100-step scale, so the gate is that league.
+ */
+export const ARENA_UNLOCK_DUEL_LEAGUE_INDEX = 9;
+/** Floor of the unlock league on our duel scale (Підкорювач III). */
+export const ARENA_UNLOCK_DUEL_RATING = DUEL_LEAGUE_CONFIG.leagues[ARENA_UNLOCK_DUEL_LEAGUE_INDEX]!.minRating;
 
-/** Reaching the rating once is enough: a later duel loss does not close the arena again. */
+/** Reaching the league once is enough: a later duel loss does not close the arena again. */
 export function isArenaUnlocked(duelRating = 0, duelHighestLeagueIndex = 0) {
-  const leagues = DUEL_LEAGUE_CONFIG.leagues;
-  const highestReached = leagues[Math.max(0, Math.min(duelHighestLeagueIndex, leagues.length - 1))]?.minRating ?? 0;
-  return Math.max(duelRating, highestReached) >= ARENA_UNLOCK_DUEL_RATING;
+  const byRating = getLeagueIndexByRating(Number.isFinite(duelRating) ? Math.max(0, Math.trunc(duelRating)) : 0, DUEL_LEAGUE_CONFIG);
+  return Math.max(byRating, duelHighestLeagueIndex) >= ARENA_UNLOCK_DUEL_LEAGUE_INDEX;
 }
 export const ARENA_DEMOTION_BUFFER = 100;
 

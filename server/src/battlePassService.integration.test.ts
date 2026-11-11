@@ -84,11 +84,11 @@ test("daily tasks pay gold, silver and an item, and five arena wins pay an epic-
     [player.id, eventType, now, count],
   );
   try {
-    // Below 2000 duel rating the arena is closed, so its tasks are not offered.
+    // Below the third epic duel league (900) the arena is closed, so its tasks are not offered.
     const locked = await battlePass.getPage(player.id, now);
     assert.ok(!locked.daily.tasks.some(({ id }) => id === "play-arenas" || id === "win-arenas"));
     await assert.rejects(() => battlePass.claimDailyTask(player.id, "play-arenas", now));
-    await pool.query("UPDATE players SET duel_rating = 2000 WHERE id = $1", [player.id]);
+    await pool.query("UPDATE players SET duel_rating = 900 WHERE id = $1", [player.id]);
 
     const page = await battlePass.getPage(player.id, now);
     const winArenas = page.daily.tasks.find(({ id }) => id === "win-arenas")!;

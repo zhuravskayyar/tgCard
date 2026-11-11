@@ -91,7 +91,7 @@ function toInteger(value: number | string) {
 
 const ARENA_TASK_IDS: ReadonlySet<string> = new Set(["play-arenas", "win-arenas"]);
 
-/** Arena tasks appear only once the arena is open (2000 duel rating reached), as in the reference. */
+/** Arena tasks appear only once the arena is open (third epic duel league, 900 on our scale), as in the reference. */
 async function loadAvailableDailyTasks(database: Database, playerId: string) {
   const result = await database.query<{ duel_highest_league_index: number | string; duel_rating: number | string }>(
     "SELECT duel_rating, duel_highest_league_index FROM players WHERE id = $1",
