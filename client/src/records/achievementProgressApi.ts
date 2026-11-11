@@ -26,8 +26,9 @@ function parseProgress(value: unknown): PlayerAchievementProgressResponse {
   return { statistics };
 }
 
-export async function loadAchievementProgress(credential: string, signal: AbortSignal) {
-  const response = await fetch(getApiEndpoint("/api/player/achievements"), {
+export async function loadAchievementProgress(credential: string, signal: AbortSignal, playerId?: string) {
+  const path = playerId ? `/api/player/profiles/${encodeURIComponent(playerId)}/achievements` : "/api/player/achievements";
+  const response = await fetch(getApiEndpoint(path), {
     headers: { Authorization: getPlayerAuthHeader(credential) },
     cache: "no-store",
     credentials: "same-origin",

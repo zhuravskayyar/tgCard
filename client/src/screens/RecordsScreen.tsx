@@ -7,6 +7,8 @@ import { useAchievementProgress } from "../records/useAchievementProgress";
 
 interface RecordsScreenProps {
   onBack: () => void;
+  playerId?: string;
+  playerName?: string;
 }
 
 function goalLabel(record: AchievementRecord, level: AchievementLevel, locale: ReturnType<typeof getUiLocale>) {
@@ -15,9 +17,9 @@ function goalLabel(record: AchievementRecord, level: AchievementLevel, locale: R
     : `${formatUiNumber(level.threshold)} ${translateUi(record.unit, locale)}`.trim();
 }
 
-export function RecordsScreen({ onBack }: RecordsScreenProps) {
+export function RecordsScreen({ onBack, playerId, playerName }: RecordsScreenProps) {
   const locale = getUiLocale();
-  const { retry, state } = useAchievementProgress();
+  const { retry, state } = useAchievementProgress(playerId);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const screenRef = useRef<HTMLElement>(null);
   const listScrollTopRef = useRef(0);
@@ -55,8 +57,8 @@ export function RecordsScreen({ onBack }: RecordsScreenProps) {
   return (
     <section aria-label={selectedRecord ? translateUi(selectedRecord.title, locale) : translateUi("Перелік рекордів", locale)} className="profile-screen pf-screen records-screen" ref={screenRef}>
       <ScreenHeading
-        description={selectedRecord ? undefined : translateUi("Відкрий нагороду, щоб побачити умови кожного рівня та свій прогрес.", locale)}
-        eyebrow={selectedRecord ? translateUi("Рекорди", locale) : undefined}
+        description={selectedRecord ? undefined : translateUi(playerId ? "Відкрий нагороду, щоб побачити умови кожного рівня та прогрес гравця." : "Відкрий нагороду, щоб побачити умови кожного рівня та свій прогрес.", locale)}
+        eyebrow={playerName ?? (selectedRecord ? translateUi("Рекорди", locale) : undefined)}
         onBack={selectedRecord ? () => setSelectedRecordId(null) : onBack}
         title={selectedRecord ? translateUi(selectedRecord.title, locale) : translateUi("Рекорди", locale)}
       />

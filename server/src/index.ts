@@ -245,6 +245,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isWeakPlayerCardsRoute = url.pathname === "/api/player/cards/weak";
   const isPlayerDeckRoute = url.pathname === "/api/player/deck";
   const isPlayerAchievementProgressRoute = url.pathname === "/api/player/achievements";
+  const publicAchievementProgressMatch = url.pathname.match(/^\/api\/player\/profiles\/([^/]+)\/achievements$/);
   const isShopCatalogRoute = url.pathname === "/api/shop/cards";
   const shopCardInfoMatch = url.pathname.match(/^\/api\/shop\/cards\/info\/([^/]+)$/);
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
@@ -277,7 +278,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -583,9 +584,22 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       auth,
       botToken: environment.telegramBotToken,
       players,
+      profiles: leaderboards,
       progress: achievementProgress,
       responseHeaders: cors.headers,
     });
+    return;
+  }
+
+  if (publicAchievementProgressMatch) {
+    await handlePlayerAchievementProgress(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      players,
+      profiles: leaderboards,
+      progress: achievementProgress,
+      responseHeaders: cors.headers,
+    }, decodeURIComponent(publicAchievementProgressMatch[1]!));
     return;
   }
 

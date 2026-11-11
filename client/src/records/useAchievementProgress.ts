@@ -9,7 +9,7 @@ export type AchievementProgressState =
   | { status: "unavailable" }
   | { status: "error" };
 
-export function useAchievementProgress() {
+export function useAchievementProgress(playerId?: string) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<AchievementProgressState>({ status: "loading" });
   const retry = useCallback(() => setAttempt((current) => current + 1), []);
@@ -24,7 +24,7 @@ export function useAchievementProgress() {
     const controller = new AbortController();
     let active = true;
     setState({ status: "loading" });
-    void loadAchievementProgress(credential, controller.signal)
+    void loadAchievementProgress(credential, controller.signal, playerId)
       .then((data) => {
         if (active) setState({ status: "ready", data });
       })
@@ -37,7 +37,7 @@ export function useAchievementProgress() {
       active = false;
       controller.abort();
     };
-  }, [attempt]);
+  }, [attempt, playerId]);
 
   return { retry, state };
 }

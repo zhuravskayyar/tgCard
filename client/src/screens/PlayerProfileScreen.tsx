@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { calculateEquipmentSummary, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getLeagueByRating } from "@cardastika/shared";
@@ -6,22 +7,19 @@ import { CardArtwork } from "../components/CardArtwork";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
 import { LeagueBadge } from "../components/LeagueBadge";
+import { MenuRow } from "../components/MenuRow";
 import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { EMPTY_EQUIPMENT } from "../equipment/equipmentState";
 import { usePlayerProfile } from "../hooks/usePlayerProfile";
 import { formatUiNumber } from "../i18n";
+import { FeaturedAchievements } from "../records/FeaturedAchievements";
+import { useAchievementProgress } from "../records/useAchievementProgress";
+import { RecordsScreen } from "./RecordsScreen";
 
 interface PlayerProfileScreenProps {
   onBack: () => void;
   playerId: string;
 }
-
-const HONORS = [
-  { image: "/assets/ui/profile/title-orb.png", label: "Найкращий титул" },
-  { image: "/assets/ui/profile/dragon-medal.png", label: "Медаль дракона" },
-  { image: "/assets/ui/profile/tournament-trophy.png", label: "Нагорода турніру" },
-  { image: "/assets/ui/profile/achievement-orb.png", label: "Найкраще досягнення" },
-];
 
 function winsLabel(count: number) {
   return `${formatUiNumber(count)} перемог`;
@@ -39,9 +37,13 @@ function Section({ children, title }: { children: React.ReactNode; title: string
 // Same painted layout as the own profile, read-only: identity, doll, honours, cards, ratings.
 export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenProps) {
   const state = usePlayerProfile(playerId);
+  const { retry: retryAchievements, state: achievementState } = useAchievementProgress(playerId);
+  const [showRecords, setShowRecords] = useState(false);
   const profile = state.status === "ready" ? state.data : null;
   const equipment = profile?.equipment?.equipped ?? EMPTY_EQUIPMENT;
   const equipmentSummary = calculateEquipmentSummary(STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment[slot] === id));
+
+  if (showRecords && profile) return <RecordsScreen onBack={() => setShowRecords(false)} playerId={playerId} playerName={profile.displayName} />;
 
   return (
     <section className="profile-screen pf-screen player-profile-screen">
@@ -77,16 +79,12 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
 
           <EquipmentDoll equipped={equipment} mageElement={profile.mageElement} onSlot={() => undefined} />
 
-          <Section title="Рекорди">
-            <div className="pf-grid">
-              {HONORS.map((honor) => (
-                <article key={honor.label}>
-                  <span className="pf-grid__title">{honor.label}</span>
-                  <img alt="" className="pf-grid__icon" src={honor.image} />
-                  <small>Немає</small>
-                </article>
-              ))}
-            </div>
+          <nav aria-label="Розділи профілю" className="pf-menu">
+            <MenuRow compact icon="tournament" metalTexture onClick={() => setShowRecords(true)} title="Рекорди" />
+          </nav>
+
+          <Section title="Відзнаки">
+            <FeaturedAchievements onRetry={retryAchievements} state={achievementState} />
           </Section>
 
           <Section title="Найсильніші карти">

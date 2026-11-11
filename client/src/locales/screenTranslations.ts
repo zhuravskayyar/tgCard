@@ -1434,6 +1434,7 @@ export const SCREEN_TRANSLATIONS: ReadonlyArray<readonly [string, string, string
   ["Створені речі в кузні","Items crafted in the forge","In der Schmiede hergestellte Gegenstände","Созданные предметы в кузнице"],
   ["Створені артефакти в кузні","Artifacts crafted in the forge","In der Schmiede hergestellte Artefakte","Созданные артефакты в кузнице"],
   ["Відкрий нагороду, щоб побачити умови кожного рівня та свій прогрес.","Open an achievement to see each level's requirement and your progress.","Öffne eine Auszeichnung, um die Bedingung jeder Stufe und deinen Fortschritt zu sehen.","Открой награду, чтобы увидеть условия каждого уровня и свой прогресс."],
+  ["Відкрий нагороду, щоб побачити умови кожного рівня та прогрес гравця.","Open an achievement to see each level's requirement and the player's progress.","Öffne eine Auszeichnung, um die Bedingung jeder Stufe und den Fortschritt des Spielers zu sehen.","Открой награду, чтобы увидеть условия каждого уровня и прогресс игрока."],
   ["Завантажуємо прогрес нагород…","Loading achievement progress…","Fortschritt der Auszeichnungen wird geladen…","Загружаем прогресс наград…"],
   ["Здобутих відзнак поки немає.","No achievements earned yet.","Noch keine Auszeichnungen erhalten.","Пока нет полученных наград."],
   ["Увійди в гру, щоб побачити особистий прогрес.","Sign in to see your personal progress.","Melde dich an, um deinen persönlichen Fortschritt zu sehen.","Войди в игру, чтобы увидеть личный прогресс."],

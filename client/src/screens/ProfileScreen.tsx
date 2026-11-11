@@ -16,7 +16,7 @@ import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { ResourceIcon } from "../components/ResourceIcon";
-import { getFeaturedAchievements, isCompactAchievementImage } from "../records/recordsCatalog";
+import { FeaturedAchievements } from "../records/FeaturedAchievements";
 import { useAchievementProgress } from "../records/useAchievementProgress";
 import type { PlayerSummaryState } from "../types/player";
 import { getTelegramInitData } from "../telegram";
@@ -110,7 +110,6 @@ export function ProfileScreen({
   const { retry: retryDeck, state: deckState } = usePlayerDeck();
   const { retry: retryAchievements, state: achievementState } = useAchievementProgress();
   const locale = getUiLocale();
-  const featuredAchievements = achievementState.status === "ready" ? getFeaturedAchievements(achievementState.data.statistics) : [];
   const player = playerSummaryState.status === "ready" ? playerSummaryState.data : null;
   const displayName = player ? getPlayerDisplayName(player) : "Гравець";
   const deckPower = deckState.status === "ready" ? deckState.deck.totalPower : null;
@@ -198,17 +197,7 @@ export function ProfileScreen({
           </nav>
 
           <Section title="Відзнаки">
-            {achievementState.status === "loading" ? <p className="pf-empty" role="status">{translateUi("Завантажуємо прогрес нагород…", locale)}</p> : null}
-            {achievementState.status === "unavailable" ? <p className="pf-empty" role="status">{translateUi("Увійди в гру, щоб побачити особистий прогрес.", locale)}</p> : null}
-            {achievementState.status === "error" ? <div className="pf-retry"><p className="pf-empty" role="alert">{translateUi("Не вдалося завантажити прогрес нагород.", locale)}</p><button className="eq-button eq-button--parchment" onClick={retryAchievements} type="button">{translateUi("Повторити", locale)}</button></div> : null}
-            {achievementState.status === "ready" && featuredAchievements.length === 0 ? <p className="pf-empty" role="status">{translateUi("Здобутих відзнак поки немає.", locale)}</p> : null}
-            {featuredAchievements.length > 0 ? <div className={`pf-grid pf-grid--honors pf-grid--honors-${featuredAchievements.length}`}>
-              {featuredAchievements.map(({ earnedLevel, record }) => <article key={record.id}>
-                <span className="pf-grid__title">{translateUi(record.title, locale)}</span>
-                <img alt="" className={`pf-grid__icon${isCompactAchievementImage(record) ? " pf-grid__icon--compact" : ""}`} src={record.image} />
-                <small>{record.levels.length > 1 ? `${translateUi("Рівень", locale)} ${earnedLevel}` : translateUi("Здобуто", locale)}</small>
-              </article>)}
-            </div> : null}
+            <FeaturedAchievements onRetry={retryAchievements} state={achievementState} />
           </Section>
 
           <Section title="Кубки й медалі">
