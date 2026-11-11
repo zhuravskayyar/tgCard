@@ -1,6 +1,7 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type {
   DuelActionRequest,
+  DuelAvailability,
   DuelSearchResponse,
   DuelStartRequest,
   DuelView,
@@ -10,6 +11,7 @@ import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import {
   DuelAlreadyActiveError,
+  DuelCooldownError,
   DuelDeckInvalidError,
   DuelMissingError,
   DuelNoOpponentFoundError,
@@ -20,9 +22,10 @@ import {
 
 interface DuelOperations {
   action(playerId: string, duelId: string, input: DuelActionRequest): Promise<DuelView>;
+  findAvailability(playerId: string): Promise<DuelAvailability>;
   findActive(playerId: string): Promise<DuelView | null>;
   findById(playerId: string, duelId: string): Promise<DuelView>;
-  search(playerId: string): Promise<DuelSearchResponse>;
+  search(playerId: string, tutorial?: boolean): Promise<DuelSearchResponse>;
   start(playerId: string, searchId: string, tutorial?: boolean): Promise<DuelView>;
 }
 
@@ -68,6 +71,10 @@ function sendDuelError(
     sendJson(response, 409, { error: { code: "active_duel_exists", message: error.message } }, headers);
     return true;
   }
+  if (error instanceof DuelCooldownError) {
+    sendJson(response, 409, { error: { code: "duel_cooldown", message: error.message, refillAt: error.refillAt } }, headers);
+    return true;
+  }
   if (error instanceof DuelDeckInvalidError) {
     sendJson(response, 409, { error: { code: "invalid_battle_deck", message: error.message } }, headers);
     return true;
@@ -109,7 +116,7 @@ export async function handleDuelRequest(
     const { player } = await authenticateRoutePlayer(request, dependencies);
 
     if (request.method === "POST" && url.pathname === "/api/duel/search") {
-      sendJson(response, 200, await dependencies.duels.search(player.id), headers);
+      sendJson(response, 200, await dependencies.duels.search(player.id, url.searchParams.get("tutorial") === "true"), headers);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/duel/start") {
@@ -119,7 +126,15 @@ export async function handleDuelRequest(
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/duel/active") {
-      sendJson(response, 200, { duel: await dependencies.duels.findActive(player.id) }, headers);
+      const [duel, availability] = await Promise.all([
+        dependencies.duels.findActive(player.id),
+        dependencies.duels.findAvailability(player.id),
+      ]);
+      sendJson(response, 200, { duel, availability }, headers);
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/duel/availability") {
+      sendJson(response, 200, await dependencies.duels.findAvailability(player.id), headers);
       return;
     }
     if (request.method === "POST" && actionMatch) {

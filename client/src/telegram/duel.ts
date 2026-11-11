@@ -1,6 +1,7 @@
 import type {
   ActiveDuelResponse,
   DuelActionRequest,
+  DuelAvailability,
   DuelSearchResponse,
   DuelStartRequest,
   DuelView,
@@ -44,8 +45,8 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
-export function searchDuelOpponent(initData: string, signal?: AbortSignal) {
-  return request<DuelSearchResponse>(initData, "/api/duel/search", { method: "POST", signal });
+export function searchDuelOpponent(initData: string, signal?: AbortSignal, tutorial = false) {
+  return request<DuelSearchResponse>(initData, tutorial ? "/api/duel/search?tutorial=true" : "/api/duel/search", { method: "POST", signal });
 }
 
 export function startDuel(initData: string, searchId: string, tutorial = false, signal?: AbortSignal) {
@@ -55,6 +56,10 @@ export function startDuel(initData: string, searchId: string, tutorial = false, 
 
 export function loadActiveDuel(initData: string, signal?: AbortSignal) {
   return request<ActiveDuelResponse>(initData, "/api/duel/active", { signal });
+}
+
+export function loadDuelAvailability(initData: string, signal?: AbortSignal) {
+  return request<DuelAvailability>(initData, "/api/duel/availability", { signal });
 }
 
 export function loadDuel(initData: string, duelId: string, signal?: AbortSignal) {

@@ -133,4 +133,14 @@ export interface DuelView {
 
 export interface ActiveDuelResponse {
   duel: DuelView | null;
+  availability: DuelAvailability;
+}
+
+export interface DuelAvailability {
+  remaining: number;
+  max: number;
+  refillAt: string | null;
+  /** Gold won in Duels today; resets daily and on level-up. */
+  goldEarnedToday: number;
+  goldDailyLimit: number;
 }

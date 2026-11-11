@@ -125,10 +125,11 @@ export const CATALOG_DATA: {
    "code": "highelem",
    "displayName": "Бойові начала",
    "bonus": {
-    "type": "none",
-    "value": 1
+    "type": "duel_cooldown_minutes",
+    "value": 30,
+    "scope": "duel"
    },
-   "bonusLabel": "−30 хв перерви в дуелях (запрацює разом із цією механікою)",
+   "bonusLabel": "−30 хв перерви в дуелях",
    "cardIds": [
     "air_genie",
     "stone_golem",
@@ -186,10 +187,11 @@ export const CATALOG_DATA: {
    "code": "dragons",
    "displayName": "Старі змії",
    "bonus": {
-    "type": "none",
-    "value": 1
+    "type": "duel_gold_limit",
+    "value": 5,
+    "scope": "duel"
    },
-   "bonusLabel": "+5 щоденного золота в дуелях (запрацює разом із цією механікою)",
+   "bonusLabel": "+5 щоденного золота в дуелях",
    "cardIds": [
     "fire_dragon",
     "north_dragon",
@@ -200,10 +202,11 @@ export const CATALOG_DATA: {
    "code": "dragons2",
    "displayName": "Рідкісні змії",
    "bonus": {
-    "type": "none",
-    "value": 1
+    "type": "duel_gold_limit",
+    "value": 10,
+    "scope": "duel"
    },
-   "bonusLabel": "+10 щоденного золота в дуелях, щоденний внесок у скарбницю 5 → 10 (запрацює разом із цією механікою)",
+   "bonusLabel": "+10 щоденного золота в дуелях (внесок у скарбницю 5 → 10 запрацює пізніше)",
    "cardIds": [
     "feathered_dragon",
     "underground_dragon",
@@ -246,10 +249,11 @@ export const CATALOG_DATA: {
    "code": "umutants",
    "displayName": "Шулікові виродки",
    "bonus": {
-    "type": "none",
-    "value": 1
+    "type": "duel_gold_share_pct",
+    "value": 10,
+    "scope": "duel"
    },
-   "bonusLabel": "Пришвидшує золото в дуелях: близько 10% денного ліміту за перемогу (запрацює разом із цією механікою)",
+   "bonusLabel": "Пришвидшує золото в дуелях: близько 10% денного ліміту за перемогу",
    "cardIds": [
     "flying_monkey",
     "gloomy_rhino",

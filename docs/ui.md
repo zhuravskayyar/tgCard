@@ -4,6 +4,12 @@ The client is mobile-first and should be designed primarily for viewports around
 360–430 px wide. It must remain usable in an ordinary desktop browser for local
 development.
 
+The game is always the phone layout. Phones (up to 540 px CSS width, which covers enlarged display-size settings) use their full width.
+Anything wider (tablet, desktop browser, Telegram Desktop) shows the same 430 px
+column centred on the world background. Never stretch, scale or zoom the layout
+for wider screens, and never add tablet/desktop layout variants inside the shell
+(`--shell-width` in `tokens.css`, breakpoints in `shell.css`).
+
 Keep screens in `client/src/screens`, reusable visual pieces in `components`, and
 screen-independent React behavior in `hooks`. Prefer existing components and
 small CSS modules or focused styles over premature design systems.

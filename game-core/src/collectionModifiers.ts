@@ -11,6 +11,9 @@ export interface PlayerCollectionModifiers {
   battleDamagePct: number;
   battleHpPct: number;
   deckPowerPct: number;
+  duelCooldownMinutes: number;
+  duelGoldLimitBonus: number;
+  duelGoldSharePct: number;
   elementDamagePct: Readonly<Record<CardElement, number>>;
   experienceRewardPct: number;
   silverRewardPct: number;
@@ -26,6 +29,9 @@ export function getPlayerCollectionModifiers(
     battleDamagePct: 0,
     battleHpPct: 0,
     deckPowerPct: 0,
+    duelCooldownMinutes: 0,
+    duelGoldLimitBonus: 0,
+    duelGoldSharePct: 0,
     elementDamagePct: { fire: 0, water: 0, air: 0, earth: 0 },
     experienceRewardPct: 0,
     silverRewardPct: 0,
@@ -35,6 +41,9 @@ export function getPlayerCollectionModifiers(
     battle_damage_pct: "battleDamagePct",
     battle_hp_pct: "battleHpPct",
     deck_power_pct: "deckPowerPct",
+    duel_cooldown_minutes: "duelCooldownMinutes",
+    duel_gold_limit: "duelGoldLimitBonus",
+    duel_gold_share_pct: "duelGoldSharePct",
     experience_reward_pct: "experienceRewardPct",
     silver_reward_pct: "silverRewardPct",
     altar_gold_levels: "altarGoldLevels",

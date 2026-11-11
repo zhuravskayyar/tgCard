@@ -66,6 +66,7 @@ export {
 } from "./deck.js";
 export type {
   ActiveDuelResponse,
+  DuelAvailability,
   DuelActionRequest,
   DuelBattleModifiers,
   DuelCardSnapshot,

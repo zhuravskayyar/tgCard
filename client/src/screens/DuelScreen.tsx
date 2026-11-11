@@ -9,6 +9,7 @@ import "../styles/duel-screen.css";
 import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
 import type {
   CardElement,
+  DuelAvailability,
   DuelCardSnapshot,
   DuelExchange,
   DuelSearchResponse,
@@ -21,6 +22,9 @@ import { CardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
+import { ExperienceFlask } from "../components/ExperienceFlask";
+import { LeagueBadge } from "../components/LeagueBadge";
+import { DUEL_LEAGUE_CONFIG, getLeagueByRating, getLeagueIndexByRating } from "@cardastika/shared";
 import { formatFullUiNumber, formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { MenuRow } from "../components/MenuRow";
 import { Lariska } from "../components/Lariska";
@@ -30,6 +34,7 @@ import {
   DuelApiError,
   loadActiveDuel,
   loadDuel,
+  loadDuelAvailability,
   searchDuelOpponent,
   startDuel,
   submitDuelAction,
@@ -59,6 +64,7 @@ function preloadDuelArtwork(duel: DuelView) {
 
 type DuelScreenState =
   | { status: "loading" | "searching" | "cancelled" }
+  | { status: "cooldown" }
   | { status: "preview"; search: DuelSearchResponse }
   | { status: "duel"; duel: DuelView }
   | { status: "no-opponent" }
@@ -71,6 +77,8 @@ interface DuelResultNavigation {
 }
 
 interface DuelScreenProps extends DuelResultNavigation {
+  /** The authenticated player's duel rating from the shell summary; undefined while it loads. */
+  duelRating?: number;
   onBack: () => void;
   onPlayerSummaryChange: (player: Partial<Pick<PlayerSummary, "duelHighestLeagueIndex" | "duelRating" | "level" | "silver" | "gold">>) => void;
   onTutorialResult?: () => void | Promise<void>;
@@ -468,7 +476,68 @@ function DuelOutcomeHeader({ won }: { won: boolean }) {
   );
 }
 
-function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
+function formatDuelCooldown(refillAt: string, now: number) {
+  const seconds = Math.max(0, Math.ceil((new Date(refillAt).getTime() - now) / 1_000));
+  const hours = Math.floor(seconds / 3_600);
+  const minutes = Math.floor(seconds % 3_600 / 60);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function DuelAvailabilitySummary({ availability }: { availability: DuelAvailability | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!availability?.refillAt) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [availability?.refillAt]);
+  if (!availability) return <p className="duel-availability">Залишилось дуелей: <strong>…</strong></p>;
+  return (
+    <p className="duel-availability">
+      Залишилось дуелей: <strong>{availability.remaining}/{availability.max}</strong>
+      {availability.remaining === 0 && availability.refillAt ? <span>Відновлення через <strong>{formatDuelCooldown(availability.refillAt, now)}</strong></span> : null}
+      <span className="duel-availability__gold">Сьогодні здобуто <CurrencyIcon kind="gold" size={16} /> <strong>{availability.goldEarnedToday}/{availability.goldDailyLimit}</strong></span>
+    </p>
+  );
+}
+
+/** Current league badge → flask → next league badge, like the arena rating meter. */
+function DuelRatingMeter({ compact = false, rating, ratingChange }: { compact?: boolean; rating: number | undefined; ratingChange?: number }) {
+  if (rating === undefined) return null;
+  const league = getLeagueByRating(rating);
+  const next = DUEL_LEAGUE_CONFIG.leagues[getLeagueIndexByRating(rating) + 1];
+  const progress = next ? Math.min(1, Math.max(0, (rating - league.minRating) / (next.minRating - league.minRating))) : 1;
+  const flask = <div aria-label={next ? `До ліги ${next.name}` : "Найвища ліга"} aria-valuemax={100} aria-valuemin={0} aria-valuenow={Math.round(progress * 100)} aria-valuetext={next ? `${rating} з ${next.minRating}` : String(rating)} className="flask-meter duel-rating-meter__flask" role="progressbar"><ExperienceFlask progress={progress} tone="azure" /></div>;
+  const toNext = next ? `До наступної ліги ще ${formatUiNumber(Math.max(0, next.minRating - rating))}` : `${league.name} — найвища ліга`;
+  if (compact) {
+    // Search footer: badges flank the flask in one row, rating and the gap to the next league in one line.
+    return (
+      <div className="duel-rating-meter duel-rating-meter--compact">
+        <div className="duel-rating-meter__row">
+          <LeagueBadge league={league} size="sm" />
+          {flask}
+          <LeagueBadge league={next ?? league} size="sm" />
+        </div>
+        <p>Рейтинг дуелей: <strong>{formatUiNumber(rating)}</strong><small>{toNext}</small></p>
+      </div>
+    );
+  }
+  return (
+    <div className="duel-rating-meter">
+      {flask}
+      <div className="duel-rating-meter__ends">
+        <span><LeagueBadge league={league} size="sm" />{league.name}</span>
+        {next ? <span>{next.name}<LeagueBadge league={next} size="sm" /></span> : null}
+      </div>
+      <p>
+        Рейтинг дуелей: <strong>{formatUiNumber(rating)}</strong>
+        {ratingChange ? <small className={ratingChange > 0 ? "duel-rating-meter__change--up" : "duel-rating-meter__change--down"}>{ratingChange > 0 ? "+" : "−"}{formatUiNumber(Math.abs(ratingChange))}</small> : null}
+      </p>
+      <small>{toNext}</small>
+    </div>
+  );
+}
+
+function DuelResultView({ duel, availability, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; availability: DuelAvailability | null; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
@@ -520,9 +589,13 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
         {goldReward > 0 ? <span aria-label={`Золото: ${goldReward}`} className="duel-outcome__reward" data-reward-source="gold"><CurrencyIcon kind="gold" size={20} /><CountUpValue value={goldReward} /></span> : null}
       </div>
       {result.player.duelWins !== undefined ? <p className="duel-outcome__wins">Перемог у дуелях: <AppIcon name="tournament" size={14} /> {formatNumber(result.player.duelWins)}</p> : null}
+      <section className="duel-status-plate" aria-label="Рейтинг і дуелі">
+        <DuelRatingMeter rating={result.player.duelRating} ratingChange={result.leagueProgression?.ratingChange} />
+        <DuelAvailabilitySummary availability={availability} />
+      </section>
       {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
       {result.accountBoostMultiplier === 2 ? <p className="duel-outcome__note">Буст ×2 активний</p> : null}
-      <button className="duel-search-button duel-search-button--attack duel-outcome__next" onClick={onReturn} type="button">Ще дуель</button>
+      <button className="duel-search-button duel-search-button--attack duel-outcome__next" onClick={onReturn} type="button">{availability && availability.remaining > 0 ? "Ще дуель" : "До дуелей"}</button>
       <section className="duel-result-battle duel-outcome__battle" aria-label="Підсумки бою">
         <header>
           <span aria-label={`Залишок вашого здоров’я: ${duel.playerHp}`}>♥ {formatNumber(duel.playerHp)}</span>
@@ -540,8 +613,9 @@ function DuelResultView({ duel, onReturn, onTutorialResult, tutorialMode, tutori
   );
 }
 
-export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false, tutorialResultError = null }: DuelScreenProps) {
+export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop, onBack, onPlayerSummaryChange, onTutorialDuelState, onTutorialResult, tutorialAllowedSlot = null, tutorialMode = false, tutorialResultError = null }: DuelScreenProps) {
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
+  const [availability, setAvailability] = useState<DuelAvailability | null>(null);
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active", state.status === "duel" && state.duel.status !== "active" ? state.duel.status === "won" ? "win" : "loss" : null);
   const requestInFlightRef = useRef(false);
@@ -554,6 +628,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
 
   const showDuel = useCallback((duel: DuelView) => {
     if (duel.status === "active") {
+      setAvailability(null);
       window.localStorage.setItem(LAST_DUEL_STORAGE_KEY, duel.duelId);
     } else {
       window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
@@ -585,7 +660,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     };
     setState({ status: "searching" });
     try {
-      const searchResult = await searchDuelOpponent(initData, searchSignal);
+      const searchResult = await searchDuelOpponent(initData, searchSignal, tutorialMode);
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
       await waitForMinimumDisplay(elapsed);
       if (searchSignal.aborted) return;
@@ -601,6 +676,15 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
       if (searchSignal.aborted) return;
       if (error instanceof DuelApiError && error.code === "no_opponent_found") {
         setState({ status: "no-opponent" });
+        return;
+      }
+      if (error instanceof DuelApiError && error.code === "duel_cooldown") {
+        try {
+          setAvailability(await loadDuelAvailability(initData, searchSignal));
+          setState({ status: "cooldown" });
+        } catch {
+          setState({ status: "error", message: "Не вдалося завантажити перерву дуелей" });
+        }
         return;
       }
       setState({ status: "error", message: "Не вдалося виконати пошук суперника" });
@@ -633,6 +717,7 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     void (async () => {
       try {
         const active = await loadActiveDuel(initData, controller.signal);
+        setAvailability(active.availability);
         if (active.duel) {
           searchAbortControllerRef.current = null;
           presentDuel(active.duel);
@@ -653,6 +738,10 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
             window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
           }
         }
+        if (active.availability.remaining === 0 && !tutorialMode) {
+          setState({ status: "cooldown" });
+          return;
+        }
         await searchOpponent(initData, controller.signal);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -667,7 +756,18 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
 
   async function handleSearchAgain() {
     const initData = getTelegramInitData();
-    if (initData) await search(initData);
+    if (!initData) return;
+    try {
+      const latest = await loadDuelAvailability(initData);
+      setAvailability(latest);
+      if (latest.remaining === 0 && !tutorialMode) {
+        setState({ status: "cooldown" });
+        return;
+      }
+      await search(initData);
+    } catch {
+      setState({ status: "error", message: "Не вдалося завантажити стан дуелей" });
+    }
   }
 
   function handleCancelSearch() {
@@ -688,6 +788,15 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     } catch (error) {
       if (error instanceof DuelApiError && error.code === "no_opponent_found") {
         setState({ status: "no-opponent" });
+        return;
+      }
+      if (error instanceof DuelApiError && error.code === "duel_cooldown") {
+        try {
+          setAvailability(await loadDuelAvailability(initData));
+          setState({ status: "cooldown" });
+        } catch {
+          setState({ status: "error", message: "Не вдалося завантажити перерву дуелей" });
+        }
         return;
       }
       setState({ status: "error", message: "Не вдалося розпочати Дуель" });
@@ -723,6 +832,33 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
     }
   }
 
+  useEffect(() => {
+    if (state.status !== "duel" || state.duel.status === "active" || tutorialMode) return;
+    const initData = getTelegramInitData();
+    if (!initData) return;
+    const controller = new AbortController();
+    void loadDuelAvailability(initData, controller.signal).then(setAvailability).catch(() => undefined);
+    return () => controller.abort();
+  }, [state.status === "duel" ? state.duel.duelId : null, state.status === "duel" ? state.duel.status : null, tutorialMode]);
+
+  useEffect(() => {
+    if (state.status !== "cooldown" || !availability?.refillAt) return undefined;
+    const delay = Math.max(0, new Date(availability.refillAt).getTime() - Date.now()) + 100;
+    const timer = window.setTimeout(() => void handleSearchAgain(), delay);
+    return () => window.clearTimeout(timer);
+  }, [state.status, availability?.refillAt]);
+
+  useEffect(() => {
+    if (state.status !== "duel" || state.duel.status === "active" || !availability?.refillAt) return undefined;
+    const initData = getTelegramInitData();
+    if (!initData) return undefined;
+    const delay = Math.max(0, new Date(availability.refillAt).getTime() - Date.now()) + 100;
+    const timer = window.setTimeout(() => {
+      void loadDuelAvailability(initData).then(setAvailability).catch(() => undefined);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [state.status === "duel" ? state.duel.status : state.status, availability?.refillAt]);
+
   // The result screen shows the rewards first, then they fly from it into the HUD.
   useEffect(() => {
     if (!resultReady || !pendingResultPlayerRef.current) return undefined;
@@ -749,20 +885,35 @@ export function DuelScreen({ onOpenLeagues, onOpenTasks, onOpenShop, onBack, onP
   if (state.status === "duel") {
     return !resultReady
       ? <DuelBattle duel={state.duel} onAction={handleAction} pendingSlot={pendingSlot} tutorialAllowedSlot={tutorialAllowedSlot} tutorialMode={tutorialMode} />
-      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
+      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} availability={availability} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
   }
 
   return (
     <div className="duel-page duel-search-screen">
       <DuelHeading onBack={onBack} />
-      <DuelSearchExperience
-        message={state.status === "error" ? state.message : undefined}
-        onAttack={(searchId) => void handleStart(searchId)}
-        onCancel={handleCancelSearch}
-        onSearchAgain={() => void handleSearchAgain()}
-        phase={state.status as DuelSearchExperiencePhase}
-        search={state.status === "preview" ? state.search : undefined}
-      />
+      {state.status === "cooldown" ? (
+        <section className="duel-cooldown-panel">
+          <AppIcon name="tournament" size={38} />
+          <h2>Дуелі на перерві</h2>
+          <DuelAvailabilitySummary availability={availability} />
+          <p>Після перерви знову будуть доступні {availability?.max ?? "…"} дуелей.</p>
+        </section>
+      ) : (
+        <DuelSearchExperience
+          footer={tutorialMode ? undefined : (
+            <section className="duel-status-plate" aria-label="Рейтинг і дуелі">
+              <DuelRatingMeter compact rating={duelRating} />
+              <DuelAvailabilitySummary availability={availability} />
+            </section>
+          )}
+          message={state.status === "error" ? state.message : undefined}
+          onAttack={(searchId) => void handleStart(searchId)}
+          onCancel={handleCancelSearch}
+          onSearchAgain={() => void handleSearchAgain()}
+          phase={state.status as DuelSearchExperiencePhase}
+          search={state.status === "preview" ? state.search : undefined}
+        />
+      )}
     </div>
   );
 }

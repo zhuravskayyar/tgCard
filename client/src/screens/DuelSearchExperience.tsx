@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { DuelSearchResponse } from "@cardastika/shared";
 import { BattleSwordIcon } from "../components/BattleSwordIcon";
 import { cardArtAvatarClassName } from "../components/avatarBackdrop";
@@ -376,7 +376,10 @@ function DuelSearchExperience({
   onAttack,
   onSearchAgain,
   onCancel,
+  footer,
 }: {
+  /** Rating and duel counter, drawn at the bottom of the same plate so the screen fits without scrolling. */
+  footer?: ReactNode;
   phase: DuelSearchExperiencePhase;
   search?: DuelSearchResponse;
   message?: string;
@@ -573,6 +576,7 @@ function DuelSearchExperience({
           </button>
         </div>
       ) : null}
+      {footer ? <div className="duel-search-footer">{footer}</div> : null}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ARENA_UNLOCK_DUEL_RATING } from "@cardastika/shared";
+import { ARENA_UNLOCK_DUEL_RATING, type DuelAvailability } from "@cardastika/shared";
 import { MenuRow } from "../components/MenuRow";
 import { ModeTile, type ModeAccent } from "../components/ModeTile";
 import type { AppIconName } from "../components/AppIcon";
@@ -8,6 +8,7 @@ import { useBattlePass } from "../hooks/useBattlePass";
 import type { TutorialStatus } from "../hooks/useTutorial";
 import { getTelegramInitData } from "../telegram";
 import { loadArenaPresence } from "../telegram/arena";
+import { loadDuelAvailability } from "../telegram/duel";
 
 interface HomeItem {
   available?: boolean;
@@ -60,6 +61,32 @@ function useArenaPresence(enabled: boolean) {
   return enabled && someoneQueued;
 }
 
+/** "Дуелі: 7", or "Перерва 01:12" once all ten charges are spent; undefined until loaded. */
+function useDuelTileStatus(enabled: boolean) {
+  const [availability, setAvailability] = useState<DuelAvailability | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!enabled || !initData) return;
+    const controller = new AbortController();
+    void loadDuelAvailability(initData, controller.signal).then(setAvailability).catch(() => undefined);
+    return () => controller.abort();
+  }, [enabled, reloadKey]);
+  const refillAt = availability?.remaining === 0 ? availability.refillAt : null;
+  useEffect(() => {
+    if (!refillAt) return undefined;
+    const ticker = window.setInterval(() => setNow(Date.now()), 30_000);
+    const refill = window.setTimeout(() => setReloadKey((key) => key + 1), Math.max(0, new Date(refillAt).getTime() - Date.now()) + 500);
+    return () => { window.clearInterval(ticker); window.clearTimeout(refill); };
+  }, [refillAt]);
+  if (!enabled || !availability) return undefined;
+  if (!refillAt) return `Дуелі: ${availability.remaining}`;
+  const minutesLeft = Math.max(1, Math.ceil((new Date(refillAt).getTime() - now) / 60_000));
+  const timeLeft = `${Math.floor(minutesLeft / 60)}:${String(minutesLeft % 60).padStart(2, "0")}`;
+  return `Перерва ${timeLeft}`;
+}
+
 interface HomeScreenProps {
   campaignTitle?: string;
   onOpenCampaign: () => void;
@@ -86,6 +113,7 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
   const novice = playerLevel !== undefined && playerLevel <= 1;
   const arenaLocked = arenaUnlocked === false;
   const arenaOccupied = useArenaPresence(!novice && arenaUnlocked === true);
+  const duelStatus = useDuelTileStatus(playerLevel !== undefined && !novice);
   const hasDailyTaskReward = battlePassState.status === "ready"
     && battlePassState.data.daily.tasks.some((task) => task.completed && !task.claimed);
   const hasBattlePassReward = battlePassState.status === "ready"
@@ -97,7 +125,7 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
       <div className="home-screen__content">
         <section className="mode-grid" aria-label="Ігрові режими">
           {modes.map((mode) => (
-            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "arena" && arenaLocked ? `Дуелі ${ARENA_UNLOCK_DUEL_RATING}` : mode.icon === "arena" && arenaOccupied ? "Хтось є" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
+            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "arena" && arenaLocked ? `Дуелі ${ARENA_UNLOCK_DUEL_RATING}` : mode.icon === "arena" && arenaOccupied ? "Хтось є" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.icon === "duel" ? duelStatus : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
           ))}
         </section>
         <section className="home-menu" aria-label="Розділи гри">

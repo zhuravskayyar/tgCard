@@ -1,6 +1,8 @@
 import { createContext, type ReactNode } from "react";
 import type { CardElement, CardRarity } from "@cardastika/shared";
 import { useCardArtworkSource } from "./cardArtSource";
+import { getSignatureFxByCardId } from "../cards/signatureFx";
+import "../styles/card-signature-aura.css";
 
 interface CardArtworkSourceValue {
   loading: boolean;
@@ -55,6 +57,7 @@ export interface CardFxWrapperProps {
 
 export function CardFxWrapper({ artKey, cardId, children, className, compact = false, element, interactive = false, rarity }: CardFxWrapperProps) {
   const artworkSource = useCardArtworkSource(artKey, cardId);
+  const signature = getSignatureFxByCardId(cardId);
   const rootClassName = [
     "card-fx",
     "card-fx--material",
@@ -63,12 +66,14 @@ export function CardFxWrapper({ artKey, cardId, children, className, compact = f
     `deck-card--${rarity}`,
     interactive ? "card-fx--interactive" : "card-fx--static",
     compact ? "card-fx--compact" : "",
+    signature ? `card-fx--signature card-fx--signature-${signature}` : "",
     className,
   ].filter(Boolean).join(" ");
 
   return (
     <CardArtworkSourceContext.Provider value={artworkSource}>
       <span className={rootClassName}>
+        {signature ? <span aria-hidden="true" className="card-signature-aura"><span className="card-signature-aura__flames" /></span> : null}
         {children}
       </span>
     </CardArtworkSourceContext.Provider>

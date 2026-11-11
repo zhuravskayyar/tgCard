@@ -21,6 +21,8 @@ These are the current product constraints.
 
 ## Account experience
 
+- A lost Duel grants no XP (Silver is still paid). A won Duel grants XP equal to
+  the defeated opponent's starting HP; damage beyond it is not XP.
 - Battle XP is based on the player's total damage dealt in the battle. The
   server accumulates that total separately from the truncated display log, so
   long battles do not lose experience.

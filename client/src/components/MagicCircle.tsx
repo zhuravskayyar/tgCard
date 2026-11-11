@@ -1,6 +1,7 @@
 import { forwardRef, type CSSProperties } from "react";
 import type { CardElement } from "@cardastika/shared";
 import { ELEMENT_FINISH } from "../cards/brightCutModel";
+import { SIGNATURE_FX_STYLES, type SignatureFx } from "../cards/signatureFx";
 
 // Our own rune strokes, drawn in a 6x8 cell; every glyph combines two of them.
 const STROKES = [
@@ -61,15 +62,24 @@ function ElementFigure({ element }: { element: CardElement }) {
 interface MagicCircleProps {
   className?: string;
   element: CardElement;
+  /** A collection's signature look laid over the element seal (violet pentagram and aura for Twitch Legends). */
+  signature?: SignatureFx | null;
   style?: CSSProperties;
 }
 
 /** A spell seal in the card's element: two counter-rotating rings of runes around the element figure. */
-export const MagicCircle = forwardRef<HTMLDivElement, MagicCircleProps>(function MagicCircle({ className = "", element, style }, ref) {
+export const MagicCircle = forwardRef<HTMLDivElement, MagicCircleProps>(function MagicCircle({ className = "", element, signature = null, style }, ref) {
   const finish = ELEMENT_FINISH[element];
   const glyphs = glyphsFor(element);
+  const signatureStyle = signature ? SIGNATURE_FX_STYLES[signature] : null;
+  const vars = {
+    "--mc-rim": finish.rim,
+    "--mc-core": finish.core,
+    ...(signatureStyle ? { "--mc-aura": signatureStyle.aura, "--mc-line": signatureStyle.line } : {}),
+    ...style,
+  } as CSSProperties;
   return (
-    <div ref={ref} className={`magic-circle ${className}`} style={{ "--mc-rim": finish.rim, "--mc-core": finish.core, ...style } as CSSProperties}>
+    <div ref={ref} className={`magic-circle${signature ? ` magic-circle--${signature}` : ""} ${className}`} style={vars}>
       <svg viewBox="-100 -100 200 200" fill="none" strokeLinecap="round" strokeLinejoin="round">
         <circle className="magic-circle__disc" r="96" />
         <g className="magic-circle__outer">
@@ -88,6 +98,12 @@ export const MagicCircle = forwardRef<HTMLDivElement, MagicCircleProps>(function
           <ElementFigure element={element} />
           <circle className="magic-circle__core" r="6" strokeWidth="1.4" />
         </g>
+        {signature ? (
+          <g className="magic-circle__signature" strokeWidth="2">
+            <circle r="70" stroke="none" />
+            <path d={polygon(5, 66, 0, 2)} />
+          </g>
+        ) : null}
       </svg>
     </div>
   );

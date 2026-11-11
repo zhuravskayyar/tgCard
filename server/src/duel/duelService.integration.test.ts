@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { DeckRepository } from "../decks/deckRepository.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { DuelService, DuelStateConflictError } from "./duelService.js";
+import { DuelCooldownError, DuelService, DuelStateConflictError } from "./duelService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let telegramSequence = 0n;
@@ -26,6 +26,42 @@ async function cleanup(pool: Pool, playerIds: string[]) {
   await pool.query("DELETE FROM duels WHERE challenger_id = ANY($1::uuid[]) OR opponent_id = ANY($1::uuid[])", [playerIds]);
   await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [playerIds]);
 }
+
+test("the last Duel charge blocks new battles until the break expires", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const playerIds: string[] = [];
+  try {
+    const challenger = await players.findOrCreateFromTelegram(telegramUser("cooldown"));
+    playerIds.push(challenger.id);
+    await players.completeTutorial(challenger.id);
+    await pool.query("UPDATE players SET duel_remaining = 1, tutorial_eligible = FALSE WHERE id = $1", [challenger.id]);
+    const service = new DuelService(pool, () => 0);
+    // A DATE column must not shift a day in a non-UTC server timezone.
+    await pool.query(
+      "UPDATE players SET duel_gold_earned_today = 1, duel_gold_day = (NOW() AT TIME ZONE 'UTC')::date, duel_gold_level = level WHERE id = $1",
+      [challenger.id],
+    );
+    const goldToday = await service.findAvailability(challenger.id);
+    assert.equal(goldToday.goldEarnedToday, 1);
+    const search = await service.search(challenger.id);
+    const duel = await service.start(challenger.id, search.searchId);
+    const spent = await service.findAvailability(challenger.id);
+    assert.equal(spent.remaining, 0);
+    assert.ok(spent.refillAt);
+    await pool.query("UPDATE duels SET status = 'won', finished_at = NOW() WHERE id = $1", [duel.duelId]);
+    await assert.rejects(service.search(challenger.id), DuelCooldownError);
+    await pool.query("UPDATE players SET duel_refill_at = NOW() - INTERVAL '1 second' WHERE id = $1", [challenger.id]);
+    assert.equal((await service.findAvailability(challenger.id)).remaining, 10);
+    const nextSearch = await service.search(challenger.id);
+    await service.start(challenger.id, nextSearch.searchId);
+    assert.equal((await service.findAvailability(challenger.id)).remaining, 9);
+  } finally {
+    if (playerIds.length) await cleanup(pool, playerIds);
+    await pool.end();
+  }
+});
 
 test("matchmaking always builds and persists a varied bot deck even when a real player is eligible", {
   skip: !databaseUrl,
@@ -99,7 +135,7 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
   }
 });
 
-test("winning finalizes once, grants Duel Gold, and resets its limit after a level-up", {
+test("winning finalizes once, grants Duel Gold, and a level-up raises the limit without resetting today's count", {
   skip: !databaseUrl,
 }, async () => {
   if (!databaseUrl) return;
@@ -118,7 +154,7 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
     assert.equal((await players.completeTutorial(challenger.id)).rewardCard, null);
     await players.completeTutorial(opponent.id);
     await pool.query(
-      "UPDATE players SET account_xp = 239, duel_gold_earned_today = 1, duel_gold_level = level WHERE id = $1",
+      "UPDATE players SET account_xp = 239, duel_gold_earned_today = 1, duel_gold_day = (NOW() AT TIME ZONE 'UTC')::date, duel_gold_level = level WHERE id = $1",
       [challenger.id],
     );
     const service = new DuelService(pool, () => 0);
@@ -140,7 +176,7 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
       gold: duel.result.gold,
       duelGoldReward: duel.result.duelGoldReward,
       levelUpGoldReward: duel.result.levelUpGoldReward,
-    }, { outcome: "win", xp: 186, silver: 100, gold: 2, duelGoldReward: 1, levelUpGoldReward: 2 });
+    }, { outcome: "win", xp: 162, silver: 100, gold: 2, duelGoldReward: 1, levelUpGoldReward: 2 });
     await assert.rejects(
       service.action(challenger.id, duel.duelId, { slotIndex: 0, expectedVersion: finalRequestVersion }),
       DuelStateConflictError,
@@ -163,7 +199,7 @@ test("winning finalizes once, grants Duel Gold, and resets its limit after a lev
       duelGoldLevel: persisted.rows[0]?.duel_gold_level,
       silver: Number(persisted.rows[0]?.silver),
       gold: Number(persisted.rows[0]?.gold),
-    }, { xp: 185, wins: 1, duelGoldEarnedToday: 1, duelGoldLevel: 2, silver: 100, gold: 3 });
+    }, { xp: 161, wins: 1, duelGoldEarnedToday: 2, duelGoldLevel: 2, silver: 100, gold: 3 });
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();
@@ -184,6 +220,7 @@ test("tutorial players receive a guaranteed first victory after a losing exchang
     const service = new DuelService(pool, () => 0.999999);
     const found = await service.search(challenger.id);
     let duel = await service.start(challenger.id, found.searchId, true);
+    assert.equal((await service.findAvailability(challenger.id)).remaining, 10);
     const enemyActiveCards = duel.enemyActiveCards.map((card, index) => (
       index === 2 ? { ...card, finalPower: 1_000 } : card
     ));
@@ -313,7 +350,7 @@ test("a loss grants its reward once and resets the Duel win streak", { skip: !da
       silver: duel.result.silver,
       gold: duel.result.gold,
       streak: duel.result.winStreak,
-    }, { outcome: "loss", xp: 6, silver: 50, gold: 0, streak: 0 });
+    }, { outcome: "loss", xp: 0, silver: 50, gold: 0, streak: 0 });
     const persisted = await pool.query<{
       account_xp: number;
       duel_losses: number;
@@ -325,7 +362,7 @@ test("a loss grants its reward once and resets the Duel win streak", { skip: !da
       losses: persisted.rows[0]?.duel_losses,
       streak: persisted.rows[0]?.duel_win_streak,
       silver: Number(persisted.rows[0]?.silver),
-    }, { xp: 6, losses: 1, streak: 0, silver: 50 });
+    }, { xp: 0, losses: 1, streak: 0, silver: 50 });
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();

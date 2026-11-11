@@ -10,6 +10,9 @@ export const COLLECTION_MODIFIER_TYPES = [
   "absorption_efficiency_pct",
   "deck_power_pct",
   "altar_gold_levels",
+  "duel_cooldown_minutes",
+  "duel_gold_limit",
+  "duel_gold_share_pct",
 ] as const;
 
 export type CollectionModifierType = (typeof COLLECTION_MODIFIER_TYPES)[number];

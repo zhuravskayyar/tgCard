@@ -6,6 +6,7 @@ import { holdCardMaterialAnimation } from "../cards/cardMaterialShader";
 import { CardFxWrapper } from "./CardFxWrapper";
 import { CardHud } from "./CardHud";
 import { MagicCircle } from "./MagicCircle";
+import { SIGNATURE_FX_STYLES, getSignatureFx } from "../cards/signatureFx";
 import "./battle-attack.css";
 
 /** Longest strike (weak tier: slow flight) including the flip to the next cards; screens also wait for the end event. */
@@ -498,6 +499,8 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
     const impact = { x: to.left - origin.left + to.width / 2, y: to.top - origin.top + to.height / 2 };
     const counterAt = { x: from.left - origin.left + from.width / 2, y: from.top - origin.top + from.height / 2 };
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const signature = getSignatureFx(exchange.playerCard);
+    const aura = signature ? SIGNATURE_FX_STYLES[signature].aura : null;
     const glow = GLOW[exchange.playerCard.element];
     let cancelled = false;
     let trailFrame = 0;
@@ -535,7 +538,10 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         { transform: transform(lift.x, lift.y, -6, 7, 1.12) },
       ], { ...options, duration: RISE_MS, easing: "cubic-bezier(.2,.8,.3,1)" }).finished;
       if (cancelled) return;
-      ghost.style.filter = `drop-shadow(0 0 14px ${glow}) drop-shadow(0 18px 14px #000a)`;
+      // A signature card flies inside its collection aura, with the element glow close around it.
+      ghost.style.filter = aura
+        ? `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 16px ${aura}) drop-shadow(0 18px 14px #000a)`
+        : `drop-shadow(0 0 14px ${glow}) drop-shadow(0 18px 14px #000a)`;
       let lastTrailAt = -Infinity;
       const flightStart = performance.now();
       const tail: Array<[number, number]> = [];
@@ -555,6 +561,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
         if (now - lastTrailAt >= TRAIL_INTERVAL_MS) {
           lastTrailAt = now;
           trailParticles(fx, at, exchange.playerCard.element, tier, direction, (now - flightStart) / 28);
+          if (aura) fx.add({ kind: "glow", x: at.x, y: at.y, size: 22, grow: 0.4, life: 14, color: aura, alpha: 0.35 });
         }
         trailFrame = requestAnimationFrame(trail);
       };
@@ -583,6 +590,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       ], { ...options, duration: IMPACT_SEAL_MS[tier], easing: "cubic-bezier(.2,.7,.3,1)" });
 
       burst(fx, impact, exchange.playerCard.element, exchange.enemyCard.rarity, tier, direction);
+      if (aura) fx.add({ kind: "glow", x: impact.x, y: impact.y, size: 110, grow: 0.5, life: 26, color: aura, alpha: 0.45 });
       impactSound();
       shakeBoard(board, tier);
       setDamage({ tier, at: impact, counterAt });
@@ -658,7 +666,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
       <canvas ref={impactCanvas} className="battle-attack__fx" />
       {geometry ? (
         <>
-          <MagicCircle ref={castSealRef} className="battle-attack__seal--cast" element={exchange.playerCard.element} style={sealBox(geometry.player, CAST_SEAL_SIZE)} />
+          <MagicCircle ref={castSealRef} className="battle-attack__seal--cast" element={exchange.playerCard.element} signature={getSignatureFx(exchange.playerCard)} style={sealBox(geometry.player, CAST_SEAL_SIZE)} />
           <div ref={targetRef} className={`duel-card battle-attack__card battle-attack__card--enemy deck-card--${exchange.enemyCard.element} deck-card--${exchange.enemyCard.rarity}`} style={geometry.enemy}>
             <CardFxWrapper artKey={exchange.enemyCard.artKey} cardId={exchange.enemyCard.cardId} compact element={exchange.enemyCard.element} rarity={exchange.enemyCard.rarity}>
               <CardHud element={exchange.enemyCard.element} power={exchange.enemyCard.finalPower} rarity={exchange.enemyCard.rarity} staticMaterial />
@@ -669,7 +677,7 @@ export function BattleAttackAnimation({ exchange }: { exchange: DuelExchange }) 
               <CardHud element={exchange.playerCard.element} power={exchange.playerCard.finalPower} rarity={exchange.playerCard.rarity} staticMaterial />
             </CardFxWrapper>
           </div>
-          <MagicCircle ref={impactSealRef} className="battle-attack__seal--impact" element={exchange.playerCard.element} style={sealBox(geometry.enemy, IMPACT_SEAL_SIZE[tier])} />
+          <MagicCircle ref={impactSealRef} className="battle-attack__seal--impact" element={exchange.playerCard.element} signature={getSignatureFx(exchange.playerCard)} style={sealBox(geometry.enemy, IMPACT_SEAL_SIZE[tier])} />
         </>
       ) : null}
       {damage ? (

@@ -1,0 +1,93 @@
+/* Signature aura of special collections (Twitch Legends: violet), drawn around the card plate
+   wherever CardFxWrapper renders the card: deck, card detail, shop and limited drops, duels.
+   It burns like a fire, but violet: a flickering glow that follows the plate's own shape, a band
+   of flame running round the edge, and tongues of flame licking up the sides and over the top. */
+@property --aura-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.card-fx--signature-twitch {
+  --aura-deep: #4d14c4;
+  --aura-mid: #8a45ff;
+  --aura-hot: #c7a0ff;
+  animation: signature-aura-glow 1.7s ease-in-out infinite;
+}
+
+/* Outside CardFxWrapper (collection catalogue card) the host needs its own stacking context. */
+.collection-card-visual.card-fx--signature { position: relative; isolation: isolate; }
+
+.card-signature-aura {
+  position: absolute;
+  z-index: -1;
+  inset: -2.5% -3%;
+  border-radius: 7%;
+  pointer-events: none;
+}
+
+/* Band of flame along the edge: violet fire running round the card. */
+.card-signature-aura::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 5px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--aura-angle), var(--aura-deep), var(--aura-hot), var(--aura-mid), var(--aura-deep), var(--aura-hot), var(--aura-mid), var(--aura-deep));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: blur(3px);
+  animation: signature-aura-run 3.2s linear infinite, signature-aura-flicker 1.1s steps(1, end) infinite;
+}
+
+/* Tongues of flame licking up the sides and over the top edge. */
+.card-signature-aura__flames {
+  position: absolute;
+  inset: -9% -6% 4%;
+  background:
+    radial-gradient(ellipse 7% 16% at 5% 64%, var(--aura-mid), transparent 72%),
+    radial-gradient(ellipse 6% 14% at 95% 56%, var(--aura-mid), transparent 72%),
+    radial-gradient(ellipse 6% 12% at 4% 30%, var(--aura-hot), transparent 72%),
+    radial-gradient(ellipse 6% 12% at 96% 24%, var(--aura-hot), transparent 72%),
+    radial-gradient(ellipse 8% 9% at 22% 6%, var(--aura-mid), transparent 72%),
+    radial-gradient(ellipse 7% 10% at 50% 3%, var(--aura-hot), transparent 72%),
+    radial-gradient(ellipse 8% 9% at 78% 6%, var(--aura-mid), transparent 72%);
+  filter: blur(3px);
+  opacity: 0;
+  animation: signature-aura-rise 1.5s ease-in infinite;
+}
+
+/* The glow follows the plate's own outline and breathes like a flame. */
+@keyframes signature-aura-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--aura-hot)) drop-shadow(0 0 9px var(--aura-mid)) drop-shadow(0 0 16px var(--aura-deep)); }
+  50% { filter: drop-shadow(0 0 4px var(--aura-hot)) drop-shadow(0 0 13px var(--aura-mid)) drop-shadow(0 0 22px var(--aura-deep)); }
+}
+@keyframes signature-aura-run { to { --aura-angle: 360deg; } }
+@keyframes signature-aura-flicker {
+  0% { opacity: .95; }
+  23% { opacity: .7; }
+  41% { opacity: 1; }
+  67% { opacity: .8; }
+  84% { opacity: .92; }
+}
+@keyframes signature-aura-rise {
+  0% { opacity: 0; transform: translateY(4%) scaleY(.85); }
+  35% { opacity: .85; }
+  100% { opacity: 0; transform: translateY(-8%) scaleY(1.15); }
+}
+
+/* Small duel slots: thinner band and glow so neighbouring cards stay readable. */
+.card-fx--compact .card-signature-aura::after { padding: 3px; filter: blur(2px); }
+.card-fx--compact.card-fx--signature-twitch { animation-name: signature-aura-glow-compact; }
+@keyframes signature-aura-glow-compact {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--aura-hot)) drop-shadow(0 0 6px var(--aura-mid)); }
+  50% { filter: drop-shadow(0 0 3px var(--aura-hot)) drop-shadow(0 0 9px var(--aura-mid)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-fx--signature-twitch,
+  .card-signature-aura::after,
+  .card-signature-aura__flames { animation: none; }
+  .card-fx--signature-twitch { filter: drop-shadow(0 0 4px var(--aura-hot)) drop-shadow(0 0 12px var(--aura-mid)); }
+}

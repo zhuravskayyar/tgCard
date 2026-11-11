@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { PlayerCollectionCardResponse } from "@cardastika/shared";
 import { CardSilhouette } from "../components/bestiary/CardSilhouette";
 import { CardArtwork } from "../components/CardArtwork";
+import { getSignatureFxByCardId } from "../cards/signatureFx";
+import "../styles/card-signature-aura.css";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { MenuRow } from "../components/MenuRow";
 import { getTelegramInitData } from "../telegram";
@@ -39,10 +41,14 @@ export function CollectionCardScreen({ collectionId, cardId, onBack, onOpenDeck,
   }, [attempt, cardId, collectionId]);
   if (state.status !== "ready") return <section className="collections-screen"><ScreenHeading backLabel="Назад до колекції" onBack={onBack} title="Карта колекції" /><CollectionState state={state} onRetry={() => setAttempt((value) => value + 1)} /></section>;
   const { card } = state.data;
+  const signature = getSignatureFxByCardId(card.id);
   return <section className="collection-card-screen">
     <ScreenHeading backLabel="Назад до колекції" onBack={onBack} title={<span className="collection-card-title"><ElementSymbol element={card.element} size={20} />{card.displayName}</span>} />
     {card.discovered
-      ? <div className={`collection-card-visual deck-card--${card.element} deck-card--${card.minRarity}`}><CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} rarity={card.minRarity} /></div>
+      ? <div className={`collection-card-visual deck-card--${card.element} deck-card--${card.minRarity}${signature ? ` card-fx--signature card-fx--signature-${signature}` : ""}`}>
+          {signature ? <span aria-hidden="true" className="card-signature-aura"><span className="card-signature-aura__flames" /></span> : null}
+          <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} rarity={card.minRarity} />
+        </div>
       : <div className="collection-card-visual collection-card-visual--unknown"><CardSilhouette artKey={card.artKey} cardId={card.id} /></div>}
     <p className="collection-card-description" data-tutorial-target="collection-card-info">{card.description}</p>
     {card.strongestInstanceId ? <MenuRow chevron icon="card-strength" onClick={() => onOpenInstance(card.strongestInstanceId!)} title="Найсильніша карта" /> : null}

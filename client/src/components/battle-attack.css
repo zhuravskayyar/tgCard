@@ -139,6 +139,12 @@
 .magic-circle__outer, .magic-circle__inner { transform-box: fill-box; transform-origin: center; }
 .magic-circle__outer { animation: magic-circle-spin 3.2s linear infinite; }
 .magic-circle__inner { animation: magic-circle-spin 2.2s linear infinite reverse; }
+/* Twitch Legends: the element seal keeps its figure, the runes take a violet tint and a violet
+   pentagram turns over it on its own layer, inside a violet aura. */
+.magic-circle--twitch { filter: drop-shadow(0 0 4px var(--mc-rim)) drop-shadow(0 0 12px var(--mc-aura)); }
+.magic-circle--twitch .magic-circle__disc { fill: var(--mc-aura); fill-opacity: .16; }
+.magic-circle--twitch .magic-circle__runes { stroke: color-mix(in srgb, var(--mc-core) 45%, var(--mc-line)); }
+.magic-circle__signature { stroke: var(--mc-line); filter: drop-shadow(0 0 3px var(--mc-aura)); transform-box: fill-box; transform-origin: center; animation: magic-circle-spin 4s linear infinite; }
 .battle-attack__seal--cast { z-index: 1; }
 .battle-attack__seal--impact { z-index: 3; }
 @keyframes magic-circle-spin { to { transform: rotate(360deg); } }

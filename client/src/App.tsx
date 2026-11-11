@@ -732,6 +732,7 @@ export function App() {
       ) : null}
       {screen === "duel" && !tutorialRewardCard && !isDuelSearchLoopPreview() ? (
         <DuelScreen
+          duelRating={playerSummaryState.status === "ready" ? playerSummaryState.data.duelRating : undefined}
           onOpenLeagues={openLeagues}
           onOpenTasks={openTasks}
           onOpenShop={() => openShop("home")}

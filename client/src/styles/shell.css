@@ -1,7 +1,8 @@
 /* The authenticated shell has no screen-specific variants. The game is always a
-   phone layout: on wide screens, Telegram Desktop included, it stays a 430px
-   column (tokens.css) instead of stretching; phones use their full width. */
-@media (max-width: 767px) {
+   phone layout: anything wider than a phone (tablets, desktop, Telegram Desktop)
+   gets the same 430px column (tokens.css) on the world background, never a
+   stretched or scaled layout; phones (up to 540px, display zoom included) use their full width. */
+@media (max-width: 540px) {
   :root {
     --shell-width: 100%;
   }
@@ -84,7 +85,7 @@
   background: linear-gradient(180deg, #eee5d5, #d9ccb5);
 }
 
-@media (min-width: 800px) {
+@media (min-width: 541px) {
   :root[data-game-theme="light"] body {
     background:
       linear-gradient(90deg, rgb(45 28 12 / 34%), rgb(45 28 12 / 0%) 50%, rgb(45 28 12 / 34%)),
@@ -115,7 +116,7 @@
 }
 
 /* Mobile book canvas: force the artwork edge to edge and never expose pale gutters. */
-@media (max-width: 767px) {
+@media (max-width: 540px) {
   /* On some Android WebViews the Telegram root marker is missing or late.
      Override the actual canvas and fixed bars, not only their width token. */
   :root[data-game-theme="light"] body {

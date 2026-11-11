@@ -7,6 +7,68 @@
   box-shadow: none;
 }
 
+.duel-availability {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--home-ink-muted);
+  font: 600 15px/1.35 var(--font-display);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.duel-availability strong { color: var(--home-ink); font: 700 17px/1.2 var(--font-display); }
+.duel-availability span { flex-basis: 100%; }
+.duel-rating-meter { display: grid; justify-items: center; gap: 2px; width: 100%; margin-bottom: 8px; color: var(--home-ink-muted); font: 600 13px/1.3 var(--font-display); text-align: center; font-variant-numeric: tabular-nums; }
+/* Full width like the arena flask: beside the badges it would shrink to a thin string on phones. */
+.duel-rating-meter__flask { width: min(100%, 340px); }
+.duel-rating-meter__ends { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: min(100%, 340px); color: var(--home-ink); font: 700 13px/1.2 var(--font-display); }
+.duel-rating-meter__ends span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.duel-rating-meter__ends span:last-child:not(:first-child) { margin-left: auto; }
+.duel-rating-meter__ends .league-badge--sm { width: 34px; height: 34px; }
+.duel-rating-meter p { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin: 2px 0 0; color: var(--home-ink-muted); font-size: 15px; }
+.duel-rating-meter p strong { color: var(--home-ink); font: 700 17px/1.2 var(--font-display); }
+.duel-rating-meter p small { font-weight: 800; }
+.duel-rating-meter__change--up { color: #4f7a2c; }
+.duel-rating-meter__change--down { color: #9b3a2c; }
+.duel-availability .duel-availability__gold { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+
+.app-shell .app-content .duel-cooldown-panel {
+  display: flex;
+  width: min(100%, 430px);
+  min-height: 320px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  justify-self: center;
+  padding: 28px 22px;
+  color: var(--home-ink);
+  text-align: center;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
+}
+/* Rating and duel counter sit on the same painted panel plate as the search panel above. */
+.app-shell .app-content .duel-status-plate {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(100%, 430px);
+  justify-self: center;
+  margin-inline: auto;
+  padding: 18px 20px;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
+}
+.duel-status-plate .duel-rating-meter { margin-bottom: 0; }
+/* The result page is already one framed plate: no frame inside a frame. */
+.app-shell .app-content .duel-outcome .duel-status-plate,
+.app-shell .app-content .duel-search-footer .duel-status-plate { width: 100%; padding: 0; border: 0; border-image: none; }
+
+.duel-cooldown-panel h2 { margin: 0; color: var(--home-ink); font: 700 25px/1.1 var(--font-display); }
+.duel-cooldown-panel > p:last-child { max-width: 28ch; margin: 0; color: var(--home-ink-muted); font: 500 15px/1.35 var(--font-display); }
+
 .app-shell .app-content .duel-page.duel-search-screen .duel-search-state,
 .app-shell .app-content .duel-page.duel-search-screen .duel-opponent-preview {
   min-height: 280px;
@@ -1605,4 +1667,79 @@
    so the edge follows the painted frame (no drawn box) and reads as a physical card on the board. */
 .app-shell .duel-card > .card-fx {
   filter: drop-shadow(0 1.5px 0 #9a7444) drop-shadow(0 1.5px 0 #7a5530) drop-shadow(0 1.5px 0 #523619);
+}
+
+/* One screen, no scroll: the search panel takes all the height between the heading and
+   the page edge; rating and duel counter close the same plate; the opponent reveal
+   gives up decoration (medal, eyebrow, power breakdown) as the cell gets shorter. */
+.app-shell .app-content .app-screen-transition:has(> .duel-search-screen) { height: 100%; }
+.app-shell .app-content .duel-page.duel-search-screen { display: flex; flex-direction: column; height: 100%; gap: 8px; padding-bottom: 0; }
+.app-shell .app-content .duel-search-screen > .duel-search-experience { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; margin-inline: auto; padding: 18px 20px 16px; }
+.app-shell .app-content .duel-search-screen > .duel-search-experience > .duel-search-cell { flex: 1 1 auto; min-height: 0; container-type: size; }
+.app-shell .app-content .duel-search-screen > .duel-search-experience > .duel-search-message { flex: 1 1 auto; min-height: 0; }
+
+/* Footer: three short lines in the plate's own type. */
+.duel-search-footer { position: relative; z-index: 1; flex: 0 0 auto; padding-top: 6px; }
+.duel-search-footer .duel-status-plate { gap: 2px; }
+.duel-rating-meter--compact { gap: 1px; margin: 0; }
+.duel-rating-meter__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px; width: min(100%, 340px); }
+.duel-rating-meter__row .league-badge--sm { width: 28px; height: 28px; }
+.duel-rating-meter--compact .duel-rating-meter__flask { width: 100%; }
+.duel-rating-meter--compact p { flex-wrap: wrap; gap: 0 8px; margin: 0; font-size: 13px; }
+.duel-rating-meter--compact p strong { font-size: 15px; }
+.duel-rating-meter--compact p small { color: var(--home-ink-muted); font-weight: 600; }
+.duel-search-footer .duel-availability { gap: 0 12px; font-size: 13px; line-height: 1.3; }
+.duel-search-footer .duel-availability strong { font-size: 15px; }
+.duel-search-footer .duel-availability span:not(.duel-availability__gold) { flex-basis: 100%; }
+.duel-search-footer .duel-availability .duel-availability__gold { flex-basis: auto; }
+
+.duel-search-experience--preview .duel-search-cell .duel-search-medal { width: min(40%, 148px, 24cqh); }
+.duel-search-cell .duel-search-arena { width: min(72vw, 270px, 50cqh); }
+
+@container (max-height: 540px) {
+  .duel-search-experience--preview .duel-search-view--found { justify-content: space-between; gap: 0; padding: 0 2px; }
+  .duel-search-eyebrow { margin: 0; font-size: 12px; }
+  .duel-search-experience--preview .duel-search-opponent-name { font-size: clamp(26px, 7vw, 32px); }
+  .duel-search-experience--preview .duel-search-level { margin: 1px 0; font-size: 12px; }
+  .duel-search-experience--preview .duel-search-badge { margin: 2px 0 3px; padding: 4px 12px; font-size: 10px; }
+  .duel-search-experience--preview .duel-search-power { grid-template-columns: 1fr 44px 1fr; margin: 0 0 3px; padding: 3px 2px; }
+  .duel-search-experience--preview .duel-search-power strong { font-size: 34px; }
+  .duel-search-experience--preview .duel-search-power > div > span { font-size: 10px; }
+  .duel-search-experience--preview .duel-search-power__seal { width: 40px; height: 40px; }
+  .duel-search-experience--preview .duel-search-power__breakdown { display: none; }
+  .duel-search-experience--preview .duel-search-actions { gap: 3px; }
+  .app-shell .app-content .duel-search-experience--preview .duel-search-button--attack { min-height: 39px; }
+  .app-shell .app-content .duel-search-experience--preview .duel-search-button--again { min-height: 34px; }
+  .duel-search-cell .duel-search-arena { width: min(56vw, 200px, 46cqh); }
+  .duel-search-view--search { gap: 1px; }
+  .duel-search-title { font-size: 24px; }
+}
+
+/* Short phones (Telegram on a 600–650px viewport): the avatar moves beside the name as a
+   header row (avatar | name, level, category); powers and both actions stay full width. */
+@container (max-height: 320px) {
+  .duel-search-experience--preview .duel-search-view--found {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'medal name' 'medal level' 'medal badge' 'power power' 'actions actions';
+    align-content: space-evenly;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 0;
+    text-align: left;
+  }
+  .duel-search-experience--preview .duel-search-eyebrow { display: none; }
+  .duel-search-experience--preview .duel-search-cell .duel-search-medal { grid-area: medal; width: clamp(56px, 30cqh, 72px); margin: 0; }
+  .duel-search-experience--preview .duel-search-opponent-name { grid-area: name; align-self: end; margin: 0; font-size: 24px; }
+  .duel-search-experience--preview .duel-search-level { grid-area: level; margin: 1px 0; font-size: 11px; letter-spacing: .12em; }
+  .duel-search-experience--preview .duel-search-badge { grid-area: badge; justify-self: start; align-self: start; margin: 1px 0 0; }
+  .duel-search-experience--preview .duel-search-power { grid-area: power; margin: 4px 0 2px; }
+  .duel-search-experience--preview .duel-search-actions { grid-area: actions; }
+  .duel-search-experience--preview .duel-search-power strong { font-size: 30px; }
+  .duel-search-experience--preview .duel-search-power__seal { width: 34px; height: 34px; }
+  .duel-search-rule,
+  .duel-search-hint,
+  .duel-search-meta { display: none; }
+  .app-shell .app-content .duel-search-experience--preview .duel-search-button--attack { min-height: 36px; }
+  .app-shell .app-content .duel-search-experience--preview .duel-search-button--again { min-height: 32px; }
 }

@@ -194,6 +194,10 @@ fs.writeFileSync(repo + "/docs/card-art-prompts.md", promptsMd, "utf8");
 const CODE = { boobs: "spring_bloom", power: "old_soldiers" };
 const WORKING = {
   elementals: { type: "silver_reward_pct", value: 10, scope: "duel" },
+  highelem: { type: "duel_cooldown_minutes", value: 30, scope: "duel" },
+  dragons: { type: "duel_gold_limit", value: 5, scope: "duel" },
+  dragons2: { type: "duel_gold_limit", value: 10, scope: "duel" },
+  umutants: { type: "duel_gold_share_pct", value: 10, scope: "duel" },
   mythic: { type: "absorption_efficiency_pct", value: 10, scope: "absorption" },
   sorceresses: { type: "altar_gold_levels", value: 2, scope: "altar" },
   dwarves_war: { type: "battle_damage_pct", value: 10, scope: "guild_raid" },
@@ -203,6 +207,7 @@ const TOURNAMENT_LABELS = {
   sea_masters: true, horde: true, sky_heroes: true, forest_dwellers: true, ugiants: true,
   wizards: "+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка",
   twitch_legends: "Бонус колекції визначимо після її розширення",
+  dragons2: "+10 щоденного золота в дуелях (внесок у скарбницю 5 → 10 запрацює пізніше)",
 };
 const elementCode = { f: "fire", w: "water", a: "air", e: "earth" };
 const toCard = (key) => ({ id: key, displayName: C[key][0], description: C[key][2], element: elementCode[cardEl[key]], minRarity: RAR[C[key][1]], shopEligible: Boolean(shopMin[key]) });
@@ -211,7 +216,7 @@ const data = {
     code: CODE[code] ?? code,
     displayName: name,
     bonus: WORKING[code] ?? { type: "none", value: 1 },
-    bonusLabel: WORKING[code] || TOURNAMENT_LABELS[code] === true ? bonus : typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : bonus + " (запрацює разом із цією механікою)",
+    bonusLabel: typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : WORKING[code] || TOURNAMENT_LABELS[code] === true ? bonus : bonus + " (запрацює разом із цією механікою)",
     cardIds: list.split(",").map((entry) => entry.split("/")[1]),
   })),
   uncollectedCardIds: UNCOLLECTED.split(",").map((entry) => entry.split("/")[1]),

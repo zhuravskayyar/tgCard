@@ -8,6 +8,7 @@ import {
   calculateDuelDamage,
   calculateDuelReward,
   cycleCardPoolSlotWithGuildCard,
+  getDuelGoldDailyLimit,
   getDuelGoldReward,
   cycleCardPoolSlot,
   getDuelBaseSilver,
@@ -271,7 +272,7 @@ test("win streak increments on wins, resets on loss, and widens the next search"
 
 test("Duel XP and Silver formulas and collection reward modifiers are exact", () => {
   assert.equal(getDuelBaseXp(8, "win"), 60);
-  assert.equal(getDuelBaseXp(8, "loss"), 34);
+  assert.equal(getDuelBaseXp(8, "loss"), 0);
   assert.equal(getDuelBaseSilver(8, "win"), 120);
   assert.equal(getDuelBaseSilver(8, "loss"), 60);
   assert.deepEqual(calculateDuelReward(8, "win", {
@@ -287,17 +288,34 @@ test("Duel XP and Silver formulas and collection reward modifiers are exact", ()
     experienceRewardPct: 5,
     silverRewardPct: 5,
   }, 2, 100_000), { accountBoostMultiplier: 2, baseXp: 100_000, baseSilver: 120, xp: 205_000, silver: 252 });
+  // A loss grants no XP even with dealt damage, boosts and XP bonuses; Silver stays.
+  assert.deepEqual(calculateDuelReward(8, "loss", {
+    experienceRewardPct: 5,
+    silverRewardPct: 5,
+  }, 2, 100_000), { accountBoostMultiplier: 2, baseXp: 0, baseSilver: 60, xp: 0, silver: 126 });
 });
 
-test("Duel victory Gold is random, level-capped, and unavailable on losses", () => {
-  assert.equal(getDuelGoldReward(8, "win", 0, () => 0), 1);
-  assert.equal(getDuelGoldReward(8, "win", 0, () => 0.999), 2);
-  assert.equal(getDuelGoldReward(1, "win", 0, () => 0.999), 1);
-  assert.equal(getDuelGoldReward(8, "win", 8, () => 0), 0);
-  assert.equal(getDuelGoldReward(8, "loss", 0, () => 0), 0);
-  assert.equal(getDuelGoldReward(8, "win", 0, () => 0, 2), 2);
-  assert.equal(getDuelGoldReward(8, "win", 15, () => 0.999, 2), 1);
-  assert.equal(getDuelGoldReward(8, "win", 16, () => 0, 2), 0);
+test("Duel Gold drops on random wins, ~5% of the level-based limit, guaranteed by the 5th Duel", () => {
+  const draws = (...values: number[]) => () => values.shift() ?? 0;
+  // Level 40: limit 40, a drop is 5% = 2.
+  assert.equal(getDuelGoldDailyLimit(40), 40);
+  assert.equal(getDuelGoldReward(40, "win", 0, 0, draws(0.1, 0)), 2);
+  // Chance missed and no guarantee yet: nothing.
+  assert.equal(getDuelGoldReward(40, "win", 0, 0, draws(0.9)), 0);
+  // 5th Duel since the last drop: guaranteed even with an unlucky draw.
+  assert.equal(getDuelGoldReward(40, "win", 0, 4, draws(0)), 2);
+  // Losses never pay; a full limit pays nothing.
+  assert.equal(getDuelGoldReward(40, "loss", 0, 10, draws(0)), 0);
+  assert.equal(getDuelGoldReward(40, "win", 40, 10, draws(0)), 0);
+  // Fractions round up or down at random; a drop is at least 1 and never exceeds what is left.
+  assert.equal(getDuelGoldReward(30, "win", 0, 4, draws(0.4)), 2);
+  assert.equal(getDuelGoldReward(30, "win", 0, 4, draws(0.6)), 1);
+  assert.equal(getDuelGoldReward(7, "win", 0, 4, draws(0)), 1);
+  assert.equal(getDuelGoldReward(40, "win", 39, 4, draws(0)), 1);
+  // Collections: +5 / +10 to the limit, and a 10% share instead of 5%; the currency boost doubles the limit.
+  assert.equal(getDuelGoldDailyLimit(40, 1, 15), 55);
+  assert.equal(getDuelGoldReward(40, "win", 0, 4, draws(0), 1, { limitBonus: 10, sharePct: 10 }), 5);
+  assert.equal(getDuelGoldDailyLimit(40, 2, 5), 90);
 });
 
 test("canonical account XP table preserves overflow and caps at level 120", () => {

@@ -16,8 +16,11 @@ export const WIDENED_MATCHMAKING_STREAK = 5;
 export const DUEL_ACTIVE_CARD_COUNT = 3;
 export const DUEL_POOL_SIZE = 9;
 export const MAX_ACCOUNT_LEVEL = 120;
-export const DUEL_GOLD_REWARD_MIN = 1;
-export const DUEL_GOLD_REWARD_MAX = 2;
+/** Reference manual: Duel gold drops on a random win, no later than the 5th Duel (losses included) after the last drop. */
+export const DUEL_GOLD_GUARANTEE_AFTER_DUELS = 5;
+export const DUEL_GOLD_WIN_CHANCE = 0.4;
+/** Each drop is about 5% of the daily limit (10% with the matching collection), rounded either way, at least 1. */
+export const DUEL_GOLD_BASE_SHARE_PCT = 5;
 export const GUILD_CARD_APPEARANCE_CHANCE = 0.15;
 
 // XP required to reach each target account level. Index zero is unused;
@@ -468,9 +471,10 @@ export function getDuelLogVisualState(
   return "neutral";
 }
 
+/** A lost Duel grants no XP; Silver is still paid. */
 export function getDuelBaseXp(level: number, outcome: DuelOutcome) {
   assertPositiveInteger(level, "Account level");
-  return outcome === "win" ? 20 + level * 5 : 10 + level * 3;
+  return outcome === "win" ? 20 + level * 5 : 0;
 }
 
 export function getDuelBaseSilver(level: number, outcome: DuelOutcome) {
@@ -487,7 +491,7 @@ export function calculateDuelReward(
 ): DuelReward {
   assertPercentage(modifiers.experienceRewardPct, "Experience reward percentage");
   assertPercentage(modifiers.silverRewardPct, "Silver reward percentage");
-  const baseXp = playerDamage ?? getDuelBaseXp(level, outcome);
+  const baseXp = outcome === "win" ? playerDamage ?? getDuelBaseXp(level, outcome) : 0;
   assertNonNegativeInteger(baseXp, "Base battle XP");
   const baseSilver = getDuelBaseSilver(level, outcome);
   const modified = calculateBattleReward(
@@ -503,26 +507,55 @@ export function calculateDuelReward(
   };
 }
 
+export interface DuelGoldBonuses {
+  /** Flat increase of the daily limit from completed collections. */
+  limitBonus?: number;
+  /** Share of the daily limit paid per drop; the base is 5%. */
+  sharePct?: number;
+}
+
+/** Daily Duel gold limit: account level plus collection bonuses, doubled by the currency boost. */
+export function getDuelGoldDailyLimit(level: number, rewardMultiplier: 1 | 2 = 1, limitBonus = 0) {
+  assertPositiveInteger(level, "Account level");
+  assertNonNegativeInteger(limitBonus, "Duel gold limit bonus");
+  if (rewardMultiplier !== 1 && rewardMultiplier !== 2) {
+    throw new RangeError("Duel gold reward multiplier must be 1 or 2");
+  }
+  return (level + limitBonus) * rewardMultiplier;
+}
+
+function drawRandom(random: RandomSource) {
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new RangeError("Random source must return a value in [0, 1)");
+  }
+  return value;
+}
+
+/**
+ * Gold for one finished Duel. Losses never pay. A win pays with DUEL_GOLD_WIN_CHANCE, and always once
+ * this is the DUEL_GOLD_GUARANTEE_AFTER_DUELS-th Duel since the last drop (`duelsSinceGold` counts the
+ * finished Duels before this one). The drop is ~sharePct% of the daily limit, rounded up or down at random.
+ */
 export function getDuelGoldReward(
   level: number,
   outcome: DuelOutcome,
   earnedDailyGold: number,
+  duelsSinceGold: number,
   random: RandomSource = Math.random,
   rewardMultiplier: 1 | 2 = 1,
+  { limitBonus = 0, sharePct = DUEL_GOLD_BASE_SHARE_PCT }: DuelGoldBonuses = {},
 ) {
-  assertPositiveInteger(level, "Account level");
   assertNonNegativeInteger(earnedDailyGold, "Earned daily Duel gold");
-  if (rewardMultiplier !== 1 && rewardMultiplier !== 2) {
-    throw new RangeError("Duel gold reward multiplier must be 1 or 2");
-  }
-  const dailyCap = level * rewardMultiplier;
-  if (outcome !== "win" || earnedDailyGold >= dailyCap) return 0;
-  const randomValue = random();
-  if (!Number.isFinite(randomValue) || randomValue < 0 || randomValue >= 1) {
-    throw new RangeError("Random source must return a value in [0, 1)");
-  }
-  const requested = (randomValue < 0.5 ? DUEL_GOLD_REWARD_MIN : DUEL_GOLD_REWARD_MAX) * rewardMultiplier;
-  return Math.min(requested, dailyCap - earnedDailyGold);
+  assertNonNegativeInteger(duelsSinceGold, "Duels since the last Duel gold");
+  assertPercentage(sharePct, "Duel gold share percentage");
+  const dailyLimit = getDuelGoldDailyLimit(level, rewardMultiplier, limitBonus);
+  if (outcome !== "win" || earnedDailyGold >= dailyLimit) return 0;
+  const guaranteed = duelsSinceGold + 1 >= DUEL_GOLD_GUARANTEE_AFTER_DUELS;
+  if (!guaranteed && drawRandom(random) >= DUEL_GOLD_WIN_CHANCE) return 0;
+  const exact = dailyLimit * sharePct / 100;
+  const rounded = drawRandom(random) < exact - Math.floor(exact) ? Math.ceil(exact) : Math.floor(exact);
+  return Math.min(Math.max(1, rounded), dailyLimit - earnedDailyGold);
 }
 
 export function calculateBattleReward(
