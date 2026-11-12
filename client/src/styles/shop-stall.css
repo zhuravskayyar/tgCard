@@ -942,7 +942,7 @@
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__progress strong { color: #24140a; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__progress-track { display: block; height: 6px; background: rgb(60 35 15 / 28%); border: 0; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__progress-track > span { display: block; height: 100%; background: #8f1d12; }
-:root[data-game-theme="light"] body .app-shell .app-content .workshop-card__purchase { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0; background: none; border: 0; }
+:root[data-game-theme="light"] body .app-shell .app-content .workshop-card__purchase { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 0; background: none; border: 0; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__cost { display: inline-flex; align-items: center; gap: 3px; color: #24140a; font-family: var(--font-number); font-size: 15px; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__cost strong { color: #24140a; }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__craft {
