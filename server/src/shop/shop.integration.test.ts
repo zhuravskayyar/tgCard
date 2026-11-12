@@ -182,6 +182,52 @@ test("prices, miss increments, independent instances, and persisted pity are aut
   }
 });
 
+test("«Шулікова зграя» makes only the first card purchase of the day free", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const user = createTelegramUser("free-daily-card");
+  const cards = [createCard("uncommon", "fire", 5), createCard("epic", "water", 20)];
+
+  try {
+    await insertCards(pool, cards);
+    const player = await players.findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET gold = 120, silver = 600 WHERE id = $1", [player.id]);
+    const shop = new ShopService(pool, {
+      rng: new AlwaysMissRandomSource(),
+      selectReward: selectInsertedReward(cards),
+      levelPolicy: levelPolicyFor(cards),
+    });
+    assert.ok((await shop.getCardsCatalog(player.id)).offers.every(({ free }) => !free));
+
+    // Completion is derived from discoveries of every member card.
+    await pool.query(
+      `INSERT INTO player_card_discoveries (player_id, card_id)
+       SELECT $1, card_id FROM collection_cards WHERE collection_id = 'collection_usoldiers'
+       ON CONFLICT DO NOTHING`,
+      [player.id],
+    );
+    const catalog = await shop.getCardsCatalog(player.id);
+    assert.ok(catalog.offers.every(({ canAfford, free }) => free === true && canAfford));
+
+    const free = await shop.purchase(player.id, "card_epic");
+    assert.deepEqual(free.updatedBalance, { silver: 600, gold: 120 });
+    assert.ok((await shop.getCardsCatalog(player.id)).offers.every(({ free: isFree }) => !isFree));
+    const paid = await shop.purchase(player.id, "card_epic");
+    assert.deepEqual(paid.updatedBalance, { silver: 600, gold: 70 });
+
+    // A new day brings exactly one free purchase back, however many days were skipped.
+    await pool.query("UPDATE players SET free_shop_purchase_on = CURRENT_DATE - 3 WHERE id = $1", [player.id]);
+    const nextDay = await shop.purchase(player.id, "card_uncommon");
+    assert.deepEqual(nextDay.updatedBalance, { silver: 600, gold: 70 });
+    const afterThat = await shop.purchase(player.id, "card_uncommon");
+    assert.deepEqual(afterThat.updatedBalance, { silver: 100, gold: 70 });
+  } finally {
+    await cleanup(pool, [user.id], cards.map(({ cardId }) => cardId));
+    await pool.end();
+  }
+});
+
 test("retired bundles stay hidden and cannot spend player gold", { skip: !databaseUrl }, async () => {
   if (!databaseUrl) return;
   const pool = new Pool({ connectionString: databaseUrl });

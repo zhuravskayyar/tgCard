@@ -21,12 +21,33 @@ import {
   type PlayerCardInstance,
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
-import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
+import { getCompletedCollectionModifiers, hasCompletedCollection } from "../collections/discoveryService.js";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
 import { createMagicSourceInstance } from "../cards/cardInstanceCreator.js";
 
 type Queryable = Pick<Pool, "query">;
 type TransactionClient = Pick<PoolClient, "query">;
+
+const TREASURY_BONUS_COLLECTION_ID = "collection_ugenerals";
+const TREASURY_GOLD_LIMIT_COLLECTION_ID = "collection_dragons2";
+
+/** Gold a player may still put in the treasury today: the paid part only, the game's top-up is not counted. */
+async function loadDailyGold(database: Queryable, playerId: string, now: Date) {
+  const dayStart = `${now.toISOString().slice(0, 10)}T00:00:00.000Z`;
+  const [paidResult, raised] = await Promise.all([
+    database.query<{ paid: string | number }>(
+      `SELECT COALESCE(SUM(amount - game_bonus), 0)::numeric AS paid
+       FROM guild_treasury_contributions
+       WHERE player_id = $1 AND contribution_type = 'gold' AND created_at >= $2::timestamptz`,
+      [playerId, dayStart],
+    ),
+    hasCompletedCollection(database, playerId, TREASURY_GOLD_LIMIT_COLLECTION_ID),
+  ]);
+  const limit = raised ? GUILD_CONFIG.treasuryDailyGoldLimitWithCollection : GUILD_CONFIG.treasuryDailyGoldLimit;
+  const paid = Number(paidResult.rows[0]?.paid ?? 0);
+  return { limit, remaining: Math.max(0, limit - paid) };
+}
+const TREASURY_BONUS_PCT = 20;
 
 export type TreasuryActivityLogger = (
   client: TransactionClient,
@@ -140,6 +161,7 @@ export type GuildTreasuryErrorCode =
   | "treasury_card_not_selected"
   | "treasury_card_protected"
   | "treasury_cooldown"
+  | "treasury_daily_gold_limit"
   | "treasury_insufficient_gold"
   | "treasury_insufficient_silver"
   | "treasury_invalid_amount"
@@ -222,6 +244,7 @@ export class GuildTreasuryService {
     ]);
 
     const viewer = viewerResult.rows[0];
+    const dailyGold = await loadDailyGold(database, viewerId, new Date());
     const availableAt = viewer ? contributionAvailableAt(viewer.joined_at, viewer.role) : new Date();
     const viewerIsMember = Boolean(viewer);
     const viewerGold = viewer ? toNonNegativeInteger(viewer.gold, "player gold") : 0;
@@ -238,6 +261,8 @@ export class GuildTreasuryService {
         canContribute: viewerIsMember && Date.now() >= availableAt.getTime(),
         contributionAvailableAt: availableAt.toISOString(),
         gold: viewerGold,
+        goldDailyLimit: dailyGold.limit,
+        goldDailyRemaining: dailyGold.remaining,
         silver: viewerSilver,
       },
     };
@@ -296,6 +321,12 @@ export class GuildTreasuryService {
       );
       const player = playerResult.rows[0];
       if (!player) throw new GuildTreasuryDomainError("treasury_not_member", "Player is not a member of this guild", 403);
+      if (currency === "gold") {
+        const daily = await loadDailyGold(client, playerId, new Date());
+        if (amount > daily.remaining) {
+          throw new GuildTreasuryDomainError("treasury_daily_gold_limit", `At most ${daily.remaining} more gold may be donated today`, 409);
+        }
+      }
       const balance = toNonNegativeInteger(player[currency], `player ${currency}`);
       if (balance < amount) {
         throw new GuildTreasuryDomainError(
@@ -320,14 +351,19 @@ export class GuildTreasuryService {
           `Not enough ${currency} for this donation`,
         );
       }
+      // «Шулікові ватажки»: the game adds 20% on top of the player's own gold or silver contribution.
+      const gameBonus = await hasCompletedCollection(client, playerId, TREASURY_BONUS_COLLECTION_ID)
+        ? Math.floor(amount * TREASURY_BONUS_PCT / 100)
+        : 0;
+      const credited = amount + gameBonus;
       await client.query(
         `UPDATE guild_treasuries SET ${currency} = ${currency} + $2, updated_at = NOW() WHERE guild_id = $1`,
-        [guildId, amount],
+        [guildId, credited],
       );
       await client.query(
-        `INSERT INTO guild_treasury_contributions (id, guild_id, player_id, contribution_type, amount)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [randomUUID(), guildId, playerId, currency, amount],
+        `INSERT INTO guild_treasury_contributions (id, guild_id, player_id, contribution_type, amount, game_bonus)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [randomUUID(), guildId, playerId, currency, credited, gameBonus],
       );
       await this.logActivity?.(
         client,
@@ -336,11 +372,11 @@ export class GuildTreasuryService {
         playerId,
         null,
         null,
-        amount,
-        `Поповнив казну на ${amount} ${currency === "gold" ? "золота" : "срібла"}`,
+        credited,
+        `Поповнив казну на ${credited} ${currency === "gold" ? "золота" : "срібла"}${gameBonus ? ` (з них ${gameBonus} — бонус колекції)` : ""}`,
       );
       await client.query("COMMIT");
-      return { amount, currency };
+      return { amount, currency, gameBonus };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       if (error instanceof GuildTreasuryDomainError) throw error;

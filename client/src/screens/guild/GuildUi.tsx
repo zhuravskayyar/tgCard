@@ -34,6 +34,7 @@ export function guildErrorMessage(error: unknown) {
     treasury_cooldown: error.retryAt ? `Внески відкриються ${formatDate(error.retryAt)}.` : "Внески відкриються через три дні після вступу.",
     treasury_insufficient_silver: "Недостатньо срібла для цього внеску.",
     treasury_insufficient_gold: "Недостатньо золота для цього внеску.",
+    treasury_daily_gold_limit: "Сьогоднішній ліміт внеску золота вичерпано або перевищено.",
     treasury_card_not_selected: "Лідер ще не виставив карту гільдії.",
     treasury_card_not_owned: "Одна з карт уже недоступна. Оновіть список карт.",
     treasury_card_in_deck: "Карту з активної колоди не можна пожертвувати.",

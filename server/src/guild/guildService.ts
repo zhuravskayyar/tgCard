@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { MAGIC_SOURCE_CARD_CODES } from "@cardastika/game-core";
+import { applyGuildXpCollectionBonus, MAGIC_SOURCE_CARD_CODES } from "@cardastika/game-core";
 import {
   CARD_ELEMENTS,
   GUILD_CONFIG,
@@ -276,6 +276,8 @@ export interface GuildActivityRecorder {
     playerId: string,
     activityType: GuildActivityType,
     sourceId: string,
+    /** XP the player actually received for this activity; the guild gets the same amount plus collection bonuses. */
+    playerXp: number,
     occurredAt?: Date,
   ): Promise<number>;
 }
@@ -318,8 +320,10 @@ export class GuildService implements GuildActivityRecorder {
     playerId: string,
     activityType: GuildActivityType,
     sourceId: string,
+    playerXp: number,
     occurredAt = new Date(),
   ) {
+    if (!Number.isSafeInteger(playerXp) || playerXp <= 0) return 0;
     const memberResult = await client.query<{ guild_id: string }>(
       "SELECT guild_id FROM guild_members WHERE player_id = $1 FOR UPDATE",
       [playerId],
@@ -335,19 +339,15 @@ export class GuildService implements GuildActivityRecorder {
     if (!guild) return 0;
 
     const contributionDate = occurredAt.toISOString().slice(0, 10);
-    const usedResult = await client.query<{ used: string | number }>(
-      `
-        SELECT COALESCE(SUM(xp), 0) AS used
-        FROM guild_xp_contributions
-        WHERE player_id = $1 AND contribution_date = $2::date
-      `,
-      [playerId, contributionDate],
+    const completions = await client.query<{ collection_id: string }>(
+      "SELECT collection_id FROM player_collection_completions WHERE player_id = $1",
+      [playerId],
     );
-    const used = toSafeInteger(usedResult.rows[0]?.used ?? 0, "daily guild XP");
-    const available = Math.max(0, GUILD_CONFIG.dailyXpCap - used);
-    const reward = GUILD_CONFIG.xpRewards[activityType];
-    if (available <= 0 || reward <= 0) return 0;
-    const granted = Math.min(available, reward);
+    // Reference: all XP a member earns goes to the guild; «Весняний цвіт» and «Старі вояки» add 10% each.
+    const granted = applyGuildXpCollectionBonus(
+      playerXp,
+      completions.rows.map(({ collection_id }) => collection_id),
+    );
     const inserted = await client.query<{ id: string }>(
       `
         INSERT INTO guild_xp_contributions (

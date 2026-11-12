@@ -33,6 +33,8 @@
 | Battle Pass | [[battle-pass]] | `battlePassService.ts` у корені `server/src` |
 | Щоденні нагороди | [[daily-login-rewards]] | `dailyRewardsService.ts` |
 | Косметика | [[cosmetics]] | |
+| Референс гільдії | [[reference-elem-guild]] | правила гільдії, казни й досвіду з довідника elem.mobi; `treasuryService.ts`, `guildService.ts` |
+| Референс бонусів колекцій | [[reference-elem-collections]] | правила кожної колекції з довідника elem.mobi; `collectionModifiers.ts`, `equipment.ts` |
 | Налаштування профілю | [[reference-profile-settings]] | референс: анкета, аватар, облік, оформлення; `avatarCatalog.ts` |
 | Бустери | [[booster-preview]] | `client/src/booster/` |
 | UI-система | [[ui-system]] · [[ui]] | спільні компоненти `client/src/components/` |

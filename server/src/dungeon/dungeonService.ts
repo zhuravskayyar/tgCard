@@ -1,7 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import type { DungeonCompleteResponse, DungeonStartResponse } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
-import type { GuildActivityRecorder } from "../guild/guildService.js";
 import {
   calculateDungeonReward,
   createDungeonBoard,
@@ -53,7 +52,6 @@ export class DungeonCannotCompleteError extends Error {
 export class DungeonService {
   constructor(
     private readonly pool: Pick<Pool, "connect" | "query">,
-    private readonly guildActivity?: GuildActivityRecorder,
   ) {}
 
   async start(playerId: string): Promise<DungeonStartResponse> {
@@ -151,9 +149,6 @@ export class DungeonService {
           [runId, evaluation.status, evaluation.movesUsed, evaluation.matchedPairs, reward.shards, reward.stars, evaluation.status === "completed"],
         );
         if (updatedRun.rowCount !== 1) throw new Error("Dungeon run was updated unexpectedly");
-        if (evaluation.status === "completed") {
-          await this.guildActivity?.recordActivity(client, playerId, "dungeon_complete", `dungeon:${runId}`);
-        }
         if (reward.shards > 0) {
           await client.query(
             `UPDATE players SET card_shards = card_shards + $2, updated_at = NOW() WHERE id = $1`,

@@ -47,17 +47,22 @@ test("guild PostgreSQL flow enforces XP idempotency, role boundaries and cooldow
     const activityClient = await pool.connect();
     try {
       await activityClient.query("BEGIN");
-      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", "guild-test-0"), 10);
-      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", "guild-test-0"), 0);
-      for (let index = 1; index < 30; index += 1) {
-        assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", `guild-test-${index}`), 10);
+      // The guild gets the XP the member earned, once per source, with no daily cap.
+      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", "guild-test-0", 12_500), 12_500);
+      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", "guild-test-0", 12_500), 0);
+      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_loss", "guild-test-zero", 0), 0);
+      for (let index = 1; index < 80; index += 1) {
+        assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_win", `guild-test-${index}`, 12_500), 12_500);
       }
-      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "duel_loss", "guild-test-cap"), 0);
+      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "tournament_battle", "guild-test-tournament", 7_000), 7_000);
+      assert.equal(await guilds.recordActivity(activityClient, playerIds[1]!, "campaign_loss", "guild-test-campaign", 3_000), 3_000);
       await activityClient.query("COMMIT");
     } finally {
       activityClient.release();
     }
-    assert.equal((await guilds.getProfile(playerIds[0]!, guildId)).guild.experience, 300);
+    const leveled = (await guilds.getProfile(playerIds[0]!, guildId)).guild;
+    assert.equal(leveled.experience, 80 * 12_500 + 7_000 + 3_000);
+    assert.equal(leveled.level, 2);
 
     await guilds.changeRole(playerIds[0]!, guildId, playerIds[1]!, "officer");
     await guilds.join(playerIds[2]!, guildId);
@@ -370,6 +375,64 @@ test("leaders raise the Guild Card with treasury gold and a gold level gifts eve
     );
     const total = await pool.query("SELECT 1 FROM player_card_instances WHERE player_id = ANY($1::uuid[]) AND card_id = ANY($2::text[])", [ids, SOURCES]);
     assert.equal(total.rows.length, 2);
+  } finally {
+    if (guildId) await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
+    if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);
+    await pool.end();
+  }
+});
+
+test("treasury gold follows the reference: 5 a day, 10 with «Рідкісні змії», +20% from «Шулікові ватажки»", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const { GuildTreasuryDomainError } = await import("./treasuryService.js");
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const guilds = new GuildService(pool);
+  const ids: string[] = [];
+  let guildId: string | null = null;
+  const discover = (playerId: string, collectionId: string) => pool.query(
+    `INSERT INTO player_card_discoveries (player_id, card_id)
+     SELECT $1, card_id FROM collection_cards WHERE collection_id = $2
+     ON CONFLICT DO NOTHING`,
+    [playerId, collectionId],
+  );
+  const isDailyLimit = (error: unknown) => error instanceof GuildTreasuryDomainError && error.code === "treasury_daily_gold_limit";
+  try {
+    const leader = (await players.findOrCreateFromTelegram(telegramUser("treasury_generals"))).id;
+    ids.push(leader);
+    await pool.query("UPDATE players SET level = 20, gold = 1000, silver = 50000 WHERE id = $1", [leader]);
+    guildId = (await guilds.create(leader, { name: `Скарб ${randomUUID().slice(0, 4)}` })).guild.id;
+    // Founding the guild costs gold or silver, so the player's own spending is checked against this point.
+    await pool.query("UPDATE players SET gold = 1000, silver = 50000 WHERE id = $1", [leader]);
+    const treasury = async () => (await pool.query<{ gold: string; silver: string }>(
+      "SELECT gold, silver FROM guild_treasuries WHERE guild_id = $1",
+      [guildId],
+    )).rows[0];
+
+    await assert.rejects(guilds.donateGuildTreasuryCurrency(leader, guildId, "gold", 6), isDailyLimit);
+    let profile = await guilds.donateGuildTreasuryCurrency(leader, guildId, "gold", 3);
+    assert.equal(profile.treasury?.viewer.goldDailyRemaining, 2);
+    await assert.rejects(guilds.donateGuildTreasuryCurrency(leader, guildId, "gold", 3), isDailyLimit);
+    await guilds.donateGuildTreasuryCurrency(leader, guildId, "silver", 1000);
+    assert.deepEqual({ gold: Number((await treasury())?.gold), silver: Number((await treasury())?.silver) }, { gold: 3, silver: 1000 });
+
+    // «Шулікові ватажки»: the game adds 20% on top, and the top-up does not use the player's daily limit.
+    await discover(leader, "collection_ugenerals");
+    profile = await guilds.donateGuildTreasuryCurrency(leader, guildId, "gold", 2);
+    assert.equal(profile.treasury?.viewer.goldDailyRemaining, 0);
+    await guilds.donateGuildTreasuryCurrency(leader, guildId, "silver", 1000);
+    assert.deepEqual({ gold: Number((await treasury())?.gold), silver: Number((await treasury())?.silver) }, { gold: 3 + 2, silver: 1000 + 1200 });
+
+    // «Рідкісні змії» raise today's limit to 10.
+    await discover(leader, "collection_dragons2");
+    profile = await guilds.donateGuildTreasuryCurrency(leader, guildId, "gold", 5);
+    assert.equal(profile.treasury?.viewer.goldDailyLimit, 10);
+    assert.equal(profile.treasury?.viewer.goldDailyRemaining, 0);
+    assert.equal(Number((await treasury())?.gold), 5 + 6);
+
+    const balance = (await pool.query<{ gold: string; silver: string }>("SELECT gold, silver FROM players WHERE id = $1", [leader])).rows[0];
+    assert.equal(Number(balance?.gold), 1000 - 10);
+    assert.equal(Number(balance?.silver), 50000 - 2000);
   } finally {
     if (guildId) await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);

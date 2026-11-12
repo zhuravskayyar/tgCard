@@ -81,3 +81,18 @@ export function applyAbsorptionEfficiency(
   }
   return Math.round((baseElements * (100 + modifiers.absorptionEfficiencyPct) / 100 + Number.EPSILON) * 100) / 100;
 }
+
+/** Collections that add guild experience (catalog code → percent); kept by code like the tournament effects. */
+export const GUILD_XP_COLLECTION_BONUS_PCT: Readonly<Record<string, number>> = Object.freeze({
+  spring_bloom: 10,
+  old_soldiers: 10,
+});
+
+/** The guild XP a single activity grants after collection bonuses; accepts codes or `collection_<code>` ids. */
+export function applyGuildXpCollectionBonus(baseXp: number, completedCollections: readonly string[]) {
+  let pct = 0;
+  for (const code of new Set(completedCollections.map((entry) => entry.replace(/^collection_/, "")))) {
+    pct += GUILD_XP_COLLECTION_BONUS_PCT[code] ?? 0;
+  }
+  return Math.round(baseXp * (100 + pct) / 100);
+}

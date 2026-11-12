@@ -66,6 +66,7 @@ import { createMagicSourceInstance, createStandardCardInstance, CryptoCardRandom
 import { ChatChannel } from "../chat/chatChannel.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
 import { loadDuelParticipant, toGuildDuelCard } from "../duel/duelService.js";
+import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { PlayerPersistenceError, PlayerRepository } from "../users/playerRepository.js";
 
 const PRIZE_CATEGORIES = [
@@ -194,6 +195,8 @@ export class TournamentService {
     private readonly devTools = process.env.NODE_ENV !== "production",
     /** Local sparring partner for solo test events; tests that count entrants turn it off. */
     private readonly sparringPartner = devTools,
+    /** Tournament XP also goes to the player's guild (reference: guild XP is the XP members earn). */
+    private readonly guildActivity?: GuildActivityRecorder,
   ) {
     this.chat = new ChatChannel(pool, "tournament_chat_messages");
   }
@@ -563,7 +566,7 @@ export class TournamentService {
         if (!duel.result) continue;
         const winnerId = duel.sides[duel.result.winnerIndex].playerId;
         const loserId = duel.sides[duel.result.winnerIndex === 0 ? 1 : 0].playerId;
-        const rewards = await this.payMatch(client, event.id, duel);
+        const rewards = await this.payMatch(client, event.id, pending.id, duel);
         await client.query(
           "UPDATE tournament_matches SET state = $3, winner_id = $4, settled_at = $5 WHERE event_id = $1 AND id = $2",
           [event.id, pending.id, JSON.stringify({ duel, rewards } satisfies StoredMatch), winnerId, now],
@@ -590,12 +593,13 @@ export class TournamentService {
   }
 
   /** Rating and XP after every round for both sides. */
-  private async payMatch(client: PoolClient, eventId: string, duel: TournamentDuelState): Promise<[MatchRewards, MatchRewards]> {
+  private async payMatch(client: PoolClient, eventId: string, matchId: string, duel: TournamentDuelState): Promise<[MatchRewards, MatchRewards]> {
     const profiles = new Map((await client.query<{ player_id: string; rating: number; highest_league: TournamentRegularLeague; highest_league_index: number }>(
       "SELECT player_id, rating, highest_league, highest_league_index FROM tournament_profiles WHERE player_id = ANY($1::uuid[]) ORDER BY player_id FOR UPDATE",
       [duel.sides.map(side => side.playerId)],
     )).rows.map(row => [row.player_id, row]));
     const rewards: MatchRewards[] = [];
+    const guildXp: { playerId: string; xp: number }[] = [];
     for (const index of [0, 1] as const) {
       const side = duel.sides[index];
       const other = duel.sides[index === 0 ? 1 : 0];
@@ -634,11 +638,17 @@ export class TournamentService {
         "UPDATE players SET level = $2, account_xp = $3, gold = gold + $4, silver = silver + $5, updated_at = NOW() WHERE id = $1",
         [side.playerId, progression.newLevel, progression.remainingXp, progression.goldReward, promotionSilver],
       );
+      guildXp.push({ playerId: side.playerId, xp });
       await client.query(
         "UPDATE tournament_entries SET rating_change = rating_change + $3, xp_earned = xp_earned + $4 WHERE event_id = $1 AND player_id = $2",
         [eventId, side.playerId, ratingChange, xp],
       );
       rewards.push({ ratingChange, xp });
+    }
+    // Guild rows are locked only after both player rows, so two guildmates in one match cannot
+    // deadlock with a duel that locks one of them and then the guild.
+    for (const { playerId, xp } of guildXp) {
+      await this.guildActivity?.recordActivity(client, playerId, "tournament_battle", `tournament:${eventId}:${matchId}`, xp);
     }
     return rewards as [MatchRewards, MatchRewards];
   }

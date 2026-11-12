@@ -14,6 +14,7 @@ import {
   getEquippedDefinitions,
   getRequiredAccountXp,
   getMatchmakingRange,
+  getEquipmentCollectionElementPct,
   getPlayerCollectionModifiers,
   getStartingHp,
   initializeCyclicCardPool,
@@ -98,6 +99,7 @@ interface DeckCardRow extends CardInstanceProjectionRow {
 interface ModifierRow {
   buff_element: CardElement | null;
   buff_scope: CollectionBonusScope;
+  code: string;
   buff_type: CollectionModifierType;
   buff_value: number | string;
 }
@@ -449,7 +451,7 @@ export async function loadDuelParticipant(
 
   const modifiersResult = await client.query<ModifierRow>(
     `
-      SELECT collections.buff_type, collections.buff_value, collections.buff_element, collections.buff_scope
+      SELECT collections.code, collections.buff_type, collections.buff_value, collections.buff_element, collections.buff_scope
       FROM player_collection_completions
       INNER JOIN collections ON collections.id = player_collection_completions.collection_id
       WHERE player_collection_completions.player_id = $1
@@ -459,7 +461,10 @@ export async function loadDuelParticipant(
   );
   const equipment = parseStoredEquipment(player.id, player.equipment);
   const equippedDefinitions = getEquippedDefinitions(equipment);
-  const equipmentSummary = calculateEquipmentSummary(equippedDefinitions);
+  const equipmentSummary = calculateEquipmentSummary(
+    equippedDefinitions,
+    getEquipmentCollectionElementPct(modifiersResult.rows.map(({ code }) => code)),
+  );
   const artifactItemIds = equippedDefinitions.filter(({ category }) => category === "artifacts").map(({ id }) => id);
   const collectionModifiers = modifiersResult.rows.map((row) => ({
     type: row.buff_type,
@@ -856,13 +861,6 @@ export class DuelService {
           persistedStatus = "won";
         }
         const outcome: DuelOutcome = persistedStatus === "won" ? "win" : "loss";
-        await this.guildActivity?.recordActivity(
-          client,
-          challengerId,
-          outcome === "win" ? "duel_win" : "duel_loss",
-          `duel:${duelId}`,
-          actionNow,
-        );
         const boost = await getAccountBoostStatus(client, challengerId, actionNow);
         const currencyBoost = await getCurrencyBoostStatus(client, challengerId, actionNow);
         const completedCollectionModifiers = await getCompletedCollectionModifiers(client, challengerId);
@@ -881,6 +879,14 @@ export class DuelService {
           silver: baseReward.silver * currencyBoost.multiplier,
           ...(duel.tutorial_mode ? { xp: 35, silver: 100 } : {}),
         };
+        await this.guildActivity?.recordActivity(
+          client,
+          challengerId,
+          outcome === "win" ? "duel_win" : "duel_loss",
+          `duel:${duelId}`,
+          reward.xp,
+          actionNow,
+        );
         const calculatedLeagueProgression = applyLeagueProgression({
           highestLeagueIndex: toSafeInteger(player.duel_highest_league_index, "Duel highest league index"),
           ratingBefore: toSafeInteger(player.duel_rating, "Duel rating"),

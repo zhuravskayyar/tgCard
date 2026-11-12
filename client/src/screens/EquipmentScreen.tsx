@@ -10,6 +10,7 @@ import {
   getDominantDeckElement,
   getEquipmentBattleModifiers,
   STARTER_EQUIPMENT_DEFINITIONS,
+  getEquipmentCollectionElementPct,
 } from "@cardastika/game-core";
 import { CARD_RARITIES, EQUIPMENT_SLOTS, type CardElement, type EquipmentCategory, type EquipmentDefinition, type EquipmentSlot, type EquippedEquipment, type PlayerEquipmentInventory } from "@cardastika/shared";
 import { EquipmentIcon } from "../components/EquipmentIcon";
@@ -20,6 +21,8 @@ import type { EquipmentInventoryStatus } from "../equipment/equipmentState";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 
 interface EquipmentScreenProps {
+  /** Completed collections of the viewer; «Вибір …» collections strengthen things of one element. */
+  completedCollectionIds: readonly string[];
   equipped: EquippedEquipment;
   inventory: readonly PlayerEquipmentInventory[];
   inventoryStatus: EquipmentInventoryStatus;
@@ -31,7 +34,7 @@ interface EquipmentScreenProps {
   savePending: boolean;
 }
 
-export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialItemId = null, onBack, onEquippedChange, onOpenForge, saveError, savePending }: EquipmentScreenProps) {
+export function EquipmentScreen({ completedCollectionIds, equipped, inventory, inventoryStatus, initialItemId = null, onBack, onEquippedChange, onOpenForge, saveError, savePending }: EquipmentScreenProps) {
   const { state: deckState } = usePlayerDeck();
   const mageElement = deckState.status === "ready" ? getDominantDeckElement(deckState.deck.cards) ?? "fire" : "fire";
   const definitionsById = useMemo(() => new Map(STARTER_EQUIPMENT_DEFINITIONS.map((definition) => [definition.id, definition])), []);
@@ -47,7 +50,10 @@ export function EquipmentScreen({ equipped, inventory, inventoryStatus, initialI
     const definition = definitionsById.get(equipped[slot] ?? "");
     return definition ? [definition] : [];
   }), [definitionsById, equipped]);
-  const summary = useMemo(() => calculateEquipmentSummary(equippedDefinitions), [equippedDefinitions]);
+  const summary = useMemo(
+    () => calculateEquipmentSummary(equippedDefinitions, getEquipmentCollectionElementPct(completedCollectionIds)),
+    [completedCollectionIds, equippedDefinitions],
+  );
   const modifiers = getEquipmentBattleModifiers(summary);
   const activeSetIds = new Set(summary.activeSets.map((set) => set.id));
   const hasThings = equippedDefinitions.some((definition) => definition.category === "things");

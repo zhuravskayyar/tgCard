@@ -47,7 +47,7 @@ export function ShopOfferPanel({
   const currencyLabel = offer.currency === "silver" ? "срібла" : "золота";
   const formatPercentage = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "");
   const leadUpgrade = offer.upgrades[0];
-  const shortage = typeof availableBalance === "number" ? Math.max(0, offer.price - availableBalance) : null;
+  const shortage = offer.free ? 0 : typeof availableBalance === "number" ? Math.max(0, offer.price - availableBalance) : null;
 
   function handlePurchaseClick() {
     if (disabled) return;
@@ -60,14 +60,14 @@ export function ShopOfferPanel({
 
   const purchaseButton = (
     <button
-      aria-label={`Купити за ${offer.price} ${currencyLabel}`}
+      aria-label={offer.free ? "Купити безкоштовно" : `Купити за ${offer.price} ${currencyLabel}`}
       className={`shop-offer__purchase shop-offer__purchase--${offer.currency}`}
       data-tutorial-target={dataTutorialTarget}
       disabled={disabled}
       onClick={handlePurchaseClick}
       type="button"
     >
-      {purchasing ? <span>Купуємо…</span> : <><span>{expanded ? "Купити за" : "Купити"}</span><CurrencyIcon kind={offer.currency} /><strong>{offer.price}</strong></>}
+      {purchasing ? <span>Купуємо…</span> : offer.free ? <strong>Безкоштовно</strong> : <><span>{expanded ? "Купити за" : "Купити"}</span><CurrencyIcon kind={offer.currency} /><strong>{offer.price}</strong></>}
     </button>
   );
 

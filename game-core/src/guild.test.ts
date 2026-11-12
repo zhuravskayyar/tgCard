@@ -15,7 +15,6 @@ test("guild balance is config-driven and level thresholds are monotonic", () => 
   assert.equal(GUILD_CONFIG.unlockLevel, 10);
   assert.equal(GUILD_CONFIG.creationCostSilver, 10_000);
   assert.equal(GUILD_CONFIG.nameMaxLength, 10);
-  assert.equal(GUILD_CONFIG.dailyXpCap, 300);
   assert.equal(getGuildLevelForExperience(0), 1);
   assert.equal(getGuildLevelForExperience(1_000_000), 2);
   assert.equal(getGuildLevelForExperience(75_000_000), 20);

@@ -5,9 +5,13 @@ import type {
   GuildAltarView,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import { CATALOG_DATA } from "../collections/catalogData.generated.js";
 import { hasCompletedCollection } from "../collections/discoveryService.js";
 
-export const WITCHES_COLLECTION_ID = "collection_witches";
+// The catalog collection whose bonus raises the gold altar upgrade («Чотири чаклунки»).
+const altarCollection = CATALOG_DATA.collections.find(({ bonus }) => bonus.type === "altar_gold_levels");
+if (!altarCollection) throw new Error("The catalog has no altar_gold_levels collection");
+export const WITCHES_COLLECTION_ID = `collection_${altarCollection.code}`;
 
 const ALTAR_UPGRADE_DEFINITIONS: Readonly<Record<GuildAltarCurrency, {
   baseIncrease: 1;

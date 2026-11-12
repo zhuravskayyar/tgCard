@@ -46,7 +46,6 @@ import {
   type PlayerSummary,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
-import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { loadDuelParticipant, toGuildDuelCard, DuelDeckInvalidError } from "../duel/duelService.js";
 import { loadArenaDailyTasks } from "../battlePassService.js";
 import { ChatChannel } from "../chat/chatChannel.js";
@@ -733,7 +732,7 @@ async function loadPlayer(client: Pick<PoolClient, "query">, playerId: string, l
   return player;
 }
 
-async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState, guildActivity?: GuildActivityRecorder) {
+async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState) {
   const ordered = resultPlacement(state);
   state.resultsByPlayer = {};
   const noWinners = state.technicalFinish === true && aliveParticipants(state).length >= ARENA_NO_WINNERS_ALIVE_COUNT;
@@ -799,14 +798,7 @@ async function finishMatch(client: PoolClient, row: ArenaRow, state: ArenaState,
     if (!counted) continue;
     await client.query("INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'ARENA_FINISHED', $2)", [participant.id, JSON.stringify({ matchId: row.id })]);
     if (won) await client.query("INSERT INTO player_campaign_events (player_id, event_type, payload) VALUES ($1, 'ARENA_WON', $2)", [participant.id, JSON.stringify({ matchId: row.id })]);
-    const activityType = placement === 1
-      ? "arena_place_1"
-      : placement === 2
-        ? "arena_place_2"
-        : placement === 3
-          ? "arena_place_3"
-          : "arena_place_4_6";
-    await guildActivity?.recordActivity(client, participant.id, activityType, `arena:${row.id}:${participant.id}`);
+    // The arena pays no player XP, so it adds nothing to the guild (reference: guild XP is the XP members earn).
   }
   state.result = state.resultsByPlayer[row.player_id] ?? null;
   state.targetId = null;
@@ -999,7 +991,6 @@ export class ArenaService {
 
   constructor(
     private readonly pool: Pool,
-    private readonly guildActivity?: GuildActivityRecorder,
     private readonly random: RandomSource = Math.random,
   ) {
     this.chat = new ChatChannel(pool, "arena_chat_messages");
@@ -1258,7 +1249,7 @@ export class ArenaService {
       }
       const changed = row.status === "active" ? advanceBots(row.state, now, this.random) : false;
       if (row.status === "active" && arenaIsOver(row.state)) {
-        await finishMatch(client, row, row.state, this.guildActivity);
+        await finishMatch(client, row, row.state);
         row.status = "finished";
         row.version += 1;
       } else if (changed || presenceChanged || pausedScheduleAligned) {
@@ -1391,7 +1382,7 @@ export class ArenaService {
         row.state.lastPlayerActionAt = new Date(now).toISOString();
       }
       if (arenaIsOver(row.state)) {
-        await finishMatch(client, row, row.state, this.guildActivity);
+        await finishMatch(client, row, row.state);
         row.status = "finished";
         row.version += 1;
       } else if (advanced || changed || presenceChanged || pausedScheduleAligned) {

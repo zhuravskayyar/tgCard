@@ -20,12 +20,12 @@ const COLLECTIONS = [
 ["ugiants","Шулікові велетні","Посилення на турнірі ефективніше на 5%","Навала Шуліки","a/air_serpent,e/mamukrajua,f/eternal_phoenix,w/sage_basilisk"],
 ["ufavorites","Шулікові улюбленці","Додаткова спроба захопити ключ у війні гільдій","Навала Шуліки","a/north_witch,e/wood_mistress,f/fire_knight,w/lakes_princess"],
 ["usoldiers","Шулікова зграя","Щоденна безкоштовна покупка карти в магазині","Навала Шуліки","a/snow_warrior,e/sandstorm,f/drunk_cyclop,w/ancient_turtle,a/wild_wolf,e/forest_bride,f/el_minotauro,w/night_fury"],
-["ugenerals","Шулікові ватажки","+20% до внеску в скарбницю від гри","Навала Шуліки","a/heaven_mistress,e/shadow_heritress,f/black_widow,w/captain_daughter"],
+["ugenerals","Шулікові ватажки","Гра додає 20% до вашого внеску золота й срібла в скарбницю","Навала Шуліки","a/heaven_mistress,e/shadow_heritress,f/black_widow,w/captain_daughter"],
 ["mechanists","Механічний двір","+5% картам і здоров'ю проти босів Навали","Магазин","a/icarus_disciple,e/studded_wheel,f/goblin_grinder,w/aquatank"],
 ["sorceresses","Чотири чаклунки","Посилення вівтаря за золото на 2 рівні вище","Рейди на чаклунок","a/sorceress_air,e/sorceress_earth,f/sorceress_fire,w/sorceress_water"],
 ["winter_reinforcement","Зимова рать","Усю зиму: святковий профіль, подарунки вдвічі дешевші, святкове оформлення в чаті й на форумі, сила карти зимового посилення +20%","Зимова акція","a/air_deer,a/air_frost,e/earth_quarrel,e/earth_tree,f/fire_sledge,w/water_snegurka,w/water_snowman"],
 ["dwarves_peace","Гноми на відпочинку","Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах","Святковий магазин","a/dwarf_p_air,e/dwarf_p_earth,f/dwarf_p_fire,w/dwarf_p_water"],
-["dwarves_war","Гноми на війні","+10% сили бойової колоди у битвах із чаклунками","Святковий магазин","a/dwarf_w_air,e/dwarf_w_earth,f/dwarf_w_fire,w/dwarf_w_water"],
+["dwarves_war","Гноми на війні","+10% сили бойової колоди й здоров'я у битвах із чаклунками","Святковий магазин","a/dwarf_w_air,e/dwarf_w_earth,f/dwarf_w_fire,w/dwarf_w_water"],
 ["berserks","Скажена четвірка","Уміння «Сказ» у війнах гільдій: якщо три карти готові до атаки, усі карти на столі б'ють із силою ×2, відповідний удар не змінюється; раз за бій","Святковий магазин","a/berserk_air,e/berserk_earth,f/berserk_fire,w/berserk_water"],
 ["treasure_hunters","Шукачі скарбів","Удвічі більша денна норма алмазів на Навалі","Святковий магазин","a/flying_squirrel,e/forest_trollala,f/little_thunderstorm,w/night_cheat_girl"],
 ["dragon_whisperers","Приборкувачки змія","Подвоює шкоду «Полум'я дракона»","Святковий магазин","a/actress_shadow,e/blade_master,f/fire_lady,w/androida"],
@@ -207,7 +207,12 @@ const TOURNAMENT_LABELS = {
   sea_masters: true, horde: true, sky_heroes: true, forest_dwellers: true, ugiants: true,
   wizards: "+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка",
   twitch_legends: "Бонус колекції визначимо після її розширення",
-  dragons2: "+10 щоденного золота в дуелях (внесок у скарбницю 5 → 10 запрацює пізніше)",
+  dragons2: "+10 щоденного золота в дуелях; ліміт внеску золота в скарбницю 5 → 10 на день",
+  // Implemented by catalog code: equipment (game-core equipment.ts), guild XP (collectionModifiers.ts), witch curse (guildRaidService.ts),
+  // free daily shop card (shopService.ts), treasury top-up (treasuryService.ts).
+  choiceof_fire: true, choiceof_water: true, choiceof_earth: true, choiceof_air: true,
+  boobs: true, power: true, usoldiers: true, ugenerals: true,
+  dwarves_peace: "Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах — коли з’явиться ця механіка",
 };
 const elementCode = { f: "fire", w: "water", a: "air", e: "earth" };
 const toCard = (key) => ({ id: key, displayName: C[key][0], description: C[key][2], element: elementCode[cardEl[key]], minRarity: RAR[C[key][1]], shopEligible: Boolean(shopMin[key]) });

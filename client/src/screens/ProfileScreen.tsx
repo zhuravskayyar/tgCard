@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExperienceFlask } from "../components/ExperienceFlask";
 import { ScreenHeading } from "../components/ScreenHeading";
-import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDominantDeckElement, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { calculateEquipmentSummary, EQUIPMENT_ELEMENT_LABELS, getDominantDeckElement, getEquipmentCollectionElementPct, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import type { EquippedEquipment, TournamentAwardsView } from "@cardastika/shared";
 import { getLeagueByRating, getPlayerDisplayName } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
@@ -125,7 +125,10 @@ export function ProfileScreen({
   );
   const additionalExperienceRewardPct = Math.max(0, experienceRewardPct - collectionExperienceRewardPct);
   const equippedDefinitions = STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment[slot] === id);
-  const equipmentSummary = calculateEquipmentSummary(equippedDefinitions);
+  const equipmentSummary = calculateEquipmentSummary(
+    equippedDefinitions,
+    getEquipmentCollectionElementPct(collectionBonuses.map(({ collectionId }) => collectionId)),
+  );
   const xp = player?.accountXp ?? 0;
   const xpRequired = player?.accountXpRequired ?? 0;
   const xpPct = xpRequired > 0 ? Math.min(100, Math.floor((xp / xpRequired) * 100)) : 0;

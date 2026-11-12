@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ScreenHeading } from "../components/ScreenHeading";
-import { calculateEquipmentSummary, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
+import { calculateEquipmentSummary, getEquipmentCollectionElementPct, STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { getLeagueByRating } from "@cardastika/shared";
 import { AvatarImage } from "../components/AvatarImage";
 import { CardArtwork } from "../components/CardArtwork";
@@ -41,7 +41,10 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
   const [showRecords, setShowRecords] = useState(false);
   const profile = state.status === "ready" ? state.data : null;
   const equipment = profile?.equipment?.equipped ?? EMPTY_EQUIPMENT;
-  const equipmentSummary = calculateEquipmentSummary(STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment[slot] === id));
+  const equipmentSummary = calculateEquipmentSummary(
+    STARTER_EQUIPMENT_DEFINITIONS.filter(({ id, slot }) => equipment[slot] === id),
+    getEquipmentCollectionElementPct(profile?.completedCollectionIds ?? []),
+  );
 
   if (showRecords && profile) return <RecordsScreen onBack={() => setShowRecords(false)} playerId={playerId} playerName={profile.displayName} />;
 

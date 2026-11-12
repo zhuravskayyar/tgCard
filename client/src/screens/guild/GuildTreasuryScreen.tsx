@@ -117,10 +117,11 @@ export function GuildTreasuryScreen({ busy, onBack, onDonateCardElements, onDona
             <button className="guild-secondary-button" disabled={busy || !canContribute || !silverAmount} onClick={() => void submitCurrency("silver")} type="button">{busy ? "Вносимо…" : "Внести"}</button>
           </div>
           <div className="guild-treasury__donation-row">
-            <label><span><AppIcon name="gold" size={16} /> Золото</span><input inputMode="numeric" min="1" max={treasury.viewer.gold} type="number" value={goldAmount} onChange={(event) => setGoldAmount(event.target.value)} /></label>
-            <button className="guild-secondary-button" disabled={busy || !canContribute || !goldAmount} onClick={() => void submitCurrency("gold")} type="button">{busy ? "Вносимо…" : "Внести"}</button>
+            <label><span><AppIcon name="gold" size={16} /> Золото</span><input inputMode="numeric" min="1" max={Math.min(treasury.viewer.gold, treasury.viewer.goldDailyRemaining)} type="number" value={goldAmount} onChange={(event) => setGoldAmount(event.target.value)} /></label>
+            <button className="guild-secondary-button" disabled={busy || !canContribute || !goldAmount || treasury.viewer.goldDailyRemaining <= 0} onClick={() => void submitCurrency("gold")} type="button">{busy ? "Вносимо…" : "Внести"}</button>
           </div>
         </div>
+        {canContribute ? <p className="guild-helper">Золото сьогодні: ще {treasury.viewer.goldDailyRemaining} з {treasury.viewer.goldDailyLimit}. Ліміт не накопичується.</p> : null}
 
         <section className="guild-treasury__cards" aria-labelledby="guild-treasury-card-title">
           <div className="guild-treasury__subheading"><strong id="guild-treasury-card-title">Прокачати карту гільдії</strong>{activeGuildCard ? <small>{activeGuildCard.displayName ?? activeGuildCard.code} · рів. {activeGuildCard.level}</small> : <small>Лідер ще не виставив карту</small>}</div>

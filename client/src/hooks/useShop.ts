@@ -66,8 +66,9 @@ export function useShop() {
                 ...bundle,
                 canAfford: result.updatedBalance[bundle.currency] >= bundle.price,
               })),
-              offers: current.catalog.offers.map((offer) => ({
+              offers: current.catalog.offers.map(({ free: _free, ...offer }) => ({
                 ...offer,
+                // The daily free purchase is always the first one, so any purchase uses it up.
                 canAfford: result.updatedBalance[offer.currency] >= offer.price,
                 upgrades: offer.id === offerId
                   ? offer.upgrades.map((upgrade) => ({
@@ -115,7 +116,7 @@ export function useShop() {
               })),
               offers: current.catalog.offers.map((offer) => ({
                 ...offer,
-                canAfford: result.updatedBalance[offer.currency] >= offer.price,
+                canAfford: Boolean(offer.free) || result.updatedBalance[offer.currency] >= offer.price,
               })),
             },
           }

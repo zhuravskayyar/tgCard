@@ -118,7 +118,9 @@ export {
 } from "./cardProgression.js";
 export {
   applyAbsorptionEfficiency,
+  applyGuildXpCollectionBonus,
   getPlayerCollectionModifiers,
+  GUILD_XP_COLLECTION_BONUS_PCT,
   type PlayerCollectionModifiers,
 } from "./collectionModifiers.js";
 export {
@@ -202,6 +204,8 @@ export {
 } from "./guildRaid.js";
 export {
   calculateEquipmentSummary,
+  EQUIPMENT_COLLECTION_ELEMENT_BONUSES,
+  getEquipmentCollectionElementPct,
   EQUIPMENT_ARTIFACT_SLOTS,
   EQUIPMENT_BONUS_BY_RARITY,
   EQUIPMENT_FORGE_RECIPES,

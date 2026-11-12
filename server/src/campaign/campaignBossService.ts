@@ -409,6 +409,7 @@ export class CampaignBossService {
         WHERE id = $1 RETURNING id, username, first_name, photo_url, level, silver, gold, account_xp
       `, [playerId, progression.newLevel, progression.remainingXp, silver, gold, now]);
       player = updatedPlayer.rows[0]!;
+      await this.guildActivity?.recordActivity(client, playerId, won ? "campaign_win" : "campaign_loss", `campaign:${battleId}`, reward.xp, now);
       const result: CampaignBossResult = {
         outcome: won ? "win" : "loss", xp: reward.xp, silver, gold,
         reachedLevels: progression.reachedLevels, player: toPlayerSummary(player),
@@ -436,7 +437,6 @@ export class CampaignBossService {
           INSERT INTO player_campaign_locations (player_id, location_number, first_win_at, last_win_at) VALUES ($1, $2, $3, $3)
           ON CONFLICT (player_id, location_number) DO UPDATE SET last_win_at = EXCLUDED.last_win_at
         `, [playerId, location.number, now]);
-        await this.guildActivity?.recordActivity(client, playerId, "campaign_win", `campaign:${battleId}`, now);
         Object.assign(result, {
           rewardCard, cardIsWeak: inDeck.rowCount === 0, newDiscovery: discovery.newDiscovery,
           ...(deckResult.status !== "insufficient_valid_cards" ? { deckPower: deckResult.totalPower } : {}),

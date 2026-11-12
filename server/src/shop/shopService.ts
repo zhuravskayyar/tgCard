@@ -18,7 +18,7 @@ import type {
 import type { Pool, PoolClient } from "pg";
 import type { CampaignService } from "../campaign/campaignService.js";
 import { createStandardCardInstance } from "../cards/cardInstanceCreator.js";
-import { recordCardDiscovery } from "../collections/discoveryService.js";
+import { hasCompletedCollection, recordCardDiscovery } from "../collections/discoveryService.js";
 import {
   recalculateAutomaticDeck,
   type AutomaticDeckRecalculationResult,
@@ -41,6 +41,7 @@ import {
 import type { LimitedCardService } from "../limited/limitedCardService.js";
 
 interface PlayerBalanceRow {
+  free_shop_purchase_on?: string | Date | null;
   gold: string | number;
   id: string;
   silver: string | number;
@@ -176,10 +177,29 @@ function readOfferChances(offer: ShopOfferDefinition, rows: readonly ShopChanceR
   }));
 }
 
+// «Шулікова зграя»: the first card purchase each UTC day is free (reference «Солдаты Урфина»).
+const FREE_PURCHASE_COLLECTION_ID = "collection_usoldiers";
+
+function utcDay(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+// Read as text (::text) so the driver does not shift the DATE into the local time zone.
+function storedDay(value: string | Date | null | undefined) {
+  if (!value) return null;
+  return typeof value === "string" ? value.slice(0, 10) : utcDay(value);
+}
+
+async function hasFreePurchaseToday(database: Pick<PoolClient, "query">, playerId: string, usedOn: string | Date | null | undefined, now: Date) {
+  if (storedDay(usedOn) === utcDay(now)) return false;
+  return hasCompletedCollection(database, playerId, FREE_PURCHASE_COLLECTION_ID);
+}
+
 function toPlayerFacingOffer(
   offer: ShopOfferDefinition,
   balance: PlayerBalance,
   rows: readonly ShopChanceRow[],
+  free = false,
 ): ShopOffer {
   const chanceByRarity = new Map(readOfferChances(offer, rows).map((state) => [state.rarity, state.chanceBasisPoints]));
   return {
@@ -187,7 +207,8 @@ function toPlayerFacingOffer(
     currency: offer.currency,
     price: offer.price,
     guaranteedRarity: offer.guaranteedRarity,
-    canAfford: balance[offer.currency] >= offer.price,
+    canAfford: free || balance[offer.currency] >= offer.price,
+    ...(free ? { free: true } : {}),
     pool: getShopOfferPoolGroups(offer.id),
     upgrades: offer.upgrades.map((upgrade) => ({
       rarity: upgrade.rarity,
@@ -242,11 +263,12 @@ export class ShopService {
   async getCardsCatalog(playerId: string): Promise<ShopCatalogResponse> {
     try {
       const playerResult = await this.pool.query<PlayerBalanceRow>(
-        "SELECT id, silver, gold FROM players WHERE id = $1",
+        "SELECT id, silver, gold, free_shop_purchase_on::text AS free_shop_purchase_on FROM players WHERE id = $1",
         [playerId],
       );
       const player = playerResult.rows[0];
       if (!player) throw new ShopPlayerMissingError();
+      const free = await hasFreePurchaseToday(this.pool, playerId, player.free_shop_purchase_on, new Date());
       const chanceResult = await this.pool.query<ShopChanceRow>(
         `
           SELECT offer_id, target_rarity, chance_basis_points
@@ -266,7 +288,7 @@ export class ShopService {
           cardCount: bundle.cardIds.length,
           canAfford: balance[bundle.currency] >= bundle.price,
         })),
-        offers: SHOP_OFFERS.map((offer) => toPlayerFacingOffer(offer, balance, chanceResult.rows)),
+        offers: SHOP_OFFERS.map((offer) => toPlayerFacingOffer(offer, balance, chanceResult.rows, free)),
         ...(limitedEvent ? { limitedEvent } : {}),
       };
     } catch (error) {
@@ -413,14 +435,17 @@ export class ShopService {
     try {
       await client.query("BEGIN");
       const playerResult = await client.query<PlayerBalanceRow>(
-        "SELECT id, silver, gold FROM players WHERE id = $1 FOR UPDATE",
+        "SELECT id, silver, gold, free_shop_purchase_on::text AS free_shop_purchase_on FROM players WHERE id = $1 FOR UPDATE",
         [playerId],
       );
       const player = playerResult.rows[0];
       if (!player) throw new ShopPlayerMissingError();
 
+      const purchasedAt = new Date();
+      const free = await hasFreePurchaseToday(client, playerId, player.free_shop_purchase_on, purchasedAt);
+      const price = free ? 0 : offer.price;
       const currentBalance = toBalance(player);
-      if (currentBalance[offer.currency] < offer.price) {
+      if (currentBalance[offer.currency] < price) {
         throw new InsufficientShopFundsError(offer.currency);
       }
 
@@ -461,11 +486,13 @@ export class ShopService {
       const balanceResult = await client.query<PlayerBalanceRow>(
         `
           UPDATE players
-          SET ${offer.currency} = ${offer.currency} - $2, updated_at = NOW()
+          SET ${offer.currency} = ${offer.currency} - $2,
+              free_shop_purchase_on = CASE WHEN $3::boolean THEN $4::date ELSE free_shop_purchase_on END,
+              updated_at = NOW()
           WHERE id = $1 AND ${offer.currency} >= $2
           RETURNING id, silver, gold
         `,
-        [playerId, offer.price],
+        [playerId, price, free, utcDay(purchasedAt)],
       );
       const updatedPlayer = balanceResult.rows[0];
       if (!updatedPlayer) throw new InsufficientShopFundsError(offer.currency);

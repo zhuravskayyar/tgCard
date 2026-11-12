@@ -9,6 +9,9 @@ export type GuildActivityType =
   | "duel_win"
   | "duel_loss"
   | "campaign_win"
+  | "campaign_loss"
+  | "tournament_battle"
+  /** Older contributions only: arena and dungeon pay no player XP, so they add no guild XP now. */
   | "dungeon_complete"
   | "arena_place_1"
   | "arena_place_2"
@@ -59,9 +62,13 @@ export const GUILD_CONFIG = Object.freeze({
   kickCooldownHours: 24,
   rejectionCooldownHours: 12,
   treasuryContributionUnlockHours: 72,
-  dailyXpCap: 300,
-  guildMissionBaseXp: 600,
-  guildMissionXpPerMember: 240,
+  /** Gold one player may put into the treasury per UTC day; «Рідкісні змії» raise it (reference: 5 → 10). */
+  treasuryDailyGoldLimit: 5,
+  treasuryDailyGoldLimitWithCollection: 10,
+  // Reference: every XP point a member earns also goes to the guild (no daily cap). The weekly
+  // mission is our own; its target is sized to battles that pay thousands of XP each.
+  guildMissionBaseXp: 600_000,
+  guildMissionXpPerMember: 240_000,
   levelXpThresholds: Object.freeze([
     0,
     1_000_000,
@@ -84,16 +91,6 @@ export const GUILD_CONFIG = Object.freeze({
     61_000_000,
     75_000_000,
   ]),
-  xpRewards: Object.freeze({
-    duel_win: 10,
-    duel_loss: 3,
-    campaign_win: 8,
-    dungeon_complete: 12,
-    arena_place_1: 18,
-    arena_place_2: 14,
-    arena_place_3: 10,
-    arena_place_4_6: 5,
-  } satisfies Record<GuildActivityType, number>),
 });
 
 export const GUILD_LEVEL_REWARDS = Object.freeze([
@@ -271,6 +268,9 @@ export interface GuildTreasuryView {
   members: readonly GuildTreasuryMemberView[];
   viewer: {
     canContribute: boolean;
+    /** Gold the viewer may still put in today. */
+    goldDailyRemaining: number;
+    goldDailyLimit: number;
     gold: number;
     silver: number;
     contributionAvailableAt: string;

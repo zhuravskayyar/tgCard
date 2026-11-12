@@ -30,6 +30,7 @@ import type {
   PlayerMailCardReward,
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
+import { hasCompletedCollection } from "../collections/discoveryService.js";
 import { DuelDeckInvalidError, loadDuelParticipant } from "../duel/duelService.js";
 import { STARTER_CARD_CODES } from "../inventory/starterCards.js";
 
@@ -38,6 +39,9 @@ const MAX_WITCH_RAID_LEVEL = 25;
 const MAX_BATTLE_LOG_ENTRIES = 10;
 const CURSE_INTERVAL_MS = 60_000;
 const CURSE_DAMAGE_PCT = 10;
+const PEACEFUL_DWARVES_COLLECTION_ID = "collection_dwarves_peace";
+const WAR_DWARVES_COLLECTION_ID = "collection_dwarves_war";
+const WAR_DWARVES_HP_PCT = 10;
 const HEAL_THRESHOLDS = [0.75, 0.5, 0.25] as const;
 const WITCH_HEALTH_BY_LEVEL = [
   0, 450_000, 510_000, 590_000, 670_000, 760_000, 870_000,
@@ -890,6 +894,10 @@ export class GuildRaidService {
         if (error instanceof DuelDeckInvalidError) throw new GuildRaidDomainError("raid_deck_invalid", "Потрібна повна бойова колода 3/2/2/2", 409);
         throw error;
       });
+      // «Гноми на війні»: the reference raid rules raise player HP by 10% next to the card power bonus.
+      if (await hasCompletedCollection(client, playerId, WAR_DWARVES_COLLECTION_ID)) {
+        loaded.snapshot.startingHp = Math.round(loaded.snapshot.startingHp * (100 + WAR_DWARVES_HP_PCT) / 100);
+      }
       const bosses = await this.loadBosses(client, raid.id, true);
       const witchDecks = await this.ensureWitchDecks(client, raid, bosses);
       const playerPool = initializeCyclicCardPool(loaded.snapshot.cards, this.random);
@@ -987,10 +995,14 @@ export class GuildRaidService {
       let lastCurseAt = new Date(battle.last_curse_at).getTime();
       const now = Date.now();
       let curseCount = 0;
+      // «Гноми на відпочинку» halve the witches' curse (10% → 5% of max HP).
+      const curseDue = lastCurseAt + CURSE_INTERVAL_MS <= now;
+      const peacefulDwarves = curseDue && await hasCompletedCollection(client, playerId, PEACEFUL_DWARVES_COLLECTION_ID);
+      const curseDamagePct = peacefulDwarves ? CURSE_DAMAGE_PCT / 2 : CURSE_DAMAGE_PCT;
       while (lastCurseAt + CURSE_INTERVAL_MS <= now && curseCount < MAX_BATTLE_LOG_ENTRIES) {
         lastCurseAt += CURSE_INTERVAL_MS;
         curseCount += 1;
-        const curseDamage = Math.min(playerHp, Math.max(1, Math.round(toSafeInteger(battle.player_max_hp, "player max HP") * CURSE_DAMAGE_PCT / 100)));
+        const curseDamage = Math.min(playerHp, Math.max(1, Math.round(toSafeInteger(battle.player_max_hp, "player max HP") * curseDamagePct / 100)));
         playerHp = Math.max(0, playerHp - curseDamage);
         this.addLog(battleLog, { id: randomUUID(), kind: "curse", playerDamage: 0, text: `Прокляття: −${curseDamage} HP`, turnNumber: toSafeInteger(battle.turn_number, "raid turn"), witchDamage: curseDamage });
       }

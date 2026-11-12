@@ -156,6 +156,24 @@ function emptyElementBonuses(): Record<CardElement, number> {
   return { fire: 0, water: 0, air: 0, earth: 0 };
 }
 
+/** «Вибір …» collections: each makes the things of one element 25% stronger (catalog code → element). */
+export const EQUIPMENT_COLLECTION_ELEMENT_BONUSES: Readonly<Record<string, { element: CardElement; pct: number }>> = Object.freeze({
+  choiceof_fire: { element: "fire", pct: 25 },
+  choiceof_water: { element: "water", pct: 25 },
+  choiceof_earth: { element: "earth", pct: 25 },
+  choiceof_air: { element: "air", pct: 25 },
+});
+
+/** Per-element bonus to equipped things from completed collections; accepts codes or `collection_<code>` ids. */
+export function getEquipmentCollectionElementPct(completedCollections: readonly string[]): Record<CardElement, number> {
+  const result = emptyElementBonuses();
+  for (const code of new Set(completedCollections.map((entry) => entry.replace(/^collection_/, "")))) {
+    const bonus = EQUIPMENT_COLLECTION_ELEMENT_BONUSES[code];
+    if (bonus) result[bonus.element] += bonus.pct;
+  }
+  return result;
+}
+
 function isThing(definition: EquipmentDefinition | undefined): definition is ElementalEquipmentDefinition {
   return Boolean(definition && definition.category === "things" && definition.element);
 }
@@ -184,6 +202,8 @@ export function getEquipmentRarityBonus(rarity: CardRarity) {
 
 export function calculateEquipmentSummary(
   equippedDefinitions: readonly EquipmentDefinition[],
+  /** Collection bonus per element (see getEquipmentCollectionElementPct); raises each thing of that element before the sets apply. */
+  collectionElementPct: Readonly<Record<CardElement, number>> = emptyElementBonuses(),
 ): EquipmentSummary {
   const definitionsBySlot: Partial<Record<EquipmentSlot, EquipmentDefinition>> = {};
   const elementBonuses = emptyElementBonuses();
@@ -194,9 +214,7 @@ export function calculateEquipmentSummary(
     definitionsBySlot[definition.slot] = definition;
 
     if (isThing(definition)) {
-      const bonus = getEquipmentRarityBonus(definition.rarity);
-      elementBonuses[definition.element] += bonus;
-      itemBonusTotal += bonus;
+      elementBonuses[definition.element] += getEquipmentRarityBonus(definition.rarity);
       continue;
     }
 
@@ -211,6 +229,12 @@ export function calculateEquipmentSummary(
         value: definition.bonusValue,
       });
     }
+  }
+
+  // Collection bonuses scale each element's things as a whole, so rounding happens once per element.
+  for (const element of CARD_ELEMENTS) {
+    elementBonuses[element] = Math.round(elementBonuses[element] * (100 + collectionElementPct[element]) / 100);
+    itemBonusTotal += elementBonuses[element];
   }
 
   const activeSets: EquipmentSetBonus[] = [];

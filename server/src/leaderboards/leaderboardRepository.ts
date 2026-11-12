@@ -158,6 +158,10 @@ export class LeaderboardRepository {
       );
       const first = result.rows[0];
       if (!first) return null;
+      const completions = await this.pool.query<{ collection_id: string }>(
+        "SELECT collection_id FROM player_collection_completions WHERE player_id = $1",
+        [playerId],
+      );
       const deckPower = result.rows.reduce((total, row) => {
         if (row.instance_level === null || row.bonus_power === null) return total;
         return total + getCardPower({
@@ -188,6 +192,7 @@ export class LeaderboardRepository {
         result.rows.flatMap(({ card_element }) => card_element ? [{ element: card_element }] : []),
       ) ?? "fire";
       return {
+        completedCollectionIds: completions.rows.map(({ collection_id }) => collection_id),
         deckPower,
         displayName: getDisplayName(first.nickname, first.username, first.first_name),
         duelHighestLeagueIndex: toSafeInteger(first.duel_highest_league_index, "duel highest league index"),

@@ -3,6 +3,7 @@ import test from "node:test";
 import { Pool } from "pg";
 import { TOURNAMENT_RULES, getTournamentStageWindow } from "@cardastika/game-core";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
+import { GuildService } from "../guild/guildService.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { TournamentActionError, TournamentService } from "./tournamentService.js";
 
@@ -20,12 +21,18 @@ test("two real players register, fight a live final and receive rating, XP and t
   const players = new PlayerRepository(pool);
   const ids: string[] = [];
   let eventId: string | null = null;
+  let guildId: string | null = null;
   try {
     for (const name of ["Tournament A", "Tournament B"]) ids.push((await players.findOrCreateFromTelegram(telegramUser(name))).id);
     // Third epic duel league, the reference's 2000 duel rating.
     await pool.query("UPDATE players SET duel_rating = 900, arena_rating = 1400, gold = 100 WHERE id = ANY($1::uuid[])", [ids]);
     const [a, b] = ids as [string, string];
-    const service = new TournamentService(pool, false, () => 0.25, true, false);
+    // Both finalists share a guild: the guild must receive exactly the tournament XP they earned.
+    const guilds = new GuildService(pool);
+    await pool.query("UPDATE players SET level = 20, silver = 50000 WHERE id = ANY($1::uuid[])", [ids]);
+    guildId = (await guilds.create(a, { name: `Турнір ${String(sequence).slice(-3)}` })).guild.id;
+    await guilds.join(b, guildId);
+    const service = new TournamentService(pool, false, () => 0.25, true, false, guilds);
     const now = new Date();
 
     const lobby = await service.scheduleDevEvent(a, now);
@@ -98,6 +105,10 @@ test("two real players register, fight a live final and receive rating, XP and t
     assert.ok(finished?.prizeGranted?.cardName);
     const loser = await service.getRun(b, new Date(window.endsAt + 2));
     assert.equal(loser?.placement, 2);
+    const earned = await pool.query<{ total: string }>("SELECT COALESCE(SUM(xp_earned), 0)::text AS total FROM tournament_entries WHERE event_id = $1", [eventId]);
+    const guildXp = await pool.query<{ experience: string }>("SELECT experience::text FROM guilds WHERE id = $1", [guildId]);
+    assert.ok(Number(earned.rows[0]!.total) > 0);
+    assert.equal(Number(guildXp.rows[0]!.experience), Number(earned.rows[0]!.total));
 
     const lobbyAfterEvent = await service.getLobby(a, new Date(window.endsAt + 3_000));
     assert.deepEqual(lobbyAfterEvent.lastResults?.standings.map(({ place }) => place), [1, 2]);
@@ -115,6 +126,7 @@ test("two real players register, fight a live final and receive rating, XP and t
     assert.equal((await pool.query("SELECT 1 FROM player_card_instances i JOIN cards c ON c.id = i.card_id WHERE i.player_id = $1 AND c.code = ANY($2::text[])", [a, ["beautiful_valkyrie", "forest_dryad", "fire_witch", "cruel_medusa"]])).rows.length, 1);
   } finally {
     if (eventId) await pool.query("DELETE FROM tournament_events WHERE id = $1", [eventId]);
+    if (guildId) await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);
     await pool.end();
   }

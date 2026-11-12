@@ -144,7 +144,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+10% гільдійського досвіду (запрацює разом із цією механікою)",
+   "bonusLabel": "+10% гільдійського досвіду",
    "cardIds": [
     "flower_fairy",
     "wind_fairy",
@@ -170,7 +170,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+10% гільдійського досвіду (запрацює разом із цією механікою)",
+   "bonusLabel": "+10% гільдійського досвіду",
    "cardIds": [
     "carefree_hobbit",
     "thickskinned_dwarf",
@@ -206,7 +206,7 @@ export const CATALOG_DATA: {
     "value": 10,
     "scope": "duel"
    },
-   "bonusLabel": "+10 щоденного золота в дуелях (внесок у скарбницю 5 → 10 запрацює пізніше)",
+   "bonusLabel": "+10 щоденного золота в дуелях; ліміт внеску золота в скарбницю 5 → 10 на день",
    "cardIds": [
     "feathered_dragon",
     "underground_dragon",
@@ -298,7 +298,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Щоденна безкоштовна покупка карти в магазині (запрацює разом із цією механікою)",
+   "bonusLabel": "Щоденна безкоштовна покупка карти в магазині",
    "cardIds": [
     "snow_warrior",
     "sandstorm",
@@ -317,7 +317,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+20% до внеску в скарбницю від гри (запрацює разом із цією механікою)",
+   "bonusLabel": "Гра додає 20% до вашого внеску золота й срібла в скарбницю",
    "cardIds": [
     "heaven_mistress",
     "shadow_heritress",
@@ -381,7 +381,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах (запрацює разом із цією механікою)",
+   "bonusLabel": "Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах — коли з’явиться ця механіка",
    "cardIds": [
     "dwarf_p_air",
     "dwarf_p_earth",
@@ -397,7 +397,7 @@ export const CATALOG_DATA: {
     "value": 10,
     "scope": "guild_raid"
    },
-   "bonusLabel": "+10% сили бойової колоди у битвах із чаклунками",
+   "bonusLabel": "+10% сили бойової колоди й здоров'я у битвах із чаклунками",
    "cardIds": [
     "dwarf_w_air",
     "dwarf_w_earth",
@@ -650,7 +650,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Спорядження Повітря сильніше на 25% (запрацює разом із цією механікою)",
+   "bonusLabel": "Спорядження Повітря сильніше на 25%",
    "cardIds": [
     "nile_a_hor_ur",
     "dao_a_white_tiger",
@@ -665,7 +665,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Спорядження Землі сильніше на 25% (запрацює разом із цією механікою)",
+   "bonusLabel": "Спорядження Землі сильніше на 25%",
    "cardIds": [
     "nile_e_scarab",
     "dao_e_headless_giant",
@@ -680,7 +680,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Спорядження Вогню сильніше на 25% (запрацює разом із цією механікою)",
+   "bonusLabel": "Спорядження Вогню сильніше на 25%",
    "cardIds": [
     "nile_f_nadjem",
     "dao_f_werefox",
@@ -695,7 +695,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "Спорядження Води сильніше на 25% (запрацює разом із цією механікою)",
+   "bonusLabel": "Спорядження Води сильніше на 25%",
    "cardIds": [
     "nile_w_taweret",
     "dao_w_sea_doubletail",

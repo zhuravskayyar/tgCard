@@ -5,6 +5,7 @@ import {
   EQUIPMENT_BONUS_BY_RARITY,
   EQUIPMENT_FORGE_RECIPES,
   getEquipmentBattleModifiers,
+  getEquipmentCollectionElementPct,
   getEquipmentQuickForgeOptions,
   resolveEquipmentAtelierResult,
   resolveEquipmentForgeResult,
@@ -65,6 +66,22 @@ test("applies the same-rarity set bonus to four things", () => {
   assert.equal(summary.elementBonuses.fire, 125);
   assert.equal(summary.activeSets[0]?.id, "single_rarity");
   assert.equal(summary.allDecksReceiveElementBonuses, false);
+});
+
+test("«Вибір» collections make their element's things 25% stronger before the sets apply", () => {
+  const pct = getEquipmentCollectionElementPct(["collection_choiceof_fire", "choiceof_fire", "collection_mythic"]);
+  assert.deepEqual(pct, { fire: 25, water: 0, air: 0, earth: 0 });
+  const things = definitions(
+    "equipment_head_fire_common",
+    "equipment_cloak_fire_common",
+    "equipment_gloves_fire_common",
+    "equipment_boots_fire_common",
+  );
+  const summary = calculateEquipmentSummary(things, pct);
+  assert.equal(summary.itemBonusTotal, 125);
+  assert.equal(summary.adjustedItemBonusTotal, 156);
+  assert.equal(summary.elementBonuses.fire, 156);
+  assert.equal(calculateEquipmentSummary(things, getEquipmentCollectionElementPct(["choiceof_water"])).elementBonuses.fire, 125);
 });
 
 test("activates the all-elements set and combines it with same rarity", () => {

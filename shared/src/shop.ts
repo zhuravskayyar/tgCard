@@ -25,6 +25,8 @@ export interface ShopPoolGroup {
 export interface ShopOffer {
   canAfford: boolean;
   currency: ShopCurrency;
+  /** Today's free card purchase («Шулікова зграя») applies to this offer. */
+  free?: boolean;
   guaranteedRarity: CardRarity;
   id: string;
   pool: ShopPoolGroup[];

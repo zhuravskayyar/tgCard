@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyAbsorptionEfficiency, getPlayerCollectionModifiers } from "./collectionModifiers.js";
+import { applyAbsorptionEfficiency, applyGuildXpCollectionBonus, getPlayerCollectionModifiers } from "./collectionModifiers.js";
 
 test("completed collection modifiers stack additively in one aggregation", () => {
   const modifiers = getPlayerCollectionModifiers([
@@ -29,4 +29,11 @@ test("collection bonuses stay inside their declared game context", () => {
   assert.equal(getPlayerCollectionModifiers(modifiers, "absorption").absorptionEfficiencyPct, 4);
   assert.equal(getPlayerCollectionModifiers(modifiers, "duel").duelCooldownMinutes, 30);
   assert.equal(getPlayerCollectionModifiers(modifiers, "guild_raid").duelCooldownMinutes, 0);
+});
+
+test("«Весняний цвіт» and «Старі вояки» each add 10% guild XP and stack", () => {
+  assert.equal(applyGuildXpCollectionBonus(10, []), 10);
+  assert.equal(applyGuildXpCollectionBonus(10, ["collection_spring_bloom", "spring_bloom"]), 11);
+  assert.equal(applyGuildXpCollectionBonus(10, ["collection_spring_bloom", "collection_old_soldiers"]), 12);
+  assert.equal(applyGuildXpCollectionBonus(18, ["collection_old_soldiers", "collection_mythic"]), 20);
 });

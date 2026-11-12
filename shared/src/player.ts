@@ -86,6 +86,8 @@ export interface PublicPlayerCard {
 }
 
 export interface PublicPlayerProfile {
+  /** Completed collection ids; the profile uses them for collection bonuses such as «Вибір …» on equipment. */
+  completedCollectionIds?: string[];
   deckPower: number;
   displayName: string;
   duelHighestLeagueIndex?: number;
