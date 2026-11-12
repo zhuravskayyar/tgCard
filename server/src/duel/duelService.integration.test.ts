@@ -52,7 +52,7 @@ test("the last Duel charge blocks new battles until the break expires", { skip: 
     assert.ok(spent.refillAt);
     await pool.query("UPDATE duels SET status = 'won', finished_at = NOW() WHERE id = $1", [duel.duelId]);
     await assert.rejects(service.search(challenger.id), DuelCooldownError);
-    await pool.query("UPDATE players SET duel_refill_at = NOW() - INTERVAL '1 second' WHERE id = $1", [challenger.id]);
+    await pool.query("UPDATE players SET duel_refill_at = NOW() - INTERVAL '1 minute' WHERE id = $1", [challenger.id]);
     assert.equal((await service.findAvailability(challenger.id)).remaining, 10);
     const nextSearch = await service.search(challenger.id);
     await service.start(challenger.id, nextSearch.searchId);

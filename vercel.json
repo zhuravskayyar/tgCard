@@ -19,6 +19,7 @@
       "source": "/api/:path*",
       "destination": "/api?__cardastika_api_path=:path*"
     },
+    { "source": "/profile/settings", "destination": "/index.html" },
     { "source": "/:screen(arena|battle-pass|campaign|collections|deck|duel|dungeon|equipment|forge|guild|inventory|leagues|mail|profile|records|settings|shop|tasks|trials)", "destination": "/index.html" },
     { "source": "/cards/:cardId", "destination": "/index.html" },
     { "source": "/collections/:collectionId", "destination": "/index.html" },

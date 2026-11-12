@@ -11,6 +11,7 @@ import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
+import { Pagination } from "../components/Pagination";
 import { SealToggle } from "../components/SealToggle";
 import { formatFullUiNumber } from "../i18n";
 import { preloadSounds, PROGRESSION_SOUND_CUES } from "../audio";
@@ -403,6 +404,7 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
             </div>
           ))}
         </div>
+        <Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} />
       </section>
     ) : null}
 

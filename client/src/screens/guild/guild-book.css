@@ -406,9 +406,9 @@
 .guild-screen :is(.guild-hub-header__chevron) { display: grid; place-items: center; color: var(--book-ink-muted); }
 
 .guild-screen .guild-hub-card { grid-template-columns: 72px minmax(0, 1fr); }
-.guild-screen .guild-hub-card__visual { position: relative; display: block; width: 72px; height: 100px; }
+.guild-screen .guild-hub-card__visual { position: relative; display: block; width: 72px; aspect-ratio: 10 / 13; }
 .guild-screen .guild-hub-card__visual > .card-fx,
-.guild-screen .guild-hub-card__visual > .card-back { inset: 0; width: 72px; height: 100px; }
+.guild-screen .guild-hub-card__visual > .card-back { inset: 0; width: 100%; height: 100%; }
 .guild-screen .guild-hub-card__visual .card-fx > .card-hud__level { display: none; }
 .guild-screen .guild-hub-card__body { display: grid; min-width: 0; gap: 3px; }
 .guild-screen .guild-hub-card__body > strong { overflow: hidden; color: var(--book-ink); font: 700 16px/1.15 var(--font-display); text-overflow: ellipsis; white-space: nowrap; }

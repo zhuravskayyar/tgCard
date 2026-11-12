@@ -1461,6 +1461,7 @@ export const SCREEN_TRANSLATIONS: ReadonlyArray<readonly [string, string, string
   ["Внесок за {s} дн.","Contribute in {s} d","Beitrag in {s} T.","Взнос через {s} дн."],
   ["Внесок за {s} год.","Contribute in {s} h","Beitrag in {s} Std.","Взнос через {s} ч."],
   ["Бонуси гільдії","Guild bonuses","Gildenboni","Бонусы гильдии"],
+  ["Можна підсилити","Ready to upgrade","Verbesserung möglich","Можно усилить"],
   ["Учасники і ролі","Members and roles","Mitglieder und Rollen","Участники и роли"],
   ["Гравці хочуть вступити","Players want to join","Spieler wollen beitreten","Игроки хотят вступить"],
   ["Усі події гільдії","All guild events","Alle Gildenereignisse","Все события гильдии"],

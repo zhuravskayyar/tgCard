@@ -209,7 +209,7 @@ export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplicati
       <div className="guild-menu-list">
         <MenuRow compact actionContent={<RowStatus attention={treasuryWait === 0} />} icon="inventory" subtitle={treasuryHint} iconSrc={GUILD_ROW_ART.treasury} metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
         <MenuRow compact icon="campaign" subtitle="Битви з відьмами" iconSrc={GUILD_ROW_ART.raid} metalTexture disabled={busy} onClick={onRaid} title="Івент гільдії" />
-        <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} subtitle="Бонуси гільдії" metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
+        <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} subtitle={profile.altar.upgrades.some((item) => item.canAfford) ? "Можна підсилити" : "Бонуси гільдії"} metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
       </div>
     </section>
 
