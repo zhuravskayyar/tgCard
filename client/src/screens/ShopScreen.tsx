@@ -61,9 +61,10 @@ type ShopReveal =
   | { kind: "forge"; purchases: ShopPurchaseResponse[] }
   | { kind: "offer"; offerId: string; purchases: ShopPurchaseResponse[] };
 
+// The card workshop tab is hidden by the owner's decision (2026-11-12) until its replacement is designed;
+// its section code stays so it can return. Do not restore the tab without asking.
 const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil"; id: "cards" | "workshop"; label: string }> = [
   { icon: "shop-universal-card", id: "cards", label: "Карти стихій" },
-  { icon: "shop-anvil", id: "workshop", label: "Майстерня карт" },
 ];
 
 /** A handful of gold motes drifting over the shop counter. */
@@ -325,6 +326,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
   const showCardTabs =
     view === "section" &&
     activeCategory === "magical-cards" &&
+    shopTabs.length > 1 &&
     (section === "cards" || section === "workshop");
 
   if (detail) {
