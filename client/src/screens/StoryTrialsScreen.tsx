@@ -142,7 +142,7 @@ function StoryTrialsList({ claim, onNavigate, pendingId, view }: {
 }) {
   return (
     <section className="story-trials__list notice-board" aria-label="Випробування">
-      <p className="story-trials__progress notice-board__plaque">{tx(`Прогрес випробувань: ${formatFullUiNumber(view.completedCount)} з ${formatFullUiNumber(view.totalCount)}`)}</p>
+      <p className="story-trials__progress notice-board__plaque">{tx(`Прогрес випробувань: ${formatFullUiNumber(view.completedCount)} / ${formatFullUiNumber(view.totalCount)}`)}</p>
       {view.trials.filter((trial) => trial.kind === "campaign").map((trial) => (
         <StoryTrialRow
           key={trial.id}

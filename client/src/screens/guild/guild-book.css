@@ -468,3 +468,19 @@
 /* Newcomer hints: the title, then one muted line saying what the row is for. */
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__title--with-subtitle { display: grid; gap: 1px; line-height: 1.1; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__subtitle { overflow: hidden; color: var(--book-ink-muted); font: 600 12.5px/1.15 var(--font-label); text-overflow: ellipsis; white-space: nowrap; }
+
+/* Roster names get the free width and may take two lines instead of being cut to six letters. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row { grid-template-columns: 16px 32px 16px minmax(0, 1fr) auto 24px; gap: 5px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity { min-width: 0; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row__identity strong { font-size: 13.5px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-member-row { grid-template-columns: 16px 32px 16px minmax(0, 1fr) auto 20px; gap: 4px; }

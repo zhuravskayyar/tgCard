@@ -51,3 +51,10 @@ createRoot(rootElement).render(
     </LanguageProvider>
   </StrictMode>,
 );
+
+// Dev-only phone diagnostics (`?fps=1`); production builds drop this branch.
+if (import.meta.env.DEV) {
+  void import("./dev/devFlags").then(({ DEV_FPS }) => {
+    if (DEV_FPS) void import("./dev/perfOverlay").then(({ startPerfOverlay }) => startPerfOverlay());
+  });
+}

@@ -1378,3 +1378,4 @@
 @media (prefers-reduced-motion: reduce) {
   .shop-pack-sheen::after { animation: none; opacity: .5; }
 }
+:root[data-game-theme="light"] body .app-shell .app-content .workshop-card__meta { overflow: visible; line-height: 1.2; text-overflow: clip; white-space: normal; }

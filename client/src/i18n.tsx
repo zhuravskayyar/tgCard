@@ -407,8 +407,8 @@ export function getUiNumberLocale(): UiNumberLocale {
 const COMPACT_NUMBER_SUFFIXES: Readonly<Record<UiLocale, readonly [string, string, string, string]>> = {
   en: ["T", "B", "M", "K"],
   de: ["Bio", "Mrd", "Mio", "T"],
-  uk: ["трлн", "млрд", "м", "к"],
-  ru: ["трлн", "млрд", "м", "к"],
+  uk: ["трлн", "млрд", "млн", "к"],
+  ru: ["трлн", "млрд", "млн", "к"],
 };
 const COMPACT_NUMBER_VALUES = [1_000_000_000_000, 1_000_000_000, 1_000_000, 1_000] as const;
 

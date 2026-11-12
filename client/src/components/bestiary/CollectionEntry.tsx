@@ -29,7 +29,7 @@ export function CollectionEntry({ collection, onOpen }: { collection: PlayerColl
       </span>
       <span className="bestiary-entry__caption">
         <strong className="bestiary-entry__name">{collection.displayName}</strong>
-        <span className="bestiary-entry__progress">{collection.discoveredCards} із {collection.totalCards}</span>
+        <span className="bestiary-entry__progress">{collection.discoveredCards} / {collection.totalCards}</span>
       </span>
     </button>
   );

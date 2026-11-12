@@ -760,3 +760,17 @@
 :root[data-game-theme="light"] .app-shell .app-content .shop-screen--categories .shop-category-list { row-gap: 8px; }
 :root[data-game-theme="light"] .app-shell .app-content .shop-screen--categories .shop-category-banner { min-height: 108px; }
 :root[data-game-theme="light"] .app-shell .app-content .shop-screen--categories .shop-category-banner__item { height: 70px; }
+
+/* Inventory: content sits inside the painted frame, two full-width tabs, a heading that fits beside
+   its counter, and the plain nickname inked for the parchment (the cream one is for the dark HUD). */
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section { padding: 18px 16px 14px; gap: 10px; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-tab { grid-auto-flow: column; justify-content: center; gap: 8px; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-tab span { font-size: 14px; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section__heading { align-items: center; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section__heading > div { display: grid; min-width: 0; gap: 2px; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section__heading span { color: var(--home-ink-muted, #5d452a); letter-spacing: .04em; text-transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section__heading h2 { margin: 0; color: var(--home-ink); font-size: 18px; letter-spacing: .02em; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-section__heading > strong { flex: 0 0 auto; color: var(--home-ink); font-size: 15px; }
+:root[data-game-theme="light"] .app-shell .app-content .nickname-skin--standard .nickname { color: var(--home-ink) !important; }
+:root[data-game-theme="light"] .app-shell .app-content .inventory-cosmetic .nickname { font-size: 15px; }

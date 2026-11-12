@@ -12,6 +12,7 @@ type ShaderMaterial = {
 };
 
 interface ShaderUniforms {
+  trayOn: WebGLUniformLocation | null;
   animTime: WebGLUniformLocation | null;
   bump: WebGLUniformLocation | null;
   brush: WebGLUniformLocation | null;
@@ -59,6 +60,12 @@ interface CardShaderInstance {
   destruction: { from: number; startedAt: number; duration: number; to: number; resolve: () => void } | null;
   destructionProgress: number;
   elementColor: readonly [number, number, number];
+  /** Catalogue card without a power tray: the shader leaves the top of the frame to the art. */
+  hideTray: boolean;
+  /** The hero card of a screen (card detail, reveals): always painted at the close-up rate. */
+  closeup: boolean;
+  /** When the tilt last advanced, so its easing follows real time at any frame rate. */
+  advancedAt?: number;
   idleMotion: IdleTiltMotion;
   painted: { destruction: number; x: number; y: number; at: number };
   material: ShaderMaterial;
@@ -83,6 +90,8 @@ interface MountCardMaterialShaderOptions {
   canvas: HTMLCanvasElement;
   /** Linear RGB of the card's element; the top materials tint their element effects with it. */
   elementColor?: readonly [number, number, number];
+  /** No power tray on this plate (catalogue views). */
+  hideTray?: boolean;
   initialTilt?: CardTilt;
   materialId: string;
   onReady: (ready: boolean) => void;
@@ -101,17 +110,27 @@ function resolutionTextureKey(key: string | undefined) {
 }
 // Slightly under 33.3ms so a 60Hz display lands on every second frame instead of drifting to every third.
 const TARGET_FRAME_MS = 1000 / 30 - 2;
+// The hero card of a screen follows the display (60 Hz); every other card keeps TARGET_FRAME_MS.
+const CLOSEUP_FRAME_MS = 1000 / 60 - 2;
+// The tilt eases by this share per 30 Hz step; other frame rates scale it so the sway speed stays the same.
+const TILT_EASE_PER_STEP = 0.08;
+const TILT_STEP_MS = 1000 / 30;
 // Below this change in tilt a repaint is invisible, so a resting card costs nothing.
 const TILT_REPAINT_EPSILON = 0.002;
+// Phones and tablets: a touch-only device has a weaker GPU and each repaint blocks on it, so list-size
+// cards there repaint less often and the per-tick budget is tighter. A card seen up close stays smooth.
+const TOUCH_PROFILE = typeof window !== "undefined" && !window.matchMedia("(any-pointer: fine)").matches;
 // Past this much main-thread time the remaining cards wait for the next tick, oldest paint first.
-const PAINT_BUDGET_MS = 5;
+const PAINT_BUDGET_MS = TOUCH_PROFILE ? 3 : 5;
+// Touch, list-size cards: the idle sway repaints at most ~8 times a second instead of every tick.
+const TOUCH_SMALL_SWAY_FRAME_MS = 125;
 const SCROLL_SETTLE_MS = 140;
 const ART_DATA_URL_CACHE_LIMIT = 12;
 // Cards this far outside the scroll viewport prepare ahead, so scrolling reaches finished cards.
 const PREPARE_MARGIN = "800px 0px";
 // The living galaxy repaints without any tilt, so small cards in lists run it slower than a card seen up close.
-const LIVING_FRAME_MS = 100;
-const LIVING_CLOSEUP_FRAME_MS = 33;
+const LIVING_FRAME_MS = TOUCH_PROFILE ? 200 : 100;
+const LIVING_CLOSEUP_FRAME_MS = 16;
 const LIVING_CLOSEUP_WIDTH = 150;
 const MASK_SIZE = 256;
 
@@ -157,6 +176,8 @@ uniform float rough;
 uniform float kind;
 uniform float fx;
 uniform float animTime;
+// 1 on a player's card; 0 on a catalogue card that has no power tray, so its art may fill the top.
+uniform float trayOn;
 uniform vec3 f0;
 
 float luminance(vec3 color) { return dot(color, vec3(0.2126, 0.7152, 0.0722)); }
@@ -273,7 +294,7 @@ void main() {
   }
   // Effects stay away from the power tray and medallion and are muted over the artwork.
   float medallion = smoothstep(25.3, 39.1, distance(cardPoint, vec2(197.0, 263.0)));
-  float tray = 1.0 - rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0));
+  float tray = 1.0 - rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) * trayOn;
   float zone = mix(0.32, 1.0, 1.0 - artAlpha) * medallion * tray;
   if (kind > 0.5 && kind < 1.5) {
     float lacquer = pow(sat(dot(reflected, normalize(vec3(-0.3, 0.5, 0.81)))), 26.0);
@@ -344,83 +365,153 @@ void main() {
       vec3 groove = vec3(0.12, 0.12, 0.13) + vec3(1.0) * wall * keyLight * 1.2;
       color = mix(silverLit, groove, ink);
     } else if (kind < 9.5) {
-      // Gold Damascus (mokume-gane): flowing layers of yellow and white gold, etched so the layers read; the lines are oxidised grooves.
+      // Legendary, angelic gold Damascus: warm forged layers behind a gloria of gold rays.
       float flow = cardPoint.y * 0.11 + cardPoint.x * 0.035 + noise2(cardPoint * 0.018) * 6.0 + noise2(cardPoint * 0.06) * 1.2;
       float layer = smoothstep(-0.25, 0.25, sin(flow * 3.14159));
-      // Light decides the colour: the layers differ in value and a touch of hue (yellow against paler white gold), never in paint.
-      // A broad soft reflection slides across the plate with the tilt; without it a flat gold plate reads as ochre paint.
+      // The Damascus stays saturated gold; its thin alternating layers catch a little white-gold light.
       float broad = smoothstep(0.45, 0.0, abs(axis - 0.08)) * 0.55 + (1.0 - uv.y) * 0.25;
       float reflectedLight = 0.1 + 0.25 * diffuse + luminance(environment(reflected, 0.12)) * 0.35 + bands * 0.7 + broad * 0.55;
       vec3 goldLit = mix(goldTone(reflectedLight * 0.6), goldTone(reflectedLight * 0.92) * vec3(0.98, 0.96, 0.88), layer);
       vec3 groove = vec3(0.16, 0.12, 0.08) + vec3(1.0, 0.85, 0.55) * wall * keyLight;
       vec3 plate = mix(goldLit * backShade, groove, ink);
-      // The figure floats above the Damascus as smooth polished gold, so the layers never cut through the drawing.
-      // Its lines catch the element's light when tilted, and a still glow of that light sits in its shadow.
-      vec3 polished = goldTone(0.26 + 0.28 * diffuse + luminance(environment(reflected, 0.05)) * 0.4 + bands * 0.8 + broad * 0.55);
-      vec3 lines = vec3(0.12, 0.08, 0.04) + elementColor * pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 6.0) * 0.55;
-      vec3 figure = mix(lines, polished, smoothstep(0.2, 0.45, lum));
-      color = mix(plate + elementColor * (1.0 - backShade) * 0.5, figure, artAlpha);
-    } else {
-      // Star steel: molten bismuth that crystallises into stepped hopper crystals and melts back again, on a fourteen-second loop.
-      float cycle = fract(animTime / 14.0);
-      vec2 flowPoint = cardPoint - tilt * 10.0;
-      vec3 bismuth = vec3(0.0);
-      float grown = 0.0;
-      // Two overlapping grids give big and small crystals; each one starts growing at its own moment of the loop.
-      for (int layer = 0; layer < 2; layer++) {
-        float layerIndex = float(layer);
-        vec2 crystalPoint = (flowPoint + layerIndex * vec2(17.0, 29.0)) / (layer == 0 ? 78.0 : 41.0);
-        crystalPoint.y += floor(crystalPoint.x) * 0.5;
-        vec2 crystal = floor(crystalPoint) + layerIndex * 3.1;
-        vec2 local = fract(crystalPoint) - 0.5;
-        float spin = (hash2(crystal) - 0.5) * 0.6;
-        local = mat2(cos(spin), -sin(spin), sin(spin), cos(spin)) * local;
-        float birth = hash2(crystal + 11.0) * 0.35;
-        float reach = smoothstep(birth, birth + 0.3, cycle) * (1.0 - smoothstep(0.8, 0.95, cycle)) * 0.5;
-        float square = max(abs(local.x), abs(local.y));
-        float inside = 1.0 - smoothstep(reach - 0.02, reach, square);
-        if (inside > grown) {
-          // Dense stepped terraces, each a mirror ledge with a thin dark riser, like the striations on a real crystal.
-          float steps = square * 16.0;
-          float riser = smoothstep(0.0, 0.18, fract(steps)) * (1.0 - smoothstep(0.75, 1.0, fract(steps)));
-          float film = floor(steps) * 0.045 + hash2(crystal + 5.0) * 0.7 + dot(reflected.xy, vec2(0.6, 0.4)) * 0.5 + (local.x - local.y) * 0.6;
-          vec3 oxide = 0.52 + 0.48 * cos(6.2832 * (film + vec3(0.0, 0.33, 0.67)));
-          bismuth = oxide * (0.45 + 0.4 * diffuse) * (0.35 + 0.65 * riser) + vec3(1.0) * bands * riser * 0.35;
-          grown = inside;
-        }
+      float lightBreath = 0.94 + 0.06 * sin(animTime * 0.48);
+      // Gloria: a raised sunburst of long and short gold rays behind the figure, turning very slowly,
+      // a white core of light, and golden motes drifting upward.
+      vec2 fromGlory = cardPoint - vec2(120.0, 140.0);
+      float gloryRadius = length(fromGlory);
+      float gloryAngle = atan(fromGlory.y, fromGlory.x) + animTime * 0.04;
+      float raySlot = gloryAngle / 6.2832 * 28.0;
+      float rayLocal = fract(raySlot);
+      float rayLength = mix(118.0, 178.0, mod(floor(raySlot), 2.0));
+      float rayWidth = 0.34 * (1.0 - gloryRadius / rayLength);
+      float rayMask = smoothstep(0.03, 0.0, abs(rayLocal - 0.5) - rayWidth) * step(gloryRadius, rayLength) * smoothstep(16.0, 40.0, gloryRadius);
+      float pulse = 0.8 + 0.2 * sin(gloryRadius * 0.05 - animTime * 0.9);
+      vec3 rayGold = goldTone(0.7 + 0.25 * diffuse + bands * 0.6) * vec3(1.0, 0.98, 0.9);
+      plate = mix(plate, rayGold, rayMask * 0.78 * pulse);
+      plate += vec3(1.0, 0.99, 0.95) * (1.0 - smoothstep(0.0, 105.0, gloryRadius)) * 0.42 * lightBreath;
+      for (int m = 0; m < 2; m++) {
+        float size = m == 0 ? 24.0 : 15.0;
+        vec2 q = vec2(cardPoint.x + float(m) * 9.0 + sin(cardPoint.y * 0.04 + animTime * 0.7) * 3.0, cardPoint.y + animTime * (m == 0 ? 7.0 : 11.0)) / size;
+        vec2 cell = floor(q);
+        vec2 offset = vec2(hash2(cell + 1.3), hash2(cell + 6.7)) - 0.5;
+        float mote = smoothstep(0.12, 0.0, length(fract(q) - 0.5 - offset * 0.6)) * step(0.78, hash2(cell + 3.9));
+        plate += vec3(1.0, 0.93, 0.7) * mote * (0.6 + 0.4 * sin(animTime * 2.0 + hash2(cell) * 6.2832));
       }
-      // Between the crystals the bismuth is still molten: slow silvery liquid with ripples.
-      float ripple = noise2(cardPoint * 0.05 + vec2(animTime * 0.3, -animTime * 0.2)) + noise2(cardPoint * 0.11 - vec2(animTime * 0.2, animTime * 0.35)) * 0.5;
-      vec3 molten = vec3(0.55, 0.56, 0.6) * (0.55 + 0.3 * ripple) + environment(reflected, 0.05) * 0.35 + vec3(1.0) * bands * 0.4;
-      vec3 gunmetal = vec3(0.08, 0.085, 0.1) + environment(reflected, 0.2) * 0.08;
-      // The art's own pixels and shadow belong to the hologram, so they leave the plate when it breaks up.
-      float holoShade = mix(1.0, backShade, smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.82, 0.92, cycle)));
-      vec3 plate = mix(mix(molten, bismuth, grown) * holoShade, gunmetal, ink * (1.0 - artAlpha));
-      // The figure is a hologram: it assembles block by block while the crystals grow, holds, and breaks up as they melt.
-      float assemble = smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.82, 0.92, cycle));
-      float blockSeed = hash2(floor(cardPoint / 3.0));
-      float revealed = step(blockSeed, assemble * 1.15);
-      float front = smoothstep(0.1, 0.0, abs(blockSeed - assemble * 1.15)) * step(0.01, assemble) * step(assemble, 0.99);
-      float scan = 0.72 + 0.28 * sin(cardPoint.y * 1.6 - animTime * 6.0);
-      float flicker = 0.93 + 0.07 * sin(animTime * 37.0) * sin(animTime * 13.0);
-      vec3 slick = mix(0.55 + 0.45 * cos(6.2832 * (uv.y * 1.5 + animTime * 0.08 + vec3(0.0, 0.33, 0.67))), elementColor, 0.4);
-      vec3 hologram = mix(vec3(0.04, 0.06, 0.09), vec3(0.72, 0.9, 1.0) * (0.8 + 0.3 * diffuse) + slick * 0.3, smoothstep(0.2, 0.45, lum));
-      // Red and blue copies of the figure drift apart a little, leaving the colour fringe of a projected image.
-      vec2 artPoint = uv + tilt * 0.024;
-      float fringeRed = texture2D(artTexture, artPoint + vec2(0.005, 0.0)).a;
-      float fringeBlue = texture2D(artTexture, artPoint - vec2(0.005, 0.0)).a;
-      vec3 fringe = vec3(fringeRed, 0.0, fringeBlue) * (1.0 - artAlpha) * zone * 0.45;
-      // The element's aura breathes in the figure's shadow; it reuses the shadow already computed, so it costs almost nothing.
-      float aura = (1.0 - backShade) * (0.6 + 0.4 * sin(animTime * 2.0)) * assemble;
-      float holoAlpha = artAlpha * revealed * scan * flicker * 0.92;
-      color = mix(plate + elementColor * aura * 0.9, hologram, holoAlpha) + fringe * assemble + vec3(0.7, 0.95, 1.0) * front * artAlpha * 0.9;
+      // Keep the figure's dark engraved lines crisp against the gold and reflected white light.
+      vec3 polished = goldTone(0.26 + 0.28 * diffuse + luminance(environment(reflected, 0.05)) * 0.4 + bands * 0.8 + broad * 0.55);
+      vec3 lines = vec3(0.12, 0.08, 0.04) + elementColor * pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 6.0) * 0.45;
+      vec3 figure = mix(lines, polished, smoothstep(0.2, 0.45, lum));
+      color = mix(plate + elementColor * (1.0 - backShade) * 0.4, figure, artAlpha);
+      // A fine white aura traces the silhouette; its slow breathing avoids a flickering edge.
+      vec2 artPoint = uv + tilt * 0.02;
+      float around = max(max(texture2D(artTexture, artPoint + vec2(0.007, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.007, 0.0)).a),
+        max(texture2D(artTexture, artPoint + vec2(0.0, 0.006)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.006)).a));
+      float aureole = sat(around - artAlpha) * (0.9 + 0.1 * sin(animTime * 0.55));
+      color += vec3(1.0, 0.99, 0.96) * aureole * 0.9;
+      // The frame: gilded with a bevelled inner edge and a gold glint running around it.
+      float innerArea = rect(cardPoint, vec2(120.0, 156.0), vec2(105.0, 141.0), vec2(1.0));
+      float frameBand = 1.0 - innerArea;
+      // Kept in the saturated mid range of the gold ramp so the frame never washes out to white.
+      vec3 frameGold = goldTone(min(0.62, 0.3 + 0.22 * diffuse + bands * 0.4 + luminance(environment(reflected, 0.06)) * 0.2));
+      float bevel = rect(cardPoint, vec2(120.0, 156.0), vec2(106.4, 142.4), vec2(0.6)) - innerArea;
+      float outerLine = rect(cardPoint, vec2(120.0, 156.0), vec2(110.5, 146.5), vec2(0.6)) - rect(cardPoint, vec2(120.0, 156.0), vec2(109.0, 145.0), vec2(0.6));
+      float perimeter = (cardPoint.x + (312.0 - cardPoint.y)) / 552.0;
+      float runner = smoothstep(0.06, 0.0, abs(fract(perimeter - animTime * 0.08) - 0.5) - 0.44);
+      color = mix(color, frameGold, frameBand);
+      color += vec3(0.95, 0.72, 0.3) * (sat(bevel) * 0.35 + sat(outerLine) * 0.2) + vec3(1.0, 0.8, 0.4) * runner * frameBand * 0.2;
+    } else {
+      // Mythic, infernal: black obsidian split by slowly pulsing lava veins, embers rising from the bottom,
+      // a rune circle smouldering behind the figure, and the figure burned into the card on a fourteen-second loop.
+      float cycle = fract(animTime / 14.0);
+      vec2 heatPoint = cardPoint - tilt * 8.0;
+      // Obsidian: near-black glass that still mirrors the scene and the moving highlight bands.
+      vec3 obsidian = vec3(0.035, 0.022, 0.026) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.12) * 0.14 + vec3(1.0, 0.82, 0.76) * bands * 0.3;
+      // Lava veins: ridges of two drifting noise fields; thin cracks glow orange at their core, dark red at the rim.
+      // The cracks slowly flow upward and sway, so the lava moves instead of sitting still.
+      vec2 flow = vec2(sin(cardPoint.y * 0.03 + animTime * 0.6) * 4.0, animTime * 7.0);
+      float n1 = noise2((heatPoint + flow) * 0.032);
+      float n2 = noise2((heatPoint + flow * 1.6) * 0.071);
+      float veins = sat(pow(1.0 - abs(n1 * 2.0 - 1.0), 7.0) + pow(1.0 - abs(n2 * 2.0 - 1.0), 11.0) * 0.6);
+      // Waves of heat travel up through the veins: brightness rolls along them rather than blinking in place.
+      float pulse = 0.55 + 0.45 * sin(cardPoint.y * 0.06 + animTime * 2.4 + n1 * 3.0);
+      vec3 lava = mix(vec3(0.45, 0.03, 0.0), vec3(1.0, 0.56, 0.12), veins) * veins * pulse * 1.7;
+      // Heat rises from the bottom edge (uv.y runs from the bottom).
+      vec3 heat = vec3(0.55, 0.08, 0.02) * smoothstep(0.42, 0.0, uv.y) * (0.75 + 0.25 * sin(animTime * 0.9));
+      // The rune circle: two rings and a band of glyph strokes that turns slowly and breathes.
+      vec2 fromCentre = heatPoint - vec2(120.0, 168.0);
+      float radius = length(fromCentre);
+      float angle = atan(fromCentre.y, fromCentre.x) + animTime * 0.12;
+      float rings = smoothstep(1.6, 0.0, abs(radius - 78.0)) + smoothstep(1.2, 0.0, abs(radius - 62.0)) * 0.8;
+      float glyphSlot = floor(angle / 6.2832 * 18.0);
+      float glyphPhase = fract(angle / 6.2832 * 18.0);
+      float glyphLength = 0.35 + 0.5 * hash2(vec2(glyphSlot, 3.0));
+      float glyphs = step(65.0, radius) * step(radius, 75.0) * smoothstep(0.12, 0.2, glyphPhase) * (1.0 - smoothstep(0.8, 0.88, glyphPhase))
+        * step(abs(radius - 70.0), glyphLength * 5.0) * step(0.5, fract(glyphPhase * 3.0 + hash2(vec2(glyphSlot, 7.0))));
+      float sigilGlow = (rings + glyphs * 0.9) * (0.45 + 0.35 * sin(animTime * 0.8));
+      vec3 sigil = vec3(1.0, 0.22, 0.06) * sigilGlow;
+      vec3 plate = obsidian + lava + heat + sigil;
+      plate = mix(plate, vec3(0.015, 0.008, 0.008), ink * (1.0 - artAlpha) * 0.7);
+      // The figure burns in from the bottom as a ragged fire front, holds, then crumbles back to embers.
+      float burn = smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.84, 0.94, cycle));
+      float burnEdge = burn * 1.25 - 0.12;
+      float height = uv.y + (noise2(cardPoint * 0.11) - 0.5) * 0.08;
+      float revealed = 1.0 - smoothstep(burnEdge - 0.05, burnEdge, height);
+      float front = smoothstep(0.06, 0.0, abs(height - burnEdge)) * step(0.01, burn) * step(burn, 0.99);
+      // Bright parts of the drawing glow like embers, its ink stays charred black.
+      vec3 ember = mix(vec3(1.0, 0.42, 0.08), vec3(1.0, 0.88, 0.66), smoothstep(0.55, 0.95, lum));
+      vec3 figure = mix(vec3(0.03, 0.01, 0.008), ember * (0.75 + 0.35 * diffuse), smoothstep(0.25, 0.55, lum));
+      // A burning rim just outside the figure's silhouette.
+      vec2 artPoint = uv + tilt * 0.02;
+      float around = max(max(texture2D(artTexture, artPoint + vec2(0.007, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.007, 0.0)).a),
+        max(texture2D(artTexture, artPoint + vec2(0.0, 0.006)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.006)).a));
+      float rim = sat(around - artAlpha) * (0.7 + 0.3 * sin(animTime * 3.0 + cardPoint.y * 0.08));
+      float figureAlpha = artAlpha * revealed;
+      color = mix(plate + elementColor * (1.0 - backShade) * 0.25 * burn, figure, figureAlpha);
+      color += vec3(1.0, 0.36, 0.06) * rim * revealed * 1.3 + vec3(1.0, 0.6, 0.2) * front * (0.4 + artAlpha) * 0.9;
+      // Embers: two layers of sparks rising and flickering; only some cells hold one.
+      for (int layer = 0; layer < 2; layer++) {
+        float size = layer == 0 ? 22.0 : 13.0;
+        float speed = layer == 0 ? 16.0 : 26.0;
+        vec2 q = vec2(cardPoint.x + float(layer) * 7.0 + sin(cardPoint.y * 0.05 + animTime) * 2.0, cardPoint.y + animTime * speed) / size;
+        vec2 cell = floor(q);
+        vec2 offset = vec2(hash2(cell), hash2(cell + 4.1)) - 0.5;
+        float spark = smoothstep(0.11, 0.0, length(fract(q) - 0.5 - offset * 0.6)) * step(0.72, hash2(cell + 9.3));
+        float twinkle = 0.55 + 0.45 * sin(animTime * 6.0 + hash2(cell + 2.0) * 6.2832);
+        color += vec3(1.0, 0.5, 0.12) * spark * twinkle * (0.5 + 0.7 * smoothstep(1.0, 0.0, uv.y));
+      }
+      // The frame: blackened forged iron whose inner edge glows red-hot.
+      float innerArea = rect(cardPoint, vec2(120.0, 156.0), vec2(105.0, 141.0), vec2(1.0));
+      float frameBand = 1.0 - innerArea;
+      vec3 frameIron = vec3(0.05, 0.03, 0.03) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.1) * 0.18 + vec3(1.0, 0.8, 0.7) * bands * 0.4;
+      float hotEdge = rect(cardPoint, vec2(120.0, 156.0), vec2(106.6, 142.6), vec2(0.7)) - innerArea;
+      float outerLine = rect(cardPoint, vec2(120.0, 156.0), vec2(110.5, 146.5), vec2(0.6)) - rect(cardPoint, vec2(120.0, 156.0), vec2(109.0, 145.0), vec2(0.6));
+      color = mix(color, frameIron, frameBand);
+      color += vec3(1.0, 0.25, 0.05) * sat(hotEdge) * (0.8 + 0.4 * pulse) + vec3(0.7, 0.12, 0.04) * sat(outerLine) * 0.7;
     }
     if (kind > 6.5) {
       // The power tray and fleur-de-lis stay plain polished metal with their own light and dark; the medallion keeps its colours.
-      float trayArea = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0));
+      float trayArea = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) * trayOn;
       float medallionArea = 1.0 - smoothstep(27.6, 30.0, distance(cardPoint, vec2(197.0, 263.0)));
       vec3 uiMetal = mix(vec3(0.85), f0, 0.55);
       vec3 ui = mix(vec3(0.05, 0.05, 0.06), uiMetal * (0.78 + 0.25 * diffuse) + uiMetal * bands * 0.35, smoothstep(0.25, 0.6, lum));
+      if (kind > 8.5 && kind < 9.5) {
+        // Legendary: a dark bronze tray; the numerals and the fleur-de-lis shine white-gold, the rim is gilded.
+        float shine = 0.88 + 0.12 * sin(animTime * 1.5 + cardPoint.x * 0.035);
+        vec3 bronze = vec3(0.16, 0.1, 0.035) * (0.75 + 0.45 * diffuse) + vec3(1.0, 0.9, 0.7) * bands * 0.25;
+        vec3 gilt = mix(vec3(0.95, 0.68, 0.22), vec3(1.0, 0.96, 0.8), smoothstep(0.55, 0.9, lum)) * shine;
+        float trayRim = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) - rect(cardPoint, vec2(120.0, 36.0), vec2(103.5, 18.5), vec2(1.2));
+        ui = mix(bronze, gilt, smoothstep(0.3, 0.6, lum));
+        ui = mix(ui, goldTone(0.6 + 0.3 * diffuse + bands * 0.6), sat(trayRim));
+      }
+      if (kind > 9.5) {
+        // Mythic: a forged black-iron tray; the numerals and the fleur-de-lis glow red-hot and breathe,
+        // and the rim smoulders, matching the infernal plate instead of the silver of the lower rarities.
+        float glowBreath = 0.82 + 0.18 * sin(animTime * 1.8 + cardPoint.x * 0.04);
+        vec3 iron = vec3(0.045, 0.028, 0.026) * (0.75 + 0.45 * diffuse) + vec3(1.0, 0.75, 0.65) * bands * 0.25;
+        vec3 hot = mix(vec3(0.95, 0.28, 0.05), vec3(1.0, 0.86, 0.5), smoothstep(0.55, 0.9, lum)) * glowBreath;
+        float trayRim = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) - rect(cardPoint, vec2(120.0, 36.0), vec2(103.5, 18.5), vec2(1.2));
+        ui = mix(iron, hot, smoothstep(0.3, 0.6, lum)) + vec3(0.9, 0.16, 0.03) * sat(trayRim) * (0.45 + 0.25 * sin(animTime * 1.3));
+      }
       color = mix(color, ui, trayArea);
       color = mix(color, texel.rgb * (0.95 + 0.2 * diffuse), medallionArea);
     }
@@ -596,6 +687,7 @@ function createSharedRenderer(): SharedRenderer | null {
       gain: gl.getUniformLocation(program, "gain"),
       brush: gl.getUniformLocation(program, "brush"),
       f0: gl.getUniformLocation(program, "f0"),
+      trayOn: gl.getUniformLocation(program, "trayOn"),
     };
     gl.uniform1i(uniforms.texture, 0);
     gl.uniform1i(gl.getUniformLocation(program, "maskTexture"), 1);
@@ -812,7 +904,7 @@ export function createCardMaterialSurface(gl: WebGLRenderingContext, plate: HTML
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const position = gl.getAttribLocation(program, "position");
-    const uniforms = Object.fromEntries(["cardTexture", "maskTexture", "artTexture", "texelSize", "tilt", "destruction", "rough", "kind", "fx", "animTime", "metallic", "bump", "gain", "brush", "f0"].map((name) => [name, gl.getUniformLocation(program, name)]));
+    const uniforms = Object.fromEntries(["cardTexture", "maskTexture", "artTexture", "texelSize", "tilt", "destruction", "rough", "kind", "fx", "animTime", "metallic", "bump", "gain", "brush", "f0", "trayOn"].map((name) => [name, gl.getUniformLocation(program, name)]));
     const render = (tiltX: number, tiltY: number, time: number) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
       gl.viewport(0, 0, SHADER_WIDTH, SHADER_HEIGHT);
@@ -829,14 +921,14 @@ export function createCardMaterialSurface(gl: WebGLRenderingContext, plate: HTML
       gl.uniform1f(uniforms.rough, material.rough); gl.uniform1f(uniforms.kind, material.kind);
       gl.uniform1f(uniforms.fx, material.fx); gl.uniform1f(uniforms.animTime, time);
       gl.uniform1f(uniforms.metallic, material.metal); gl.uniform1f(uniforms.bump, material.bump);
-      gl.uniform1f(uniforms.gain, material.gain); gl.uniform1f(uniforms.brush, material.brush);
+      gl.uniform1f(uniforms.gain, material.gain); gl.uniform1f(uniforms.brush, material.brush); gl.uniform1f(uniforms.trayOn, 1);
       gl.uniform3f(uniforms.f0, ...material.f0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.activeTexture(gl.TEXTURE0);
     };
     render(0, 0, 0);
-    return { texture: output!, animated: (material.kind > 4.5 && material.kind < 5.5) || material.kind > 9.5, render, dispose };
+    return { texture: output!, animated: (material.kind > 4.5 && material.kind < 5.5) || material.kind > 8.5, render, dispose };
   } catch (error) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.activeTexture(gl.TEXTURE0);
     dispose();
@@ -887,8 +979,11 @@ function advanceInstance(instance: CardShaderInstance, time: number) {
       targetY = motion.from.y + (motion.to.y - motion.from.y) * eased;
     }
   }
-  instance.tilt.x += (targetX - instance.tilt.x) * 0.08;
-  instance.tilt.y += (targetY - instance.tilt.y) * 0.08;
+  const elapsed = Math.min(100, Math.max(0, time - (instance.advancedAt ?? time - TILT_STEP_MS)));
+  instance.advancedAt = time;
+  const ease = 1 - Math.pow(1 - TILT_EASE_PER_STEP, elapsed / TILT_STEP_MS);
+  instance.tilt.x += (targetX - instance.tilt.x) * ease;
+  instance.tilt.y += (targetY - instance.tilt.y) * ease;
 
   if (instance.destruction) {
     const effect = instance.destruction;
@@ -929,6 +1024,7 @@ function paintInstance(instance: CardShaderInstance, time: number) {
   gl.uniform1f(uniforms.gain, material.gain);
   gl.uniform1f(uniforms.brush, material.brush);
   gl.uniform3f(uniforms.f0, material.f0[0], material.f0[1], material.f0[2]);
+  gl.uniform1f(uniforms.trayOn, instance.hideTray ? 0 : 1);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   instance.context.clearRect(0, 0, instance.canvas.width, instance.canvas.height);
@@ -944,8 +1040,14 @@ function drawInstance(instance: CardShaderInstance, time: number) {
 
 function needsPaint(instance: CardShaderInstance, time: number) {
   const { painted, tilt } = instance;
+  const settled = painted.destruction === instance.destructionProgress;
+  // Only the hero card runs at the display rate; the rest keep the 30 Hz pace they always had.
+  if (!instance.closeup && settled && time - painted.at < TARGET_FRAME_MS) return false;
+  // A small card on a touch device sways at a calmer rate; a touch on it or its destruction paints at once.
+  if (TOUCH_PROFILE && settled && !instance.pointerActive && !instance.closeup && instance.canvas.clientWidth < LIVING_CLOSEUP_WIDTH
+    && time - painted.at < TOUCH_SMALL_SWAY_FRAME_MS) return false;
   if (instance.animated && !instance.reducedMotion) {
-    const frame = instance.canvas.clientWidth >= LIVING_CLOSEUP_WIDTH ? LIVING_CLOSEUP_FRAME_MS : LIVING_FRAME_MS;
+    const frame = instance.closeup || instance.canvas.clientWidth >= LIVING_CLOSEUP_WIDTH ? LIVING_CLOSEUP_FRAME_MS : LIVING_FRAME_MS;
     if (time - painted.at >= frame) return true;
   }
   return painted.destruction !== instance.destructionProgress
@@ -989,7 +1091,7 @@ export function holdCardMaterialAnimation() {
 function renderFrame(time: number) {
   animationFrame = 0;
   if (!hasAnimatedVisibleCards()) return;
-  if (time - lastFrameAt >= TARGET_FRAME_MS) {
+  if (time - lastFrameAt >= CLOSEUP_FRAME_MS) {
     lastFrameAt = time;
     const scrolling = time - lastScrollAt < SCROLL_SETTLE_MS;
     const urgent: CardShaderInstance[] = [];
@@ -1033,7 +1135,7 @@ export function getCardMaterialTilt(canvas: HTMLCanvasElement): CardTilt | null 
   return instance ? { ...instance.tilt } : null;
 }
 
-export function mountCardMaterialShader({ artLayer, artworkSource, canvas, elementColor, initialTilt, materialId, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
+export function mountCardMaterialShader({ artLayer, artworkSource, canvas, elementColor, hideTray = false, initialTilt, materialId, onReady, svgMarkup, textureKey }: MountCardMaterialShaderOptions) {
   const cacheKey = resolutionTextureKey(textureKey);
   let disposed = false;
   let visible = !("IntersectionObserver" in window);
@@ -1042,8 +1144,8 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, eleme
   let instance: CardShaderInstance | null = null;
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const material = MATERIALS[materialId] ?? MATERIALS.silver;
-  // Astronite's galaxy and star steel's crystals move on their own; the other materials repaint on tilt alone.
-  const animated = (material.kind > 4.5 && material.kind < 5.5) || material.kind > 9.5;
+  // Astronite's galaxy, the angelic gold's light and the infernal plate move on their own; the rest repaint on tilt alone.
+  const animated = (material.kind > 4.5 && material.kind < 5.5) || material.kind > 8.5;
   const cardRoot = canvas.closest<HTMLElement>(".deck-card, .duel-card, .card-detail-card, .shop-reveal__card, .limited-card-reveal__card, .campaign-boss-reward-card, .collection-card-visual, .collection-card-tile__plate, .player-profile-card-plate, .workshop-card__art, .battle-pass-card-thumbnail") ?? canvas.parentElement;
   const context = canvas.getContext("2d");
   if (!context) return () => undefined;
@@ -1144,6 +1246,8 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, eleme
         onReady,
         pointerActive: false,
         pointerTarget: { x: 0, y: 0 },
+        hideTray,
+        closeup: canvas.closest(".card-detail-card, .shop-reveal__card, .limited-card-reveal__card, .campaign-boss-reward-card") !== null,
         reducedMotion: reducedMotionQuery.matches,
         texture,
         tilt: initialTilt ? { ...initialTilt } : { x: 0, y: 0 },

@@ -36,7 +36,7 @@ function OwnedCard({ card, onOpen, settled }: { card: PlayerCollectionCard; onOp
   return (
     <button aria-label={`${card.displayName}, отримано`} className="bestiary-card" disabled={!onOpen} onClick={onOpen} ref={ref} type="button">
       <span aria-hidden="true" className="bestiary-card__plate">
-        {near ? <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} rarity={card.minRarity} /> : null}
+        {near ? <CardArtwork artKey={card.artKey} cardId={card.id} element={card.element} hidePower rarity={card.minRarity} /> : null}
       </span>
       <span className="bestiary-card__name">{card.displayName}</span>
     </button>

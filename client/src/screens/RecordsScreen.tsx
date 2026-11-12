@@ -108,7 +108,7 @@ export function RecordsScreen({ onBack, playerId, playerName }: RecordsScreenPro
                         <button className="records-card" onClick={() => openRecord(record.id)} type="button">
                           <img alt="" aria-hidden="true" className={isCompactAchievementImage(record) ? "records-card__image records-card__image--compact" : "records-card__image"} height={56} loading="lazy" src={record.image} width={56} />
                           <strong className="records-card__title">{translateUi(record.title, locale)}</strong>
-                          {state.status === "ready" ? <small>{completedLevels === null ? "—" : `${translateUi("Отримано", locale)} ${completedLevels} ${translateUi("із", locale)} ${record.levels.length}`}</small> : null}
+                          {state.status === "ready" ? <small>{completedLevels === null ? "—" : `${translateUi("Отримано", locale)} ${completedLevels} / ${record.levels.length}`}</small> : null}
                         </button>
                       </div>
                     );

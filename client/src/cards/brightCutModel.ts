@@ -9,6 +9,8 @@ interface BrightCutMaterial {
 }
 interface ReferenceOptions {
   uid: string; element: CardElement; showArtwork?: boolean; blank?: boolean; emblemOnly?: boolean;
+  /** Catalogue views (collections) show art and element only: no power tray, no fleur-de-lis socket. */
+  hidePower?: boolean;
   guides?: boolean; engravingDepth?: number; characterArtSource?: string | null; artOnly?: boolean;
 }
 function escapeXmlAttribute(value: string) {
@@ -119,7 +121,12 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
  const cutShift=(.35+cut*1.62).toFixed(2);
  const cutHalo=(.36+cut*.65).toFixed(2);
 
- const outer=shapePath(),face=isPaper?shapePath(7,7,226,298,12):shapePath(9,9,222,294,11),inset=shapePath(13,13,214,286,9),well=shapePath(16,57,208,239,8);
+ const outer=shapePath(),face=isPaper?shapePath(7,7,226,298,12):shapePath(9,9,222,294,11),inset=shapePath(13,13,214,286,9);
+ // Without the power tray (catalogue views) the art well rises to the top border and the art is centred in it.
+ const wellTop=opts.hidePower?16:57,well=shapePath(16,wellTop,208,296-wellTop,8),artBox=opts.hidePower
+   // Catalogue: the art fills the whole well, trimmed at the sides like a cover, never letterboxed.
+   ? `x="16" y="16" width="208" height="280" preserveAspectRatio="xMidYMid slice"`
+   : `x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet"`;
  const cm=(c: string,a: number,b: number)=>{const [r,gg,bl]=[1,3,5].map(i=>(parseInt(c.substr(i,2),16)/255).toFixed(3));return `0 0 0 0 ${r} 0 0 0 0 ${gg} 0 0 0 0 ${bl} ${a} 0 0 0 ${b}`};const rough=isPaper?`filter="url(#${g('rough')})"`:'';
  const defs=`<defs>
    <linearGradient id="${g('metal')}" x1="0" y1="0" x2="1" y2=".08">${gradient(mat.base)}</linearGradient>
@@ -185,7 +192,7 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
  <path d="${shapePath(14.6,14.6,210.8,282.8,8)}" fill="none" stroke="${mat.light}" stroke-opacity=".8" stroke-width=".65"/>
  <path d="${shapePath(12.1,12.1,215.8,287.8,9)}" fill="none" stroke="${mat.light}" stroke-opacity=".55" stroke-width=".64"/>
  <path d="${well}" fill="url(#${g('well')})" opacity="${isPaper?.3:1}"/><path d="${well}" fill="none" stroke="url(#${g('rim')})" stroke-width="1.5"/>
- <path d="${shapePath(17.6,58.6,204.8,235.8,7)}" fill="none" stroke="${mat.light}" stroke-opacity=".47" stroke-width=".7"/>
+ <path d="${shapePath(17.6,wellTop+1.6,204.8,294.4-wellTop-1.6,7)}" fill="none" stroke="${mat.light}" stroke-opacity=".47" stroke-width=".7"/>
 
 `;
  // engraved ink: light lip below, dark gradient fill on top
@@ -194,7 +201,7 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
  const num=[...digits].map(ch=>{const d=DIGITS[ch];const t=`<path transform="translate(${px.toFixed(2)} 49.1) scale(${sc.toFixed(5)} ${(-sc).toFixed(5)})" d="${d.d}"/>`;px+=d.w*sc+.7;return t}).join('');
  const bar=shapePath(53.5,15.8,172,40,6),badge=shapePath(15.5,15.8,37,40,6);
  const lis=(x: number,y: number,sz2: number,f: string,o: number)=>{const [vx,vy,vs]=FLEUR.vb.split(' ').map(Number),k=sz2/vs;return `<use href="#${g('lis')}" transform="translate(${(x-vx*k).toFixed(3)} ${(y-vy*k).toFixed(3)}) scale(${k.toFixed(5)})" fill="${f}" fill-opacity="${o}"/>`};
- const power=opts.blank?'':`<g id="${g('power-layer')}" data-layer="power" aria-label="Сила ${amount ?? ''}">
+ const power=opts.blank||opts.hidePower?'':`<g id="${g('power-layer')}" data-layer="power" aria-label="Сила ${amount ?? ''}">
    <!-- A genuine recessed metal slot, independently shaped and shaded. -->
    <path d="${bar}" transform="translate(0 1.0)" fill="#000" opacity=".64"/>
    <path d="${bar}" fill="url(#${g('power-rim')})" stroke="${mat.shadow}" stroke-width="1.2"/>
@@ -231,11 +238,11 @@ function svgCard(mat: BrightCutMaterial,amount: number | undefined,opts: Referen
    <path d="M209 276A18 18 0 0 1 202 280" fill="none" stroke="${finish.rim}" stroke-opacity=".62" stroke-width=".95" stroke-linecap="round"/>
  </g>`;
  const character=opts.showArtwork && characterImageSource?`<g class="card-sprite" data-art="material-adaptive">
-   ${!isPaper?`<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-outline')})"/><image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-shadow')})" opacity="${(.30+.28*cut).toFixed(2)}"/>`:''}
-   <image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-material')})" opacity="${isPaper?.88:1}"/>
-   ${isPaper?`<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity=".085"/>`:
-   `<image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-shadow')})" opacity="${(.13+.13*cut).toFixed(2)}"/>
-    <image href="${characterImageSource}" x="2" y="53" width="236" height="236" preserveAspectRatio="xMidYMid meet" filter="url(#${g('art-inner-light')})" opacity="${(.14+.13*cut).toFixed(2)}"/>`}
+   ${!isPaper?`<image href="${characterImageSource}" ${artBox} filter="url(#${g('art-outline')})"/><image href="${characterImageSource}" ${artBox} filter="url(#${g('art-shadow')})" opacity="${(.30+.28*cut).toFixed(2)}"/>`:''}
+   <image href="${characterImageSource}" ${artBox} filter="url(#${g('art-material')})" opacity="${isPaper?.88:1}"/>
+   ${isPaper?`<image href="${characterImageSource}" ${artBox} filter="url(#${g('art-inner-shadow')})" opacity=".085"/>`:
+   `<image href="${characterImageSource}" ${artBox} filter="url(#${g('art-inner-shadow')})" opacity="${(.13+.13*cut).toFixed(2)}"/>
+    <image href="${characterImageSource}" ${artBox} filter="url(#${g('art-inner-light')})" opacity="${(.14+.13*cut).toFixed(2)}"/>`}
  </g>`:'';
  if(opts.artOnly) return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 240 312" aria-hidden="true">${defs}${character}</svg>`;
  const guides=`<g class="guide"><rect class="outline" x="16" y="18" width="36" height="35" rx="4"/><rect class="outline" x="54" y="18" width="171" height="35" rx="4"/><rect class="outline" x="16" y="57" width="208" height="239" rx="8"/><circle cx="197" cy="263" r="20"/><path class="crosshair" d="M120 57V296M16 175H224"/></g>`;
@@ -262,11 +269,11 @@ export function getBrightCutPlate(rarity: CardRarity) {
 }
 export function renderBrightCutCard(options: {
   element: CardElement; rarity: CardRarity; power?: number; id: string;
-  artworkSource?: string | null; character?: boolean; depth?: number; material?: string;
+  artworkSource?: string | null; character?: boolean; depth?: number; material?: string; hidePower?: boolean;
 }): string {
   return withFrameStyle(options.material ?? RARITY_MATERIALS[options.rarity], () => svgCard(plateMaterial(options.rarity, options.material),options.power,{
     uid:options.id, element:options.element, showArtwork:options.character ?? Boolean(options.artworkSource),
-    engravingDepth:options.depth ?? 85, characterArtSource: options.artworkSource,
+    engravingDepth:options.depth ?? 85, characterArtSource: options.artworkSource, hidePower: options.hidePower,
   }));
 }
 

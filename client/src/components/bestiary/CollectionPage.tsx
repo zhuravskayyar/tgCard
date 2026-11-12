@@ -21,7 +21,7 @@ export function CollectionPage({ data, onBack, onOpenCard, onOpenShop, settled }
           {collection.completed ? <span aria-hidden="true" className="bestiary-seal" /> : null}
         </span>
         <h2>{collection.displayName}</h2>
-        <p className="bestiary-page__progress">{collection.discoveredCards} із {collection.totalCards} карт</p>
+        <p className="bestiary-page__progress">{collection.discoveredCards} / {collection.totalCards} карт</p>
         <p className="bestiary-page__bonus">
           {isRaid ? "Рейдова колекція. " : null}Бонус: {collection.bonusLabel}
           {collection.completed ? " — активний" : null}
