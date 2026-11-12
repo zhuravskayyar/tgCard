@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   buildBestValidDeck,
   getCardPower,
+  isMagicSourceCode,
   validateDeckElementBalance,
   type OwnedDeckCard,
 } from "@cardastika/game-core";
@@ -88,7 +89,7 @@ export async function recalculateAutomaticDeck(
       cardId: row.card_id,
       code: row.code,
       element: row.element,
-      finalPower: getCardPower({ level, bonusPower }),
+      finalPower: getCardPower({ level, bonusPower, magicSource: isMagicSourceCode(row.code) }),
     };
   });
 

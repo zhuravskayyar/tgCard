@@ -59,11 +59,11 @@
 :root .app-shell .card-detail-screen .progression-panel__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; padding: 2px 0 0; border: 0; }
 :root .app-shell .card-detail-screen .progression-panel__facts > div { display: grid; align-content: center; justify-items: center; gap: 1px; min-height: 30px; padding: 0 4px; background: none; border: 0; }
 :root .app-shell .card-detail-screen .progression-panel__facts > div + div { border-left: 1px solid #87633166; }
-:root .app-shell .card-detail-screen .progression-panel__facts > div > span { width: auto; color: var(--home-ink-muted); font-family: var(--font-display) !important; font-size: 11px; line-height: 1; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span { width: auto; color: var(--home-ink-muted); font-family: var(--font-display) !important; font-size: .75rem; line-height: 1; }
 :root .app-shell .card-detail-screen .progression-panel__facts strong { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; font-size: 20px; line-height: 1; }
 :root .app-shell .card-detail-screen .progression-panel__facts strong span { width: auto; font-family: inherit !important; font-size: inherit; line-height: inherit; }
 :root .app-shell .card-detail-screen .progression-panel__facts .currency-icon { width: 18px; height: 18px; margin: 0; }
-:root .app-shell .card-detail-screen .progression-panel__external-hint { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 3px 0 0; padding: 0; color: var(--home-ink); background: none; border: 0; font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center; }
+:root .app-shell .card-detail-screen .progression-panel__external-hint { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 3px 0 0; padding: 0; color: var(--home-ink); background: none; border: 0; font-size: .75rem; font-weight: 600; line-height: 1.2; text-align: center; }
 :root .app-shell .card-detail-screen .progression-panel__external-hint > span { flex: 0 0 auto; color: var(--home-ink-muted); font: 12px/1 var(--font-body); }
 
 :root .app-shell .card-detail-screen .absorption-panel { display: grid; grid-template-rows: var(--upgrade-weak-height) minmax(0, 1fr); gap: 0; min-height: 0; padding: 0; overflow: hidden; background: none; border: 0; border-image: none; box-shadow: none; }
@@ -138,7 +138,7 @@
   :root .app-shell .card-detail-screen .level-up-button > span { font-size: 17px; }
   :root .app-shell .card-detail-screen .progression-panel__facts > div { min-height: 28px; }
   :root .app-shell .card-detail-screen .progression-panel__facts strong { font-size: 18px; }
-  :root .app-shell .card-detail-screen .progression-panel__external-hint { font-size: 9.5px; }
+  :root .app-shell .card-detail-screen .progression-panel__external-hint { font-size: .75rem; }
   :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__icon { width: 24px; height: 24px; }
   :root .app-shell .card-detail-screen .menu-row--book.menu-row--compact .menu-row__title { font-size: 15px; }
   :root .app-shell .card-detail-screen .weak-cards-heading__icon { width: 24px; height: 24px; }
@@ -149,7 +149,7 @@
   :root .app-shell .card-detail-screen .card-detail-reference-stats { padding: 4px; }
   :root .app-shell .card-detail-screen .card-detail-reference-stat { grid-template-columns: 17px minmax(0, 1fr) auto; min-height: 27px; font-size: 12px; }
   :root .app-shell .card-detail-screen .card-protection-toggle { gap: 3px; padding-inline: 12px 7px; }
-  :root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: 11.5px; }
+  :root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: .75rem; }
 }
 @media (min-height: 760px) {
   :root .app-shell .card-detail-screen { --upgrade-heading-height: 48px; --upgrade-weak-height: 40px; --book-compact-height: 40px; gap: 6px; }
@@ -266,7 +266,7 @@
   padding: 2px 8px 2px 12px;
 }
 :root .app-shell .card-detail-screen .card-protection-toggle > .app-icon { width: 16px; height: 16px; }
-:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: 11.5px; }
+:root .app-shell .card-detail-screen .card-protection-toggle > span:not(.card-protection-toggle__switch) { font-size: .75rem; }
 :root .app-shell .card-detail-screen .card-protection-toggle__switch {
   box-sizing: border-box;
   width: 34px;
@@ -320,7 +320,7 @@
   border: 0;
 }
 :root .app-shell .card-detail-screen .progression-panel__facts > div + div { border-left: 1px solid rgb(112 79 39 / 32%); }
-:root .app-shell .card-detail-screen .progression-panel__facts > div > span { font-size: 10.5px; line-height: 1.1; text-align: center; }
+:root .app-shell .card-detail-screen .progression-panel__facts > div > span { font-size: .75rem; line-height: 1.1; text-align: center; }
 :root .app-shell .card-detail-screen .progression-panel__facts strong {
   min-width: 0;
   gap: 4px;
@@ -337,7 +337,7 @@
   color: var(--home-ink);
   background: none;
   border: 0;
-  font-size: 11px;
+  font-size: .75rem;
   line-height: 1.2;
   text-align: center;
 }
@@ -726,8 +726,30 @@
 }
 :root .app-shell .card-detail-screen .absorption-card-slot__action > span { color: #24140a; font-size: 13px; font-weight: 800; text-decoration: none; }
 :root .app-shell .card-detail-screen .absorption-card-slot__action > strong { color: #1f4d10; font: 800 16px/1 var(--font-number); }
-:root .app-shell .card-detail-screen .absorption-card-slot__action > small { color: #3a2412; font-size: 11px; font-weight: 700; line-height: 1; }
-/* "Поглинути слабкі": between the level plate and the weak-card list, as in the reference. Reuses the level-up button sprite. */
-:root .app-shell .card-detail-screen .absorb-weak-row { display: grid; justify-items: center; gap: 2px; margin: 6px 0 2px; }
-:root .app-shell .card-detail-screen .absorb-weak-row__gain { margin: 0; color: #3a2412; font-size: 13px; font-weight: 700; line-height: 1.2; text-align: center; }
-:root .app-shell .card-detail-screen .absorb-weak-row__gain > strong { color: var(--state-success); font: 800 15px/1 var(--font-display); }
+:root .app-shell .card-detail-screen .absorption-card-slot__action > small { color: #3a2412; font-size: .75rem; font-weight: 700; line-height: 1; }
+
+/* One screen, no scroll: «Підняти рівень» and «Поглинути слабкі» share one row of the level plate,
+   and the weak cards are one strip of the five best fodder cards — a tap absorbs a card. */
+:root .app-shell .card-detail-screen .progression-panel__upgrade-row--pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+:root .app-shell .card-detail-screen .progression-panel__upgrade-row--pair .level-up-button { width: 100%; padding-inline: 10px; }
+:root .app-shell .card-detail-screen .progression-panel__upgrade-row--pair .level-up-button > span { font-size: 14.5px; white-space: nowrap; }
+:root .app-shell .card-detail-screen .absorb-weak-button { display: flex; align-items: center; justify-content: center; gap: 5px; }
+:root .app-shell .card-detail-screen .absorb-weak-button > strong { color: #c9f0a8; font: 800 14px/1 var(--font-body); }
+:root .app-shell .card-detail-screen .absorption-panel--strip { margin: 0; }
+:root .app-shell .card-detail-screen .absorption-panel--strip .absorption-grid--inline {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  overflow: visible;
+}
+:root .app-shell .card-detail-screen .absorption-panel--strip .absorption-card-slot { gap: 2px; width: 54px; }
+:root .app-shell .card-detail-screen .absorption-panel--strip .absorption-card-slot__action { min-height: 26px; padding: 4px 2px; }
+:root .app-shell .card-detail-screen .absorption-panel--strip .absorption-card-slot__action > strong { font-size: 13px; }
+/* Height budget for one phone screen: a slimmer level plate, a slightly smaller hero card and
+   shorter onward rows (same clasp sprite, same proportions inside). */
+:root .app-shell .card-detail-screen .progression-panel { padding-block: 10px; }
+:root .app-shell .card-detail-screen .progression-panel__content { row-gap: 4px; }
+:root .app-shell .card-detail-screen .card-detail-overview__main { grid-template-columns: minmax(112px, 38%) minmax(0, 1fr); }
+:root .app-shell .card-detail-screen .card-detail-actions { --home-link-height: calc(min(100cqw, 380px) / 7); }

@@ -1,5 +1,7 @@
+import { PLAYER_AVATAR_COUNT, parsePlayerAvatarId } from "@cardastika/shared";
+
 /** Cardastika's own player portraits (docs/default-avatars-sprites.md), 320x320 webp. */
-export const DEFAULT_AVATAR_COUNT = 20;
+export const DEFAULT_AVATAR_COUNT = PLAYER_AVATAR_COUNT;
 
 export function getAvatarUrl(index: number) {
   return `/assets/ui/avatars/avatar-${String(index).padStart(2, "0")}.webp`;
@@ -17,11 +19,8 @@ export function getDefaultAvatarUrl(seed: string) {
  * Players never show card art: without a photo they get a portrait from the catalogue.
  */
 export function resolvePlayerAvatarUrl(photoUrl: string | null | undefined, seed: string) {
-  const chosen = photoUrl?.match(/^avatar:(\d{2})$/);
-  if (chosen) {
-    const index = Number(chosen[1]);
-    if (index >= 1 && index <= DEFAULT_AVATAR_COUNT) return getAvatarUrl(index);
-  }
+  const chosen = parsePlayerAvatarId(photoUrl);
+  if (chosen !== null) return getAvatarUrl(chosen);
   if (photoUrl && !photoUrl.startsWith("avatar:") && !photoUrl.startsWith("/card-art/") && !photoUrl.startsWith("bot-avatar:")) return photoUrl;
   return getDefaultAvatarUrl(seed);
 }

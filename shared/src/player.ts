@@ -20,6 +20,24 @@ export function getPlayerDisplayName(player: Pick<PlayerSummary, "firstName" | "
   return player.nickname?.trim() || player.username?.trim() || player.firstName;
 }
 
+/** Cardastika's own portraits; a chosen one is stored as "avatar:NN". */
+export const PLAYER_AVATAR_COUNT = 20;
+
+export function toPlayerAvatarId(index: number) {
+  return `avatar:${String(index).padStart(2, "0")}`;
+}
+
+/** Returns the portrait number of a stored "avatar:NN" value, or null. */
+export function parsePlayerAvatarId(value: string | null | undefined) {
+  const match = value?.match(/^avatar:(\d{2})$/);
+  const index = match ? Number(match[1]) : 0;
+  return index >= 1 && index <= PLAYER_AVATAR_COUNT ? index : null;
+}
+
+export interface PlayerAvatarUpdateResponse {
+  photoUrl: string;
+}
+
 export interface PlayerNicknameUpdateRequest {
   nickname: string;
 }

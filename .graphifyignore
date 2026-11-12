@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.png
+*.webp
+*.jpg
+*.svg
+client/public/
+**/catalogData.generated.ts
+.runtime/
+.codex-remote-attachments/

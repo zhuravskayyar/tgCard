@@ -236,7 +236,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  font: 600 10px/1 var(--font-display);
+  font: 600 .75rem/1 var(--font-display);
   text-shadow: none;
 }
 :root .app-shell .player-deck-power__level strong { color: var(--home-ink); font: 800 clamp(13px, calc(var(--hud-frame-width) * .04), 16px)/1 var(--font-display); font-variant-numeric: tabular-nums; text-shadow: none; }
@@ -321,8 +321,8 @@
 
 :root .app-shell .currency-display__value--extended-unit { display: grid; justify-items: center; gap: 1px; line-height: 1; }
 :root .app-shell .currency-display__value > span { font-family: inherit !important; }
-:root .app-shell .currency-display__unit { font-size: .75em; font-weight: 500; letter-spacing: 0; opacity: .85; }
-:root .app-shell .currency-display__value--extended-unit .currency-display__unit { font-size: .65em; }
+:root .app-shell .currency-display__unit { margin-left: 1px; font-size: max(12px, .82em); font-weight: 700; letter-spacing: 0; opacity: 1; }
+:root .app-shell .currency-display__value--extended-unit .currency-display__unit { font-size: max(12px, .7em); }
 
 :root .app-shell .top-hud__xp {
   position: absolute;
@@ -556,7 +556,7 @@
   --home-mode-size: calc((min(100cqw, 380px) - 2 * var(--home-mode-gap)) / 3);
   --mode-icon-box: min(var(--home-mode-icon-box), calc(var(--home-mode-size) * var(--home-mode-icon-ratio)));
   --mode-title-font: clamp(13px, calc(var(--home-mode-size) * .145), 16px);
-  --mode-state-font: 11px;
+  --mode-state-font: .75rem;
   grid-template-columns: repeat(3, var(--home-mode-size));
   grid-template-rows: repeat(2, var(--home-mode-size));
   width: calc(3 * var(--home-mode-size) + 2 * var(--home-mode-gap));
@@ -807,7 +807,7 @@
 }
 .home-screen .guided-route__header { gap: var(--space-1); }
 .home-screen .guided-route__eyebrow { font-size: var(--home-meta-size); line-height: 1; letter-spacing: .06em; }
-.home-screen .guided-route__progress { font-size: 9px; line-height: 1; }
+.home-screen .guided-route__progress { font-size: .75rem; line-height: 1; }
 .home-screen .guided-route__main,
 .home-screen .guided-route__footer > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .home-screen .guided-route__footer { min-height: 0; align-items: stretch; }
@@ -822,11 +822,32 @@
 @media (max-width: 360px) {
   :root .app-shell:has(.home-screen) .currency-display__value:not(.currency-display__value--with-unit) { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
   :root .app-shell:has(.home-screen) .currency-display__value--with-unit { display: inline-flex; align-items: baseline; justify-content: center; gap: 1px; white-space: nowrap; }
-  :root .app-shell:has(.home-screen) .currency-display__unit { font-size: .65em; }
+  :root .app-shell:has(.home-screen) .currency-display__unit { font-size: max(12px, .7em); }
 }
 
 @media (max-width: 430px) and (min-height: 760px) {
   .home-screen:not(:has(.guided-route)) {
     --home-link-gap: 6px;
   }
+}
+
+/* Player level stamped on a red wax seal at the portrait's lower right, so the line under the
+   name holds only the deck power and nothing slides under the currency pills. */
+:root .app-shell .player-level-seal {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--hud-px) * 186);
+  left: calc(var(--hud-px) * 300);
+  display: grid;
+  width: calc(var(--hud-px) * 112);
+  height: calc(var(--hud-px) * 112);
+  min-width: 26px;
+  min-height: 26px;
+  place-items: center;
+  color: #fff4dc;
+  font: 800 13px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px rgb(40 8 4 / 80%);
+  background: url("/assets/guild/guild-count-seal.webp") center / contain no-repeat;
+  pointer-events: none;
 }

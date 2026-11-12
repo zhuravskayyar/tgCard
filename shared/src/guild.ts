@@ -1,4 +1,4 @@
-import type { CardElement, PlayerCardInstance } from "./card.js";
+import type { CardElement, CardProgressionView, PlayerCardInstance } from "./card.js";
 import type { DuelCardSnapshot, ElementMultiplier } from "./duel.js";
 import type { PlayerMailCardReward } from "./mail.js";
 
@@ -35,7 +35,8 @@ export type GuildJournalEventType =
   | "application_rejected"
   | "xp_contributed"
   | "treasury_contributed"
-  | "announcement_updated";
+  | "announcement_updated"
+  | "guild_card_upgraded";
 
 export type GuildForumVisibility = "public" | "private";
 
@@ -246,6 +247,10 @@ export interface GuildProfileResponse {
 export interface GuildCardView {
   active: PlayerCardInstance | null;
   canManage: boolean;
+  /** The leader and officers raise the Guild Card level with treasury gold. */
+  canLevelUp: boolean;
+  /** Level-up state against the treasury gold; null without an active Guild Card. */
+  progression: CardProgressionView | null;
 }
 
 export type GuildTreasuryCurrency = "gold" | "silver";

@@ -291,7 +291,7 @@ export class PlayerRepository {
           username = EXCLUDED.username,
           first_name = EXCLUDED.first_name,
           last_name = EXCLUDED.last_name,
-          photo_url = EXCLUDED.photo_url,
+          photo_url = CASE WHEN players.photo_url LIKE 'avatar:%' THEN players.photo_url ELSE EXCLUDED.photo_url END,
           updated_at = NOW()
         RETURNING ${playerReturningColumns()}
       `,
@@ -316,7 +316,7 @@ export class PlayerRepository {
       `
         UPDATE players
         SET telegram_user_id = $2, username = $3, first_name = $4, last_name = $5,
-            photo_url = $6, updated_at = NOW()
+            photo_url = CASE WHEN photo_url LIKE 'avatar:%' THEN photo_url ELSE $6 END, updated_at = NOW()
         WHERE id = $1
       `,
       [playerId, user.id, user.username, user.firstName, user.lastName, user.photoUrl],
@@ -499,6 +499,21 @@ export class PlayerRepository {
       return { nickname: updated.nickname };
     } catch (error) {
       if (error instanceof PlayerNicknameValidationError) throw error;
+      throw new PlayerPersistenceError({ cause: error });
+    }
+  }
+
+  /** Stores one of the game's own portraits; Telegram logins keep it from then on. */
+  async updateAvatar(playerId: string, avatarId: string) {
+    try {
+      const result = await this.pool.query<{ photo_url: string }>(
+        "UPDATE players SET photo_url = $2, updated_at = NOW() WHERE id = $1 RETURNING photo_url",
+        [playerId, avatarId],
+      );
+      const updated = result.rows[0];
+      if (!updated) throw new Error("Player avatar update returned no row");
+      return { photoUrl: updated.photo_url };
+    } catch (error) {
       throw new PlayerPersistenceError({ cause: error });
     }
   }

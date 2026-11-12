@@ -32,6 +32,7 @@ export function ShopCategoryBanner({ category, onSelect }: ShopCategoryBannerPro
       style={style}
       type="button"
     >
+      <span aria-hidden="true" className="shop-category-banner__sheen" />
       <img alt="" aria-hidden="true" className="shop-category-banner__item" src={CATEGORY_ICONS[category.id]} />
       <span className="shop-category-banner__copy">
         <strong>{category.title}</strong>

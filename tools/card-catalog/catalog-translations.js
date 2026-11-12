@@ -213,6 +213,10 @@ bloodthirsty_piranha:["Piranha","A fish like any other, until you dip your hand.
 battle_gryphon:["Gryphon","Half eagle, half lion, with an appetite for both.","Greif","Halb Adler, halb Löwe, mit dem Appetit von beiden.","Грифон","Наполовину орёл, наполовину лев, аппетит на обоих."],
 fire_servant:["Servant of Fire","Could burn a city, but awaits the order. For now.","Diener des Feuers","Könnte eine Stadt verbrennen, wartet aber auf den Befehl. Noch.","Служитель огня","Мог бы сжечь город, но ждёт приказа. Пока."],
 winged_hound:["Winged Hound","A fence is no longer an argument for him.","Geflügelter Hund","Ein Zaun ist für ihn kein Argument mehr.","Крылатый пёс","Забор для него больше не аргумент."],
+el_air:["High Sky","Not a drop of power, but all the wind is here. Give it to another card.","Hoher Himmel","Kein Funken Kraft, aber der ganze Wind ist da. Gib ihn einer anderen Karte.","Небесная высь","Силы ни капли, зато весь ветер на месте. Отдай его другой карте."],
+el_earth:["Old-Growth Glade","Nothing fights here, everything grows. Feed it to another card.","Urwaldlichtung","Hier kämpft nichts, hier wächst alles. Verfüttere sie an eine andere Karte.","Пралесная поляна","Здесь ничто не дерётся, здесь всё растёт. Скорми её другой карте."],
+el_fire:["Fire Gorge","It does not fight, yet holds heat for a whole deck. Give it to another card.","Feuerschlucht","Sie kämpft nicht, hat aber Glut für ein ganzes Deck. Gib sie einer anderen Karte.","Огненное ущелье","Само не воюет, но жара в нём на целую колоду. Отдай его другой карте."],
+el_water:["Northern Storm","It drowns no one, it waits for someone to strengthen. Give it to another card.","Nordsturm","Er ertränkt niemanden, er wartet nur darauf, jemanden zu stärken. Gib ihn einer anderen Karte.","Северный шторм","Никого не топит, просто ждёт, кого бы усилить. Отдай его другой карте."],
 kostakod:["Kostakod","Roots grasp the lesson faster than his students.","Kostakod","Selbst Wurzeln verstehen den Stoff schneller als seine Schüler.","Костакод","Корни усваивают урок быстрее учеников."],
 };
 

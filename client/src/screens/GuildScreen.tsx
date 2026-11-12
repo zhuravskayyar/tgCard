@@ -6,11 +6,11 @@ import { getUiLocale, translateUi } from "../i18n";
 import { AppIcon } from "../components/AppIcon";
 import { MenuRow } from "../components/MenuRow";
 import type { PlayerSummaryState } from "../types/player";
-import { applyToGuild, changeGuildRole, createGuild, decideGuildApplication, donateGuildCardElements, donateGuildTreasury, dissolveGuild, joinGuild, kickGuildMember, leaveGuild, loadGuildCardCandidates, loadGuildProfile, loadGuildTreasuryCardCandidates, loadMyGuild, purchaseGuildAltarUpgrade, setGuildCard, transferGuildLeadership, updateGuildAnnouncement, updateGuildSettings, withdrawGuildApplication } from "../telegram/guild";
+import { applyToGuild, changeGuildRole, createGuild, decideGuildApplication, donateGuildCardElements, donateGuildTreasury, levelUpGuildCard, dissolveGuild, joinGuild, kickGuildMember, leaveGuild, loadGuildCardCandidates, loadGuildProfile, loadGuildTreasuryCardCandidates, loadMyGuild, purchaseGuildAltarUpgrade, setGuildCard, transferGuildLeadership, updateGuildAnnouncement, updateGuildSettings, withdrawGuildApplication } from "../telegram/guild";
 import { GuildDirectory, GuildCreateForm } from "./guild/GuildDirectory";
 import { GuildProfile } from "./guild/GuildProfile";
 import { GuildForumScreen } from "./guild/GuildForumScreen";
-import { GuildState, formatDate, guildErrorMessage, type AsyncState } from "./guild/GuildUi";
+import { GuildState, formatDate, formatNumber, guildErrorMessage, type AsyncState } from "./guild/GuildUi";
 import "./guild/guild.css";
 import "./guild/guild-polish.css";
 import "./guild/guild-book.css";
@@ -164,6 +164,13 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
         onLoadTreasuryCardCandidates={() => { void loadTreasuryCardCandidatesForProfile(); }}
         onDonateTreasuryCurrency={(currency: GuildTreasuryCurrency, amount: number) => run(() => donateGuildTreasury(profile.guild.id, currency, amount), "Внесок у казну прийнято.", true, true)}
         onDonateGuildCardElements={(instanceIds: string[]) => run(() => donateGuildCardElements(profile.guild.id, instanceIds), "Карту гільдії прокачано.", true, true)}
+        onLevelUpGuildCard={() => {
+          const progression = profile.guildCard.progression;
+          if (!progression || progression.targetLevel === null || progression.requiredGold === null) return;
+          const gift = progression.isGoldLevel ? " Це золотий рівень: кожен учасник отримає джерело магії " + progression.targetLevel + " рівня." : "";
+          if (!confirmUi("Підняти карту гільдії до " + progression.targetLevel + " рівня за " + formatNumber(progression.requiredGold) + " золота з казни?" + gift)) return;
+          void run(() => levelUpGuildCard(profile.guild.id), progression.isGoldLevel ? "Карту гільдії піднято. Учасники отримали джерела магії." : "Карту гільдії піднято.", true, true);
+        }}
         onPurchaseAltar={async (currency: GuildAltarCurrency) => {
           const result = await purchaseGuildAltarUpgrade(profile.guild.id, currency);
           onRetryPlayerSummary();

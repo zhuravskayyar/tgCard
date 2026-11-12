@@ -160,7 +160,7 @@
   border-image: var(--sprite-panel-frame) 62 fill / 8px / 0 stretch;
 }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption strong { color: #24140a; font-size: 13px; font-weight: 800; line-height: 1.1; text-shadow: none; }
-:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption small { color: #4a3620; font-size: 11px; font-weight: 700; line-height: 1.1; text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-tile-caption small { color: #4a3620; font-size: .75rem; font-weight: 700; line-height: 1.1; text-shadow: none; }
 
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-information__identity {
   padding: 6px 12px;

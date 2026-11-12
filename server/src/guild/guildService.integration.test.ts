@@ -263,6 +263,13 @@ test("Guild Card is leader-owned, visible to members, isolated from the nine-car
     const selected = await guilds.setGuildCard(leader, guildId, leaderCard);
     assert.equal(selected.guildCard.active?.instanceId, leaderCard);
     assert.equal((await guilds.getProfile(member, guildId)).guildCard.active?.instanceId, leaderCard);
+    // Re-selecting the same card after the leader upgraded it refreshes the guild copy...
+    const selectedLevel = selected.guildCard.active!.level;
+    await pool.query("UPDATE player_card_instances SET level = $2 WHERE id = $1", [leaderCard, selectedLevel + 2]);
+    assert.equal((await guilds.setGuildCard(leader, guildId, leaderCard)).guildCard.active?.level, selectedLevel + 2);
+    // ...but never rolls back progress the guild added on top of it.
+    await pool.query("UPDATE guild_cards SET level = $2 WHERE guild_id = $1", [guildId, selectedLevel + 4]);
+    assert.equal((await guilds.setGuildCard(leader, guildId, leaderCard)).guildCard.active?.level, selectedLevel + 4);
     await assert.rejects(
       () => guilds.setGuildCard(member, guildId!, memberCard),
       (error: unknown) => error instanceof GuildDomainError && error.code === "guild_permission_denied",
@@ -280,6 +287,89 @@ test("Guild Card is leader-owned, visible to members, isolated from the nine-car
       () => guilds.setGuildCard(outsider, guildId!, leaderCard),
       (error: unknown) => error instanceof GuildDomainError && error.code === "guild_permission_denied",
     );
+  } finally {
+    if (guildId) await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
+    if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);
+    await pool.end();
+  }
+});
+
+test("leaders raise the Guild Card with treasury gold and a gold level gifts every member a magic source", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const { getUpgradeProgress } = await import("@cardastika/game-core");
+  const { GuildTreasuryDomainError } = await import("./treasuryService.js");
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const guilds = new GuildService(pool);
+  const ids: string[] = [];
+  let guildId: string | null = null;
+  const SOURCES = ["el_air", "el_earth", "el_fire", "el_water"];
+  try {
+    for (const name of ["lvl_leader", "lvl_member"]) ids.push((await players.findOrCreateFromTelegram(telegramUser(name))).id);
+    const [leader, member] = ids as [string, string];
+    await pool.query("UPDATE players SET level = 20, silver = 50000 WHERE id = ANY($1::uuid[])", [ids]);
+    const cardClient = await pool.connect();
+    try {
+      await cardClient.query("BEGIN");
+      for (const id of ids) {
+        await grantStarterCards(cardClient, id);
+        await recalculateAutomaticDeck(cardClient, id);
+      }
+      await cardClient.query("COMMIT");
+    } finally {
+      cardClient.release();
+    }
+    guildId = (await guilds.create(leader, { name: `Рів ${randomUUID().slice(0, 5)}` })).guild.id;
+    await guilds.join(member, guildId);
+    const leaderCard = (await guilds.getGuildCardCandidates(leader, guildId)).cards[0]!.instanceId;
+    await guilds.setGuildCard(leader, guildId, leaderCard);
+    // Level 9 with a full level: the next level, 10, is a gold level paid partly from the treasury.
+    await pool.query(
+      "UPDATE guild_cards SET level = 9, level_progress_elements = $2, stored_elements = 0 WHERE guild_id = $1",
+      [guildId, getUpgradeProgress(0, 9).requiredElements],
+    );
+    await pool.query(
+      "INSERT INTO guild_treasuries (guild_id, gold) VALUES ($1, 1000000) ON CONFLICT (guild_id) DO UPDATE SET gold = 1000000",
+      [guildId],
+    );
+
+    const before = (await guilds.getProfile(member, guildId)).guildCard;
+    assert.equal(before.canLevelUp, false);
+    assert.equal(before.progression?.targetLevel, 10);
+    assert.equal(before.progression?.isGoldLevel, true);
+    assert.equal(before.progression?.availability, "ready");
+    const price = before.progression!.requiredGold!;
+    assert.ok(price > 0);
+    await assert.rejects(
+      () => guilds.levelUpGuildCard(member, guildId!),
+      (error: unknown) => error instanceof GuildTreasuryDomainError && error.code === "guild_card_level_forbidden",
+    );
+    assert.equal((await guilds.getProfile(leader, guildId)).guildCard.canLevelUp, true);
+
+    const raised = await guilds.levelUpGuildCard(leader, guildId);
+    assert.equal(raised.guildCard.active?.level, 10);
+    assert.equal(raised.treasury.balance.gold, 1000000 - price);
+    for (const id of ids) {
+      const sources = await pool.query<{ level: number }>(
+        "SELECT level FROM player_card_instances WHERE player_id = $1 AND card_id = ANY($2::text[])",
+        [id, SOURCES],
+      );
+      assert.deepEqual(sources.rows.map(({ level }) => level), [10], "every member gets one source of the new level");
+    }
+    const journal = await pool.query<{ amount: number }>(
+      "SELECT amount FROM guild_activity_log WHERE guild_id = $1 AND event_type = 'guild_card_upgraded'",
+      [guildId],
+    );
+    assert.deepEqual(journal.rows.map(({ amount }) => Number(amount)), [10]);
+
+    // An empty treasury cannot pay the next (ordinary) level, and nobody gets a source.
+    await pool.query("UPDATE guild_treasuries SET gold = 0 WHERE guild_id = $1", [guildId]);
+    await assert.rejects(
+      () => guilds.levelUpGuildCard(leader, guildId!),
+      (error: unknown) => error instanceof GuildTreasuryDomainError && error.code === "guild_card_insufficient_treasury_gold",
+    );
+    const total = await pool.query("SELECT 1 FROM player_card_instances WHERE player_id = ANY($1::uuid[]) AND card_id = ANY($2::text[])", [ids, SOURCES]);
+    assert.equal(total.rows.length, 2);
   } finally {
     if (guildId) await pool.query("DELETE FROM guilds WHERE id = $1", [guildId]);
     if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);

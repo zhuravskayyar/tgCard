@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { CollectionCompletionNotice, PlayerNicknameUpdateResponse, PlayerSummary } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
 import { loadCurrentPlayer, PlayerBootstrapError } from "../telegram/authenticatePlayer";
-import { updatePlayerNickname } from "../telegram/nickname";
+import { updatePlayerAvatar, updatePlayerNickname } from "../telegram/nickname";
 import { getSessionToken } from "../auth/session";
 import type { PlayerSummaryState } from "../types/player";
 
@@ -53,6 +53,15 @@ export function usePlayerSummary() {
     return result;
   }, []);
 
+  const updateAvatar = useCallback(async (avatar: string) => {
+    const credential = getTelegramInitData();
+    if (!credential) throw new Error("avatar_auth_required");
+    const result = await updatePlayerAvatar(credential, avatar, new AbortController().signal);
+    setState((current) => current.status === "ready"
+      ? { status: "ready", data: { ...current.data, photoUrl: result.photoUrl } }
+      : current);
+  }, []);
+
   useEffect(() => {
     if (!getSessionToken()) {
       setState({ status: "unauthenticated" });
@@ -83,5 +92,5 @@ export function usePlayerSummary() {
     };
   }, [attempt]);
 
-  return { addCollectionBonus, retry, state, updateBalance, updateNickname };
+  return { addCollectionBonus, retry, state, updateAvatar, updateBalance, updateNickname };
 }

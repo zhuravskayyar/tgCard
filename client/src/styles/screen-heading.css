@@ -23,7 +23,7 @@
 .screen-heading:not(.screen-heading--back) .screen-heading__copy { text-align: center; }
 .app-shell .app-content .screen-heading h1 { margin: 0; color: var(--home-ink); font: 700 clamp(16px, 4.6vw, 21px)/1.1 var(--font-display); overflow-wrap: anywhere; text-shadow: none; }
 .app-shell .app-content .screen-heading__eyebrow,
-.app-shell .app-content .screen-heading p { margin: 0; color: var(--home-ink-muted); font: 500 11px/1.25 var(--font-label); overflow-wrap: anywhere; }
+.app-shell .app-content .screen-heading p { margin: 0; color: var(--home-ink-muted); font: 500 .75rem/1.25 var(--font-label); overflow-wrap: anywhere; }
 .app-shell .app-content .screen-heading__back { display: grid; place-items: center; min-width: 44px; width: 44px; min-height: 44px; padding: 0; color: var(--home-ink); background: transparent; border: 0; box-shadow: none; cursor: pointer; }
 .screen-heading__back .app-icon { width: 28px !important; height: 28px !important; filter: drop-shadow(0 1px 1px rgb(40 20 5 / 35%)); transition: transform 120ms ease-out; }
 .app-shell .app-content .screen-heading__back:active .app-icon { transform: translateX(-2px); }

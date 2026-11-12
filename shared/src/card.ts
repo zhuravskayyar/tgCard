@@ -105,6 +105,8 @@ export interface PlayerCardInstance {
   level: number;
   levelProgressElements: number;
   limited?: boolean;
+  /** Magic source (`el_*` card): power 1, keeps its full elemental potential, cannot level or absorb. */
+  magicSource?: boolean;
   protectedFromAbsorption: boolean;
   rarity: CardRarity;
   storedElements: number;

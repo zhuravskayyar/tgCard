@@ -25,7 +25,7 @@ function prizeText(run: TournamentRunView) {
   const reward = run.prize?.reward;
   const parts = [
     reward?.kind === "card" ? `карта ${granted?.cardName ?? ""} рівня ${reward.level}`.replace("  ", " ") : null,
-    reward?.kind === "source" ? `джерело рівня ${reward.level}` : null,
+    reward?.kind === "source" ? `джерело ${granted?.cardName ?? ""} рівня ${reward.level}`.replace("  ", " ") : null,
     run.prize?.diamonds ? `${formatUiNumber(run.prize.diamonds)} алмазів` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;

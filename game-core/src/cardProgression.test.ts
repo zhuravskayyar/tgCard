@@ -190,3 +190,18 @@ test("bulk absorption takes the weakest cards that fit into the current level", 
   assert.deepEqual(selectBulkAbsorption(candidates, 100, undefined, 2), ["a", "b"]);
   assert.deepEqual(selectBulkAbsorption([], 5), []);
 });
+
+test("a magic source always has power 1 but keeps the full elemental potential of its level", async () => {
+  const { MAGIC_SOURCE_CARD_CODES, MAGIC_SOURCE_POWER, isMagicSourceCode } = await import("./cardProgression.js");
+  assert.equal(MAGIC_SOURCE_POWER, 1);
+  assert.equal(getCardPower({ level: 150, bonusPower: 0, magicSource: true }), 1);
+  assert.equal(getCardPower({ level: 150, bonusPower: 0 }), getBasePowerForLevel(150));
+  for (const code of Object.values(MAGIC_SOURCE_CARD_CODES)) assert.equal(isMagicSourceCode(code), true);
+  assert.equal(isMagicSourceCode("el_minotauro"), false);
+  assert.equal(isMagicSourceCode("giant_dragonfly"), false);
+  const level = 90;
+  assert.equal(
+    getTransferableElementValue({ level, levelProgressElements: 0, storedElements: 0 }),
+    CARD_LEVEL_TABLE[level - 1]!.elementValue ?? 1,
+  );
+});

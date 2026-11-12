@@ -37,6 +37,7 @@
 }
 .pf-identity__guild .profile-guild-card::before, .pf-identity__guild .profile-guild-card::after { content: none !important; }
 .pf-identity__guild .profile-guild-card > :first-child { justify-self: center; width: 44px; height: 44px; }
+.pf-identity__guild .profile-guild-card__shield .guild-emblem { width: 44px; height: 44px; }
 :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy { display: grid; gap: 1px; }
 :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy strong { color: #24140a; font-size: 15px; font-weight: 800; text-decoration: none; }
 :root[data-game-theme="light"] body .app-shell .app-content .pf-identity__guild .profile-guild-card__copy span { color: #3a2412; font-size: 13px; font-weight: 600; }
@@ -95,8 +96,8 @@
 .pf-tournament-awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px 4px; }
 .pf-tournament-awards article { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 0; color: #3a2412; text-align: center; }
 .pf-tournament-awards img { width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(40 20 5 / 35%)); }
-.pf-tournament-awards span { color: #24140a; font-size: 11px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
-.pf-tournament-awards small { color: #3a2412; font-size: 10px; line-height: 1.15; }
+.pf-tournament-awards span { color: #24140a; font-size: .75rem; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.pf-tournament-awards small { color: #3a2412; font-size: .75rem; line-height: 1.15; }
 .pf-tournament-awards strong { color: #24140a; font-family: var(--font-number); font-size: 12px; line-height: 1.1; }
 .records-screen { gap: 12px; }
 .records-section { gap: 7px; }
@@ -110,17 +111,17 @@
 .records-card img { grid-row: 1; width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 2px 3px rgb(40 20 5 / 30%)); }
 .records-card__image--compact { transform: scale(.82); }
 .records-card__title { grid-row: 3; color: #24140a; font-size: 12px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
-.records-card small { grid-row: 4; color: #6b4b2c; font-size: 11px; font-weight: 700; line-height: 1.15; }
+.records-card small { grid-row: 4; color: #6b4b2c; font-size: .75rem; font-weight: 700; line-height: 1.15; }
 .records-status { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 8px 10px; border: 1px solid rgb(122 82 43 / 22%); border-radius: 10px; background: rgb(255 246 223 / 56%); color: #624522; font-size: 12px; text-align: center; }
 .records-status--error { flex-wrap: wrap; }
-.records-status .eq-button { min-height: 30px; padding: 4px 10px; font-size: 11px; }
+.records-status .eq-button { min-height: 30px; padding: 4px 10px; font-size: .75rem; }
 .records-page { display: grid; gap: 12px; }
 :root[data-game-theme="light"] body .app-shell .app-content .records-levels { gap: 0; margin: 0; padding: 2px 6px; list-style: none; }
 .records-level { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 3px 9px; min-width: 0; padding: 8px 2px; border-bottom: 1px solid rgb(91 60 29 / 30%); }
 .records-level:last-child { border-bottom: 0; }
 .records-level .records-glyph { width: 56px; height: 56px; }
 .records-level__content { display: grid; align-content: center; gap: 3px; min-width: 0; }
-.records-level__number { color: #805523; font-size: 11px; font-weight: 800; }
+.records-level__number { color: #805523; font-size: .75rem; font-weight: 800; }
 .records-level__target { color: #24140a; font-size: 13px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
 .records-level__content em { color: #795315; font-size: 12px; font-style: normal; font-weight: 900; }
 .records-level__progress { grid-column: 1 / -1; margin: 0; padding-top: 5px; border-top: 1px solid rgb(91 60 29 / 25%); color: #5f462d; font-family: var(--font-number); font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; }
@@ -171,3 +172,16 @@
 .pf-elements .element-symbol--air { color: #b8860b; }
 .pf-elements .element-symbol--earth { color: #4f7f2a; }
 .pf-elements .element-symbol { filter: drop-shadow(0 1px 0 rgb(255 245 220 / 80%)); }
+
+/* Profile settings: the reference's identity header, row list and portrait picker. */
+.pf-settings__hint { margin: 0; color: #3a2412; font-size: 14px; font-weight: 700; text-align: center; }
+.pf-settings__error { margin: 0; color: #7c1c10; font-size: 14px; font-weight: 800; text-align: center; }
+.pf-settings__return { justify-self: center; }
+.pf-avatar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pf-avatar-option { padding: 0; border: 0; cursor: pointer; overflow: hidden; }
+.pf-avatar-option img { position: absolute; inset: 12%; width: 76%; height: 76%; object-fit: cover; pointer-events: none; }
+.pf-avatar-option[aria-disabled="true"] { cursor: wait; }
+.pf-avatar-option:focus-visible { outline: 2px solid #7c1c10; outline-offset: 2px; }
+.pf-avatar-grid--chosen .pf-avatar-option:not(.pf-avatar-option--current) { filter: saturate(.55) brightness(.88); }
+.pf-avatar-option--current { z-index: 1; transform: scale(1.08); filter: brightness(1.1) drop-shadow(0 0 1px #5a1a0c) drop-shadow(0 0 7px rgb(200 110 15 / 100%)); }
+.pf-avatar-option--pending { opacity: .6; }

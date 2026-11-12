@@ -2,6 +2,8 @@ import {
   getBasePowerForLevel,
   getCardPower,
   getRarityForLevel,
+  isMagicSourceCode,
+  MAGIC_SOURCE_POWER,
 } from "@cardastika/game-core";
 import type { PlayerCardInstance } from "@cardastika/shared";
 
@@ -46,7 +48,8 @@ export function mapCardInstanceRow(row: CardInstanceProjectionRow): PlayerCardIn
   const bonusPower = toInteger(row.bonus_power, "card bonus power");
   const levelProgressElements = toProgressNumber(row.level_progress_elements, "card level progress");
   const storedElements = toProgressNumber(row.stored_elements, "stored card elements");
-  const basePower = getBasePowerForLevel(level);
+  const magicSource = isMagicSourceCode(row.code);
+  const basePower = magicSource ? MAGIC_SOURCE_POWER : getBasePowerForLevel(level);
   return {
     instanceId: row.instance_id,
     cardId: row.card_id,
@@ -57,10 +60,11 @@ export function mapCardInstanceRow(row: CardInstanceProjectionRow): PlayerCardIn
     level,
     levelProgressElements,
     limited: row.limited ?? false,
+    ...(magicSource ? { magicSource: true } : {}),
     protectedFromAbsorption: row.protected_from_absorption ?? false,
     basePower,
     bonusPower,
-    finalPower: getCardPower({ level, bonusPower }),
+    finalPower: getCardPower({ level, bonusPower, magicSource }),
     rarity: getRarityForLevel(level),
     storedElements,
     collectionId: row.collection_id,

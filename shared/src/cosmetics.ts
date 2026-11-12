@@ -2,34 +2,35 @@ export const NICKNAME_SKIN_IDS = ["blood_moon", "starforged", "broken_signal"] a
 
 export type NicknameSkinId = (typeof NICKNAME_SKIN_IDS)[number];
 
+/** Medieval manuscript styles. Ids stay the original ones so owned skins keep working. */
 export interface NicknameSkinDefinition {
-  className: "blood-moon" | "starforged" | "broken-signal";
-  effect: "blood" | "celestial" | "glitch";
+  className: "nickname-skin--cinnabar" | "nickname-skin--gilded" | "nickname-skin--runic";
+  effect: "cinnabar" | "gilded" | "runic";
   id: NicknameSkinId;
-  name: "Blood Moon" | "Starforged" | "Broken Signal";
+  name: "Кіновар" | "Сусальне золото" | "Рунне срібло";
   rarity: "mythic";
 }
 
 export const NICKNAME_SKINS: Readonly<Record<NicknameSkinId, NicknameSkinDefinition>> = Object.freeze({
   blood_moon: Object.freeze({
-    className: "blood-moon",
-    effect: "blood",
+    className: "nickname-skin--cinnabar",
+    effect: "cinnabar",
     id: "blood_moon",
-    name: "Blood Moon",
+    name: "Кіновар",
     rarity: "mythic",
   }),
   starforged: Object.freeze({
-    className: "starforged",
-    effect: "celestial",
+    className: "nickname-skin--gilded",
+    effect: "gilded",
     id: "starforged",
-    name: "Starforged",
+    name: "Сусальне золото",
     rarity: "mythic",
   }),
   broken_signal: Object.freeze({
-    className: "broken-signal",
-    effect: "glitch",
+    className: "nickname-skin--runic",
+    effect: "runic",
     id: "broken_signal",
-    name: "Broken Signal",
+    name: "Рунне срібло",
     rarity: "mythic",
   }),
 });
@@ -49,7 +50,7 @@ export interface NicknameSkinShopOffer {
     owned: number;
     total: 3;
   };
-  subtitle: "Обери один: Blood Moon / Starforged / Broken Signal";
+  subtitle: "Обери один: Кіновар / Сусальне золото / Рунне срібло";
   goldBalance: number;
   type: "nickname_skin_choice";
 }

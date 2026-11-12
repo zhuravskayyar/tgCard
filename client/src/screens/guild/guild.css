@@ -588,7 +588,7 @@
 }
 .guild-roster .guild-member-row__index {
   color: #927e62;
-  font: .64rem/1 var(--font-number);
+  font: .75rem/1 var(--font-number);
   text-align: center;
 }
 .guild-roster .guild-member-row__avatar {
@@ -602,7 +602,7 @@
   color: #e8bd69;
   background: linear-gradient(145deg, #4a331b, #17110a);
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 45%);
-  font: 700 .74rem/1 var(--font-display);
+  font: 700 .75rem/1 var(--font-display);
 }
 .guild-roster .guild-member-row__avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .guild-roster__role { display: grid; width: 19px; height: 21px; place-items: center; }
@@ -612,7 +612,7 @@
 .guild-roster .guild-member-row__identity strong {
   overflow: hidden;
   color: #e3cfaa;
-  font: 600 .72rem/1.1 var(--font-display);
+  font: 600 .75rem/1.1 var(--font-display);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -632,7 +632,7 @@
 }
 .guild-roster .guild-member-row__value strong {
   color: #e5c276;
-  font: 600 .64rem/1.1 var(--font-number);
+  font: 600 .75rem/1.1 var(--font-number);
   white-space: nowrap;
 }
 .guild-roster .guild-member-row__value small { color: #8f7a5b; font-size: var(--font-micro); line-height: 1; }
@@ -713,11 +713,6 @@
   justify-self: center;
   min-height: 31px;
   padding: 4px 14px;
-  color: #58d4ef;
-  background: linear-gradient(#153841, #07161a);
-  border: 1px solid #4c8995;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-xs);
 }
 .guild-card-screen__empty {
   display: grid;

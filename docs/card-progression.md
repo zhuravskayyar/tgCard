@@ -111,10 +111,10 @@ A level-up that needs an unknown economy cell still returns
 
 ### Magic Source
 
-A normal card may eventually become a magic source. A source has power 1,
-retains its original level and accumulated elemental potential, cannot level or
-absorb cards, and can itself be consumed for improvement. This conversion and
-all source state are deferred.
+A magic source is an instance of one of the four `el_*` cards (see below). It
+has power 1 at any level, retains its level and accumulated elemental
+potential, cannot level or absorb cards, and can itself be consumed for
+improvement. Converting a normal card into a source is still deferred.
 
 ### Protection
 
@@ -125,3 +125,65 @@ the owner removes the protection.
 Magic-source conversion, recommended fodder,
 free-upgrade items, and unrelated world/event systems remain outside this
 milestone.
+
+## Source cards (`el_*`)
+
+Four catalog cards are magic sources, one per element. They are outside every
+collection, are not sold in the shop, and nothing grants them yet:
+
+| Card | Element | Reference card |
+|---|---|---|
+| Небесна вись | Air | `el_air` «Небесные просторы» |
+| Пралісна галявина | Earth | `el_earth` «Опушка в Древнем лесу» |
+| Вогняна ущелина | Fire | `el_fire` «Ущелье в Огненных горах» |
+| Північний шторм | Water | `el_water` «Шторм в Северном море» |
+
+Reference rules (elem.mobi forum «ИнфоВоздух / Земля / Огонь / Вода»):
+
+- A source has power 1 and any level from 1 to 150. It keeps the full magic
+  potential of its level, so it is pure fodder for upgrading other cards.
+- Ways to get one:
+  - the daily reward, under certain conditions;
+  - the chest shop;
+  - a gift from the game;
+  - a weekly guild-war gift (winner: the level of the enemy Guild Card; loser:
+    10 levels lower);
+  - a guild gift when the Guild Card reaches a gold level (the source has that level);
+  - legendary, mythic and master tournaments, up to level 90;
+  - crafting one from any card of the same element once the Tower of Mages is open.
+
+Manual («Карти, бойова колода») source list, in our build order: tournament
+prizes; each gold level of the Guild Card; guild-war mass battles; guild-war
+results; the chest shop; the daily reward when the 9th deck card was a source
+at the moment the reward card was formed; converting any card (cost 1) after the
+«Башня магов» campaign.
+
+### Built
+
+- Identity: `isMagicSourceCode` / `MAGIC_SOURCE_CARD_CODES` in
+  `game-core/src/cardProgression.ts`. Only the four exact codes count
+  (`el_minotauro` is an ordinary card).
+- Power: `getCardPower({ ..., magicSource: true })` returns
+  `MAGIC_SOURCE_POWER` (1) everywhere: card mapper, automatic deck, weak-card
+  ordering, deck leaderboard, public profile, deck-power story trials. A source
+  therefore drops into weak cards unless the deck has no other card.
+- Potential: absorbing a source transfers `getTransferableElementValue` (the
+  level's native value plus its progress and stored elements), like any card.
+  It is valid fodder for player cards and the Guild Card.
+- Restrictions: level-up, absorb and «Поглинути слабкі» with a source as the
+  target fail with `magic_source`; its absorption candidates are empty; it
+  cannot be chosen as the Guild Card. Card Detail hides the upgrade plate and
+  shows how many elements the source gives.
+- Grant: `createMagicSourceInstance` (`server/src/cards/cardInstanceCreator.ts`)
+  creates a source of an element at a level with zero bonus power. Tournament
+  `kind: "source"` prizes (Champion and higher) now grant one of a random
+  element at the prize level. Entries finished before this change keep
+  `sourcePending: true` and were not back-filled.
+
+- Guild Card gift: when the leader or an officer raises the Guild Card to a gold
+  level with treasury gold (`levelUpGuildCard`, `server/src/guild/treasuryService.ts`),
+  every member gets a source of that level and a random element; the guild
+  journal logs `guild_card_upgraded` (migration 083).
+
+Not built yet: the daily reward, guild war, chest
+shop and card-to-source conversion.

@@ -282,6 +282,10 @@ export async function handleGuildRequest(
       sendJson(response, 200, await dependencies.raids.action(player.id, guildId, parts[3]!, body), headers);
       return;
     }
+    if (request.method === "POST" && parts.length === 3 && parts[1] === "guild-card" && parts[2] === "level-up") {
+      sendJson(response, 200, await dependencies.guilds.levelUpGuildCard(player.id, guildId), headers);
+      return;
+    }
     if (request.method === "GET" && parts.length === 3 && parts[1] === "guild-card" && parts[2] === "eligible") {
       sendJson(response, 200, await dependencies.guilds.getGuildCardCandidates(player.id, guildId), headers);
       return;

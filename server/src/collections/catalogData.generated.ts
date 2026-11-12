@@ -852,7 +852,11 @@ export const CATALOG_DATA: {
   "bloodthirsty_piranha",
   "battle_gryphon",
   "fire_servant",
-  "winged_hound"
+  "winged_hound",
+  "el_air",
+  "el_earth",
+  "el_fire",
+  "el_water"
  ],
  "cards": [
   {
@@ -1432,11 +1436,43 @@ export const CATALOG_DATA: {
    "shopEligible": false
   },
   {
+   "id": "el_air",
+   "displayName": "Небесна вись",
+   "description": "Сили ані краплі, зате весь вітер на місці. Віддай його іншій карті.",
+   "element": "air",
+   "minRarity": "common",
+   "shopEligible": false
+  },
+  {
+   "id": "el_earth",
+   "displayName": "Пралісна галявина",
+   "description": "Тут нічого не б'ється, тут усе росте. Згодуй її іншій карті.",
+   "element": "earth",
+   "minRarity": "common",
+   "shopEligible": false
+  },
+  {
+   "id": "el_fire",
+   "displayName": "Вогняна ущелина",
+   "description": "Сама не воює, але жару в ній на цілу колоду. Віддай його іншій карті.",
+   "element": "fire",
+   "minRarity": "common",
+   "shopEligible": false
+  },
+  {
    "id": "el_minotauro",
    "displayName": "Сеньйор Мінотавр",
    "description": "Гостей любить. На обід і на корриду.",
    "element": "fire",
    "minRarity": "uncommon",
+   "shopEligible": false
+  },
+  {
+   "id": "el_water",
+   "displayName": "Північний шторм",
+   "description": "Нікого не топить, просто чекає, кого б посилити. Віддай його іншій карті.",
+   "element": "water",
+   "minRarity": "common",
    "shopEligible": false
   },
   {

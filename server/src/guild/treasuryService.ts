@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
+  advanceCardLevel,
   applyAbsorptionEfficiency,
   applyElementalPotential,
+  canLevelUp,
+  isGoldLevel,
   getPlayerCollectionModifiers,
   getTransferableElementValue,
 } from "@cardastika/game-core";
@@ -14,11 +17,13 @@ import {
   type GuildTreasuryMemberView,
   type GuildTreasuryView,
   type GuildJournalEventType,
+  CARD_ELEMENTS,
   type PlayerCardInstance,
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
+import { createMagicSourceInstance } from "../cards/cardInstanceCreator.js";
 
 type Queryable = Pick<Pool, "query">;
 type TransactionClient = Pick<PoolClient, "query">;
@@ -139,7 +144,17 @@ export type GuildTreasuryErrorCode =
   | "treasury_insufficient_silver"
   | "treasury_invalid_amount"
   | "treasury_invalid_cards"
-  | "treasury_not_member";
+  | "treasury_not_member"
+  | "guild_card_level_forbidden"
+  | "guild_card_maximum_level"
+  | "guild_card_unsupported_level"
+  | "guild_card_insufficient_elements"
+  | "guild_card_insufficient_treasury_gold";
+
+/** Reference: only the master (leader) and the right hand (officer) raise the Guild Card level. */
+export function canLevelUpGuildCard(role: GuildRole) {
+  return role === "leader" || role === "officer";
+}
 
 export class GuildTreasuryDomainError extends Error {
   constructor(
@@ -415,6 +430,105 @@ export class GuildTreasuryService {
       );
       await client.query("COMMIT");
       return { addedElements, consumedInstanceIds: [...fodderInstanceIds] };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      if (error instanceof GuildTreasuryDomainError) throw error;
+      throw new GuildTreasuryPersistenceError({ cause: error });
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Raises the Guild Card one level with treasury gold (price reduced by its filled progress, gold
+   * levels only halfway). Reaching a gold level gifts every member a magic source of that level and a
+   * random element. Returns the new level and how many sources were granted.
+   */
+  async levelUpGuildCard(playerId: string, guildId: string, random: () => number = Math.random) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const member = (await client.query<{ role: GuildRole }>(
+        "SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2 FOR UPDATE",
+        [playerId, guildId],
+      )).rows[0];
+      if (!member) throw new GuildTreasuryDomainError("treasury_not_member", "Player is not a member of this guild", 403);
+      if (!canLevelUpGuildCard(member.role)) {
+        throw new GuildTreasuryDomainError("guild_card_level_forbidden", "Only the leader and officers can raise the Guild Card level", 403);
+      }
+      const target = (await client.query<TreasuryCardRow>(
+        `SELECT ${GUILD_CARD_PROJECTION}
+         FROM guild_cards
+         INNER JOIN cards ON cards.id = guild_cards.card_id
+         WHERE guild_cards.guild_id = $1
+         FOR UPDATE OF guild_cards`,
+        [guildId],
+      )).rows[0];
+      if (!target) throw new GuildTreasuryDomainError("treasury_card_not_selected", "The guild leader has not selected a Guild Card yet");
+      await client.query(
+        "INSERT INTO guild_treasuries (guild_id) VALUES ($1) ON CONFLICT (guild_id) DO NOTHING",
+        [guildId],
+      );
+      const treasury = (await client.query<{ gold: string | number }>(
+        "SELECT gold FROM guild_treasuries WHERE guild_id = $1 FOR UPDATE",
+        [guildId],
+      )).rows[0]!;
+      const treasuryGold = toNonNegativeInteger(treasury.gold, "treasury gold");
+      const state = {
+        level: toNonNegativeInteger(target.level, "Guild Card level"),
+        levelProgressElements: toProgressNumber(target.level_progress_elements, "Guild Card progress"),
+        storedElements: toProgressNumber(target.stored_elements, "Guild Card stored elements"),
+      };
+      const availability = canLevelUp(state, treasuryGold);
+      if (availability.availability === "maximum_level") {
+        throw new GuildTreasuryDomainError("guild_card_maximum_level", "The Guild Card is already at maximum level");
+      }
+      if (availability.availability === "unsupported_level_data" || availability.requiredGold === null) {
+        throw new GuildTreasuryDomainError("guild_card_unsupported_level", "Upgrade economy data is unknown for this level", 422);
+      }
+      if (availability.availability === "insufficient_gold") {
+        throw new GuildTreasuryDomainError("guild_card_insufficient_treasury_gold", "The guild treasury does not have enough gold");
+      }
+      if (availability.availability === "insufficient_elements") {
+        throw new GuildTreasuryDomainError("guild_card_insufficient_elements", "The Guild Card does not have enough magic elements");
+      }
+      const next = advanceCardLevel(state);
+      await client.query(
+        "UPDATE guild_treasuries SET gold = gold - $2, updated_at = NOW() WHERE guild_id = $1",
+        [guildId, availability.requiredGold],
+      );
+      await client.query(
+        `UPDATE guild_cards
+         SET level = $2, level_progress_elements = $3, stored_elements = $4, updated_at = NOW()
+         WHERE guild_id = $1`,
+        [guildId, next.level, next.levelProgressElements, next.storedElements],
+      );
+      let sourcesGranted = 0;
+      if (isGoldLevel(next.level)) {
+        const members = await client.query<{ player_id: string }>(
+          "SELECT player_id FROM guild_members WHERE guild_id = $1 ORDER BY player_id",
+          [guildId],
+        );
+        for (const { player_id: memberId } of members.rows) {
+          const element = CARD_ELEMENTS[Math.floor(random() * CARD_ELEMENTS.length)]!;
+          await createMagicSourceInstance(client, memberId, element, next.level);
+          sourcesGranted += 1;
+        }
+      }
+      await this.logActivity?.(
+        client,
+        guildId,
+        "guild_card_upgraded",
+        playerId,
+        null,
+        null,
+        next.level,
+        sourcesGranted
+          ? `Підняв карту гільдії до ${next.level} рівня · усі учасники отримали джерело магії ${next.level} рівня`
+          : `Підняв карту гільдії до ${next.level} рівня`,
+      );
+      await client.query("COMMIT");
+      return { level: next.level, sourcesGranted, spentGold: availability.requiredGold };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       if (error instanceof GuildTreasuryDomainError) throw error;

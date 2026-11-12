@@ -379,3 +379,33 @@
   .element-medallion__emblem, .element-medallion__glow, .element-medallion__shine::before { animation: none; }
   .element-medallion__shine { opacity: 0; }
 }
+
+/* Upgrade arrow in the house style: the engraved bronze arrow sprite instead of a neon vector.
+   A free (element) level keeps the bronze with a pale candle glow; a gold level is gilded and warmer. */
+.card-hud__upgrade { width: 20%; filter: none; }
+.card-hud__upgrade-arrow {
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 85%)) drop-shadow(0 0 3px rgb(255 226 160 / 55%));
+}
+.card-hud__upgrade--gold .card-hud__upgrade-arrow {
+  filter: sepia(.35) saturate(1.7) brightness(1.3) drop-shadow(0 1px 1px rgb(0 0 0 / 85%)) drop-shadow(0 0 5px rgb(255 198 64 / 85%));
+}
+/* Readable on any art: a larger arrow, lifted brightness, a dark ink outline (four tight shadows)
+   and a candle halo around it. */
+.card-hud__upgrade { bottom: 3%; left: 3%; width: 28%; }
+.card-hud__upgrade-arrow {
+  filter: brightness(1.35) contrast(1.15)
+    drop-shadow(1px 0 0 #1a0d03) drop-shadow(-1px 0 0 #1a0d03) drop-shadow(0 1px 0 #1a0d03) drop-shadow(0 -1px 0 #1a0d03)
+    drop-shadow(0 0 4px rgb(255 214 140 / 90%));
+}
+.card-hud__upgrade--gold .card-hud__upgrade-arrow {
+  filter: sepia(.4) saturate(2) brightness(1.55) contrast(1.1)
+    drop-shadow(1px 0 0 #2a1402) drop-shadow(-1px 0 0 #2a1402) drop-shadow(0 1px 0 #2a1402) drop-shadow(0 -1px 0 #2a1402)
+    drop-shadow(0 0 6px rgb(255 196 50 / 95%));
+}
+/* A free (element) level: the same engraved arrow, tinted green; the gold level stays gilded. */
+.card-hud__upgrade--element .card-hud__upgrade-arrow {
+  filter: sepia(1) hue-rotate(55deg) saturate(2.4) brightness(1.25) contrast(1.1)
+    drop-shadow(1px 0 0 #0d1f05) drop-shadow(-1px 0 0 #0d1f05) drop-shadow(0 1px 0 #0d1f05) drop-shadow(0 -1px 0 #0d1f05)
+    drop-shadow(0 0 4px rgb(140 230 90 / 85%));
+}

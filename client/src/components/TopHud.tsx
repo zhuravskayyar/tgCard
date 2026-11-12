@@ -9,6 +9,7 @@ import { ExperienceFlask } from "./ExperienceFlask";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { useExperienceFly } from "../hooks/useExperienceFly";
 import { NicknameSkinPreview } from "./NicknameSkinPreview";
+import { formatFullUiNumber } from "../i18n";
 
 interface TopHudProps {
   deckPowerOverride?: number;
@@ -49,6 +50,7 @@ export function TopHud({ deckPowerOverride, onOpenSettings, onRetry, state }: To
             {!isLoading && !player ? <AppIcon name="profile" size={21} /> : null}
             <span aria-hidden="true" className="player-avatar__frame" />
           </div>
+          {player ? <span className="player-level-seal" title={`Рівень ${player.level}`}>{player.level}</span> : null}
 
           <div className="player-identity">
             {isLoading ? (
@@ -71,8 +73,7 @@ export function TopHud({ deckPowerOverride, onOpenSettings, onRetry, state }: To
               player ? (
                 <span className="player-deck-power" aria-label={`Сила колоди: ${deckPower ?? "недоступна"}. Рівень: ${player.level}`}>
                   <AppIcon name="fleur-de-lis" size={14} />
-                  <span className="player-deck-power__value">{deckPower ?? "—"}</span>
-                  <span className="player-deck-power__level"><span>Рів.</span><strong>{player.level}</strong></span>
+                  <span className="player-deck-power__value">{deckPower === null ? "—" : formatFullUiNumber(deckPower)}</span>
                 </span>
               ) : <span>{fallbackSubtitle}</span>
             ) : null}

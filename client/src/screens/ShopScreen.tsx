@@ -61,10 +61,13 @@ type ShopReveal =
   | { kind: "forge"; purchases: ShopPurchaseResponse[] }
   | { kind: "offer"; offerId: string; purchases: ShopPurchaseResponse[] };
 
+// shortcut: the card workshop tab is hidden until its replacement is designed; its section code stays.
 const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil"; id: "cards" | "workshop"; label: string }> = [
   { icon: "shop-universal-card", id: "cards", label: "Карти стихій" },
-  { icon: "shop-anvil", id: "workshop", label: "Майстерня карт" },
 ];
+
+/** A handful of gold motes drifting over the shop counter. */
+const SHOP_DUST_MOTES = Array.from({ length: 9 }, (_, index) => index);
 
 function ShopSectionHeading({ children }: ShopSectionHeadingProps) {
   return (
@@ -322,6 +325,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
   const showCardTabs =
     view === "section" &&
     activeCategory === "magical-cards" &&
+    shopTabs.length > 1 &&
     (section === "cards" || section === "workshop");
 
   if (detail) {
@@ -354,6 +358,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
 
       {view === "categories" ? (
         <div aria-label="Категорії магазину" className="shop-category-list">
+          <span aria-hidden="true" className="shop-dust">{SHOP_DUST_MOTES.map((index) => <i key={index} />)}</span>
           {SHOP_CATEGORIES.map((category) => <ShopCategoryBanner category={category} key={category.id} onSelect={handleCategorySelect} />)}
         </div>
       ) : null}

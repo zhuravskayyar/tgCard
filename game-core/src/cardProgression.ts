@@ -29,6 +29,22 @@ export type UpgradeAvailability =
 export interface CardPowerInput {
   bonusPower: number;
   level: number;
+  /** Magic sources (`el_*` cards) always fight with power 1, whatever their level. */
+  magicSource?: boolean;
+}
+
+/** A magic source keeps its level and elemental potential but always has power 1 (reference rule). */
+export const MAGIC_SOURCE_POWER = 1;
+export const MAGIC_SOURCE_CARD_CODES: Readonly<Record<CardElement, string>> = Object.freeze({
+  air: "el_air",
+  earth: "el_earth",
+  fire: "el_fire",
+  water: "el_water",
+});
+const MAGIC_SOURCE_CODES = new Set(Object.values(MAGIC_SOURCE_CARD_CODES));
+
+export function isMagicSourceCode(code: string) {
+  return MAGIC_SOURCE_CODES.has(code);
 }
 
 export interface IntegerRandomSource {
@@ -371,6 +387,7 @@ export function advanceCardLevel(state: CardProgressionState) {
 
 export function getCardPower(instance: CardPowerInput) {
   assertBonusPower(instance.bonusPower);
+  if (instance.magicSource) return MAGIC_SOURCE_POWER;
   const finalPower = getBasePowerForLevel(instance.level) + instance.bonusPower;
   if (!Number.isSafeInteger(finalPower)) throw new RangeError("Final card power is not a safe integer");
   return finalPower;

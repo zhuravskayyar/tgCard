@@ -84,6 +84,10 @@ export function donateGuildCardElements(guildId: string, fodderInstanceIds: read
   return request<GuildProfileResponse>(`/api/guilds/${encodeURIComponent(guildId)}/treasury/card-elements`, { method: "POST", body: { fodderInstanceIds } });
 }
 
+export function levelUpGuildCard(guildId: string) {
+  return request<GuildProfileResponse>(`/api/guilds/${encodeURIComponent(guildId)}/guild-card/level-up`, { method: "POST" });
+}
+
 export function purchaseGuildAltarUpgrade(guildId: string, currency: GuildAltarCurrency) {
   return request<GuildAltarUpgradeResponse>(`/api/guilds/${encodeURIComponent(guildId)}/altar/upgrade`, { method: "POST", body: { currency } });
 }

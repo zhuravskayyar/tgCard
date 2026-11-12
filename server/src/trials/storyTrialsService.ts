@@ -1,4 +1,4 @@
-import { getCardPower, getRarityForLevel } from "@cardastika/game-core";
+import { getCardPower, getRarityForLevel, isMagicSourceCode } from "@cardastika/game-core";
 import type { CardRarity, StoryTrialClaimResponse, StoryTrialState, StoryTrialsView } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { CAMPAIGN_LOCATIONS, type LocationTrial } from "../campaign/campaignLocations.js";
@@ -40,8 +40,8 @@ async function measure(database: Queryable, playerId: string, trial: LocationTri
     case "collection_cards": return scalar(database, `SELECT COUNT(*) AS value FROM player_card_instances p JOIN cards c ON c.id = p.card_id JOIN collections col ON col.id = c.collection_id WHERE p.player_id = $1 AND col.code = $2`, [playerId, trial.param]);
     case "deck_power":
     case "deck_rarity": {
-      const deck = await database.query<{ level: number; bonus_power: number }>(`SELECT p.level, p.bonus_power FROM player_card_instances p JOIN deck_slots s ON s.card_instance_id = p.id JOIN player_decks d ON d.id = s.deck_id WHERE d.player_id = $1`, [playerId]);
-      return trial.metric === "deck_power" ? deck.rows.reduce((sum, card) => sum + getCardPower({ level: card.level, bonusPower: card.bonus_power }), 0) : deck.rows.filter(card => rarityRank[getRarityForLevel(card.level)] >= rarityRank[trial.param as CardRarity]).length;
+      const deck = await database.query<{ level: number; bonus_power: number; card_id: string }>(`SELECT p.level, p.bonus_power, p.card_id FROM player_card_instances p JOIN deck_slots s ON s.card_instance_id = p.id JOIN player_decks d ON d.id = s.deck_id WHERE d.player_id = $1`, [playerId]);
+      return trial.metric === "deck_power" ? deck.rows.reduce((sum, card) => sum + getCardPower({ level: card.level, bonusPower: card.bonus_power, magicSource: isMagicSourceCode(card.card_id) }), 0) : deck.rows.filter(card => rarityRank[getRarityForLevel(card.level)] >= rarityRank[trial.param as CardRarity]).length;
     }
     case "duel_rating": return from
       ? scalar(database, `SELECT COALESCE(MAX((payload->>'duelRating')::integer), 0) AS value FROM player_campaign_events WHERE player_id = $1 AND occurred_at > $2 AND event_type = 'DUEL_FINISHED'`, [playerId, from])

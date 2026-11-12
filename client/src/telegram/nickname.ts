@@ -1,5 +1,5 @@
-import type { PlayerNicknameUpdateResponse } from "@cardastika/shared";
-import { PLAYER_NICKNAME_MAX_LENGTH } from "@cardastika/shared";
+import type { PlayerAvatarUpdateResponse, PlayerNicknameUpdateResponse } from "@cardastika/shared";
+import { PLAYER_NICKNAME_MAX_LENGTH, parsePlayerAvatarId } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
 
@@ -48,4 +48,19 @@ export async function updatePlayerNickname(credential: string, nickname: string,
   });
   if (!response.ok) return parseError(response);
   return parseResponse(await response.json());
+}
+
+export async function updatePlayerAvatar(credential: string, avatar: string, signal: AbortSignal): Promise<PlayerAvatarUpdateResponse> {
+  const response = await fetch(getApiEndpoint("/api/player/avatar"), {
+    method: "POST",
+    headers: { Authorization: getPlayerAuthHeader(credential), "Content-Type": "application/json" },
+    body: JSON.stringify({ avatar }),
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const body = await response.json() as Partial<PlayerAvatarUpdateResponse>;
+  if (typeof body.photoUrl !== "string" || parsePlayerAvatarId(body.photoUrl) === null) throw new PlayerNicknameApiError(502, "invalid_response");
+  return { photoUrl: body.photoUrl };
 }

@@ -58,9 +58,22 @@ export function ShopOfferPanel({
     onPurchase();
   }
 
+  const purchaseButton = (
+    <button
+      aria-label={`Купити за ${offer.price} ${currencyLabel}`}
+      className={`shop-offer__purchase shop-offer__purchase--${offer.currency}`}
+      data-tutorial-target={dataTutorialTarget}
+      disabled={disabled}
+      onClick={handlePurchaseClick}
+      type="button"
+    >
+      {purchasing ? <span>Купуємо…</span> : <><span>{expanded ? "Купити за" : "Купити"}</span><CurrencyIcon kind={offer.currency} /><strong>{offer.price}</strong></>}
+    </button>
+  );
+
   return (
     <>
-      <article className={`shop-offer shop-offer--${offer.guaranteedRarity}`}>
+      <article className={`shop-offer shop-offer--${offer.guaranteedRarity}${expanded ? "" : " shop-offer--shelf-compact"}`}>
       <div className="shop-offer__summary">
         <div className="shop-offer__symbol" aria-hidden="true">
           <span className="shop-pack-body">
@@ -72,12 +85,20 @@ export function ShopOfferPanel({
         </div>
         <div className="shop-offer__copy">
           <h3>{rarityLabels[offer.guaranteedRarity]} карта</h3>
-          <p className="shop-offer__guarantee">Одна карта в пакунку</p>
+          {expanded ? <p className="shop-offer__guarantee">Одна карта в пакунку</p> : null}
           {!expanded && leadUpgrade ? (
-            <p className="shop-offer__chance">
-              <span className="shop-offer__chance-badge">{formatPercentage(leadUpgrade.chance)}%</span>
-              <span>шанс {upgradeLabels[leadUpgrade.rarity]}</span>
-            </p>
+            onDetails ? (
+              <button aria-label={`Детальніше: ${formatPercentage(leadUpgrade.chance)}% шанс ${upgradeLabels[leadUpgrade.rarity]}`} className="shop-offer__chance shop-offer__chance--link" onClick={onDetails} type="button">
+                <span className="shop-offer__chance-badge">{formatPercentage(leadUpgrade.chance)}%</span>
+                <span>шанс {upgradeLabels[leadUpgrade.rarity]}</span>
+                <AppIcon name="chevron" size={13} />
+              </button>
+            ) : (
+              <p className="shop-offer__chance">
+                <span className="shop-offer__chance-badge">{formatPercentage(leadUpgrade.chance)}%</span>
+                <span>шанс {upgradeLabels[leadUpgrade.rarity]}</span>
+              </p>
+            )
           ) : null}
           {expanded ? (
             <div className="shop-offer__details">
@@ -95,26 +116,17 @@ export function ShopOfferPanel({
               <p className="shop-offer__odds-note">Шанс зростає, якщо вища рідкість не випала.</p>
             </div>
           ) : null}
-          {onDetails ? (
+          {onDetails && (expanded || !leadUpgrade) ? (
             <button className="shop-offer__details-button shop-offer__details-link" onClick={onDetails} type="button">
               Детальніше <AppIcon name="chevron" size={13} />
             </button>
           ) : null}
+          {/* In the list the price sits on the label itself, so the whole stall fits one screen. */}
+          {expanded ? null : purchaseButton}
         </div>
       </div>
 
-      <div className="shop-offer__footer">
-        <button
-          aria-label={`Купити за ${offer.price} ${currencyLabel}`}
-          className={`shop-offer__purchase shop-offer__purchase--${offer.currency}`}
-          data-tutorial-target={dataTutorialTarget}
-          disabled={disabled}
-          onClick={handlePurchaseClick}
-          type="button"
-        >
-          {purchasing ? <span>Купуємо…</span> : <><span>Купити за</span><CurrencyIcon kind={offer.currency} /><strong>{offer.price}</strong></>}
-        </button>
-      </div>
+      {expanded ? <div className="shop-offer__footer">{purchaseButton}</div> : null}
       </article>
       {insufficientOpen && shortage !== null && shortage > 0 ? (
         <ShopInsufficientFundsModal currency={offer.currency} onClose={() => setInsufficientOpen(false)} shortage={shortage} />

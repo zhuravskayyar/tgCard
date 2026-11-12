@@ -10,6 +10,8 @@ async function closeDailyRewardIfOpen(page: Page, settleMs = 700) {
 }
 
 async function signInAsDevPlayer(page: Page, accountKey: string) {
+  // Outside Telegram the game opens in English; these checks read the Ukrainian interface.
+  await page.addInitScript(() => localStorage.setItem("cardastika.locale.v1", "uk"));
   await page.goto("/");
   await page.getByLabel("Тестовий локальний акаунт").selectOption(accountKey);
   await expect(page.locator(".bottom-navigation")).toBeVisible();
@@ -238,13 +240,13 @@ test("guild edits preserve drafts when requests fail", async ({ page }) => {
   await page.getByRole("button", { name: "Скасувати", exact: true }).click();
   const guildCard = page.getByRole("button", { name: /^Карта гільдії:/ });
   await guildCard.click();
-  const cardSheet = page.locator(".guild-card-sheet");
-  await cardSheet.getByRole("button", { name: "Змінити карту" }).click();
-  const candidate = page.locator(".guild-card-selection button").first();
+  const cardScreen = page.locator(".guild-card-screen");
+  await cardScreen.getByRole("button", { name: /^(Змінити карту гільдії|Обрати карту)$/ }).click();
+  const candidate = page.locator(".guild-card-screen__selection-grid button").first();
   await candidate.waitFor();
   await candidate.click();
-  const cardConfirmation = page.locator(".guild-card-confirmation");
-  await expect(cardConfirmation).toContainText("Встановити");
+  const cardConfirmation = page.locator(".guild-card-screen__selection-confirmation");
+  await expect(cardConfirmation).toContainText("Виставити");
 
   await page.route((url) => url.pathname.endsWith("/guild-card"), async (route) => {
     if (route.request().method() !== "PATCH") return route.continue();
@@ -253,10 +255,10 @@ test("guild edits preserve drafts when requests fail", async ({ page }) => {
   });
   await cardConfirmation.getByRole("button", { name: "Підтвердити" }).click();
   await expect(page.getByRole("alert")).toContainText("У вас немає права");
-  await expect(cardConfirmation).toContainText("Встановити");
+  await expect(cardConfirmation).toContainText("Виставити");
   await page.unrouteAll();
   await cardConfirmation.getByRole("button", { name: "Скасувати" }).click();
-  await cardSheet.getByRole("button", { name: "Закрити" }).click();
+  await cardScreen.getByRole("button", { name: "До гільдії" }).click();
 
   await page.getByRole("button", { name: /^Казна/ }).click();
   await expect(page.getByRole("heading", { name: "КАЗНА ГІЛЬДІЇ" })).toBeVisible();

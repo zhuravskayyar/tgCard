@@ -149,3 +149,50 @@ test("locally a lone tester gets the sparring partner, who strikes on its own", 
     await pool.end();
   }
 });
+
+test("a Champion-league finish grants a real magic source of the prize level", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const ids: string[] = [];
+  let eventId: string | null = null;
+  try {
+    for (const name of ["Source A", "Source B"]) ids.push((await players.findOrCreateFromTelegram(telegramUser(name))).id);
+    await pool.query("UPDATE players SET duel_rating = 900, arena_rating = 1400, gold = 100 WHERE id = ANY($1::uuid[])", [ids]);
+    await pool.query(
+      "INSERT INTO tournament_profiles (player_id, rating, highest_league, highest_league_index) SELECT unnest($1::uuid[]), 2700, 'champion', 0",
+      [ids],
+    );
+    const [a, b] = ids as [string, string];
+    const service = new TournamentService(pool, false, () => 0.25, true, false);
+    const now = new Date();
+    const lobby = await service.scheduleDevEvent(a, now);
+    assert.equal(lobby.league, "champion");
+    eventId = lobby.event!.id;
+    await service.register(b, now);
+    const startsAt = Date.parse(lobby.event!.startsAt);
+    const window = getTournamentStageWindow(startsAt, 0);
+    const paired = await service.getRun(a, new Date(startsAt + 1));
+    const matchId = paired!.match!.id;
+    await service.action(a, { type: "buff", matchId, element: paired!.buffOptions![0].element }, new Date(startsAt + 2));
+    await service.action(a, { type: "attack", matchId, slotIndex: 0 }, new Date(window.battleStartsAt + 10));
+
+    const finished = await service.getRun(a, new Date(window.endsAt + 1));
+    assert.equal(finished?.placement, 1);
+    assert.deepEqual(finished?.prize?.reward, { kind: "source", level: 60, cardCodes: [] });
+    assert.equal(finished?.prizeGranted?.sourcePending, false);
+    assert.ok(finished?.prizeGranted?.cardName);
+    const sources = await pool.query<{ level: number; bonus_power: number }>(
+      "SELECT level, bonus_power FROM player_card_instances WHERE player_id = $1 AND card_id = ANY($2::text[])",
+      [a, ["el_air", "el_earth", "el_fire", "el_water"]],
+    );
+    assert.deepEqual(sources.rows.map(({ level, bonus_power }) => [level, bonus_power]), [[60, 0]]);
+    // Paid once even if the run is read again.
+    await service.getRun(a, new Date(window.endsAt + 5_000));
+    assert.equal((await pool.query("SELECT 1 FROM player_card_instances WHERE player_id = $1 AND card_id = ANY($2::text[])", [a, ["el_air", "el_earth", "el_fire", "el_water"]])).rows.length, 1);
+  } finally {
+    if (eventId) await pool.query("DELETE FROM tournament_events WHERE id = $1", [eventId]);
+    if (ids.length) await pool.query("DELETE FROM players WHERE id = ANY($1::uuid[])", [ids]);
+    await pool.end();
+  }
+});

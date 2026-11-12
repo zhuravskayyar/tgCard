@@ -29,7 +29,7 @@
 .duel-rating-meter__ends .league-badge--sm { width: 34px; height: 34px; }
 .duel-rating-meter p { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin: 2px 0 0; color: var(--home-ink-muted); font-size: 15px; }
 .duel-rating-meter p strong { color: var(--home-ink); font: 700 17px/1.2 var(--font-display); }
-.duel-rating-meter p small { font-weight: 800; }
+.duel-rating-meter p small { font-size: 13px; font-weight: 800; }
 .duel-rating-meter__change--up { color: #4f7a2c; }
 .duel-rating-meter__change--down { color: #9b3a2c; }
 .duel-availability .duel-availability__gold { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
@@ -631,7 +631,7 @@
   gap: 2px 8px;
   margin-top: 2px;
   color: var(--home-ink);
-  font: 600 11px/1.2 var(--font-label);
+  font: 600 .75rem/1.2 var(--font-label);
   font-variant-numeric: tabular-nums;
 }
 
@@ -731,7 +731,7 @@
   .duel-search-experience--preview .duel-search-medal { width: min(30%, 100px); margin: 0; }
   .duel-search-experience--preview .duel-search-opponent-name { font-size: clamp(27px, 7vw, 32px); }
   .duel-search-experience--preview .duel-search-level { margin: 1px 0; font-size: 12px; }
-  .duel-search-experience--preview .duel-search-badge { margin: 2px 0 3px; padding: 4px 12px; font-size: 10px; }
+  .duel-search-experience--preview .duel-search-badge { margin: 2px 0 3px; padding: 4px 12px; font-size: .75rem; }
   .duel-search-experience--preview .duel-search-power {
     grid-template-columns: 1fr 44px 1fr;
     margin: 0 0 3px;
@@ -739,7 +739,7 @@
   }
 
   .duel-search-experience--preview .duel-search-power strong { font-size: 35px; }
-  .duel-search-experience--preview .duel-search-power > div > span { font-size: 10px; }
+  .duel-search-experience--preview .duel-search-power > div > span { font-size: .75rem; }
   .duel-search-experience--preview .duel-search-power__seal { width: 40px; height: 40px; }
   .duel-search-experience--preview .duel-search-actions { gap: 2px; }
   .duel-search-experience--preview .duel-search-button--attack { min-height: 39px; }
@@ -1060,7 +1060,7 @@
 }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body { row-gap: 4px; align-content: center; }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child strong { font: 700 clamp(14px, 4vw, 16px)/1.1 var(--font-display); }
-:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child span { font: 600 11px/1.2 var(--font-body); color: var(--home-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__body > div:first-child span { font: 600 .75rem/1.2 var(--font-body); color: var(--home-ink-muted); }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page.duel-battle .duel-hp-panel__value strong { font: 700 14px/1 var(--font-display); }
 
 /* HP trough sprite (1000x51): dark channel inset x 44, y 15-36; the fill strip sprite sits inside it. */
@@ -1191,7 +1191,7 @@
   height: auto;
   place-items: center;
 }
-:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-seal { width: 36px; height: 36px; font-size: 10px; }
+:root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-seal { width: 36px; height: 36px; font-size: .75rem; }
 :root[data-game-theme="light"] .app-shell .app-content .duel-page:is(.duel-battle, .duel-outcome) .battle-log-row--latest .battle-log-seal {
   animation: battle-log-seal-stamp 480ms cubic-bezier(.3, 1.6, .4, 1) 120ms both;
 }
@@ -1687,7 +1687,7 @@
 .duel-rating-meter--compact .duel-rating-meter__flask { width: 100%; }
 .duel-rating-meter--compact p { flex-wrap: wrap; gap: 0 8px; margin: 0; font-size: 13px; }
 .duel-rating-meter--compact p strong { font-size: 15px; }
-.duel-rating-meter--compact p small { color: var(--home-ink-muted); font-weight: 600; }
+.duel-rating-meter--compact p small { color: var(--home-ink-muted); font-size: 12.5px; font-weight: 600; }
 .duel-search-footer .duel-availability { gap: 0 12px; font-size: 13px; line-height: 1.3; }
 .duel-search-footer .duel-availability strong { font-size: 15px; }
 .duel-search-footer .duel-availability span:not(.duel-availability__gold) { flex-basis: 100%; }
@@ -1701,10 +1701,10 @@
   .duel-search-eyebrow { margin: 0; font-size: 12px; }
   .duel-search-experience--preview .duel-search-opponent-name { font-size: clamp(26px, 7vw, 32px); }
   .duel-search-experience--preview .duel-search-level { margin: 1px 0; font-size: 12px; }
-  .duel-search-experience--preview .duel-search-badge { margin: 2px 0 3px; padding: 4px 12px; font-size: 10px; }
+  .duel-search-experience--preview .duel-search-badge { margin: 2px 0 3px; padding: 4px 12px; font-size: .75rem; }
   .duel-search-experience--preview .duel-search-power { grid-template-columns: 1fr 44px 1fr; margin: 0 0 3px; padding: 3px 2px; }
   .duel-search-experience--preview .duel-search-power strong { font-size: 34px; }
-  .duel-search-experience--preview .duel-search-power > div > span { font-size: 10px; }
+  .duel-search-experience--preview .duel-search-power > div > span { font-size: .75rem; }
   .duel-search-experience--preview .duel-search-power__seal { width: 40px; height: 40px; }
   .duel-search-experience--preview .duel-search-power__breakdown { display: none; }
   .duel-search-experience--preview .duel-search-actions { gap: 3px; }
@@ -1731,7 +1731,7 @@
   .duel-search-experience--preview .duel-search-eyebrow { display: none; }
   .duel-search-experience--preview .duel-search-cell .duel-search-medal { grid-area: medal; width: clamp(56px, 30cqh, 72px); margin: 0; }
   .duel-search-experience--preview .duel-search-opponent-name { grid-area: name; align-self: end; margin: 0; font-size: 24px; }
-  .duel-search-experience--preview .duel-search-level { grid-area: level; margin: 1px 0; font-size: 11px; letter-spacing: .12em; }
+  .duel-search-experience--preview .duel-search-level { grid-area: level; margin: 1px 0; font-size: .75rem; letter-spacing: .12em; }
   .duel-search-experience--preview .duel-search-badge { grid-area: badge; justify-self: start; align-self: start; margin: 1px 0 0; }
   .duel-search-experience--preview .duel-search-power { grid-area: power; margin: 4px 0 2px; }
   .duel-search-experience--preview .duel-search-actions { grid-area: actions; }

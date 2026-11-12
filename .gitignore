@@ -11,3 +11,4 @@ token.env
 playwright-report/
 test-results/
 .codex-remote-attachments/
+graphify-out/

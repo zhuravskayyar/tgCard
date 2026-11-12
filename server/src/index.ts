@@ -47,7 +47,7 @@ import { handlePlayerProfileRequest } from "./leaderboards/playerProfileRoute.js
 import { LeaderboardRepository } from "./leaderboards/leaderboardRepository.js";
 import { PlayerRepository } from "./users/playerRepository.js";
 import { handlePlayerHeartbeat } from "./users/playerActivityRoute.js";
-import { handlePlayerNickname } from "./users/playerNicknameRoute.js";
+import { handlePlayerAvatar, handlePlayerNickname } from "./users/playerNicknameRoute.js";
 import { handlePlayerTutorialCompletion } from "./users/playerTutorialRoute.js";
 import { ReferralService } from "./referrals/referralService.js";
 import { handleDungeonComplete, handleDungeonStart } from "./dungeon/dungeonRoute.js";
@@ -257,6 +257,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const dungeonCompleteMatch = url.pathname.match(/^\/api\/dungeon\/([^/]+)\/complete$/);
   const isPlayerMailRoute = url.pathname === "/api/player/mail";
   const isPlayerNicknameRoute = url.pathname === "/api/player/nickname";
+  const isPlayerAvatarRoute = url.pathname === "/api/player/avatar";
   const isPlayerTutorialCompletionRoute = url.pathname === "/api/player/tutorial/complete";
   const isLeaderboardRoute = url.pathname === "/api/player/leaderboards";
   const playerProfileMatch = url.pathname.match(/^\/api\/player\/profiles\/([^/]+)$/);
@@ -721,6 +722,16 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       auth,
       botToken: environment.telegramBotToken,
       mail,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isPlayerAvatarRoute) {
+    await handlePlayerAvatar(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
       players,
       responseHeaders: cors.headers,
     });

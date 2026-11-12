@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { GUILD_CONFIG, type CardElement, type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse, type PlayerCardInstance } from "@cardastika/shared";
+import { type GuildActivityType, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildJournalEntryView, type GuildProfileResponse } from "@cardastika/shared";
 import { getUiNumberLocale } from "../../i18n";
 import { AppIcon, type AppIconName } from "../../components/AppIcon";
 import { CardHud } from "../../components/CardHud";
 import { CardBack } from "../../components/CardBack";
 import { CardFxWrapper } from "../../components/CardFxWrapper";
-import { DeckCard } from "../../components/DeckCard";
+import { ExperienceFlask } from "../../components/ExperienceFlask";
 import { MenuRow } from "../../components/MenuRow";
 import { RibbonTitle } from "../../components/RibbonTitle";
-import { formatNumber, GuildEmblem, guildErrorMessage, type AsyncState } from "./GuildUi";
+import { formatNumber, GuildEmblem, guildErrorMessage } from "./GuildUi";
+import { getGuildCardHubStatus, getGuildExperienceShare, getTreasuryWaitHours } from "./guildHubState";
 
 interface GuildHubProps {
   profile: GuildProfileResponse;
   busy: boolean;
   onInfo: () => void;
+  onCard: () => void;
   onMembers: () => void;
   onApplications: () => void;
   onDevelopment: () => void;
@@ -22,40 +24,8 @@ interface GuildHubProps {
   onForum: () => void;
   onTreasury: () => void;
   onJournal: () => void;
-  onAnnouncements: () => void;
   onUpdateAnnouncement: (body: string) => Promise<boolean>;
-  guildCardCandidates: AsyncState<PlayerCardInstance[]>;
-  onLoadGuildCardCandidates: () => void;
-  onSetGuildCard: (instanceId: string) => Promise<boolean>;
 }
-
-interface GuildModeTileProps {
-  detail: string;
-  disabled?: boolean;
-  emblemElement?: CardElement | null;
-  emblemId?: string;
-  asset: GuildAssetName;
-  label: string;
-  name?: string;
-  onClick?: () => void;
-}
-
-type GuildAssetName = "main" | "altar" | "war" | "arena" | "raid";
-type GuildFeatureKey = "war" | "arena" | "raid";
-
-const GUILD_ASSET_SOURCES: Record<GuildAssetName, string> = {
-  main: "/assets/guild/guild-main.svg",
-  altar: "/assets/guild/medal-altar-v1.webp",
-  war: "/assets/guild/medal-war-v1.webp",
-  arena: "/assets/guild/medal-arena-v1.webp",
-  raid: "/assets/guild/medal-raid-v1.webp",
-};
-
-const GUILD_FEATURE_MESSAGES: Record<GuildFeatureKey, { title: string; body: string }> = {
-  war: { title: "Війни гільдій", body: "Війни гільдій — незабаром. Підготовлений розділ з’явиться після запуску бойового режиму." },
-  arena: { title: "Арена гільдій", body: "Арена гільдій — незабаром. Поки що цей режим не підключений до бойового сервера." },
-  raid: { title: "Івенти гільдії", body: "Івенти гільдії — спільні події для всіх учасників." },
-};
 
 export interface GuildPromoBannerProps {
   action?: ReactNode;
@@ -63,87 +33,6 @@ export interface GuildPromoBannerProps {
   icon: AppIconName;
   meta?: string;
   title: string;
-}
-
-function GuildCardPlatform({ active, canManage, candidates, busy, onLoadCandidates, onSetGuildCard }: { active: PlayerCardInstance | null; canManage: boolean; candidates: AsyncState<PlayerCardInstance[]>; busy: boolean; onLoadCandidates: () => void; onSetGuildCard: (instanceId: string) => Promise<boolean> }) {
-  const [panel, setPanel] = useState<"details" | "selection" | null>(null);
-  const [pending, setPending] = useState<PlayerCardInstance | null>(null);
-
-  function openPlatform() {
-    if (active) {
-      setPanel("details");
-      return;
-    }
-    setPanel(canManage ? "selection" : "details");
-    if (canManage) onLoadCandidates();
-  }
-
-  function openSelection() {
-    setPending(null);
-    setPanel("selection");
-    onLoadCandidates();
-  }
-
-  async function confirmGuildCard() {
-    if (!pending || busy) return;
-    if (await onSetGuildCard(pending.instanceId)) {
-      setPending(null);
-      setPanel("details");
-    }
-  }
-
-  return <>
-    <button aria-label={active ? `Карта гільдії: ${active.displayName ?? active.code}, ${active.finalPower} сили` : canManage ? "Карта гільдії: Обрати карту" : "Карта гільдії: Карту ще не обрано"} aria-pressed={panel !== null} className="guild-card-platform" onClick={openPlatform} type="button">
-      <span className="guild-card-platform__art" aria-hidden="true"><img alt="" src="/assets/guild/guild-reward.svg" /></span>
-      <span className="guild-card-platform__visual" aria-hidden="true">
-        {active ? <span className="guild-card-platform__card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper></span> : <CardBack className="guild-card-platform__empty" />}
-      </span>
-      <span className="guild-tile-caption">
-        <strong>Карта гільдії</strong>
-        <small className="guild-card-platform__level">{active ? `Рівень ${active.level}` : canManage ? "Обрати карту" : "Не обрано"}</small>
-      </span>
-    </button>
-    {panel ? <section className="guild-card-sheet" aria-label="Карта гільдії">
-      <div className="guild-card-sheet__header"><div><span className="guild-kicker">Карта гільдії</span><h3>{active ? active.displayName ?? active.code : "Карта не обрана"}</h3></div><button className="guild-inline-button" onClick={() => { setPanel(null); setPending(null); }} type="button">Закрити</button></div>
-      {panel === "selection" && canManage ? <>
-        <p className="guild-card-sheet__copy">Лідер обирає одну карту зі своєї бойової колоди. Вона не займає окремий слот у колоді.</p>
-        {candidates.status === "loading" ? <p className="guild-empty-copy">Завантаження колоди…</p> : candidates.status === "error" ? <div className="guild-card-sheet__state"><p className="guild-empty-copy">{candidates.message}</p><button className="guild-secondary-button" onClick={onLoadCandidates} type="button">Повторити</button></div> : candidates.data.length === 0 ? <p className="guild-empty-copy">У лідера ще немає карт у бойовій колоді.</p> : <>
-          <div className="guild-card-selection" aria-label="Карти бойової колоди лідера">{candidates.data.map((card) => <DeckCard key={card.instanceId} card={card} selected={card.instanceId === active?.instanceId} showLevel onClick={() => setPending(card)} />)}</div>
-          {pending ? <div className="guild-card-confirmation"><p>Встановити «{pending.displayName ?? pending.code}» як карту гільдії?</p><div><button className="guild-primary-button" disabled={busy} onClick={() => void confirmGuildCard()} type="button">{busy ? "Зберігаємо…" : "Підтвердити"}</button><button className="guild-secondary-button" disabled={busy} onClick={() => setPending(null)} type="button">Скасувати</button></div></div> : <p className="guild-helper">Натисніть на карту, щоб підготувати вибір.</p>}
-        </>}
-      </> : <>
-        {active ? <div className="guild-card-sheet__active"><span className="guild-card-sheet__active-card"><CardFxWrapper artKey={active.artKey} cardId={active.cardId} element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} showLevel /></CardFxWrapper></span><dl><div><dt>Сила</dt><dd>{active.finalPower}</dd></div><div><dt>Елемент</dt><dd>{active.element}</dd></div><div><dt>Рідкість</dt><dd>{active.rarity}</dd></div></dl></div> : <p className="guild-empty-copy">Карту ще не обрано. Вона з’являтиметься в бою тільки після вибору лідера.</p>}
-        <p className="guild-card-sheet__copy">Шанс появи під час нового ходу або добору — 15%. Карта працює лише в Duel та Arena й використовує свої звичайні силу, елемент і рідкість.</p>
-        {canManage ? <button className="guild-secondary-button" disabled={busy} onClick={openSelection} type="button">{active ? "Змінити карту" : "Обрати карту"}</button> : null}
-      </>}
-    </section> : null}
-  </>;
-}
-
-function GuildModeTile({ asset, detail, disabled = false, emblemElement, emblemId, label, name, onClick }: GuildModeTileProps) {
-  const content = <>
-    <span className={`guild-mode-tile__art${asset === "main" ? " guild-mode-tile__art--emblem" : ""}`}>{asset === "main" ? <GuildEmblem element={emblemElement} emblemId={emblemId} /> : <img alt="" aria-hidden="true" className={`guild-mode-tile__asset guild-mode-tile__asset--${asset}`} src={GUILD_ASSET_SOURCES[asset]} />}</span>
-    <span className="guild-tile-caption">
-      <strong>{label}</strong>
-      <small>{name ?? detail}</small>
-      {name ? <small>{detail}</small> : null}
-    </span>
-  </>;
-  const className = `guild-mode-tile guild-mode-tile--${asset}${disabled ? " guild-mode-tile--disabled" : ""}`;
-  const ariaLabel = name ? `${label}: ${name}, ${detail}` : `${label}: ${detail}`;
-
-  if (onClick) {
-    return <button aria-label={ariaLabel} className={className} data-coming-soon={disabled || undefined} onClick={onClick} type="button">{content}</button>;
-  }
-  return <div aria-label={ariaLabel} className={className} role="group">{content}</div>;
-}
-
-function GuildFeatureNotice({ feature, onClose }: { feature: GuildFeatureKey; onClose: () => void }) {
-  const unavailable = GUILD_FEATURE_MESSAGES[feature];
-  return <section className="guild-feature-notice" aria-label={unavailable.title}>
-    <div className="guild-feature-notice__header"><div><span className="guild-kicker">Розділ гільдії</span><h3>{unavailable.title}</h3></div><button className="guild-inline-button" onClick={onClose} type="button">Закрити</button></div>
-    <p className="guild-feature-notice__copy">{unavailable.body}</p>
-  </section>;
 }
 
 export function GuildPromoBanner({ action, children, icon, meta, title }: GuildPromoBannerProps) {
@@ -222,83 +111,121 @@ export function GuildJournal({ profile }: { profile: GuildProfileResponse }) {
   </section>;
 }
 
-export function GuildAnnouncements({ profile, busy, onUpdateAnnouncement }: { profile: GuildProfileResponse; busy: boolean; onUpdateAnnouncement: (body: string) => Promise<boolean> }) {
-  const announcement = profile.dashboard.announcement;
-  const canEdit = profile.viewer.permissions.includes("manage_announcements");
-  const [body, setBody] = useState(announcement?.body ?? "");
-  const [editing, setEditing] = useState(!announcement && canEdit);
-
-  useEffect(() => { setBody(announcement?.body ?? ""); setEditing(!announcement && canEdit); }, [announcement?.body, canEdit]);
-
-  async function saveAnnouncement() {
-    if (busy) return;
-    if (await onUpdateAnnouncement(body)) setEditing(false);
-  }
-
-  return <section className="guild-announcements" aria-labelledby="guild-announcements-title">
-    <GuildPromoBanner action={canEdit ? <button className="guild-inline-button" onClick={() => setEditing((value) => !value)} type="button">{editing ? "Скасувати" : "Змінити"}</button> : null} icon="campaign" meta={announcement ? `${announcement.authorName} · ${formatMissionDate(announcement.createdAt)}` : "Поки без оголошень"} title="Оголошення">
-      {editing ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); void saveAnnouncement(); }}><textarea disabled={busy} maxLength={280} rows={4} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{body.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">{busy ? "Зберігаємо…" : "Зберегти"}</button></div></form> : announcement ? <p className="guild-promo-banner__copy">{announcement.body}</p> : <p className="guild-empty-copy">Для учасників ще немає оголошень.</p>}
-    </GuildPromoBanner>
-  </section>;
-}
-
 function formatMissionDate(value: string) {
   return new Date(value).toLocaleDateString(getUiNumberLocale(), { day: "numeric", month: "short" });
 }
 
-export function GuildHub({ profile, busy, onInfo, onMembers, onApplications, onDevelopment, onRaid, onDirectory, onForum, onTreasury, onJournal, onAnnouncements, onUpdateAnnouncement, guildCardCandidates, onLoadGuildCardCandidates, onSetGuildCard }: GuildHubProps) {
+const GUILD_ROW_ART = {
+  treasury: "/assets/guild/guild-row-treasury.webp",
+  raid: "/assets/guild/guild-row-event.webp",
+  altar: "/assets/guild/guild-row-altar.webp",
+  members: "/assets/guild/guild-row-members.webp",
+  journal: "/assets/guild/guild-row-journal.webp",
+  forum: "/assets/guild/guild-row-forum.webp",
+  soon: "/assets/guild/guild-row-soon.webp",
+} as const;
+const ATTENTION_SEAL = "/assets/ui/trials/board/seal-v1.webp";
+const GOLD_SEAL = "/assets/guild/guild-gold-seal.webp";
+/** An announcement longer than this is folded to two lines on the hub. */
+const ANNOUNCEMENT_FOLD_LENGTH = 90;
+
+function GuildHubHeader({ guild, onInfo }: { guild: GuildProfileResponse["guild"]; onInfo: () => void }) {
+  const share = getGuildExperienceShare(guild);
+  return <button aria-label={`Про гільдію: рівень ${guild.level}, учасників ${guild.memberCount} з ${guild.memberCapacity}`} className="guild-hub-header" onClick={onInfo} type="button">
+    <span className="guild-hub-header__emblem" aria-hidden="true"><GuildEmblem element={guild.themeElement} emblemId={guild.emblemId} /></span>
+    <span className="guild-hub-header__body">
+      <span className="guild-hub-header__facts"><strong>Рівень {guild.level}</strong><span>{guild.memberCount} / {guild.memberCapacity} учасників</span></span>
+      <span className="flask-meter guild-hub-header__flask" aria-hidden="true"><ExperienceFlask progress={share} /></span>
+      <small>{guild.nextLevelExperience === null ? "Максимальний рівень гільдії" : `Досвід ${formatNumber(guild.experience)} / ${formatNumber(guild.nextLevelExperience)}`}</small>
+    </span>
+    <span className="guild-hub-header__chevron" aria-hidden="true"><AppIcon name="chevron" size={16} /></span>
+  </button>;
+}
+
+function GuildCardBlock({ guildCard, onCard }: { guildCard: GuildProfileResponse["guildCard"]; onCard: () => void }) {
+  const active = guildCard.active;
+  const status = getGuildCardHubStatus(guildCard);
+  const label = active ? `Карта гільдії: ${active.displayName ?? active.code}, рівень ${active.level}, ${active.finalPower} сили` : guildCard.canManage ? "Карта гільдії: Обрати карту" : "Карта гільдії: Карту ще не обрано";
+  return <button aria-label={label} className={`guild-hub-card${status?.readyToLevelUp ? " guild-hub-card--ready" : ""}`} onClick={onCard} type="button">
+    <span className="guild-hub-card__visual" aria-hidden="true">
+      {active ? <CardFxWrapper artKey={active.artKey} cardId={active.cardId} compact element={active.element} rarity={active.rarity}><CardHud element={active.element} level={active.level} power={active.finalPower} rarity={active.rarity} /></CardFxWrapper> : <CardBack className="guild-hub-card__empty" />}
+    </span>
+    <span className="guild-hub-card__body">
+      <span className="guild-kicker">Карта гільдії</span>
+      <strong>{active ? active.displayName ?? active.code : "Карту ще не обрано"}</strong>
+      {status ? <>
+        <span className="guild-hub-card__level">{status.atMaximum ? `Рівень ${status.level} · максимум` : `Рівень ${status.level} · прогрес ${Math.floor(status.percent)}%`}</span>
+        <span className="flask-meter guild-hub-card__flask" aria-hidden="true"><ExperienceFlask progress={status.percent / 100} tone="verdant" /></span>
+        {status.readyToLevelUp ? <span className="guild-hub-card__status guild-hub-card__status--ready"><img alt="" aria-hidden="true" src={ATTENTION_SEAL} />Можна підняти рівень</span> : null}
+        {status.nextIsGold ? <span className="guild-hub-card__status guild-hub-card__status--gold"><img alt="" aria-hidden="true" src={GOLD_SEAL} />Рівень {status.targetLevel} — золотий: усім джерело магії</span> : null}
+      </> : <span className="guild-hub-card__level">{guildCard.canManage ? "Оберіть карту зі своєї бойової колоди" : "Лідер ще не виставив карту"}</span>}
+    </span>
+  </button>;
+}
+
+/** A row status: short text, and the red seal when something waits for the viewer. */
+function RowStatus({ text, attention = false }: { text?: string; attention?: boolean }) {
+  return <span className="guild-row-status">{text ? <span className="menu-row__detail">{text}</span> : null}{attention ? <img alt="" aria-hidden="true" className="menu-row__seal" draggable={false} src={ATTENTION_SEAL} /> : null}</span>;
+}
+
+/** A number stamped on the red wax seal: things waiting for the viewer, such as applications. */
+function CountSeal({ count }: { count: number }) {
+  return <span className="guild-count-seal">{count > 99 ? "99+" : count}</span>;
+}
+
+export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplications, onDevelopment, onRaid, onDirectory, onForum, onTreasury, onJournal, onUpdateAnnouncement }: GuildHubProps) {
   const { guild, dashboard } = profile;
   const managesApplications = profile.viewer.permissions.includes("manage_applications");
   const managesAnnouncement = profile.viewer.permissions.includes("manage_announcements");
   const [announcement, setAnnouncement] = useState(dashboard.announcement?.body ?? "");
-  const [announcementOpen, setAnnouncementOpen] = useState(Boolean(dashboard.announcement));
   const [editingAnnouncement, setEditingAnnouncement] = useState(false);
-  const [feature, setFeature] = useState<GuildFeatureKey | null>(null);
+  const [announcementExpanded, setAnnouncementExpanded] = useState(false);
 
-  useEffect(() => { setAnnouncement(dashboard.announcement?.body ?? ""); setAnnouncementOpen(Boolean(dashboard.announcement)); setEditingAnnouncement(false); setFeature(null); }, [dashboard.announcement?.body]);
+  useEffect(() => { setAnnouncement(dashboard.announcement?.body ?? ""); setEditingAnnouncement(false); setAnnouncementExpanded(false); }, [dashboard.announcement?.body]);
 
   async function saveAnnouncement() {
     if (busy) return;
     if (await onUpdateAnnouncement(announcement)) setEditingAnnouncement(false);
   }
 
+  const treasuryWait = getTreasuryWaitHours(profile.treasury.viewer);
+  const treasuryHint = treasuryWait === 0 ? "Можна внести" : treasuryWait >= 24 ? `Внесок за ${Math.ceil(treasuryWait / 24)} дн.` : `Внесок за ${treasuryWait} год.`;
+  const pendingApplications = profile.applications.length;
+  const announcementBody = dashboard.announcement?.body ?? "";
+  const announcementFolds = announcementBody.length > ANNOUNCEMENT_FOLD_LENGTH;
+
   return <div className="guild-hub">
-    {announcementOpen && (dashboard.announcement || managesAnnouncement) ? <GuildPromoBanner action={managesAnnouncement ? <button className="guild-inline-button" onClick={() => setEditingAnnouncement((value) => !value)} type="button">{editingAnnouncement ? "Скасувати" : "Змінити"}</button> : null} icon="campaign" meta={dashboard.announcement ? `${dashboard.announcement.authorName} · ${formatMissionDate(dashboard.announcement.createdAt)}` : "Поки без оголошень"} title="Оголошення">
-      {editingAnnouncement ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); void saveAnnouncement(); }}><textarea disabled={busy} maxLength={280} rows={3} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{announcement.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">{busy ? "Зберігаємо…" : "Зберегти"}</button></div></form> : dashboard.announcement ? <p className="guild-promo-banner__copy">{dashboard.announcement.body}</p> : <p className="guild-empty-copy">Додай перше оголошення для учасників.</p>}
+    <GuildHubHeader guild={guild} onInfo={onInfo} />
+    <GuildCardBlock guildCard={profile.guildCard} onCard={onCard} />
+
+    {dashboard.announcement || managesAnnouncement ? <GuildPromoBanner action={managesAnnouncement ? <button className="guild-inline-button" onClick={() => setEditingAnnouncement((value) => !value)} type="button">{editingAnnouncement ? "Скасувати" : "Змінити"}</button> : null} icon="campaign" meta={dashboard.announcement ? `${dashboard.announcement.authorName} · ${formatMissionDate(dashboard.announcement.createdAt)}` : "Поки без оголошень"} title="Оголошення">
+      {editingAnnouncement ? <form className="guild-form guild-announcement-form" onSubmit={(event) => { event.preventDefault(); void saveAnnouncement(); }}><textarea disabled={busy} maxLength={280} rows={3} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="Напиши короткий план або новину для гільдії…" /><div><small>{announcement.length} / 280</small><button className="guild-secondary-button" disabled={busy} type="submit">{busy ? "Зберігаємо…" : "Зберегти"}</button></div></form> : dashboard.announcement ? <>
+        <p className={`guild-promo-banner__copy${announcementFolds && !announcementExpanded ? " guild-promo-banner__copy--folded" : ""}`}>{announcementBody}</p>
+        {announcementFolds ? <button aria-expanded={announcementExpanded} className="guild-promo-banner__more" onClick={() => setAnnouncementExpanded((value) => !value)} type="button">{announcementExpanded ? "Згорнути" : "Читати далі"}</button> : null}
+      </> : <p className="guild-empty-copy">Додай перше оголошення для учасників.</p>}
     </GuildPromoBanner> : null}
 
-    <section className="guild-mode-menu" aria-label="Основні розділи гільдії">
-      <GuildModeTile asset="main" detail={`Рівень ${guild.level}`} emblemElement={guild.themeElement} emblemId={guild.emblemId} label="Про гільдію" onClick={onInfo} />
-      <GuildCardPlatform active={profile.guildCard.active} canManage={profile.guildCard.canManage} candidates={guildCardCandidates} busy={busy} onLoadCandidates={onLoadGuildCardCandidates} onSetGuildCard={onSetGuildCard} />
-      <GuildModeTile asset="altar" detail={`Рівень ${guild.level}`} label="Алтар гільдії" onClick={onDevelopment} />
-      <GuildModeTile asset="war" detail="Незабаром" disabled label="Війна" onClick={() => setFeature("war")} />
-      <GuildModeTile asset="arena" detail="Незабаром" disabled label="Арена" onClick={() => setFeature("arena")} />
-      <GuildModeTile asset="raid" detail="Відьми" label="Івент гільдії" onClick={onRaid} />
-    </section>
-    {feature ? <GuildFeatureNotice feature={feature} onClose={() => setFeature(null)} /> : null}
-
-    <section className="guild-menu-section" aria-label="Основні функції гільдії">
+    <section className="guild-menu-section" aria-label="Щоденні справи гільдії">
       <div className="guild-menu-list">
-        <MenuRow compact actionContent={<span className="guild-treasury-balance"><span><AppIcon name="silver" size={13} />{formatNumber(profile.treasury.balance.silver)}</span><span><AppIcon name="gold" size={13} />{formatNumber(profile.treasury.balance.gold)}</span></span>} icon="inventory" iconSrc="/assets/guild/guild-treasury-cart.png" metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
-        <MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture disabled={busy} onClick={onMembers} title="Склад" />
-        {managesApplications ? <MenuRow compact detail={profile.applications.length ? String(profile.applications.length) : undefined} icon="mail" metalTexture disabled={busy} onClick={onApplications} title="Заявки" /> : null}
-        <MenuRow compact icon="tournament" locked metalTexture disabled title="Досягнення гільдії" />
+        <MenuRow compact actionContent={<RowStatus attention={treasuryWait === 0} />} icon="inventory" subtitle={treasuryHint} iconSrc={GUILD_ROW_ART.treasury} metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
+        <MenuRow compact icon="campaign" subtitle="Битви з відьмами" iconSrc={GUILD_ROW_ART.raid} metalTexture disabled={busy} onClick={onRaid} title="Івент гільдії" />
+        <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} subtitle="Бонуси гільдії" metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
       </div>
     </section>
 
-    <section className="guild-menu-section guild-menu-section--lower" aria-label="Додаткові розділи гільдії">
+    <section className="guild-menu-section guild-menu-section--lower" aria-label="Життя гільдії">
       <div className="guild-menu-list">
-        <MenuRow compact icon="collection" metalTexture disabled={busy} onClick={onForum} title="Форум гільдії" />
-        <MenuRow compact icon="mail" locked metalTexture disabled title="Чат гільдії" />
-        <MenuRow compact icon="guild" locked metalTexture disabled title="Чат союзу" />
-        <MenuRow compact icon="record" metalTexture disabled={busy} onClick={onJournal} title="Літопис" />
-        <MenuRow compact icon="campaign" metalTexture disabled={busy} onClick={onAnnouncements} title="Оголошення" />
+        <MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" iconSrc={GUILD_ROW_ART.members} subtitle="Учасники і ролі" metalTexture disabled={busy} onClick={onMembers} title="Склад" />
+        {managesApplications ? <MenuRow compact actionContent={pendingApplications ? <CountSeal count={pendingApplications} /> : <RowStatus text="Немає" />} icon="mail" subtitle="Гравці хочуть вступити" metalTexture disabled={busy} onClick={onApplications} title="Заявки" /> : null}
+        <MenuRow compact icon="record" iconSrc={GUILD_ROW_ART.journal} subtitle="Усі події гільдії" metalTexture disabled={busy} onClick={onJournal} title="Літопис" />
+        <MenuRow compact icon="collection" iconSrc={GUILD_ROW_ART.forum} subtitle="Обговорення" metalTexture disabled={busy} onClick={onForum} title="Форум гільдії" />
+        <MenuRow compact icon="ranking" iconSrc="/assets/ui/home/sprites/row-ranking.webp" subtitle="Рейтинг усіх гільдій" metalTexture disabled={busy} onClick={onDirectory} title="Найкращі гільдії" />
       </div>
     </section>
 
-    <section className="guild-menu-section guild-menu-section--lower" aria-label="Каталог гільдій">
+    <section className="guild-menu-section guild-menu-section--soon" aria-label="Скоро в гільдії">
       <div className="guild-menu-list">
-        <MenuRow compact icon="ranking" metalTexture disabled={busy} onClick={onDirectory} title="Найкращі гільдії" />
+        <MenuRow compact icon="tournament" iconSrc={GUILD_ROW_ART.soon} subtitle="Війни, арена, чати" locked metalTexture disabled title="Скоро в гільдії" />
       </div>
     </section>
   </div>;

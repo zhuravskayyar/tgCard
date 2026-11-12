@@ -39,6 +39,7 @@ import {
 } from "@cardastika/game-core";
 import {
   ARENA_LEAGUE_CONFIG,
+  CARD_ELEMENTS,
   DUEL_LEAGUE_CONFIG,
   getLeagueIndexByRating,
   type CardElement,
@@ -61,7 +62,7 @@ import {
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { getSeasonWindow } from "../battlePassConfig.js";
-import { createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
+import { createMagicSourceInstance, createStandardCardInstance, CryptoCardRandomSource } from "../cards/cardInstanceCreator.js";
 import { ChatChannel } from "../chat/chatChannel.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
 import { loadDuelParticipant, toGuildDuelCard } from "../duel/duelService.js";
@@ -634,7 +635,7 @@ export class TournamentService {
     return rewards as [MatchRewards, MatchRewards];
   }
 
-  /** Pays the finish prize once: cards for Conquerors, diamonds into the season; sources are recorded only. */
+  /** Pays the finish prize once: cards for Conquerors, a magic source of a random element above, diamonds into the season. */
   private async finishEntry(client: PoolClient, event: EventRow, playerId: string, finish: TournamentFinish) {
     const prize = prizeFor(event.league, finish);
     const claimed = await client.query(`
@@ -659,6 +660,10 @@ export class TournamentService {
         cardName = card.display_name ?? card.code;
       }
     }
+    if (prize.reward?.kind === "source") {
+      const element = CARD_ELEMENTS[Math.floor(this.random() * CARD_ELEMENTS.length)]!;
+      cardName = (await createMagicSourceInstance(client, playerId, element, prize.reward.level)).displayName;
+    }
     if (prize.diamonds) {
       await client.query(
         `INSERT INTO player_battle_pass_state (player_id, season_id, diamonds) VALUES ($1, $2, $3)
@@ -666,7 +671,7 @@ export class TournamentService {
         [playerId, getSeasonWindow(new Date()).seasonId, prize.diamonds],
       );
     }
-    const granted = { cardName, diamonds: prize.diamonds, sourcePending: prize.reward?.kind === "source" };
+    const granted = { cardName, diamonds: prize.diamonds, sourcePending: false };
     await client.query("UPDATE tournament_entries SET prize_granted = $3 WHERE event_id = $1 AND player_id = $2", [event.id, playerId, JSON.stringify(granted)]);
   }
 

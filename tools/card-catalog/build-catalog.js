@@ -56,7 +56,7 @@ const COLLECTIONS = [
 ["magic_heal","Цілющі зміїні чари","Майстерність дракона +10","Святковий магазин","a/drmagic_heal_air,e/drmagic_heal_earth,f/drmagic_heal_fire,w/drmagic_heal_water"],
 ["twitch_legends","Легенди Twitch","Бонус колекції визначимо після її розширення","Магазин","e/kostakod"],
 ];
-const UNCOLLECTED = "a/giant_dragonfly,f/salamander,w/crabman,a/black_raven,a/the_bat,e/wild_boar,f/goblin_mechanic,f/beholder,w/impetuous_lizard,w/bearded_toad,a/bronze_bird,a/mountain_eagle,w/bloodthirsty_piranha,a/battle_gryphon,f/fire_servant,a/winged_hound";
+const UNCOLLECTED = "a/giant_dragonfly,f/salamander,w/crabman,a/black_raven,a/the_bat,e/wild_boar,f/goblin_mechanic,f/beholder,w/impetuous_lizard,w/bearded_toad,a/bronze_bird,a/mountain_eagle,w/bloodthirsty_piranha,a/battle_gryphon,f/fire_servant,a/winged_hound,a/el_air,e/el_earth,f/el_fire,w/el_water";
 
 // Sizes the reference page reported, used to prove the copy is exact.
 const REF_SIZES = {sea_masters:9,horde:9,sky_heroes:9,forest_dwellers:9,elementals:4,highelem:4,boobs:15,power:9,dragons:3,dragons2:4,mythic:4,wizards:4,umutants:4,ugiants:4,ufavorites:4,usoldiers:8,ugenerals:4,mechanists:4,sorceresses:4,winter_reinforcement:7,dwarves_peace:4,dwarves_war:4,berserks:4,treasure_hunters:4,dragon_whisperers:4,dragon_fans:4,ancient_order:6,diamond_brotherhood:4,zodiac_air:3,zodiac_earth:3,zodiac_fire:3,zodiac_water:3,voodoo_cult:4,sacred_shores:4,great_path:4,thirtieth:4,western_wastes:4,gorgeous_cats:4,choiceof_air:4,choiceof_earth:4,choiceof_fire:4,choiceof_water:4,legion_of_flame:4,breath_of_storm:4,deep_engines:4,titans_of_forge:4,breach_wedge:4,mirror_fragments:4,magic_1:4,magic_heal:4,twitch_legends:1};
@@ -133,7 +133,7 @@ let md = `# Каталог карт v2 (чернетка для правок)
 
 - Колекцій: **51**; звичний розмір 3–15, «Легенди Twitch» поки має одну карту.
 - Карт у колекціях: **198**, із них **38** входять у кілька колекцій.
-- Карт поза колекціями: **16** (у референсі їх може бути більше: сторінка показала лише ці).
+- Карт поза колекціями: **${UNCOLLECTED.split(",").length}**, із них 4 «джерела» (el_*), див. docs/card-progression.md.
 - Рідкість: ${Object.entries(rarityCount).map(([k, v]) => `${k} ${v}`).join(", ")}. Для карт із магазину вона взята з банерів референсу, для решти запропонована тут.
 
 Код у дужках біля колекції та стовпець «Код референсу» потрібні лише для звірки і в гру не підуть.
@@ -250,4 +250,4 @@ export const CATALOG_DATA: {
   uncollectedCardIds: readonly string[];
 } = ${JSON.stringify(data, null, 1)};
 `, "utf8");
-console.log("ok", { collections: COLLECTIONS.length, unique, shared, uncollected: 16, total: names.length, rarityCount });
+console.log("ok", { collections: COLLECTIONS.length, unique, shared, uncollected: UNCOLLECTED.split(",").length, total: names.length, rarityCount });

@@ -204,7 +204,7 @@
 }
 
 .bestiary-entry__progress {
-  font-size: clamp(11px, 2.8vw, 12px);
+  font-size: clamp(12px, 3.4vw, 13px);
   font-weight: 700;
   color: var(--book-ink-muted);
   font-variant-numeric: tabular-nums;

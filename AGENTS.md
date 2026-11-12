@@ -28,6 +28,18 @@ Do not repeatedly open or check the application or website between edits. Inspec
 - `shared/`: shared TypeScript types and constants.
 - `docs/`: detailed architecture, rules, UI, and Telegram guidance.
 
+### Project graph (read first)
+
+- Start every task with `docs/map/index.md` (Obsidian-style map: feature → files → docs).
+- Find code with `graphify query "<question>" --budget 800` (also `explain`, `path`, `affected`)
+  before broad grep/glob. The graph lives in `graphify-out/` (local, gitignored).
+- If `graphify-out/graph.json` is missing, build it without LLM cost:
+  `graphify extract . --code-only` then `graphify cluster-only . --no-label`.
+- Keep the map current, as part of the same task:
+  - after code changes run `graphify update .` (free, AST only; add `--force` after deleting files);
+  - when you add a feature, module folder, or doc, add a line to `docs/map/index.md`
+    or the matching layer note (`client.md`, `server.md`, `game-core.md`, `shared.md`).
+
 ## Working rules
 
 - Read only files relevant to the current task.

@@ -222,3 +222,7 @@ the_bat | Кажан-горищанин | the_bat
 wild_boar | Вепр | wild_boar
 winged_hound | Крилатий пес | winged_hound
 kostakod | Костакод | kostakod
+el_air | Небесна вись | el_air
+el_earth | Пралісна галявина | el_earth
+el_fire | Вогняна ущелина | el_fire
+el_water | Північний шторм | el_water

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { MAGIC_SOURCE_CARD_CODES } from "@cardastika/game-core";
 import {
   CARD_ELEMENTS,
   GUILD_CONFIG,
@@ -39,7 +40,8 @@ import {
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
 import { GuildAltarService } from "./altarService.js";
-import { GuildTreasuryService } from "./treasuryService.js";
+import { canLevelUpGuildCard, GuildTreasuryService } from "./treasuryService.js";
+import { toProgressionView } from "../cards/cardProgressionService.js";
 
 export type Queryable = Pick<Pool, "query">;
 type TransactionClient = Pick<PoolClient, "query">;
@@ -482,14 +484,15 @@ export class GuildService implements GuildActivityRecorder {
         : [];
       const dashboard = await this.loadGuildDashboard(client, guildId, guild.level, memberRows.rowCount ?? memberRows.rows.length);
       const altar = await this.altar.getView(client, viewerId);
+      const treasury = await this.treasury.getView(client, viewerId, guildId);
       return {
         altar,
         applications,
         dashboard,
         guild,
-        guildCard: await this.loadGuildCard(client, guildId, member?.role === "leader"),
+        guildCard: await this.loadGuildCard(client, guildId, member?.role, treasury.balance.gold),
         members: memberRows.rows.map(toMemberView),
-        treasury: await this.treasury.getView(client, viewerId, guildId),
+        treasury,
         viewer: {
           activeApplication: activeApplicationResult.rows[0] ? toApplicationView(activeApplicationResult.rows[0]) : null,
           member: member ? toMemberView(member) : null,
@@ -531,6 +534,11 @@ export class GuildService implements GuildActivityRecorder {
     return this.getProfile(playerId, guildId);
   }
 
+  async levelUpGuildCard(playerId: string, guildId: string) {
+    await this.treasury.levelUpGuildCard(playerId, guildId);
+    return this.getProfile(playerId, guildId);
+  }
+
   async getGuildCard(viewerId: string, guildId: string): Promise<GuildCardView> {
     const profile = await this.getProfile(viewerId, guildId);
     return profile.guildCard;
@@ -554,9 +562,10 @@ export class GuildService implements GuildActivityRecorder {
           INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
             AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.player_id = $1
+            AND cards.code <> ALL($2::text[])
           ORDER BY deck_slots.slot ASC
         `,
-        [playerId],
+        [playerId, Object.values(MAGIC_SOURCE_CARD_CODES)],
       );
       await client.query("COMMIT");
       return { cards: result.rows.map(mapCardInstanceRow) };
@@ -587,14 +596,30 @@ export class GuildService implements GuildActivityRecorder {
           INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
             AND deck_slots.card_instance_id = player_card_instances.id
           WHERE player_card_instances.id = $1 AND player_card_instances.player_id = $2
+            AND cards.code <> ALL($3::text[])
         `,
-        [instanceId, playerId],
+        [instanceId, playerId, Object.values(MAGIC_SOURCE_CARD_CODES)],
       );
       if (!card.rows[0]) throw new GuildDomainError("guild_card_not_owned", "Selected card is not owned by the guild leader", 403);
       const selectedCard = card.rows[0];
       if (guild.active_guild_card_instance_id === instanceId) {
-        await client.query("COMMIT");
-        return this.getProfile(playerId, guildId);
+        // Re-selecting the same card refreshes it only when the leader's copy has grown past
+        // the guild's copy, so members' donated progress is never rolled back.
+        const current = await client.query<{ level: number; bonus_power: number; level_progress_elements: number }>(
+          "SELECT level, bonus_power, level_progress_elements FROM guild_cards WHERE guild_id = $1 FOR UPDATE",
+          [guildId],
+        );
+        const guildCopy = current.rows[0];
+        const rank = (card: { level: unknown; bonus_power: unknown; level_progress_elements: unknown }) =>
+          [Number(card.level), Number(card.bonus_power), Number(card.level_progress_elements)];
+        const leaderRank = rank(selectedCard);
+        const guildRank = guildCopy ? rank(guildCopy) : null;
+        const firstDifference = guildRank ? leaderRank.findIndex((value, index) => value !== guildRank[index]) : -1;
+        const leaderIsStronger = !guildRank || (firstDifference >= 0 && leaderRank[firstDifference]! > guildRank[firstDifference]!);
+        if (!leaderIsStronger) {
+          await client.query("COMMIT");
+          return this.getProfile(playerId, guildId);
+        }
       }
       await client.query(
         `
@@ -1100,7 +1125,7 @@ export class GuildService implements GuildActivityRecorder {
     };
   }
 
-  private async loadGuildCard(client: TransactionClient, guildId: string, canManage: boolean): Promise<GuildCardView> {
+  private async loadGuildCard(client: TransactionClient, guildId: string, role: GuildRole | undefined, treasuryGold: number): Promise<GuildCardView> {
     const result = await client.query<GuildCardRow>(
       `
         SELECT ${GUILD_CARD_PROJECTION}
@@ -1110,9 +1135,12 @@ export class GuildService implements GuildActivityRecorder {
       `,
       [guildId],
     );
+    const active = result.rows[0] ? mapCardInstanceRow(result.rows[0]) : null;
     return {
-      active: result.rows[0] ? mapCardInstanceRow(result.rows[0]) : null,
-      canManage,
+      active,
+      canManage: role === "leader",
+      canLevelUp: role !== undefined && canLevelUpGuildCard(role),
+      progression: active ? toProgressionView(active, treasuryGold) : null,
     };
   }
 

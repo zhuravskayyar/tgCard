@@ -16,6 +16,7 @@ import { formatFullUiNumber } from "../../i18n";
 import { ELEMENT_LABELS, GuildState, formatNumber, type AsyncState } from "./GuildUi";
 
 interface GuildCardScreenProps {
+  backLabel: string;
   busy: boolean;
   onCardBack: () => void;
   onForum: () => void;
@@ -24,6 +25,7 @@ interface GuildCardScreenProps {
   onLoadTreasuryCardCandidates: () => void;
   onSetGuildCard: (instanceId: string) => Promise<boolean>;
   onDonateGuildCardElements: (instanceIds: string[]) => Promise<boolean>;
+  onLevelUpGuildCard: () => void;
   profile: GuildProfileResponse;
   guildCardCandidates: AsyncState<PlayerCardInstance[]>;
   treasuryCardCandidates: AsyncState<PlayerCardInstance[]>;
@@ -40,7 +42,7 @@ const RARITY_LABELS = {
   mythic: "Міфічна",
 } as const;
 
-export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadCardCandidates, onLoadTreasuryCardCandidates, onSetGuildCard, onDonateGuildCardElements, profile, guildCardCandidates, treasuryCardCandidates }: GuildCardScreenProps) {
+export function GuildCardScreen({ backLabel, busy, onCardBack, onForum, onTreasury, onLoadCardCandidates, onLoadTreasuryCardCandidates, onSetGuildCard, onDonateGuildCardElements, onLevelUpGuildCard, profile, guildCardCandidates, treasuryCardCandidates }: GuildCardScreenProps) {
   const active = profile.guildCard.active;
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState<CardElement>(active?.element ?? "fire");
@@ -85,7 +87,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
 
   if (!active) {
     return <section className="card-detail-screen guild-card-screen" aria-labelledby="guild-card-screen-title">
-      <ScreenHeading backLabel="До складу гільдії" onBack={onCardBack} title="Карта гільдії" titleId="guild-card-screen-title" />
+      <ScreenHeading backLabel={backLabel} onBack={onCardBack} title="Карта гільдії" titleId="guild-card-screen-title" />
       <RibbonTitle size="medium">КАРТА ГІЛЬДІЇ</RibbonTitle>
       <div className="guild-card-screen__empty">
         <AppIcon name="card-reward" size={30} />
@@ -101,13 +103,22 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
   const atMaximum = active.level >= MAX_CARD_LEVEL;
   const progression = atMaximum ? { filledElements: 0, percent: 100, requiredElements: 0 } : getUpgradeProgress(active.levelProgressElements, active.level);
   const nextLevel = atMaximum ? null : getCardLevelTableEntry(active.level + 1);
-  const upgradeGold = atMaximum ? null : getUpgradeGoldPrice(active.level + 1, active.levelProgressElements);
+  // The server prices the level-up against the treasury; the local table is only a fallback.
+  const levelUp = profile.guildCard.progression;
+  const upgradeGold = atMaximum ? null : levelUp?.requiredGold ?? getUpgradeGoldPrice(active.level + 1, active.levelProgressElements);
+  const canPressLevelUp = profile.guildCard.canLevelUp && levelUp?.availability === "ready";
+  const levelUpHint = atMaximum ? "Карта гільдії досягла максимального рівня."
+    : !profile.guildCard.canLevelUp ? "Підняти рівень за золото з казни можуть лідер і десниця."
+      : levelUp?.availability === "insufficient_gold" ? "У казні гільдії недостатньо золота для цього рівня."
+        : levelUp?.availability === "insufficient_elements" ? "Спершу заповніть прогрес рівня внеском елементів."
+          : levelUp?.availability === "unsupported_level_data" ? "Для наступного рівня ще немає підтвердженої ціни."
+            : "Рівень оплачується золотом із казни гільдії.";
   const visibleCandidates = treasuryCardCandidates.status === "ready" ? treasuryCardCandidates.data.filter((candidate) => candidate.element === selectedElement) : [];
   const hasCandidates = visibleCandidates.length > 0;
   const progressionClass = atMaximum ? "progression-panel--maximum_level" : progression.percent >= 100 ? "progression-panel--ready" : "progression-panel--insufficient_elements";
 
   return <section className="card-detail-screen guild-card-screen" aria-labelledby="guild-card-screen-title">
-    <ScreenHeading backLabel="До складу гільдії" onBack={onCardBack} title={active.displayName ?? active.code} titleId="guild-card-screen-title" />
+    <ScreenHeading backLabel={backLabel} onBack={onCardBack} title={active.displayName ?? active.code} titleId="guild-card-screen-title" />
     <RibbonTitle size="medium">КАРТА ГІЛЬДІЇ</RibbonTitle>
 
     <div className="card-detail-overview">
@@ -128,16 +139,16 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
       <section className={`progression-panel progression-panel--reference ${progressionClass}`} aria-label="Прокачка карти гільдії">
         <div className="progression-panel__reference-heading"><span>Прогрес рівня</span><strong>{formatNumber(progression.percent)}%</strong></div>
         <div className="flask-meter" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceFlask progress={progression.percent / 100} tone="verdant" /></div>
-        <div className="progression-panel__upgrade-row"><button className="level-up-button" disabled type="button"><span>Підняти рівень</span></button></div>
+        <div className="progression-panel__upgrade-row"><button className="level-up-button" disabled={busy || !canPressLevelUp} onClick={onLevelUpGuildCard} type="button"><span>{busy ? "Підвищення…" : "Підняти рівень"}</span></button></div>
         <div className="progression-panel__facts"><div><span>Сила після рівня</span><strong>{nextLevel?.powerIncrease === null || nextLevel?.powerIncrease === undefined ? "—" : `+${formatFullUiNumber(nextLevel.powerIncrease)}`}</strong></div><div><span>Ціна покращення</span><strong>{upgradeGold === null ? "—" : <><CurrencyIcon kind="gold" size={15} />{formatNumber(upgradeGold)}</>}</strong></div></div>
       </section>
-      <p className="progression-panel__external-hint">Прокачка карти гільдії відбувається через внесок магічних елементів.</p>
+      <p className="progression-panel__external-hint">{levelUpHint}{levelUp?.isGoldLevel && !atMaximum ? ` Рівень ${levelUp.targetLevel} — золотий: кожен учасник отримає джерело магії цього рівня.` : ""}</p>
     </div>
 
     <section className="absorption-panel guild-card-screen__absorption" aria-labelledby="guild-card-absorption-title">
       <div className="weak-cards-heading menu-row--metal-texture">
         <MenuTextureSlices />
-        <span id="guild-card-absorption-title">Карти на поглинення</span>
+        <span className="weak-cards-heading__title" id="guild-card-absorption-title">Карти на поглинення</span>
         <small>{treasuryCardCandidates.status === "ready" ? visibleCandidates.length : treasuryCardCandidates.status === "loading" ? "…" : "—"}</small>
       </div>
       <div className="guild-card-screen__elements" aria-label="Фільтр карт за стихією">
@@ -155,7 +166,7 @@ export function GuildCardScreen({ busy, onCardBack, onForum, onTreasury, onLoadC
       </> : null}
     </section>
 
-    {profile.guildCard.canManage ? <button className="guild-card-screen__change" disabled={busy} onClick={openCardSelection} type="button">Змінити карту гільдії</button> : null}
+    {profile.guildCard.canManage ? <button className="guild-primary-button guild-card-screen__change"disabled={busy} onClick={openCardSelection} type="button">Змінити карту гільдії</button> : null}
     {selectionOpen ? <GuildCardSelection busy={busy} candidates={guildCardCandidates} active={active} onClose={() => setSelectionOpen(false)} onLoad={onLoadCardCandidates} onSet={onSetGuildCard} /> : null}
     <GuildCardNavigation busy={busy} onBack={onCardBack} onForum={onForum} onTreasury={onTreasury} />
   </section>;

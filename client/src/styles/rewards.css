@@ -65,7 +65,7 @@
 .battle-pass-hero__track span, .battle-pass-circle__progress span { background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); animation: none; }
 .battle-pass-screen .battle-pass-milestone__reward { min-height: 76px; padding: 10px; gap: 8px; animation: none; }
 .battle-pass-milestone__reward-copy strong { white-space: normal; overflow: visible; font-size: var(--font-sm); line-height: 1.35; }
-.battle-pass-milestone__reward-copy small { color: var(--text-muted); font-size: .6rem; letter-spacing: .02em; }
+.battle-pass-milestone__reward-copy small { color: var(--text-muted); font-size: .75rem; letter-spacing: .02em; }
 .battle-pass-screen .battle-pass-milestone__reward button { min-height: 44px; font-size: var(--font-xs); letter-spacing: normal; animation: none; }
 .battle-pass-screen .battle-pass-milestone__status { font-size: var(--font-xs); text-transform: none; }
 .battle-pass-milestone--claimable .battle-pass-milestone__reward { border-color: var(--border-active); }
@@ -178,7 +178,7 @@
 @media (max-width: 360px) {
   .tasks-screen__mascot { grid-template-columns: 50px minmax(0, 1fr) auto; padding-right: 5px; }
   .tasks-screen__mascot-art { width: 50px; height: 56px; }
-  .tasks-screen__mascot-reset { font-size: .6rem; }
+  .tasks-screen__mascot-reset { font-size: .75rem; }
   .tasks-screen__daily-reward-row { gap: 8px; }
   .tasks-screen__daily-reward strong { font-size: var(--font-md); }
   .quest-paper__content { padding: 11px 10px; }
@@ -189,7 +189,7 @@
   .daily-login-modal__dialog--currencies .daily-login-modal__header { margin: -12px -12px 0; }
   .daily-login-modal__dialog--currencies .daily-login-modal__showcase { grid-template-columns: minmax(0, 1fr) 108px; gap: 6px; }
   .daily-login-modal__currency-slot strong { font-size: var(--font-sm); }
-  .daily-login-modal__currency-slot small { font-size: .6875rem; }
+  .daily-login-modal__currency-slot small { font-size: .75rem; }
 }
 
 /* Story trials reuse the painted quest paper; only layout lives here. */

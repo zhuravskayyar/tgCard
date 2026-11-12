@@ -16,13 +16,15 @@ interface MenuRowProps {
   locked?: boolean;
   metalTexture?: boolean;
   onClick?: () => void;
+  /** One short line under the title saying what the row is for. */
+  subtitle?: string;
   attention?: boolean;
   actionContent?: ReactNode;
   title: string;
   variant?: "default" | "book";
 }
 
-export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, onClick, title, variant = "default" }: MenuRowProps) {
+export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, onClick, subtitle, title, variant = "default" }: MenuRowProps) {
   return (
     <button
       className={`menu-row menu-row--metal-texture${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${variant === "book" ? " menu-row--book" : ""}`}
@@ -37,7 +39,7 @@ export function MenuRow({ active: _active = false, actionContent, attention = fa
       {illustrationSrc ? null : <span className="menu-row__icon">
         {iconSrc ? <img alt="" aria-hidden="true" className="menu-row__icon-image" src={iconSrc} /> : <AppIcon name={icon} size={23} />}
       </span>}
-      <span className="menu-row__title">{title}</span>
+      <span className={`menu-row__title${subtitle ? " menu-row__title--with-subtitle" : ""}`}>{title}{subtitle ? <small className="menu-row__subtitle">{subtitle}</small> : null}</span>
       <span className="menu-row__action">
         {actionContent ?? (locked ? <AppIcon name="lock" size={14} /> : attention ? <img alt="" aria-hidden="true" className="menu-row__seal" draggable={false} src="/assets/ui/trials/board/seal-v1.webp" /> : detail ? <span className="menu-row__detail">{detail}</span> : badge ? <Badge value={badge} /> : null)}
       </span>

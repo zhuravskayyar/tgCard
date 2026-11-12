@@ -37,7 +37,7 @@
   font-family: "Cardastika Numbers";
   src: url("/fonts/lugatype.otf") format("opentype");
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 900;
   font-display: swap;
   unicode-range: U+0030-0039;
 }

@@ -22,6 +22,7 @@ import { DungeonScreen } from "./screens/DungeonScreen";
 import { ArenaScreen } from "./screens/ArenaScreen";
 import { AuthScreen } from "./screens/AuthScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { ProfileSettingsScreen } from "./screens/ProfileSettingsScreen";
 import { InventoryScreen } from "./screens/InventoryScreen";
 import { EquipmentScreen } from "./screens/EquipmentScreen";
 import { ForgeScreen } from "./screens/ForgeScreen";
@@ -47,7 +48,7 @@ import { getPlayerDisplayName, isArenaUnlocked, type CardElement, type DuelView,
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
 import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
-type Screen = "tournament" | "home" | "profile" | "records" | "guild" | "inventory" | "equipment" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks" | "trials" | "save-profile" | "booster-preview" | "material-lab";
+type Screen = "tournament" | "home" | "profile" | "profile-settings" | "records" | "guild" | "inventory" | "equipment" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks" | "trials" | "save-profile" | "booster-preview" | "material-lab";
 
 const MaterialLab = import.meta.env.DEV ? lazy(() => import("./screens/MaterialLabScreen").then(({ MaterialLabScreen }) => ({ default: MaterialLabScreen }))) : null;
 const BoosterPreview = import.meta.env.DEV ? lazy(() => import("./screens/BoosterPreviewScreen").then(({ BoosterPreviewScreen }) => ({ default: BoosterPreviewScreen }))) : null;
@@ -67,7 +68,7 @@ function isTutorialDuelStep(step: string | null): step is (typeof TUTORIAL_DUEL_
 }
 
 export function App() {
-  const { addCollectionBonus, retry, state: playerSummaryState, updateBalance, updateNickname } = usePlayerSummary();
+  const { addCollectionBonus, retry, state: playerSummaryState, updateAvatar, updateBalance, updateNickname } = usePlayerSummary();
   const activePlayerId = playerSummaryState.status === "ready" ? playerSummaryState.data.id : null;
   useEffect(() => {
     if (!activePlayerId) return;
@@ -116,7 +117,7 @@ export function App() {
   const initialWeakReturnScreen = isOneOf(initialFrom, ["card", "trials", "campaign-stage", "deck", "home"] as const) ? initialFrom : "home";
   const initialCollectionsReturnScreen = isOneOf(initialFrom, ["home", "trials", "campaign-stage"] as const) ? initialFrom : "home";
   const initialCardReturnScreen = isOneOf(initialFrom, ["deck", "weak", "collection-card"] as const) ? initialFrom : "deck";
-  const [screen, setScreen] = useState<Screen>(import.meta.env.DEV && initialPath === "/lab/booster" ? "booster-preview" : import.meta.env.DEV && initialPath === "/lab/materials" ? "material-lab" : initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "trials" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/tournament" ? "tournament" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/forge" ? "forge" : initialPath === "/records" ? "records" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : initialPath === "/trials" ? "trials" : initialPath === "/trials/save" ? "save-profile" : "home");
+  const [screen, setScreen] = useState<Screen>(import.meta.env.DEV && initialPath === "/lab/booster" ? "booster-preview" : import.meta.env.DEV && initialPath === "/lab/materials" ? "material-lab" : initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "trials" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/tournament" ? "tournament" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/forge" ? "forge" : initialPath === "/records" ? "records" : initialPath === "/profile/settings" ? "profile-settings" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : initialPath === "/trials" ? "trials" : initialPath === "/trials/save" ? "save-profile" : "home");
   const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile" | "campaign-stage" | "tasks" | "trials">(initialDeckReturnScreen);
   const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials">(initialShopReturnScreen);
   const [mailReturnScreen, setMailReturnScreen] = useState<"home" | "profile">(initialMailReturnScreen);
@@ -250,6 +251,12 @@ export function App() {
     if (campaignTraining) { openCampaign(); return; }
     setScreen("leagues");
     updatePath("/leagues");
+  }
+
+  function openProfileSettings() {
+    if (campaignTraining) { openCampaign(); return; }
+    setScreen("profile-settings");
+    updatePath("/profile/settings");
   }
 
   function openRecords() {
@@ -679,7 +686,7 @@ export function App() {
     <>
     <ElementAmbientFx desktopOnly />
     <AppShell
-      activeNavigationItem={screen === "guild" ? "guild" : screen === "profile" || screen === "records" || screen === "inventory" || screen === "equipment" || screen === "forge" || screen === "player-profile" || (screen === "mail" && mailReturnScreen === "profile") ? "profile" : "home"}
+      activeNavigationItem={screen === "guild" ? "guild" : screen === "profile" || screen === "profile-settings" || screen === "records" || screen === "inventory" || screen === "equipment" || screen === "forge" || screen === "player-profile" || (screen === "mail" && mailReturnScreen === "profile") ? "profile" : "home"}
       onNavigate={navigateFromBottom}
       onOpenSettings={openSettings}
       onRetryPlayerSummary={retry}
@@ -760,11 +767,13 @@ export function App() {
           onOpenMail={() => openMail("profile")}
           onOpenLeagues={openLeagues}
           onOpenRecords={openRecords}
+          onOpenSettings={openProfileSettings}
           onRetryPlayerSummary={retry}
           playerSummaryState={playerSummaryState}
           hasUnreadMail={mailState.status === "ready" && mailState.data.unreadCount > 0}
         />
       ) : null}
+      {screen === "profile-settings" ? <ProfileSettingsScreen onBack={() => navigateFromBottom("profile")} onOpenGuild={openGuild} onSaveAvatar={updateAvatar} playerSummaryState={playerSummaryState} /> : null}
       {screen === "settings" ? <SettingsScreen onBack={goHome} onLogout={retry} onReplayTutorial={() => { tutorial.replay(); goHome(); }} playerSummaryState={playerSummaryState} showTutorialReplay={tutorial.eligible} /> : null}
       {screen === "inventory" ? <InventoryScreen nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"} onBack={() => navigateFromBottom("profile")} onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })} /> : null}
       {screen === "equipment" ? <EquipmentScreen equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} saveError={equipmentSaveError} savePending={equipmentSavePending} /> : null}

@@ -1185,7 +1185,7 @@
 }
 
 .shop-offer-details__card > span:last-child {
-  font-size: 11px;
+  font-size: .75rem;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -1310,4 +1310,71 @@
   .shop-offer__symbol .shop-pack-body,
   :root[data-game-theme="light"] body .app-shell .app-content .shop-offer__symbol .shop-offer__artwork,
   .shop-pack-sheen::before { animation: none; }
+}
+
+/* Shelf list on one screen: a smaller pack on the board, and the label carries title, the odds link
+   and the price button, so no separate button row hangs under the shelf. */
+:root[data-game-theme="light"] body .app-shell .app-content .shop-base-offers { row-gap: 4px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__summary { grid-template-columns: 80px minmax(0, 1fr); column-gap: 10px; padding-left: 12px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__symbol { width: 80px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__copy { gap: 2px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__copy h3 { margin: 0; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer__chance--link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer__chance--link > span:not(.shop-offer__chance-badge) { text-decoration: underline; text-underline-offset: 3px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__purchase { width: 100%; height: 42px; min-height: 42px; margin: 2px 0 0; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__purchase { height: 38px; min-height: 38px; padding: 0 22px; gap: 5px; font-size: 14.5px; white-space: nowrap; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__chance--link { min-height: 26px; font-size: 13px; white-space: nowrap; }
+
+/* Matte paper does not glint: instead of a light band, the whole pack is shaded softly — the side
+   turned to the candle lifts a little, the far side falls into shadow — and the shading rolls across
+   as the pack sways. Only the wax seal is glossy, so only it catches a small highlight. */
+.shop-pack-sheen::before {
+  inset: 0 -55%;
+  background: linear-gradient(90deg,
+    rgb(255 236 200 / 26%) 0%,
+    rgb(255 236 200 / 8%) 30%,
+    rgb(36 20 8 / 0%) 50%,
+    rgb(36 20 8 / 16%) 72%,
+    rgb(36 20 8 / 34%) 100%);
+  mix-blend-mode: soft-light;
+  animation: shop-paper-turn 4.8s ease-in-out var(--sway-delay) infinite;
+}
+.shop-pack-sheen::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34%;
+  aspect-ratio: 1;
+  content: "";
+  background: radial-gradient(circle at 34% 30%, rgb(255 250 236 / 80%) 0, rgb(255 250 236 / 25%) 14%, transparent 34%);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -52%);
+  opacity: 0;
+  animation: shop-wax-glint 4.8s ease-in-out var(--sway-delay) infinite;
+}
+@keyframes shop-paper-turn {
+  0%, 100% { transform: translateX(-20%); }
+  50% { transform: translateX(20%); }
+}
+/* The seal faces the candle at the start of the sway: a short wet gleam, then it turns away. */
+@keyframes shop-wax-glint {
+  0%, 100% { opacity: .9; }
+  18% { opacity: .35; }
+  35%, 70% { opacity: 0; }
+  86% { opacity: .4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-pack-sheen::after { animation: none; opacity: .5; }
 }

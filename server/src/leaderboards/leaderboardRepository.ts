@@ -1,4 +1,4 @@
-import { getCardPower, getDominantDeckElement, getRarityForLevel } from "@cardastika/game-core";
+import { getCardPower, getDominantDeckElement, getRarityForLevel, isMagicSourceCode } from "@cardastika/game-core";
 import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getLeagueByRating, getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
 import type { Pool } from "pg";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
@@ -17,6 +17,7 @@ interface DuelLeaderboardRow {
 
 interface DeckLeaderboardRow extends DuelLeaderboardRow {
   bonus_power: string | number | null;
+  card_id: string | null;
   instance_level: string | number | null;
 }
 
@@ -162,6 +163,7 @@ export class LeaderboardRepository {
         return total + getCardPower({
           level: toSafeInteger(row.instance_level, "card level"),
           bonusPower: toSafeInteger(row.bonus_power, "card bonus power"),
+          magicSource: row.card_id !== null && isMagicSourceCode(row.card_id),
         });
       }, 0);
       const strongestCards = result.rows
@@ -174,7 +176,7 @@ export class LeaderboardRepository {
             cardId: row.card_id!,
             displayName: row.card_display_name,
             element: row.card_element!,
-            finalPower: getCardPower({ level, bonusPower }),
+            finalPower: getCardPower({ level, bonusPower, magicSource: isMagicSourceCode(row.card_id!) }),
             instanceId: row.instance_id!,
             level,
             rarity: getRarityForLevel(level),
@@ -260,7 +262,8 @@ export class LeaderboardRepository {
           players.level,
           players.rating,
           player_card_instances.level AS instance_level,
-          player_card_instances.bonus_power
+          player_card_instances.bonus_power,
+          player_card_instances.card_id
         FROM players
         LEFT JOIN player_decks ON player_decks.player_id = players.id
         LEFT JOIN deck_slots ON deck_slots.deck_id = player_decks.id
@@ -282,6 +285,7 @@ export class LeaderboardRepository {
         entry.score += getCardPower({
           level: toSafeInteger(row.instance_level, "card level"),
           bonusPower: toSafeInteger(row.bonus_power, "card bonus power"),
+          magicSource: row.card_id !== null && isMagicSourceCode(row.card_id),
         });
       }
       players.set(row.id, entry);

@@ -1,4 +1,4 @@
-import { BASE_POWER_BY_LEVEL } from "@cardastika/game-core";
+import { BASE_POWER_BY_LEVEL, MAGIC_SOURCE_CARD_CODES, MAGIC_SOURCE_POWER } from "@cardastika/game-core";
 import type { CardElement, PlayerCardInstance } from "@cardastika/shared";
 import type { Pool } from "pg";
 import {
@@ -92,10 +92,13 @@ export class InventoryRepository {
         countParameters,
       );
       const offset = (page - 1) * pageSize;
-      const queryParameters = [...countParameters, BASE_POWER_BY_LEVEL, pageSize, offset];
+      const queryParameters = [
+        ...countParameters, BASE_POWER_BY_LEVEL, pageSize, offset, Object.values(MAGIC_SOURCE_CARD_CODES),
+      ];
       const powerParameter = countParameters.length + 1;
       const limitParameter = countParameters.length + 2;
       const offsetParameter = countParameters.length + 3;
+      const sourceParameter = countParameters.length + 4;
       const result = await this.pool.query<CardInstanceProjectionRow>(
         `
           SELECT ${INSTANCE_PROJECTION}
@@ -109,7 +112,8 @@ export class InventoryRepository {
             AND deck_slots.card_instance_id IS NULL
             AND player_card_instances.protected_from_absorption = FALSE
             ${filter}
-          ORDER BY (($${powerParameter}::integer[])[player_card_instances.level] + player_card_instances.bonus_power) DESC,
+          ORDER BY (CASE WHEN cards.code = ANY($${sourceParameter}::text[]) THEN ${MAGIC_SOURCE_POWER}
+            ELSE ($${powerParameter}::integer[])[player_card_instances.level] + player_card_instances.bonus_power END) DESC,
             player_card_instances.id ASC
           LIMIT $${limitParameter} OFFSET $${offsetParameter}
         `,

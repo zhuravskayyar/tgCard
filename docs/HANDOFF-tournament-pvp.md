@@ -67,7 +67,7 @@ Context for the next agent (Codex or Claude). Branch `equipment-forge-mage`. **N
 - Production website/Telegram checks are deferred until an explicitly authorized push.
 
 ## Open / next steps
-1. **Pending user question:** move the tournament schedule to Moscow time (UTC+3) like the reference? It is GMT now, per an earlier decision in `docs/tournament.md`. If yes, change `TOURNAMENT_RULES.utcOffsetMinutes` to 180 in `game-core/src/tournament.ts` and update the tests and docs.
-2. A settings avatar picker: 20 thumbnails, plus "letters" and the Telegram photo. Store `avatar:NN` in `players.photo_url` through a new endpoint.
+1. Tournament schedule stays on GMT (user decision 2026-11-11). Do not switch to Moscow time.
+2. Avatar picker: done 2026-11-11 (Profile → «Налаштування профілю» → «Вибрати аватар», 20 portraits, POST /api/player/avatar). Telegram login keeps a chosen `avatar:NN`. Not done: letters option and a way back to the Telegram photo.
 3. Not done: Champions League (weekly qualifier, its own rating, double elimination on the server), the items «Настойка» and «Фокус-покус» (the game has no consumables), altar, ally, dragon magic, and paying sources.
 5. Phone testing: `npm run phone` serves http://192.168.0.126:4173 over Wi-Fi. Over USB it is `adb reverse tcp:4173 tcp:4173` (adb is in `.runtime/platform-tools`), then localhost:4173. The localhost and Wi-Fi addresses keep separate logins.

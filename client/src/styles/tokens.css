@@ -1,9 +1,10 @@
 /* Cardastika: shared warm stone, wood and bronze tokens. */
 :root {
   /* Two self-hosted families: Lugatype for headings, Alegreya for running text. */
-  --font-body: "Alegreya", Georgia, "Times New Roman", serif;
+  /* Digits come from the game's own even-height face; every letter stays Alegreya. */
+  --font-body: "Cardastika Numbers", "Alegreya", Georgia, "Times New Roman", serif;
   --font-display: "Lugatype", var(--font-body);
-  --font-number: "Cardastika Numbers", var(--font-body);
+  --font-number: var(--font-body);
   --font-label: var(--font-body);
   --font-hero: "Calligrapher", var(--font-display);
   --bg-page: #0d0b08;
@@ -65,7 +66,8 @@
   --accent-green: var(--state-success);
   --equipment-accent-gold: var(--accent-gold);
   --radius-lg: 8px;
-  --font-micro: .6875rem;
+  /* 12px is the smallest readable text on a phone; nothing readable goes below it. */
+  --font-micro: .75rem;
   --font-xl: 1.5rem;
   --font-card: .8125rem;
   --control-height: 44px;
@@ -140,7 +142,7 @@
   --home-hud-gold-shadow: 0 1px 2px rgb(54 29 4 / 85%);
   --home-control-shadow: inset 0 1px rgb(255 248 233 / 8%), 0 2px 3px rgb(68 52 38 / 16%);
   --home-nav-shadow: 0 -2px 8px rgb(68 52 38 / 18%);
-  --home-meta-size: 10px;
+  --home-meta-size: 12px;
   --home-caption-size: 12px;
   --home-guide-ink: #f0e4cf;
   --home-content-inset: var(--space-4);

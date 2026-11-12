@@ -323,3 +323,148 @@
 
 /* An empty guild-card slot shows the painted card back, not a CSS pedestal. */
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-card-platform__empty { display: block; width: 52px; height: 68px; filter: drop-shadow(0 3px 3px rgb(45 29 13 / 35%)); }
+
+/* Guild Card absorption: the screen reuses .card-detail-screen, whose flex candidate row and
+   four-column heading (icon/title/count/chevron) do not fit this markup. Four card columns,
+   a title + count heading, and book ink instead of the old dark-theme greys. */
+:root .app-shell .card-detail-screen.guild-card-screen .weak-cards-heading { grid-template-columns: minmax(0, 1fr) auto; }
+:root .app-shell .card-detail-screen.guild-card-screen .weak-cards-heading__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root .app-shell .card-detail-screen.guild-card-screen .absorption-grid {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: none;
+  gap: 12px;
+  padding: 10px 8px 0;
+  overflow: visible;
+}
+:root .app-shell .card-detail-screen.guild-card-screen .absorption-grid .deck-card { width: 100%; height: auto; aspect-ratio: 240 / 312; }
+:root[data-game-theme="light"] .app-shell .guild-card-screen .guild-card-screen__absorption-copy strong { color: var(--book-ink); font-size: 13px; }
+:root[data-game-theme="light"] .app-shell .guild-card-screen .guild-card-screen__absorption-copy span { color: var(--book-ink-muted); font-size: 12px; }
+:root[data-game-theme="light"] .app-shell .guild-card-screen .guild-card-screen__absorption-action > span { color: var(--book-ink-muted); font-size: 12px; }
+
+/* Card donations (treasury and Guild Card) are a multiple choice: three columns so each card
+   reads clearly, a painted checkbox on every card, and a lifted gold-lit card once it is chosen. */
+:root .app-shell .guild-screen .guild-treasury__card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 8px 4px; }
+:root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card { position: relative; transition: transform var(--motion-fast, 120ms) ease, filter var(--motion-fast, 120ms) ease; }
+:root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card::after {
+  position: absolute;
+  z-index: 6;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  content: "";
+  background: url("/assets/ui/controls/checkbox-empty-v1.webp") center / contain no-repeat;
+  filter: drop-shadow(0 2px 2px rgb(28 17 7 / 45%));
+  pointer-events: none;
+}
+:root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card--selected::after { background-image: url("/assets/ui/controls/checkbox-checked-v1.webp"); }
+:root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card--selected {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 0 6px rgb(214 160 48 / 95%)) drop-shadow(0 6px 6px rgb(28 17 7 / 45%));
+}
+:root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card__selected-mark { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .guild-screen :is(.guild-treasury__card-grid, .guild-card-screen .absorption-grid) .deck-card { transition: none; }
+}
+
+/* Guild hub hierarchy: a compact guild header, the Guild Card block, the folded announcement, then rows.
+   Both blocks sit on the same painted text plate as the rest of the guild; CSS only lays them out. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub { display: grid; gap: 8px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-hub-header, .guild-hub-card) {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 2px 4px;
+  align-items: center;
+  gap: 12px;
+  color: var(--book-ink);
+  font: inherit;
+  text-align: left;
+  border-style: solid;
+  border-width: 16px 16px;
+  border-image: var(--sprite-text-plate) 62 fill / 18px stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-hub-header, .guild-hub-card):active { transform: translateY(1px); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen :is(.guild-hub-header, .guild-hub-card):focus-visible { outline: 2px solid var(--book-ink-accent); outline-offset: 2px; }
+
+.guild-screen .guild-hub-header { grid-template-columns: 56px minmax(0, 1fr) 16px; }
+.guild-screen .guild-hub-header__emblem { display: grid; width: 56px; height: 56px; place-items: center; }
+.guild-screen .guild-hub-header__emblem > * { width: 100%; height: 100%; }
+.guild-screen .guild-hub-header__body { display: grid; min-width: 0; gap: 3px; }
+.guild-screen .guild-hub-header__facts { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.guild-screen .guild-hub-header__facts strong { color: var(--book-ink); font: 700 16px/1.15 var(--font-display); }
+.guild-screen .guild-hub-header__facts span { color: var(--book-ink-muted); font-size: 13px; white-space: nowrap; }
+.guild-screen .guild-hub-header__body small,
+.guild-screen .guild-hub-card__level { color: var(--book-ink-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.guild-screen :is(.guild-hub-header__chevron) { display: grid; place-items: center; color: var(--book-ink-muted); }
+
+.guild-screen .guild-hub-card { grid-template-columns: 72px minmax(0, 1fr); }
+.guild-screen .guild-hub-card__visual { position: relative; display: block; width: 72px; height: 100px; }
+.guild-screen .guild-hub-card__visual > .card-fx,
+.guild-screen .guild-hub-card__visual > .card-back { inset: 0; width: 72px; height: 100px; }
+.guild-screen .guild-hub-card__visual .card-fx > .card-hud__level { display: none; }
+.guild-screen .guild-hub-card__body { display: grid; min-width: 0; gap: 3px; }
+.guild-screen .guild-hub-card__body > strong { overflow: hidden; color: var(--book-ink); font: 700 16px/1.15 var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
+.guild-screen .guild-hub-card__status { display: flex; align-items: center; gap: 6px; color: var(--book-ink); font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+.guild-screen .guild-hub-card__status img { flex: 0 0 auto; width: 22px; height: 22px; object-fit: contain; }
+.guild-screen .guild-hub-card__status--ready { color: var(--book-ink-accent); }
+
+/* Announcement: two lines until «Читати далі». */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__copy--folded { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__more { justify-self: start; margin-top: 2px; }
+
+/* Row status: text plus the red seal when something waits for the viewer. */
+.guild-screen .guild-row-status { display: inline-flex; align-items: center; gap: 4px; }
+.guild-screen .guild-row-status .menu-row__detail { white-space: nowrap; }
+.guild-screen .guild-menu-section--soon .menu-row { opacity: .72; }
+
+/* Hub rows carry wide engraved scenes instead of small icons: a wider art slot, scenes kept whole. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__icon { flex: 0 0 58px; width: 58px; min-width: 58px; height: 40px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__icon-image { width: 100%; height: 100%; object-fit: contain; object-position: center; }
+/* Pending count stamped on the painted red seal. */
+.guild-screen .guild-count-seal {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: #fff4dc;
+  font: 800 13px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px rgb(40 8 4 / 75%);
+  background: url("/assets/guild/guild-count-seal.webp") center / contain no-repeat;
+}
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__action { flex: 0 0 auto; }
+
+/* Review pass: a clear status column, readable progress lines, scenes held to one box. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__action { margin-left: 10px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .guild-row-status { gap: 6px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .guild-row-status .menu-row__seal { width: 24px; height: 24px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__icon-image { max-height: 40px; }
+.guild-screen .guild-hub-header__body small,
+.guild-screen .guild-hub-card__level { font-size: 13.5px; }
+.guild-screen .guild-hub-card__status { font-size: 13.5px; }
+/* «Читати далі» is a plain ink link, not one more framed button. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-promo-banner__more {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 2px;
+  color: var(--book-ink-accent);
+  font: 700 13.5px/1 var(--font-label);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Newcomer hints: the title, then one muted line saying what the row is for. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__title--with-subtitle { display: grid; gap: 1px; line-height: 1.1; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-hub .menu-row__subtitle { overflow: hidden; color: var(--book-ink-muted); font: 600 12.5px/1.15 var(--font-label); text-overflow: ellipsis; white-space: nowrap; }

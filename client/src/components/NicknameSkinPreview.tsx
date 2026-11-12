@@ -32,26 +32,26 @@ function particleStyle(index: number): ParticleStyle {
   };
 }
 
+/** Floating motes per style: cinnabar dust, gold-leaf flakes, cold rune sparks. */
+const PARTICLE_COUNT: Record<"cinnabar" | "gilded" | "runic", number> = { cinnabar: 10, gilded: 16, runic: 12 };
+
 export function NicknameSkinPreview({ className, compact = false, nickname, skinId }: NicknameSkinPreviewProps) {
   const definition = skinId ? NICKNAME_SKINS[skinId] : null;
-  const particleCount = definition?.effect === "celestial" ? 17 : 14;
-  const particles = useMemo(
-    () => definition && definition.effect !== "glitch"
-      ? Array.from({ length: compact ? Math.max(8, Math.floor(particleCount / 2)) : particleCount }, (_, index) => index)
-      : [],
-    [compact, definition, particleCount],
-  );
+  const particles = useMemo(() => {
+    if (!definition) return [];
+    const count = PARTICLE_COUNT[definition.effect];
+    return Array.from({ length: compact ? Math.max(5, Math.floor(count / 2)) : count }, (_, index) => index);
+  }, [compact, definition]);
 
   return (
     <span className={`nickname-skin ${definition?.className ?? "nickname-skin--standard"}${compact ? " nickname-skin--compact" : ""}${className ? ` ${className}` : ""}`}>
-      {definition?.effect !== "glitch" ? (
+      {particles.length ? (
         <span className="particles" aria-hidden="true">
           {particles.map((index) => (
-            <i className={definition?.effect === "celestial" && index % 4 === 0 ? "particle star" : "particle"} key={index} style={particleStyle(index)} />
+            <i className={index % 3 === 0 ? "particle particle--flake" : "particle"} key={index} style={particleStyle(index)} />
           ))}
         </span>
       ) : null}
-      {definition?.effect === "blood" ? <span className="blood-ring" aria-hidden="true" /> : null}
       <span className="nickname" data-text={nickname}>{nickname}</span>
     </span>
   );

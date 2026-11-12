@@ -111,9 +111,13 @@ export type {
   ArenaView,
 } from "./arena.js";
 export {
+  PLAYER_AVATAR_COUNT,
   PLAYER_NICKNAME_MAX_LENGTH,
   getDefaultPlayerNickname,
   getPlayerDisplayName,
+  parsePlayerAvatarId,
+  toPlayerAvatarId,
+  type PlayerAvatarUpdateResponse,
   type PlayerNicknameUpdateRequest,
   type PlayerNicknameUpdateResponse,
   type PlayerSummary,

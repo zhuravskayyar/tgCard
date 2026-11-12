@@ -31,6 +31,7 @@ interface ProfileScreenProps {
   onOpenMail: () => void;
   onOpenLeagues: () => void;
   onOpenRecords: () => void;
+  onOpenSettings: () => void;
   onRetryPlayerSummary: () => void;
   playerSummaryState: PlayerSummaryState;
   hasUnreadMail: boolean;
@@ -103,6 +104,7 @@ export function ProfileScreen({
   onOpenMail,
   onOpenLeagues,
   onOpenRecords,
+  onOpenSettings,
   onRetryPlayerSummary,
   playerSummaryState,
   hasUnreadMail,
@@ -260,6 +262,10 @@ export function ProfileScreen({
           <Section title="Подарунки від магів">
             <p className="pf-empty">Подарунків немає.</p>
           </Section>
+
+          <nav aria-label="Налаштування профілю" className="pf-menu">
+            <MenuRow compact icon="settings" metalTexture onClick={onOpenSettings} title="Налаштування профілю" />
+          </nav>
         </>
       ) : null}
     </section>

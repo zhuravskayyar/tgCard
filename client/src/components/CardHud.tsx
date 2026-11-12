@@ -15,14 +15,9 @@ interface CardHudProps {
   upgradeIndicator?: "element" | "gold";
 }
 
-// A solid bevelled arrow: green for a free upgrade, gold for a paid golden level (colours come from CSS).
+/** The painted bronze arrow; the gold level gilds it in CSS. */
 function UpgradeArrow() {
-  return (
-    <svg className="card-hud__upgrade-arrow" viewBox="0 0 32 32">
-      <path className="card-hud__upgrade-body" d="M16 2.5 29 16.5h-7.6V29.5H10.6V16.5H3Z" />
-      <path className="card-hud__upgrade-light" d="M16 6.4 24.3 15.4h-5.2v11.6h-2.2V13.6h3.1L16 9Z" />
-    </svg>
-  );
+  return <img alt="" aria-hidden="true" className="card-hud__upgrade-arrow" draggable={false} src="/assets/ui/icons/icon-arrow-up-v1.webp" />;
 }
 
 export function CardHud({ element, power, protectedFromAbsorption = false, rarity, staticMaterial = false, upgradeIndicator }: CardHudProps) {

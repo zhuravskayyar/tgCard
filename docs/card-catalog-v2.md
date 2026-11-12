@@ -4,8 +4,8 @@
 
 - Колекцій: **51**; звичний розмір 3–15, «Легенди Twitch» поки має одну карту.
 - Карт у колекціях: **198**, із них **38** входять у кілька колекцій.
-- Карт поза колекціями: **16** (у референсі їх може бути більше: сторінка показала лише ці).
-- Рідкість: rare 70, epic 65, legendary 18, mythic 28, uncommon 29, common 4. Для карт із магазину вона взята з банерів референсу, для решти запропонована тут.
+- Карт поза колекціями: **20**, із них 4 «джерела» (el_*), див. docs/card-progression.md.
+- Рідкість: rare 70, epic 65, legendary 18, mythic 28, uncommon 29, common 8. Для карт із магазину вона взята з банерів референсу, для решти запропонована тут.
 
 Код у дужках біля колекції та стовпець «Код референсу» потрібні лише для звірки і в гру не підуть.
 
@@ -627,6 +627,10 @@
 | Грифон | Повітря | legendary | Половина орел, половина лев, апетит на обох. | `battle_gryphon` | war gryphon with wings raised and talons forward, eagle head screaming, lion body in a leather harness |
 | Служник вогню | Вогонь | epic | Міг би спалити місто, але чекає на наказ. Поки що. | `fire_servant` | robed fire mage with a shaved head holding a blazing orb between his hands, calm cruel face |
 | Крилатий пес | Повітря | legendary | Паркан для нього більше не аргумент. | `winged_hound` | big winged hound leaping a fence, ears flying, tongue out, feathered wings wide open |
+| Небесна вись | Повітря | common | Сили ані краплі, зате весь вітер на місці. Віддай його іншій карті. | `el_air` | landscape vignette of open sky: a small jagged crag floating among towering billowing clouds, three birds circling it, long spiralling streaks of wind wrapped around it, the whole vignette shaped as a rounded floating island of cloud ending well inside the canvas |
+| Пралісна галявина | Земля | common | Тут нічого не б'ється, тут усе росте. Згодуй її іншій карті. | `el_earth` | landscape vignette of an ancient forest edge: three gnarled giant oaks with thick mossy roots around a small sunlit clearing with a ring of mushrooms, the whole vignette shaped as a rounded mound of earth and roots ending well inside the canvas |
+| Вогняна ущелина | Вогонь | common | Сама не воює, але жару в ній на цілу колоду. Віддай його іншій карті. | `el_fire` | landscape vignette of a narrow gorge between two jagged volcanic cliffs, a river of lava glowing at the bottom, plumes of smoke and sparks rising, the whole vignette shaped as a rounded chunk of rock ending well inside the canvas |
+| Північний шторм | Вода | common | Нікого не топить, просто чекає, кого б посилити. Віддай його іншій карті. | `el_water` | landscape vignette of a storm on a northern sea: one huge curling wave with foam crests, a jagged iceberg beside it and a forked lightning bolt from a low dark cloud, the whole vignette shaped as a rounded swell of water ending well inside the canvas |
 
 ## Власні назви механік
 

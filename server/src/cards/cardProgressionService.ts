@@ -9,6 +9,7 @@ import {
   getTransferableElementValue,
   getUpgradeProgress,
   isGoldLevel,
+  isMagicSourceCode,
   getPlayerCollectionModifiers,
   selectBulkAbsorption,
 } from "@cardastika/game-core";
@@ -72,7 +73,14 @@ export type CardProgressionErrorCode =
   | "insufficient_elements"
   | "maximum_level"
   | "protected_card"
-  | "nothing_to_absorb";
+  | "nothing_to_absorb"
+  | "magic_source";
+
+function assertNotMagicSource(code: string) {
+  if (isMagicSourceCode(code)) {
+    throw new CardProgressionDomainError("magic_source", "A magic source cannot level up or absorb cards");
+  }
+}
 
 export class CardProgressionDomainError extends Error {
   constructor(public readonly code: CardProgressionErrorCode, message: string) {
@@ -108,7 +116,8 @@ function toProgressNumber(value: string | number, field: string) {
   return parsed;
 }
 
-function toProgressionView(card: PlayerCardInstance, availableGold: number): CardProgressionView {
+/** Level-up state of a card against the gold that pays for it (the player's, or the guild treasury's). */
+export function toProgressionView(card: PlayerCardInstance, availableGold: number): CardProgressionView {
   const progress = getUpgradeProgress(card.levelProgressElements, card.level);
   if (card.level === MAX_CARD_LEVEL) {
     return {
@@ -225,6 +234,7 @@ async function loadValidatedAbsorption(
   if (!target || target.player_id !== playerId) {
     throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
   }
+  assertNotMagicSource(target.code);
 
   const fodder = fodderInstanceIds.map((id) => {
     const row = byId.get(id);
@@ -282,6 +292,7 @@ async function selectBulkFodderIds(
   target: ProgressionCardRow,
   lock: boolean,
 ) {
+  assertNotMagicSource(target.code);
   const targetCard = mapCardInstanceRow(target);
   if (targetCard.level === MAX_CARD_LEVEL) return [];
   const progress = getUpgradeProgress(targetCard.levelProgressElements, targetCard.level);
@@ -403,6 +414,7 @@ export class CardProgressionService {
       );
       const target = targetResult.rows[0];
       if (!target) throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
+      if (isMagicSourceCode(target.code)) return { cards: [], page, pageSize: PAGE_SIZE, totalCards: 0, totalPages: 0 };
       const result = await this.inventory.findWeakPageByPlayerId(
         playerId,
         page,
@@ -582,6 +594,7 @@ export class CardProgressionService {
       );
       const targetRow = targetResult.rows[0];
       if (!targetRow) throw new CardProgressionDomainError("target_not_found", "Owned target card was not found");
+      assertNotMagicSource(targetRow.code);
       const target = mapCardInstanceRow(targetRow);
       const availableGold = toNonNegativeInteger(player.gold, "player gold");
       const levelAvailability = canLevelUp({

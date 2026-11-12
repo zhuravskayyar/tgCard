@@ -298,3 +298,24 @@ test("a Cardastika session is created, reused and revoked independently of provi
     await pool.end();
   }
 });
+
+test("a chosen portrait survives Telegram login while a Telegram photo keeps refreshing", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const user = { ...telegramUser("avatar"), photoUrl: "https://t.me/i/userpic/old.jpg" };
+  let playerId: string | undefined;
+  const photo = async () => (await pool.query<{ photo_url: string | null }>("SELECT photo_url FROM players WHERE id = $1", [playerId])).rows[0]?.photo_url;
+  try {
+    playerId = (await players.findOrCreateFromTelegram(user)).id;
+    await players.findOrCreateFromTelegram({ ...user, photoUrl: "https://t.me/i/userpic/new.jpg" });
+    assert.equal(await photo(), "https://t.me/i/userpic/new.jpg");
+
+    assert.deepEqual(await players.updateAvatar(playerId, "avatar:07"), { photoUrl: "avatar:07" });
+    await players.findOrCreateFromTelegram({ ...user, photoUrl: "https://t.me/i/userpic/newer.jpg" });
+    assert.equal(await photo(), "avatar:07");
+  } finally {
+    if (playerId) await deletePlayers(pool, [playerId]);
+    await pool.end();
+  }
+});

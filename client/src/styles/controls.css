@@ -255,7 +255,7 @@
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--shop-tab-tone) 42%, transparent));
 }
 
-.shop-tabs .shop-tab > span { color: var(--text-primary); font-size: 10px; line-height: 1.1; white-space: nowrap; }
+.shop-tabs .shop-tab > span { color: var(--text-primary); font-size: .75rem; line-height: 1.1; white-space: nowrap; }
 
 .shop-tabs .shop-tab--active {
   border-color: color-mix(in srgb, var(--shop-tab-tone) 92%, var(--accent-gold));

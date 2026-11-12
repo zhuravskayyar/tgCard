@@ -1,9 +1,9 @@
 import { ScreenHeading } from "../components/ScreenHeading";
-import { RibbonTitle } from "../components/RibbonTitle";
 import { ElementMedallion } from "../components/ElementMedallion";
 import { ExperienceFlask } from "../components/ExperienceFlask";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getTransferableElementValue } from "@cardastika/game-core";
 import type { AbsorptionCandidatesResponse, BulkAbsorptionPreviewResponse, PlayerCardDetailResponse } from "@cardastika/shared";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { CardHud } from "../components/CardHud";
@@ -12,7 +12,6 @@ import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { DeckCard } from "../components/DeckCard";
 import { MenuRow } from "../components/MenuRow";
 import { SealToggle } from "../components/SealToggle";
-import { Pagination } from "../components/Pagination";
 import { formatFullUiNumber } from "../i18n";
 import { preloadSounds, PROGRESSION_SOUND_CUES } from "../audio";
 import { playCardDestructionFx, playCardPowerFx } from "./cardProgressionFx";
@@ -45,6 +44,7 @@ function requestErrorMessage(error: unknown) {
   if (error instanceof PlayerDataError && error.code === "unsupported_level_data") return "Для цього рівня в джерелі немає підтвердженого значення.";
   if (error instanceof PlayerDataError && error.code === "fodder_in_deck") return "Одна з обраних карт уже увійшла до бойової колоди.";
   if (error instanceof PlayerDataError && error.code === "protected_card") return "Захищену карту не можна поглинути.";
+  if (error instanceof PlayerDataError && error.code === "magic_source") return "Джерело магії не можна прокачати — віддайте його іншій карті.";
   if (error instanceof PlayerDataError && error.code === "nothing_to_absorb") return "Жодна слабка карта не вміщується в поточний рівень.";
   if (error instanceof PlayerDataError && error.code === "insufficient_gold") return "Недостатньо золота для підняття рівня.";
   if (error instanceof PlayerDataError && error.code === "insufficient_elements") return "Недостатньо магічних елементів для підвищення рівня.";
@@ -304,19 +304,26 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     : progression.availability === "insufficient_elements" ? "Потрібно заповнити прогрес рівня."
     : progression.availability === "insufficient_gold" ? "Недостатньо золота для покращення."
       : progression.availability === "maximum_level" ? "Досягнуто максимального рівня." : null;
+  // A ready level-up explains itself through its button; the hint only names what stands in the way.
   const progressionHint = progression.availability === "ready"
-    ? progression.requiredGold === 0 ? "Покращення доступне безкоштовно." : "Підніміть карту за золото. Поглинання може зменшити ціну."
+    ? progression.requiredGold === 0 ? "Покращення доступне безкоштовно." : null
     : progression.availability === "insufficient_elements" ? "Заповніть прогрес рівня поглинанням слабких карт."
       : progression.availability === "insufficient_gold" ? "Недостатньо золота. Поглинання може зменшити ціну."
       : availabilityText;
   const hasAbsorptionAction = candidates.status === "ready" && candidates.data.totalCards > 0;
+  // A magic source never levels up or absorbs: it only gives its full potential to another card.
+  const isMagicSource = card.magicSource === true;
   // The level progress stays visible until the maximum level, even with no weak cards left to absorb.
-  const showUpgradePlate = progression.availability !== "maximum_level";
+  const showUpgradePlate = !isMagicSource && progression.availability !== "maximum_level";
   const bulkGainPercent = bulkPreview && bulkPreview.requiredElements > 0
     ? (bulkPreview.addedElements / bulkPreview.requiredElements) * 100
     : 0;
   const canBulkAbsorb = bulkPreview !== null && bulkPreview.selectedCards > 0;
   const levelAlreadyFilled = bulkPreview !== null && bulkPreview.beforeElements >= bulkPreview.requiredElements;
+  const bulkAbsorbHint = bulkPreview === null ? "Поглинути слабкі: рахуємо прогрес…"
+    : canBulkAbsorb ? `Поглинути слабкі: прогрес рівня +${formatGainPercent(bulkGainPercent)}`
+      : levelAlreadyFilled ? "Рівень заповнено — підніміть його."
+        : "Слабкі карти переповнять рівень — поглинайте їх поштучно.";
   const gainPercentOf = (preview: BulkAbsorptionPreviewResponse) => preview.requiredElements > 0 ? (preview.addedElements / preview.requiredElements) * 100 : 0;
 
   return <section className="card-detail-screen" data-expanded-panel="progress">
@@ -361,9 +368,13 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
         <div className="progression-panel__content" id="card-progression-content">
         {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
         <div className="card-level-flask" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceFlask key={card.instanceId} level={card.level} progress={progression.percent / 100} tone="verdant" /></div>
-        <div className="progression-panel__upgrade-row"><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
+        <div className={`progression-panel__upgrade-row${hasAbsorptionAction ? " progression-panel__upgrade-row--pair" : ""}`}><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
           <span>{pendingAction === "level" ? "Підвищення…" : progression.requiredGold === 0 ? "Покращити безкоштовно" : "Підняти рівень"}</span>
-        </button></div>
+        </button>
+        {hasAbsorptionAction ? <button aria-label={bulkAbsorbHint} className="level-up-button absorb-weak-button" disabled={!canBulkAbsorb || pendingAction !== null} onClick={requestBulkAbsorption} title={bulkAbsorbHint} type="button">
+          <span>{pendingAction === "absorb" && bulkConfirmationOpen ? "Поглинання…" : "Поглинути"}</span>
+          {canBulkAbsorb && bulkPreview !== null ? <strong>+{formatGainPercent(bulkGainPercent)}</strong> : null}
+        </button> : null}</div>
         <div className="progression-panel__facts"><div><span>Сила:</span><strong className="progression-panel__power-preview">{progression.powerAfterLevel === null ? "—" : <><span className="ui-number">{formatFullUiNumber(card.finalPower)}</span><span aria-hidden="true">→</span><span className="ui-number progression-panel__next-power">{formatFullUiNumber(progression.powerAfterLevel)}</span></>}</strong></div><div><span>Ціна:</span><strong>{progression.requiredGold === null ? "—" : progression.requiredGold > 0 ? <><CurrencyIcon kind="gold" size={20} /><span className="ui-number">{progression.requiredGold}</span></> : "Безкоштовно"}</strong></div></div>
         </div>
       </section> : null}
@@ -377,33 +388,21 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
       document.body,
     ) : null}
 
-    {candidates.status === "ready" && candidates.data.totalCards === 0 ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />Немає слабких карт стихії {ELEMENT_GENITIVE[card.element]}</p> : null}
+    {isMagicSource ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />Джерело магії: сила завжди 1. Віддає картам стихії {ELEMENT_GENITIVE[card.element]} {formatFullUiNumber(getTransferableElementValue(card))} елементів.</p> : null}
+    {!isMagicSource && candidates.status === "ready" && candidates.data.totalCards === 0 ? <p className="absorption-empty"><ElementMedallion element={card.element} size={22} />Немає слабких карт стихії {ELEMENT_GENITIVE[card.element]}</p> : null}
     {candidates.status === "error" ? <div className="selector-state"><span>Не вдалося завантажити карти.</span><button onClick={() => setCandidateAttempt((current) => current + 1)} type="button">Повторити</button></div> : null}
-    {hasAbsorptionAction && showUpgradePlate ? <div className="absorb-weak-row">
-      <button className="level-up-button absorb-weak-button" disabled={!canBulkAbsorb || pendingAction !== null} onClick={requestBulkAbsorption} type="button">
-        <span>{pendingAction === "absorb" && bulkConfirmationOpen ? "Поглинання…" : "Поглинути слабкі"}</span>
-      </button>
-      <p className="absorb-weak-row__gain">{bulkPreview === null ? "Прогрес рівня: …"
-        : canBulkAbsorb ? <>Прогрес рівня: <strong>+{formatGainPercent(bulkGainPercent)}</strong></>
-          : levelAlreadyFilled ? "Рівень заповнено — підніміть його."
-            : "Слабкі карти переповнять рівень — поглинайте їх поштучно."}</p>
-    </div> : null}
-
     {hasAbsorptionAction && candidates.status === "ready" ? (
-      <section aria-label="Слабкі карти для поглинання" className="absorption-panel" ref={absorptionPanelRef} tabIndex={-1}>
-        <RibbonTitle as="h2" className="absorption-panel__title" size="wide">Слабкі карти</RibbonTitle>
+      <section aria-label="Слабкі карти для поглинання: торкніться карти, щоб поглинути її" className="absorption-panel absorption-panel--strip" ref={absorptionPanelRef} tabIndex={-1}>
         <div className="absorption-grid absorption-grid--inline">
           {candidates.data.cards.map((candidate) => (
             <div className="absorption-card-slot" data-absorption-candidate={candidate.instanceId} key={candidate.instanceId} ref={(element) => { if (element) absorptionCardRefs.current.set(candidate.instanceId, element); else absorptionCardRefs.current.delete(candidate.instanceId); }}>
               <DeckCard card={candidate} disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} />
-              <button className="absorption-card-slot__action" disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} type="button">
-                <span>Поглинути</span>
+              <button aria-label={`Поглинути: ${candidateGains[candidate.instanceId] === undefined ? "…" : `+${formatGainPercent(candidateGains[candidate.instanceId]!.percent)}`}`} className="absorption-card-slot__action" disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} type="button">
                 <strong>{candidateGains[candidate.instanceId] === undefined ? "…" : `+${formatGainPercent(candidateGains[candidate.instanceId]!.percent)}`}</strong>
               </button>
             </div>
           ))}
         </div>
-        <Pagination currentPage={candidates.data.page} onPageChange={setCandidatePage} totalPages={candidates.data.totalPages} />
       </section>
     ) : null}
 

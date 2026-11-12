@@ -277,3 +277,45 @@ test("absorbing weak cards takes the weakest same-element cards that fit into th
     await pool.end();
   }
 });
+
+test("a magic source has power 1, gives its full potential and can neither level up nor absorb", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const progression = new CardProgressionService(pool, new InventoryRepository(pool));
+  const user = createTelegramUser("source");
+  try {
+    const player = await players.findOrCreateFromTelegram(user);
+    const targetId = randomUUID();
+    const sourceId = randomUUID();
+    const secondSourceId = randomUUID();
+    const fodderId = randomUUID();
+    await pool.query(
+      `INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+       VALUES ($1, $5, $6, 60, 0), ($2, $5, 'el_air', 20, 0), ($3, $5, 'el_air', 20, 0), ($4, $5, $6, 1, 0)`,
+      [targetId, sourceId, secondSourceId, fodderId, player.id, DRAGONFLY_ID],
+    );
+    await recalculateAutomaticDeckForPlayer(pool, player.id);
+
+    const sourceDetail = await progression.getDetail(player.id, sourceId);
+    assert.equal(sourceDetail.card.finalPower, 1);
+    assert.equal(sourceDetail.card.magicSource, true);
+    assert.equal(sourceDetail.inActiveDeck, false);
+
+    // Level 20 holds 4 elements; a source hands all of them to the absorbing card.
+    const preview = await progression.previewAbsorption(player.id, targetId, [sourceId]);
+    assert.equal(preview.addedElements, 4);
+    const absorbed = await progression.absorb(player.id, targetId, [sourceId]);
+    assert.deepEqual(absorbed.consumedInstanceIds, [sourceId]);
+
+    await expectCode(progression.levelUp(player.id, secondSourceId), "magic_source");
+    await expectCode(progression.absorb(player.id, secondSourceId, [fodderId]), "magic_source");
+    await expectCode(progression.absorbWeak(player.id, secondSourceId), "magic_source");
+    assert.equal((await progression.getAbsorptionCandidates(player.id, secondSourceId, 1)).totalCards, 0);
+  } finally {
+    await cleanupPlayers(pool, [user.id]);
+    await pool.end();
+  }
+});

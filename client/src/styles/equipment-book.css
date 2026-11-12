@@ -604,7 +604,7 @@
 .eq-step .eq-frame { display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 7px 2px 6px; filter: saturate(.55) brightness(.92); opacity: .78; transition: transform 120ms ease, opacity 120ms ease; }
 .eq-step--active .eq-frame { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--eq-rarity) 85%, #ffb347)); opacity: 1; transform: translateY(-2px); }
 .eq-step .eq-frame b { margin: 0; color: #24140a; font-size: 19px; line-height: 1; }
-:root[data-game-theme="light"] body .app-shell .app-content .eq-step .eq-frame small { padding: 0; border: 0; border-image: none; color: #4a3420; font-size: 11px; line-height: 1; }
+:root[data-game-theme="light"] body .app-shell .app-content .eq-step .eq-frame small { padding: 0; border: 0; border-image: none; color: #4a3420; font-size: .75rem; line-height: 1; }
 .eq-step--active .eq-frame small { color: #7c1c10 !important; }
 
 .eq-recipe--compact { gap: 6px; padding-block: 2px; }

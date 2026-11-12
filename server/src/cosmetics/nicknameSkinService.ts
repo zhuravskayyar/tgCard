@@ -80,7 +80,7 @@ function toOffer(goldBalance: number, ownedSkinIds: readonly NicknameSkinId[], e
     ownedSkinIds: [...ownedSkinIds],
     price: NICKNAME_SKIN_PRICE,
     progress: { owned: ownedSkinIds.length, total: NICKNAME_SKIN_IDS.length },
-    subtitle: "Обери один: Blood Moon / Starforged / Broken Signal",
+    subtitle: "Обери один: Кіновар / Сусальне золото / Рунне срібло",
     goldBalance,
     type: "nickname_skin_choice",
   };
