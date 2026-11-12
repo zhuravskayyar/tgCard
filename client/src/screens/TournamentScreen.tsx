@@ -92,21 +92,34 @@ export function TournamentScreen({ onBack }: { onBack: () => void }) {
     if (run && !POLLED.has(run.status)) return;
     let stopped = false;
     let timer = 0;
+    let inFlight = false;
+    let controller: AbortController | null = null;
     const poll = async () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
       if (pendingRef.current === null) {
+        inFlight = true;
+        controller = new AbortController();
         const seq = requestSeq.current;
         try {
-          const next = await loadTournamentRun(initData);
+          const next = await loadTournamentRun(initData, controller.signal);
           if (stopped || seq !== requestSeq.current) { /* superseded */ }
           else if (!next) { setRunOpen(false); setAttempt(value => value + 1); return; }
           else { acceptRun(next); setError(null); }
         }
-        catch { if (!stopped) setError("Зв’язок із турніром перервано. Пробуємо ще раз…"); }
+        catch (cause) {
+          if (!stopped && !(cause instanceof DOMException && cause.name === "AbortError")) setError("Зв’язок із турніром перервано. Пробуємо ще раз…");
+        }
+        finally { inFlight = false; }
       }
-      if (!stopped) timer = window.setTimeout(poll, 1_000);
+      if (!stopped && document.visibilityState === "visible") timer = window.setTimeout(poll, 1_000);
     };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") { window.clearTimeout(timer); void poll(); }
+      else { window.clearTimeout(timer); controller?.abort(); }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     void poll();
-    return () => { stopped = true; window.clearTimeout(timer); };
+    return () => { stopped = true; window.clearTimeout(timer); document.removeEventListener("visibilitychange", onVisibilityChange); controller?.abort(); };
   }, [runOpen, runStatus]);
 
   async function lobbyAction(request: (initData: string) => Promise<TournamentLobbyView>, fallback: string) {

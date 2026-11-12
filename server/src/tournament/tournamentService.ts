@@ -436,17 +436,21 @@ export class TournamentService {
 
   /** Starts due events and closes expired rounds. Safe to call from every request and a timer. */
   async tick(now = new Date()) {
-    let due: { id: string }[];
+    let due: EventRow[];
     try {
-      due = (await this.pool.query<{ id: string }>(
-        "SELECT id FROM tournament_events WHERE (status = 'registration' AND starts_at <= $1) OR status = 'running' ORDER BY starts_at",
+      due = (await this.pool.query<EventRow>(
+        "SELECT id, league, starts_at, status, plan FROM tournament_events WHERE (status = 'registration' AND starts_at <= $1) OR status = 'running' ORDER BY starts_at",
         [now],
       )).rows;
     } catch (cause) { throw new PlayerPersistenceError({ cause }); }
-    for (const { id } of due) {
+    for (const event of due) {
+      let needsWork: boolean;
+      try { needsWork = await this.needsAdvance(event, now, this.pool); }
+      catch (cause) { throw new PlayerPersistenceError({ cause }); }
+      if (!needsWork) continue;
       await this.transaction(async client => {
-        const event = await this.lockEvent(client, id, true);
-        if (event) await this.advance(client, event, now);
+        const locked = await this.lockEvent(client, event.id, true);
+        if (locked) await this.advance(client, locked, now);
       });
     }
   }
@@ -517,10 +521,12 @@ export class TournamentService {
       if (!event) return null;
     }
     if (event.status !== "running" || !event.plan) return event;
+    if (!await this.needsAdvance(event, now, client)) return event;
     let plan = event.plan;
     const startsAt = time(event.starts_at);
     const currentStage = getTournamentStageAt(startsAt, now.getTime());
     const entries = new Map((await client.query<EntryRow>("SELECT * FROM tournament_entries WHERE event_id = $1", [event.id])).rows.map(row => [row.player_id, row]));
+    let didProgress = false;
 
     for (let guard = 0; guard < 512; guard++) {
       let progressed = false;
@@ -566,8 +572,10 @@ export class TournamentService {
         progressed = true;
       }
       if (!progressed) break;
+      didProgress = true;
     }
 
+    if (!didProgress && !isTournamentEventComplete(plan)) return event;
     for (const entry of entries.values()) {
       if (entry.status !== "playing") continue;
       const finish = getTournamentFinish(plan, entry.player_id);
@@ -676,12 +684,41 @@ export class TournamentService {
   }
 
   async getRun(playerId: string, now = new Date()): Promise<TournamentRunView | null> {
-    return this.transaction(async client => {
-      const entry = await this.currentEntry(client, playerId, now);
+    let eventId: string;
+    try {
+      const entry = await this.currentEntry(this.pool, playerId, now);
       if (!entry) return null;
-      const event = await this.lockEvent(client, entry.event_id);
-      if (event) await this.advance(client, event, now);
+      eventId = entry.event_id;
+      const event = (await this.pool.query<EventRow>(
+        "SELECT id, league, starts_at, status, plan FROM tournament_events WHERE id = $1",
+        [eventId],
+      )).rows[0];
+      if (event && !await this.needsAdvance(event, now, this.pool)) return await this.view(this.pool, playerId, now);
+    } catch (cause) { throw new PlayerPersistenceError({ cause }); }
+    return this.transaction(async client => {
+      // A different request is already advancing this event; show its last committed state.
+      const locked = await this.lockEvent(client, eventId, true);
+      if (locked) await this.advance(client, locked, now);
       return this.view(client, playerId, now);
+    });
+  }
+
+  /** Ordinary battle polls read committed state without waiting for the event-wide lock. */
+  private async needsAdvance(event: EventRow, now: Date, client: Pick<PoolClient, "query">): Promise<boolean> {
+    if (event.status === "registration") return time(event.starts_at) <= now.getTime();
+    if (event.status !== "running") return false;
+    if (this.sparringPartner || !event.plan) return true;
+    const pending = getTournamentPendingMatches(event.plan);
+    if (pending.length === 0) return true;
+    const existing = new Map((await client.query<{ id: string; has_result: boolean }>(`
+      SELECT id, COALESCE(state #> '{duel,result}' <> 'null'::jsonb, false) AS has_result
+      FROM tournament_matches WHERE event_id = $1 AND id = ANY($2::text[])
+    `, [event.id, pending.map(match => match.id)])).rows.map(row => [row.id, row]));
+    const startsAt = time(event.starts_at);
+    const currentStage = getTournamentStageAt(startsAt, now.getTime());
+    return pending.some(match => {
+      const row = existing.get(match.id);
+      return row ? row.has_result || getTournamentStageWindow(startsAt, match.stage).endsAt <= now.getTime() : match.stage <= currentStage;
     });
   }
 
@@ -721,7 +758,7 @@ export class TournamentService {
     return (await this.getRun(playerId, now))!;
   }
 
-  private async view(client: PoolClient, playerId: string, now: Date): Promise<TournamentRunView | null> {
+  private async view(client: Pick<PoolClient, "query">, playerId: string, now: Date): Promise<TournamentRunView | null> {
     const entry = await this.currentEntry(client, playerId, now);
     if (!entry) return null;
     const event = (await client.query<EventRow>("SELECT id, league, starts_at, status, plan FROM tournament_events WHERE id = $1", [entry.event_id])).rows[0]!;

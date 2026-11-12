@@ -44,6 +44,27 @@ test("two real players register, fight a live final and receive rating, XP and t
     const paired = await service.getRun(a, new Date(startsAt + 1));
     assert.equal(paired?.status, "buff_selection");
     assert.equal(paired?.stage?.label, "Фінал");
+    // Another player's long action can hold the event lock; ordinary polls must still return.
+    const lockedEvent = await pool.connect();
+    try {
+      await lockedEvent.query("BEGIN");
+      await lockedEvent.query("SELECT id FROM tournament_events WHERE id = $1 FOR UPDATE", [eventId]);
+      const readWhileLocked = async (at: number) => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+          const read = await Promise.race([
+            service.getRun(a, new Date(at)),
+            new Promise<null>(resolve => { timeout = setTimeout(() => resolve(null), 2_000); }),
+          ]);
+          return read;
+        } finally { if (timeout) clearTimeout(timeout); }
+      };
+      assert.equal((await readWhileLocked(startsAt + 2))?.status, "buff_selection", "battle poll waited on the event lock");
+      assert.equal((await readWhileLocked(window.endsAt + 1))?.status, "battle", "due round poll waited on the event lock");
+    } finally {
+      await lockedEvent.query("ROLLBACK");
+      lockedEvent.release();
+    }
     // A saved tournament snapshot must follow the same display-name rule as the HUD.
     await players.updateNickname(a, "Kostalgia");
     await pool.query("UPDATE players SET nickname = NULL, username = 'SofiComet797' WHERE id = $1", [b]);

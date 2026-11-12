@@ -447,7 +447,6 @@ export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: Aren
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingRef = useRef<string | null>(null);
-  const pollInFlightRef = useRef(false);
   const syncRevisionRef = useRef(0);
 
   const initData = getTelegramInitData();
@@ -510,12 +509,25 @@ export function ArenaScreen({ onBack, onOpenTasks, onPlayerSummaryChange }: Aren
   useEffect(() => {
     const shouldPoll = Boolean(initData && pending === null && (match?.status === "active" || queueState));
     if (!shouldPoll) return;
-    const timer = window.setInterval(() => {
-      if (pendingRef.current !== null || pollInFlightRef.current) return;
-      pollInFlightRef.current = true;
-      void syncMatch().catch(() => undefined).finally(() => { pollInFlightRef.current = false; });
-    }, 1_200);
-    return () => window.clearInterval(timer);
+    let inFlight = false;
+    let controller: AbortController | null = null;
+    const poll = () => {
+      if (document.visibilityState !== "visible" || pendingRef.current !== null || inFlight) return;
+      inFlight = true;
+      controller = new AbortController();
+      void syncMatch(controller.signal).catch(() => undefined).finally(() => { inFlight = false; });
+    };
+    const timer = window.setInterval(poll, 1_200);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") poll();
+      else controller?.abort();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      controller?.abort();
+    };
   }, [initData, match?.status, pending, queueState, syncMatch]);
 
   async function queue() {

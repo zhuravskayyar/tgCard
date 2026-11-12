@@ -9,19 +9,35 @@ export class TournamentRequestError extends Error {
   }
 }
 
+const TOURNAMENT_REQUEST_TIMEOUT_MS = 15_000;
+
+async function fetchTournament(path: string, init: RequestInit, signal?: AbortSignal) {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  // A timed-out mutation may still commit on the server, so only reads get a deadline.
+  const timeout = init.method === "POST" ? null : window.setTimeout(abort, TOURNAMENT_REQUEST_TIMEOUT_MS);
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener("abort", abort, { once: true });
+  try {
+    return await fetch(getApiEndpoint(path), { ...init, signal: controller.signal });
+  } finally {
+    if (timeout !== null) window.clearTimeout(timeout);
+    signal?.removeEventListener("abort", abort);
+  }
+}
+
 export async function loadTournament(initData: string, signal?: AbortSignal): Promise<TournamentLobbyView> {
-  const response = await fetch(getApiEndpoint("/api/tournament"), {
+  const response = await fetchTournament("/api/tournament", {
     headers: { Authorization: getPlayerAuthHeader(initData) },
     cache: "no-store",
     credentials: "same-origin",
-    signal,
-  });
+  }, signal);
   if (!response.ok) throw new Error("Tournament is unavailable");
   return response.json() as Promise<TournamentLobbyView>;
 }
 
 async function tournamentRequest<T>(initData: string, path: string, options: { body?: unknown; method?: "GET" | "POST"; signal?: AbortSignal } = {}) {
-  const response = await fetch(getApiEndpoint(path), {
+  const response = await fetchTournament(path, {
     method: options.method ?? "GET",
     headers: {
       Authorization: getPlayerAuthHeader(initData),
@@ -30,8 +46,7 @@ async function tournamentRequest<T>(initData: string, path: string, options: { b
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     cache: "no-store",
     credentials: "same-origin",
-    signal: options.signal,
-  });
+  }, options.signal);
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: { message?: unknown } } | null;
     const code = payload?.error && "code" in payload.error && typeof payload.error.code === "string" ? payload.error.code : "request_failed";
