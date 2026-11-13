@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { clearDragonRaidMembership } from "./dragonRaidService.js";
 import { applyGuildXpCollectionBonus, MAGIC_SOURCE_CARD_CODES } from "@cardastika/game-core";
 import {
   CARD_ELEMENTS,
@@ -251,6 +252,12 @@ function toJournalEntryView(row: JournalRow): GuildJournalEntryView {
   };
 }
 
+/** A player digging the witch treasure cannot leave the guild or be kicked (reference rule). */
+async function assertNotDiggingTreasure(client: TransactionClient, playerId: string) {
+  const digging = await client.query("SELECT 1 FROM guild_witch_treasures WHERE player_id = $1 AND status = 'digging' AND dig_ends_at > NOW()", [playerId]);
+  if (digging.rows.length) throw new GuildDomainError("treasure_digging", "Player is digging the witch treasure");
+}
+
 export class GuildDomainError extends Error {
   constructor(
     public readonly code: string,
@@ -483,7 +490,7 @@ export class GuildService implements GuildActivityRecorder {
         ? await this.loadApplications(client, guildId)
         : [];
       const dashboard = await this.loadGuildDashboard(client, guildId, guild.level, memberRows.rowCount ?? memberRows.rows.length);
-      const altar = await this.altar.getView(client, viewerId);
+      const altar = await this.altar.getView(client, viewerId, guildId);
       const treasury = await this.treasury.getView(client, viewerId, guildId);
       return {
         altar,
@@ -955,6 +962,8 @@ export class GuildService implements GuildActivityRecorder {
       const actor = await this.lockMember(client, playerId, guildId);
       const target = await this.lockMember(client, targetPlayerId, guildId);
       if (!actor || !target || !canKickGuildMember(actor.role, target.role)) throw new GuildDomainError("guild_permission_denied", "You cannot remove this member", 403);
+      await assertNotDiggingTreasure(client, targetPlayerId);
+      await clearDragonRaidMembership(client, guildId, targetPlayerId);
       await client.query("DELETE FROM guild_members WHERE guild_id = $1 AND player_id = $2", [guildId, targetPlayerId]);
       await this.upsertCooldown(client, targetPlayerId, guildId, "kicked", nowPlusHours(GUILD_CONFIG.kickCooldownHours));
       await this.logEvent(client, guildId, "member_kicked", playerId, targetPlayerId, null, null, "Учасника виключено");
@@ -980,6 +989,8 @@ export class GuildService implements GuildActivityRecorder {
         if (Number(count.rows[0]?.count ?? 0) > 1) throw new GuildDomainError("leader_transfer_required", "Leader must transfer leadership before leaving");
         throw new GuildDomainError("leader_must_dissolve", "The sole leader must dissolve the guild instead");
       }
+      await assertNotDiggingTreasure(client, playerId);
+      await clearDragonRaidMembership(client, guildId, playerId);
       await client.query("DELETE FROM guild_members WHERE guild_id = $1 AND player_id = $2", [guildId, playerId]);
       await this.upsertCooldown(client, playerId, guildId, "left", nowPlusHours(GUILD_CONFIG.leaveCooldownHours));
       await this.logEvent(client, guildId, "member_left", playerId, playerId, null, null, "Вийшов з гільдії");

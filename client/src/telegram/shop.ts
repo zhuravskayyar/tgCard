@@ -11,6 +11,10 @@ import {
   type ShopCardInfoResponse,
   type ShopOffer,
   type ShopPurchaseResponse,
+  type HolidayBundlePurchaseResponse,
+  type HolidayShopBundle,
+  type HolidayShopEvent,
+  type HolidayShopResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
@@ -292,4 +296,67 @@ export async function redeemLimitedCard(
     throw new ShopApiError(502, "invalid_response");
   }
   return value as LimitedCardRedeemResponse;
+}
+
+function isHolidayBundle(value: unknown): value is HolidayShopBundle {
+  if (!value || typeof value !== "object") return false;
+  const bundle = value as Record<string, unknown>;
+  return (
+    typeof bundle.id === "string" &&
+    typeof bundle.displayName === "string" &&
+    typeof bundle.collectionName === "string" &&
+    isPositiveInteger(bundle.cardCount) &&
+    typeof bundle.rarity === "string" && CARD_RARITIES.some((rarity) => rarity === bundle.rarity) &&
+    typeof bundle.currency === "string" && SHOP_CURRENCIES.some((currency) => currency === bundle.currency) &&
+    isPositiveInteger(bundle.price) &&
+    isPositiveInteger(bundle.purchaseLimit) &&
+    isNonNegativeInteger(bundle.purchased) &&
+    typeof bundle.canAfford === "boolean"
+  );
+}
+
+function isHolidayEvent(value: unknown): value is HolidayShopEvent {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Record<string, unknown>;
+  return (
+    typeof event.id === "string" &&
+    typeof event.displayName === "string" &&
+    typeof event.description === "string" &&
+    typeof event.active === "boolean" &&
+    typeof event.startsAt === "string" && !Number.isNaN(Date.parse(event.startsAt)) &&
+    typeof event.endsAt === "string" && !Number.isNaN(Date.parse(event.endsAt)) &&
+    Array.isArray(event.bundles) && event.bundles.every(isHolidayBundle)
+  );
+}
+
+export async function loadHolidayShop(initData: string, signal: AbortSignal): Promise<HolidayShopResponse> {
+  const response = await fetch(getApiEndpoint("/api/shop/holidays"), {
+    headers: { Authorization: getPlayerAuthHeader(initData) },
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<HolidayShopResponse> | null;
+  if (!Array.isArray(value?.holidays) || !value.holidays.every(isHolidayEvent)) throw new ShopApiError(502, "invalid_response");
+  return value as HolidayShopResponse;
+}
+
+export async function purchaseHolidayBundle(initData: string, bundleId: string, signal: AbortSignal): Promise<HolidayBundlePurchaseResponse> {
+  const response = await fetch(getApiEndpoint("/api/shop/holidays/purchase"), {
+    method: "POST",
+    headers: {
+      Authorization: getPlayerAuthHeader(initData),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ bundleId }),
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<HolidayBundlePurchaseResponse> | null;
+  const purchase = parseBundlePurchase(value);
+  if (typeof value?.bundleId !== "string" || !isPositiveInteger(value.purchased)) throw new ShopApiError(502, "invalid_response");
+  return { ...purchase, bundleId: value.bundleId, purchased: Number(value.purchased) };
 }

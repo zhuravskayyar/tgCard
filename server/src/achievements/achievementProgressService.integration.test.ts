@@ -53,7 +53,7 @@ test("achievement progress reads collected player statistics and leaves untracke
     assert.equal(statistics.witchVictories, 1);
     assert.ok(statistics.deckPower !== null && statistics.deckPower >= 0);
     assert.equal(statistics.urfinBossDamage, null);
-    assert.equal(statistics.guildDragonHunts, null);
+    assert.equal(statistics.guildDragonHunts, 0);
     assert.equal(statistics.giftsSent, null);
 
     const observed = new AchievementProgressService(

@@ -150,3 +150,42 @@ export interface CardWorkshopCraftResponse {
   shardsSpent: number;
   success: true;
 }
+
+/** A holiday bundle: `cardCount` distinct random cards of one collection at a fixed rarity. */
+export interface HolidayShopBundle {
+  canAfford: boolean;
+  cardCount: number;
+  collectionName: string;
+  currency: ShopCurrency;
+  displayName: string;
+  id: string;
+  price: number;
+  purchaseLimit: number;
+  purchased: number;
+  rarity: CardRarity;
+}
+
+/** One yearly occurrence of a holiday; `endsAt` is exclusive. */
+export interface HolidayShopEvent {
+  active: boolean;
+  bundles: HolidayShopBundle[];
+  description: string;
+  displayName: string;
+  endsAt: string;
+  id: string;
+  startsAt: string;
+}
+
+/** Active holidays first, then the next upcoming one so the tab is never blank. */
+export interface HolidayShopResponse {
+  holidays: HolidayShopEvent[];
+}
+
+export interface HolidayBundlePurchaseRequest {
+  bundleId: string;
+}
+
+export interface HolidayBundlePurchaseResponse extends ShopBundlePurchaseResponse {
+  bundleId: string;
+  purchased: number;
+}

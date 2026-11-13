@@ -195,13 +195,7 @@ export {
   isBattlePassMilestoneClaimable,
   type BattlePassThreshold,
 } from "./battlePass.js";
-export {
-  calculateGuildRaidCurrencyReward,
-  getGuildRaidCurrencyRewardPercentage,
-  GUILD_RAID_BASE_GOLD_REWARD,
-  GUILD_RAID_BASE_SILVER_REWARD,
-  GUILD_RAID_REWARD_CARD_LEVEL_OFFSET,
-} from "./guildRaid.js";
+export * from "./guildRaid.js";
 export {
   calculateEquipmentSummary,
   EQUIPMENT_COLLECTION_ELEMENT_BONUSES,
@@ -292,3 +286,4 @@ export {
 } from "./guildForumReference.js";
 
 export { getDominantDeckElement } from "./deckElement.js";
+export * from "./dragonRaid.js";

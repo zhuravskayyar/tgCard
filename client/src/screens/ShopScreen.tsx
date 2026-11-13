@@ -20,6 +20,8 @@ import { SHOP_CATEGORIES, type ShopCategory, type ShopCategoryId } from "../shop
 import { ShopBoostSection } from "../components/ShopBoostSection";
 import { ShopBundleBanner } from "../components/ShopBundleBanner";
 import { SHOP_BUNDLES } from "../shop/shopBundles";
+import { HolidayShopSection } from "../components/HolidayShopSection";
+import type { ShopBundlePurchaseResponse } from "@cardastika/shared";
 
 interface ShopScreenProps {
   onBack: () => void;
@@ -53,18 +55,20 @@ interface ShopSectionHeadingProps {
   children: string;
 }
 
-type ShopSection = "cards" | "workshop" | "chests" | "cosmetics" | "boosts";
+type ShopSection = "cards" | "workshop" | "holidays" | "chests" | "cosmetics" | "boosts";
 type ShopView = "categories" | "section";
 type ShopDetail = { offerId: string; card?: { id: string; rarity: CardRarity } };
 type ShopReveal =
   | { kind: "bundle"; bundleId: string; purchases: ShopPurchaseResponse[] }
   | { kind: "forge"; purchases: ShopPurchaseResponse[] }
+  | { kind: "holiday"; purchases: ShopPurchaseResponse[] }
   | { kind: "offer"; offerId: string; purchases: ShopPurchaseResponse[] };
 
 // The card workshop tab is hidden by the owner's decision (2026-11-12) until its replacement is designed;
 // its section code stays so it can return. Do not restore the tab without asking.
-const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil"; id: "cards" | "workshop"; label: string }> = [
+const shopTabs: Array<{ icon: "shop-universal-card" | "shop-anvil" | "star"; id: "cards" | "workshop" | "holidays"; label: string }> = [
   { icon: "shop-universal-card", id: "cards", label: "Карти стихій" },
+  { icon: "star", id: "holidays", label: "Свята" },
 ];
 
 /** A handful of gold motes drifting over the shop counter. */
@@ -213,7 +217,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
         continueLabel={reveal.kind === "forge" ? "До майстерні" : continueLabel}
         forged={reveal.kind === "forge"}
         errorMessage={purchaseErrorCode ? purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку." : null}
-        onBuyAgain={reveal.kind === "forge" ? undefined : () => reveal.kind === "offer" ? void handlePurchase(reveal.offerId) : void handleBundlePurchase(reveal.bundleId)}
+        onBuyAgain={reveal.kind === "forge" || reveal.kind === "holiday" ? undefined : () => reveal.kind === "offer" ? void handlePurchase(reveal.offerId) : void handleBundlePurchase(reveal.bundleId)}
         onBuyTen={reveal.kind === "offer" ? () => void handleBatchPurchase(reveal.offerId) : undefined}
         onContinue={() => {
           const reward = reveal.purchases[0]?.reward;
@@ -282,6 +286,15 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
   async function handleBundlePurchase(bundleId: string) {
     const result = await purchaseBundle(bundleId);
     if (!result) return;
+    setReveal({ kind: "bundle", bundleId, purchases: revealBundle(result) });
+  }
+
+  function handleHolidayPurchased(result: ShopBundlePurchaseResponse) {
+    setReveal({ kind: "holiday", purchases: revealBundle(result) });
+  }
+
+  /** A bundle reveals card by card; deck and collection changes ride on its last card. */
+  function revealBundle(result: ShopBundlePurchaseResponse) {
     const discoveryIds = new Set(result.newDiscoveryCardIds);
     const lastIndex = result.rewards.length - 1;
     const purchases: ShopPurchaseResponse[] = result.rewards.map((reward, index) => ({
@@ -295,7 +308,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
       ...(index === lastIndex && result.deckPower !== undefined ? { deckPower: result.deckPower } : {}),
     }));
     applyPurchaseResult(purchases[lastIndex]);
-    setReveal({ kind: "bundle", bundleId, purchases });
+    return purchases;
   }
 
   const errorMessage = purchaseErrorCode
@@ -327,7 +340,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
     view === "section" &&
     activeCategory === "magical-cards" &&
     shopTabs.length > 1 &&
-    (section === "cards" || section === "workshop");
+    (section === "cards" || section === "workshop" || section === "holidays");
 
   if (detail) {
     const offer = catalogState.status === "ready" ? catalogState.catalog.offers.find((item) => item.id === detail.offerId) : null;
@@ -382,6 +395,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
       </div> : null}
 
       {view === "section" && section === "workshop" ? <CardWorkshopSection onCrafted={handleCrafted} /> : null}
+      {view === "section" && section === "holidays" ? <HolidayShopSection balance={player ?? undefined} onPurchased={handleHolidayPurchased} /> : null}
       {view === "section" && section === "chests" ? <EquipmentChestSection onInventoryChange={onEquipmentInventoryChange} onSilverChange={(silver) => onBalanceChange({ silver })} silver={playerSummaryState.status === "ready" ? playerSummaryState.data.silver : 0} /> : null}
       {view === "section" && section === "cosmetics" ? <NicknameSkinShopPanel nickname={nickname} onBalanceChange={onBalanceChange} onEquippedSkinChange={onEquippedSkinChange} /> : null}
       {view === "section" && section === "boosts" ? <ShopBoostSection onBack={handleShopBack} onOpenDeck={onOpenDeck} onOpenTasks={onOpenTasks} player={player} /> : null}

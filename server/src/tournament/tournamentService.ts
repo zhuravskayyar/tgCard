@@ -66,6 +66,7 @@ import { createMagicSourceInstance, createStandardCardInstance, CryptoCardRandom
 import { ChatChannel } from "../chat/chatChannel.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
 import { loadDuelParticipant, toGuildDuelCard } from "../duel/duelService.js";
+import { loadActiveAltarHpPct } from "../guild/altarService.js";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { PlayerPersistenceError, PlayerRepository } from "../users/playerRepository.js";
 
@@ -476,7 +477,9 @@ export class TournamentService {
         const guildCard = toGuildDuelCard(participant.guildCard);
         // Additional cards fight in the tournament and count towards its HP.
         const deck = guildCard ? [...participant.snapshot.cards, guildCard] : participant.snapshot.cards;
-        const side = { ...participant.snapshot, cards: deck };
+        // Altar potions bought today add HP in the tournament (reference: «Алтарь гильдии»).
+        const altarHpPct = await loadActiveAltarHpPct(client, playerId);
+        const side = { ...participant.snapshot, cards: deck, modifiers: { ...participant.snapshot.modifiers, battleHpPct: participant.snapshot.modifiers.battleHpPct + altarHpPct } };
         if (this.sparringPartner && participant.player.first_name === SPARRING_TELEGRAM_USER.firstName) {
           side.name = participant.player.first_name;
         }

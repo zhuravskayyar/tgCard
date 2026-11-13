@@ -53,7 +53,7 @@ async function authenticatePlayer(request: IncomingMessage, dependencies: RouteA
   return (await authenticateRoutePlayer(request, dependencies)).player;
 }
 
-function sendShopError(
+export function sendShopError(
   response: ServerResponse,
   error: unknown,
   responseHeaders: OutgoingHttpHeaders,

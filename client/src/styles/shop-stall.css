@@ -1379,3 +1379,6 @@
   .shop-pack-sheen::after { animation: none; opacity: .5; }
 }
 :root[data-game-theme="light"] body .app-shell .app-content .workshop-card__meta { overflow: visible; line-height: 1.2; text-overflow: clip; white-space: normal; }
+
+/* «Свята»: holiday dates and the line under the holiday title, in the shelf label ink. */
+:root[data-game-theme="light"] body .app-shell .app-content .shop-holiday__note { margin: -2px 0 0; color: #5f4024; font-size: 13px; line-height: 1.3; text-align: center; }

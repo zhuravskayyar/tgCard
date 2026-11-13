@@ -1,0 +1,15 @@
+/* The shaded art takes the image's place; it is a little larger so sparks can leave the silhouette. */
+.element-art {
+  position: absolute;
+  inset: -12.5%;
+  width: 125%;
+  height: 125%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+
+.element-art.is-active { opacity: 1; }
+
+/* The plain image stays until the shader is ready, then keeps the box size for the layout. */
+.element-art__fallback.is-hidden { visibility: hidden; }

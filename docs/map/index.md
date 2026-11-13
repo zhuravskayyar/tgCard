@@ -25,7 +25,7 @@
 | Арена | [[arena]] | `ArenaScreen.tsx`, `game-core/src/arena.ts` |
 | Турнір | [[tournament]] | `tournamentPvp.ts`, `screens/tournament/` |
 | Кампанія | [[campaign]] | `CampaignScreens.tsx` |
-| Гільдія | [[guild-mvp]] | `screens/guild/`, `guildRaid.ts` |
+| Гільдія | [[guild-mvp]] | `screens/guild/`, `guildRaid.ts`; рейди на зміїв — `dragonRaidService.ts`, `game-core/src/dragonRaid.ts`, `GuildDragonScreen.tsx`; відьми й скарб — `guildRaidService.ts`; алтар — `altarService.ts` |
 | Колекції | [[collections]] | `collectionModifiers.ts`, `catalogData.generated.ts` |
 | Карти, прокачка | [[card-progression]] · [[card-catalog-v2]] · [[game-rules]] | `cardProgression.ts`, `deckBalance.ts`; «Поглинути слабкі» — `selectBulkAbsorption` + `absorb-weak` у `cardProgressionService.ts`; джерела магії `el_*`: `isMagicSourceCode`, сила 1, `createMagicSourceInstance`, видача за турнір; інші канали ще ні — [[card-progression]] |
 | Арт карт | [[card-art-workflow]] | |
@@ -34,8 +34,10 @@
 | Щоденні нагороди | [[daily-login-rewards]] | `dailyRewardsService.ts` |
 | Косметика | [[cosmetics]] | |
 | Референс гільдії | [[reference-elem-guild]] | правила гільдії, казни й досвіду з довідника elem.mobi; `treasuryService.ts`, `guildService.ts` |
+| Референс рейдів | [[reference-elem-raids]] | 8 рейдів на драконів (лігва, респаун, очки драконоборця) і відьми 1–25 (лікування, прокляття, клад, вівтар); наш код — `guildRaidService.ts` |
 | Референс бонусів колекцій | [[reference-elem-collections]] | правила кожної колекції з довідника elem.mobi; `collectionModifiers.ts`, `equipment.ts` |
 | Налаштування профілю | [[reference-profile-settings]] | референс: анкета, аватар, облік, оформлення; `avatarCatalog.ts` |
+| Магазин: Свята | [[holiday-shop]] | календар і набори в `shop_holidays`, міграція 089; `holidayShopService.ts`, `HolidayShopSection.tsx` |
 | Бустери | [[booster-preview]] | `client/src/booster/` |
 | UI-система | [[ui-system]] · [[ui]] | спільні компоненти `client/src/components/` |
 | Telegram | [[telegram]] | клієнт `client/src/telegram/`, auth `server/src/auth/` |

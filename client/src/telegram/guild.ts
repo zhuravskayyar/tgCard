@@ -14,8 +14,14 @@ import type {
   GuildTreasuryCurrency,
   GuildRaidActionRequest,
   GuildRaidView,
+  GuildDragonActionRequest,
+  GuildDragonRaidListView,
+  GuildDragonRaidView,
   GuildRole,
   UpdateGuildSettingsRequest,
+  ChatMessage,
+  ChatView,
+  GuildRaidStatusView,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getTelegramInitData, getPlayerAuthHeader } from "./index";
@@ -31,7 +37,7 @@ export class GuildApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: { body?: unknown; method?: "DELETE" | "GET" | "PATCH" | "POST" } = {}) {
+async function request<T>(path: string, options: { body?: unknown; method?: "DELETE" | "GET" | "PATCH" | "POST"; signal?: AbortSignal } = {}) {
   const credential = getTelegramInitData();
   if (!credential) throw new GuildApiError(401, "authentication_required");
   const response = await fetch(getApiEndpoint(path), {
@@ -43,6 +49,7 @@ async function request<T>(path: string, options: { body?: unknown; method?: "DEL
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     cache: "no-store",
     credentials: "same-origin",
+    ...(options.signal ? { signal: options.signal } : {}),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { error?: { code?: unknown; retryAt?: unknown } } | null;
@@ -114,6 +121,73 @@ export function startGuildRaidBattle(guildId: string) {
 
 export function submitGuildRaidAction(guildId: string, battleId: string, body: GuildRaidActionRequest) {
   return request<GuildRaidView>(`/api/guilds/${encodeURIComponent(guildId)}/raid/battle/${encodeURIComponent(battleId)}/action`, { method: "POST", body });
+}
+
+export function swapGuildRaidCards(guildId: string, battleId: string, expectedVersion: number) {
+  return request<GuildRaidView>(`/api/guilds/${encodeURIComponent(guildId)}/raid/battle/${encodeURIComponent(battleId)}/swap`, { method: "POST", body: { expectedVersion } });
+}
+
+export function decideGuildRaidTreasure(guildId: string, treasureId: string, dig: boolean) {
+  return request<GuildRaidView>(`/api/guilds/${encodeURIComponent(guildId)}/raid/treasure/${encodeURIComponent(treasureId)}/${dig ? "dig" : "decline"}`, { method: "POST" });
+}
+
+export function loadMyRaidStatus() {
+  return request<{ raid: GuildRaidStatusView }>("/api/guilds/raid-status");
+}
+
+/** Raid chat: «witches» or a lair code. The signature fits the shared GameChat. */
+function raidChatPath(guildId: string, channel: string) {
+  return channel === "witches"
+    ? `/api/guilds/${encodeURIComponent(guildId)}/raid/chat`
+    : `/api/guilds/${encodeURIComponent(guildId)}/dragons/${encodeURIComponent(channel)}/chat`;
+}
+
+export function loadGuildRaidChat(guildId: string, channel: string, signal?: AbortSignal) {
+  return request<ChatView>(raidChatPath(guildId, channel), signal ? { signal } : {});
+}
+
+export function sendGuildRaidChatMessage(guildId: string, channel: string, body: string) {
+  return request<ChatMessage>(raidChatPath(guildId, channel), { method: "POST", body: { body } });
+}
+
+function dragonPath(guildId: string, lairCode?: string) {
+  return `/api/guilds/${encodeURIComponent(guildId)}/dragons${lairCode ? `/${encodeURIComponent(lairCode)}` : ""}`;
+}
+
+export function loadGuildDragonLairs(guildId: string) {
+  return request<GuildDragonRaidListView>(dragonPath(guildId));
+}
+
+export function loadGuildDragonRaid(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidView>(dragonPath(guildId, lairCode));
+}
+
+export function enrollGuildDragonRaid(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/enroll`, { method: "POST" });
+}
+
+export function leaveGuildDragonRaid(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/enroll`, { method: "DELETE" });
+}
+
+export function startGuildDragonRaid(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/start`, { method: "POST" });
+}
+
+export function startGuildDragonBattle(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/battle`, { method: "POST" });
+}
+
+export function submitGuildDragonAction(guildId: string, lairCode: string, battleId: string, body: GuildDragonActionRequest) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/battle/${encodeURIComponent(battleId)}/action`, { method: "POST", body });
+}
+
+export function swapGuildDragonCards(guildId: string, lairCode: string, battleId: string, expectedVersion: number) {
+  return request<GuildDragonRaidView>(`${dragonPath(guildId, lairCode)}/battle/${encodeURIComponent(battleId)}/swap`, { method: "POST", body: { expectedVersion } });
+}
+
+export function upgradeGuildDragonLair(guildId: string, lairCode: string) {
+  return request<GuildDragonRaidListView>(`${dragonPath(guildId, lairCode)}/upgrade`, { method: "POST" });
 }
 
 export function setGuildCard(guildId: string, instanceId: string) {

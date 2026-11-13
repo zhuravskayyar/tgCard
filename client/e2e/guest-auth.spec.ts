@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+// Outside Telegram the game opens in English; these checks read the Ukrainian interface.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem("cardastika.locale.v1")) localStorage.setItem("cardastika.locale.v1", "uk"); });
+});
+
 const guestPlayer = {
   id: "00000000-0000-4000-8000-000000000901",
   firstName: "Сірий маг #48271",

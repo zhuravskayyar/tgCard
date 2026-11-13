@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "./components/AppShell";
+import { RaidStatusBanner } from "./components/RaidStatusBanner";
 import { usePlayerSummary } from "./hooks/usePlayerSummary";
 import { HomeScreen } from "./screens/HomeScreen";
 import { TournamentScreen } from "./screens/TournamentScreen";
@@ -141,6 +142,7 @@ export function App() {
   const equipmentSaveInFlightRef = useRef(false);
   const [deckPowerOverride, setDeckPowerOverride] = useState<number | undefined>(undefined);
   const [guildOpenKey, setGuildOpenKey] = useState(0);
+  const [guildInitialTab, setGuildInitialTab] = useState<"raids" | null>(null);
   const [dailyLoginDismissedDate, setDailyLoginDismissedDate] = useState<string | null>(null);
   const [dailyLoginClaimedDate, setDailyLoginClaimedDate] = useState<string | null>(null);
   const [campaignBossLocation, setCampaignBossLocation] = useState<number | null>(() => {
@@ -539,6 +541,14 @@ export function App() {
 
   function openGuild() {
     if (campaignTraining) { openCampaign(); return; }
+    setGuildInitialTab(null);
+    setGuildOpenKey((value) => value + 1);
+    setScreen("guild");
+    updatePath("/guild");
+  }
+
+  function openGuildRaids() {
+    setGuildInitialTab("raids");
     setGuildOpenKey((value) => value + 1);
     setScreen("guild");
     updatePath("/guild");
@@ -655,6 +665,7 @@ export function App() {
     if (item === "home") { setScreen("home"); updatePath("/"); }
     if (item === "profile") { setScreen("profile"); updatePath("/profile"); }
     if (item === "guild") {
+      setGuildInitialTab(null);
       setGuildOpenKey((value) => value + 1);
       setScreen("guild");
       updatePath("/guild");
@@ -696,6 +707,7 @@ export function App() {
       overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
       modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
     >
+      {screen !== "guild" && !tutorial.isActive ? <RaidStatusBanner onOpen={openGuildRaids} screenKey={screen} /> : null}
       {screen === "material-lab" && MaterialLab ? <Suspense fallback={<p role="status">Завантаження…</p>}><MaterialLab onBack={goHome} /></Suspense> : null}
       {screen === "booster-preview" && BoosterPreview ? <Suspense fallback={<p role="status">Готуємо майстерню…</p>}><BoosterPreview onBack={goHome} /></Suspense> : null}
       {screen === "home" ? (
@@ -720,7 +732,7 @@ export function App() {
       ) : null}
       {screen === "tasks" ? <TasksScreen onBack={goHome} onNavigateTrial={navigateFromTrials} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
-      {screen === "guild" ? <GuildScreen key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
+      {screen === "guild" ? <GuildScreen initialTab={guildInitialTab} key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
       {screen === "duel" && tutorialRewardCard ? (
         <ShopRewardReveal

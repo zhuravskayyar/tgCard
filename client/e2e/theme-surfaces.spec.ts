@@ -1,5 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// Outside Telegram the game opens in English; these checks read the Ukrainian interface.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem("cardastika.locale.v1")) localStorage.setItem("cardastika.locale.v1", "uk"); });
+});
+
 async function openScreen(page: Page, path: string) {
   await page.goto(path);
   await expect(page.locator(".top-hud")).toContainText("dev_leader");
@@ -34,8 +39,12 @@ test("parchment theme keeps screens, artwork and the player shell usable at mobi
           content: document.documentElement.scrollWidth,
         }));
         expect(layout.content, `${width}px ${path}`).toBeLessThanOrEqual(layout.viewport);
-        if (path !== "/") await expect(page.locator(".screen-heading").first()).toBeVisible();
-        if (path === "/duel") {
+        // /duel resumes a live battle (no heading) or shows the cooldown plate instead of the search panel.
+        if (path === "/duel") await page.locator(".duel-battle, .duel-search-experience, .duel-cooldown-panel").first().waitFor();
+        const duelSearching = path === "/duel" && await page.locator(".duel-search-experience").count() > 0;
+        const duelResumed = path === "/duel" && await page.locator(".duel-battle").count() > 0;
+        if (path !== "/" && !duelResumed) await expect(page.locator(".screen-heading").first()).toBeVisible();
+        if (duelSearching) {
           const panel = page.locator(".duel-search-experience");
           await expect(panel).toBeVisible();
           await expect(panel).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
@@ -70,7 +79,7 @@ test("shared heading back buttons preserve the deck and card return routes", asy
   await openScreen(page, "/deck");
   await page.locator(".deck-grid button").first().click();
   await expect(page.locator(".card-detail-screen")).toBeVisible();
-  const ink = await page.locator(".card-protection-toggle > span:not(.card-protection-toggle__switch)").evaluate((element) => getComputedStyle(element).color);
+  const ink = await page.locator(".seal-toggle__label").evaluate((element) => getComputedStyle(element).color);
   expect(ink).toBe("rgb(45, 27, 14)");
   const currencyInk = await page.locator(".currency-display__value").first().evaluate((element) => {
     const style = getComputedStyle(element);

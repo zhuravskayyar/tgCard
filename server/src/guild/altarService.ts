@@ -1,3 +1,4 @@
+import { getAltarPotions, WITCH_RAID_MIN_GUILD_LEVEL } from "@cardastika/game-core";
 import type {
   GuildAltarCurrency,
   GuildAltarUpgradeResponse,
@@ -8,25 +9,17 @@ import type { Pool, PoolClient } from "pg";
 import { CATALOG_DATA } from "../collections/catalogData.generated.js";
 import { hasCompletedCollection } from "../collections/discoveryService.js";
 
-// The catalog collection whose bonus raises the gold altar upgrade («Чотири чаклунки»).
+// The catalog collection whose bonus raises the gold altar potion («Чотири чаклунки»).
 const altarCollection = CATALOG_DATA.collections.find(({ bonus }) => bonus.type === "altar_gold_levels");
 if (!altarCollection) throw new Error("The catalog has no altar_gold_levels collection");
 export const WITCHES_COLLECTION_ID = `collection_${altarCollection.code}`;
 
-const ALTAR_UPGRADE_DEFINITIONS: Readonly<Record<GuildAltarCurrency, {
-  baseIncrease: 1;
-  name: string;
-  priceMultiplier: number;
-}>> = Object.freeze({
-  gold: Object.freeze({ baseIncrease: 1, name: "Міцний настій", priceMultiplier: 2 }),
-  silver: Object.freeze({ baseIncrease: 1, name: "Сильний настій", priceMultiplier: 1_000 }),
+const POTION_NAMES: Readonly<Record<GuildAltarCurrency, string>> = Object.freeze({
+  gold: "Міцний настій",
+  silver: "Сильний настій",
 });
 
-interface AltarPlayerRow {
-  altar_level: string | number;
-  gold: string | number;
-  silver: string | number;
-}
+type Database = Pick<PoolClient, "query">;
 
 function toNonNegativeInteger(value: string | number, field: string) {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -34,41 +27,74 @@ function toNonNegativeInteger(value: string | number, field: string) {
   return parsed;
 }
 
-function altarPrice(level: number, currency: GuildAltarCurrency) {
-  return Math.max(1, level) * ALTAR_UPGRADE_DEFINITIONS[currency].priceMultiplier;
+function endOfUtcDay(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59)).toISOString();
 }
 
-function createUpgradeView(
-  currentLevel: number,
-  balance: number,
-  currency: GuildAltarCurrency,
-  collectionComplete: boolean,
-): GuildAltarUpgradeView {
-  const definition = ALTAR_UPGRADE_DEFINITIONS[currency];
-  const collectionBonus = currency === "gold" && collectionComplete ? 2 : 0;
-  return {
-    canAfford: balance >= altarPrice(currentLevel, currency),
-    collectionBonus,
-    currency,
-    name: definition.name,
-    price: altarPrice(currentLevel, currency),
-    totalIncrease: definition.baseIncrease + collectionBonus,
-  };
-}
-
+/**
+ * Altar (reference): its level is the highest witch level the guild beat last week. Each day a
+ * player may buy potions that add HP in mass war battles and tournaments until 23:59:59.
+ */
 export function buildGuildAltarView(
-  currentLevel: number,
+  lastWeekLevel: number,
   gold: number,
   silver: number,
   collectionComplete: boolean,
+  guildLevel = WITCH_RAID_MIN_GUILD_LEVEL,
+  bought: readonly { currency: GuildAltarCurrency; hpPct: number }[] = [],
 ): GuildAltarView {
-  return {
-    currentLevel,
-    upgrades: [
-      createUpgradeView(currentLevel, gold, "gold", collectionComplete),
-      createUpgradeView(currentLevel, silver, "silver", collectionComplete),
-    ],
+  const potions = getAltarPotions(lastWeekLevel, collectionComplete);
+  const unlocked = guildLevel >= WITCH_RAID_MIN_GUILD_LEVEL;
+  const upgrade = (currency: GuildAltarCurrency): GuildAltarUpgradeView => {
+    const potion = potions[currency];
+    const balance = currency === "gold" ? gold : silver;
+    return {
+      canAfford: unlocked && potions.level > 0 && balance >= potion.price && !bought.some((entry) => entry.currency === currency),
+      collectionBonus: currency === "gold" && collectionComplete && potions.level > 0 ? 2 : 0,
+      currency,
+      hpPct: potion.hpPct,
+      name: POTION_NAMES[currency],
+      price: potion.price,
+      totalIncrease: potion.hpPct,
+    };
   };
+  const strongest = [...bought].sort((left, right) => right.hpPct - left.hpPct)[0];
+  return {
+    active: strongest ? { currency: strongest.currency, expiresAt: endOfUtcDay(), hpPct: bought.reduce((total, entry) => total + entry.hpPct, 0) } : null,
+    currentLevel: potions.level,
+    unlockLevel: WITCH_RAID_MIN_GUILD_LEVEL,
+    unlocked,
+    upgrades: [upgrade("gold"), upgrade("silver")],
+  };
+}
+
+/** Highest witch level the guild beat in the previous raid week. */
+export async function loadLastWeekWitchLevel(database: Database, guildId: string) {
+  const result = await database.query<{ level: number | null }>(
+    `SELECT MAX(results.raid_level) AS level
+     FROM guild_witch_raid_results results
+     INNER JOIN guild_witch_raids raids ON raids.id = results.raid_id
+     WHERE raids.guild_id = $1 AND results.week_key = (date_trunc('week', CURRENT_DATE) - INTERVAL '7 days')::date`,
+    [guildId],
+  );
+  return result.rows[0]?.level ?? 0;
+}
+
+/** HP percent from today's altar potions; tournaments add it to the player's HP. */
+export async function loadActiveAltarHpPct(database: Database, playerId: string) {
+  const result = await database.query<{ total: string | null }>(
+    "SELECT SUM(hp_pct) AS total FROM player_altar_potions WHERE player_id = $1 AND potion_day = (NOW() AT TIME ZONE 'UTC')::date",
+    [playerId],
+  );
+  return Number(result.rows[0]?.total ?? 0);
+}
+
+async function loadBought(database: Database, playerId: string) {
+  const result = await database.query<{ currency: GuildAltarCurrency; hp_pct: string }>(
+    "SELECT currency, hp_pct FROM player_altar_potions WHERE player_id = $1 AND potion_day = (NOW() AT TIME ZONE 'UTC')::date",
+    [playerId],
+  );
+  return result.rows.map((row) => ({ currency: row.currency, hpPct: Number(row.hp_pct) }));
 }
 
 export class GuildAltarPersistenceError extends Error {
@@ -80,7 +106,7 @@ export class GuildAltarPersistenceError extends Error {
 
 export class GuildAltarDomainError extends Error {
   constructor(
-    public readonly code: "not_guild_member" | "insufficient_gold" | "insufficient_silver",
+    public readonly code: "not_guild_member" | "insufficient_gold" | "insufficient_silver" | "altar_locked" | "altar_empty" | "altar_already_bought",
     message: string,
     public readonly status = code === "not_guild_member" ? 403 : 409,
   ) {
@@ -92,97 +118,73 @@ export class GuildAltarDomainError extends Error {
 export class GuildAltarService {
   constructor(private readonly pool: Pick<Pool, "connect" | "query">) {}
 
-  async getView(database: Pick<PoolClient, "query">, playerId: string): Promise<GuildAltarView> {
-    const playerResult = await database.query<AltarPlayerRow>(
-      "SELECT altar_level, gold, silver FROM players WHERE id = $1",
-      [playerId],
-    );
-    const player = playerResult.rows[0];
+  async getView(database: Database, playerId: string, guildId: string): Promise<GuildAltarView> {
+    const player = (await database.query<{ gold: string; silver: string }>("SELECT gold, silver FROM players WHERE id = $1", [playerId])).rows[0];
     if (!player) throw new Error("Altar player is missing");
-    const currentLevel = toNonNegativeInteger(player.altar_level, "altar level");
-    const gold = toNonNegativeInteger(player.gold, "gold");
-    const silver = toNonNegativeInteger(player.silver, "silver");
+    const guild = (await database.query<{ level: number }>("SELECT level FROM guilds WHERE id = $1", [guildId])).rows[0];
     const collectionComplete = await hasCompletedCollection(database, playerId, WITCHES_COLLECTION_ID);
-    return buildGuildAltarView(currentLevel, gold, silver, collectionComplete);
+    return buildGuildAltarView(
+      await loadLastWeekWitchLevel(database, guildId),
+      toNonNegativeInteger(player.gold, "gold"),
+      toNonNegativeInteger(player.silver, "silver"),
+      collectionComplete,
+      guild?.level ?? 1,
+      await loadBought(database, playerId),
+    );
   }
 
-  async purchase(
-    playerId: string,
-    guildId: string,
-    currency: GuildAltarCurrency,
-  ): Promise<GuildAltarUpgradeResponse> {
+  async purchase(playerId: string, guildId: string, currency: GuildAltarCurrency): Promise<GuildAltarUpgradeResponse> {
     let client: PoolClient;
     try {
       client = await this.pool.connect();
     } catch (error) {
       throw new GuildAltarPersistenceError({ cause: error });
     }
-
     try {
       await client.query("BEGIN");
-      const playerResult = await client.query<AltarPlayerRow>(
-        `
-          SELECT players.altar_level, players.gold, players.silver
-          FROM players
-          INNER JOIN guild_members ON guild_members.player_id = players.id
-          WHERE players.id = $1 AND guild_members.guild_id = $2
-          FOR UPDATE OF players
-        `,
+      const member = await client.query<{ level: number }>(
+        `SELECT guilds.level FROM guild_members INNER JOIN guilds ON guilds.id = guild_members.guild_id
+         WHERE guild_members.player_id = $1 AND guild_members.guild_id = $2`,
         [playerId, guildId],
       );
-      const player = playerResult.rows[0];
-      if (!player) throw new GuildAltarDomainError("not_guild_member", "Player is not a member of this guild", 403);
-      const previousLevel = toNonNegativeInteger(player.altar_level, "altar level");
-      const balance = toNonNegativeInteger(player[currency], currency);
-      const price = altarPrice(previousLevel, currency);
-      if (balance < price) throw new GuildAltarDomainError(
-        currency === "gold" ? "insufficient_gold" : "insufficient_silver",
-        `Insufficient ${currency} for altar upgrade`,
-      );
-      const baseIncrease = ALTAR_UPGRADE_DEFINITIONS[currency].baseIncrease;
+      const guildLevel = member.rows[0]?.level;
+      if (guildLevel === undefined) throw new GuildAltarDomainError("not_guild_member", "Player is not a member of this guild", 403);
+      if (guildLevel < WITCH_RAID_MIN_GUILD_LEVEL) throw new GuildAltarDomainError("altar_locked", `The altar opens at guild level ${WITCH_RAID_MIN_GUILD_LEVEL}`);
+      const level = await loadLastWeekWitchLevel(client, guildId);
+      if (level < 1) throw new GuildAltarDomainError("altar_empty", "The guild beat no witches last week");
+      const previous = await loadBought(client, playerId);
+      if (previous.some((entry) => entry.currency === currency)) throw new GuildAltarDomainError("altar_already_bought", "This potion is already active today");
       const collectionComplete = await hasCompletedCollection(client, playerId, WITCHES_COLLECTION_ID);
-      const collectionBonus = currency === "gold" && collectionComplete ? 2 : 0;
-      const totalIncrease = baseIncrease + collectionBonus;
-      const nextLevel = previousLevel + totalIncrease;
-      const updated = await client.query<AltarPlayerRow>(
-        `
-          UPDATE players
-          SET altar_level = $2,
-              ${currency} = ${currency} - $3,
-              updated_at = NOW()
-          WHERE id = $1 AND ${currency} >= $3
-          RETURNING altar_level, gold, silver
-        `,
-        [playerId, nextLevel, price],
+      const potion = getAltarPotions(level, collectionComplete)[currency];
+      const updated = await client.query<{ gold: string; silver: string }>(
+        `UPDATE players SET ${currency} = ${currency} - $2, updated_at = NOW()
+         WHERE id = $1 AND ${currency} >= $2 RETURNING gold, silver`,
+        [playerId, potion.price],
       );
-      const updatedPlayer = updated.rows[0];
-      if (!updatedPlayer) throw new GuildAltarDomainError(
-        currency === "gold" ? "insufficient_gold" : "insufficient_silver",
-        `Insufficient ${currency} for altar upgrade`,
+      const balance = updated.rows[0];
+      if (!balance) throw new GuildAltarDomainError(currency === "gold" ? "insufficient_gold" : "insufficient_silver", `Insufficient ${currency} for the potion`);
+      await client.query(
+        "INSERT INTO player_altar_potions (player_id, potion_day, currency, hp_pct) VALUES ($1, (NOW() AT TIME ZONE 'UTC')::date, $2, $3)",
+        [playerId, currency, potion.hpPct],
       );
-      const updatedGold = toNonNegativeInteger(updatedPlayer.gold, "gold");
-      const updatedSilver = toNonNegativeInteger(updatedPlayer.silver, "silver");
-      const altar = buildGuildAltarView(
-        nextLevel,
-        updatedGold,
-        updatedSilver,
-        collectionComplete,
-      );
+      const gold = toNonNegativeInteger(balance.gold, "gold");
+      const silver = toNonNegativeInteger(balance.silver, "silver");
+      const bought = [...previous, { currency, hpPct: potion.hpPct }];
+      const altar = buildGuildAltarView(level, gold, silver, collectionComplete, guildLevel, bought);
       await client.query("COMMIT");
       return {
         altar,
-        baseIncrease,
-        collectionBonus,
+        baseIncrease: potion.hpPct,
+        collectionBonus: currency === "gold" && collectionComplete ? 2 : 0,
         currency,
-        newLevel: nextLevel,
-        previousLevel,
-        totalIncrease,
-        updatedBalance: { gold: updatedGold, silver: updatedSilver },
+        newLevel: level,
+        previousLevel: level,
+        totalIncrease: potion.hpPct,
+        updatedBalance: { gold, silver },
       };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
-      if (error instanceof GuildAltarPersistenceError) throw error;
-      if (error instanceof GuildAltarDomainError) throw error;
+      if (error instanceof GuildAltarPersistenceError || error instanceof GuildAltarDomainError) throw error;
       throw new GuildAltarPersistenceError({ cause: error });
     } finally {
       client.release();

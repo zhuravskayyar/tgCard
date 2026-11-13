@@ -16,6 +16,7 @@ interface AchievementProgressRow {
   guild_gold: string | number;
   tournament_championships: string | number;
   witch_victories: string | number;
+  dragon_victories: string | number;
 }
 
 interface AchievementHighWaterRow {
@@ -77,6 +78,10 @@ export class AchievementProgressService {
               SELECT COUNT(*) FROM player_campaign_events events
               WHERE events.player_id = players.id AND events.event_type = 'WITCH_BATTLE_WON'
             ), 0)::bigint AS witch_victories,
+            COALESCE((
+              SELECT COUNT(*) FROM player_campaign_events events
+              WHERE events.player_id = players.id AND events.event_type = 'DRAGON_RAID_WON'
+            ), 0)::bigint AS dragon_victories,
             COALESCE((
               SELECT COUNT(*) FROM player_collection_completions completions
               WHERE completions.player_id = players.id
@@ -149,7 +154,7 @@ export class AchievementProgressService {
           urfinDamageRank: null,
           guildGold: toSafeNumber(row.guild_gold, "guild gold contributions"),
           guildElementDonations: toSafeNumber(row.guild_element_donations, "guild element contributions"),
-          guildDragonHunts: null,
+          guildDragonHunts: toSafeNumber(row.dragon_victories, "dragon victories"),
           guildWarKeys: null,
           guildWarParticipation: null,
           guildExperience: toSafeNumber(row.guild_experience, "guild experience"),

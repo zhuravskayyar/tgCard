@@ -64,3 +64,12 @@ Hand-drawn antique book engraving, fine sepia ink cross-hatching on aged warm pa
 ## 6. Створення гільдії
 
 Файл: `client/public/assets/guild/emblem-unknown-v1.webp`, 512×512. Промпт: `Blank engraved heraldic shield with an empty face, for a not yet chosen crest. <спільний стиль>`
+
+## 7. Настої алтаря (замінюють яскраві `guild-altar-potion-purple.png` і `guild-altar-potion-green.png`)
+
+Файли: `client/public/assets/guild/altar-potion-<code>-v1.webp`, 512×512. Стоять ліворуч у картці настою на пергаменті, тому без рамки й без тіні під собою. Настої відрізняються формою флакона, а не кольором — уся гра в туші й сепії.
+
+| code | Промпт |
+| --- | --- |
+| `strong` | `Squat round-bellied glass potion flask with a short neck, cork stopper sealed with wax and tied with twine, faint swirling liquid inside drawn with ink lines, a small sun sigil engraved on the glass. <спільний стиль>` |
+| `mighty` | `Tall slender glass potion vial with a long narrow neck and a pointed glass stopper, faint liquid with tiny rising bubbles drawn with ink lines, a small crescent moon sigil engraved on the glass. <спільний стиль>` |

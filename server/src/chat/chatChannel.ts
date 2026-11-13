@@ -22,13 +22,21 @@ function toMessage(row: ChatRow): ChatMessage {
 export class ChatChannel {
   constructor(
     private readonly pool: Pick<Pool, "connect" | "query">,
-    private readonly table: "arena_chat_messages" | "tournament_chat_messages",
+    private readonly table: "arena_chat_messages" | "tournament_chat_messages" | "guild_raid_chat_messages",
+    /** Raid chats live in one table and are split by guild and channel. */
+    private readonly scope?: { guildId: string; channel: string },
   ) {}
+
+  private scopeFilter(offset: number) {
+    return this.scope ? { sql: `guild_id = $${offset} AND channel = $${offset + 1}`, values: [this.scope.guildId, this.scope.channel] } : null;
+  }
 
   async read(): Promise<ChatView> {
     try {
+      const filter = this.scopeFilter(1);
       const result = await this.pool.query<ChatRow>(
-        `SELECT id, author, body, created_at FROM ${this.table} ORDER BY created_at DESC, id DESC LIMIT ${CHAT_PAGE_SIZE}`,
+        `SELECT id, author, body, created_at FROM ${this.table}${filter ? ` WHERE ${filter.sql}` : ""} ORDER BY created_at DESC, id DESC LIMIT ${CHAT_PAGE_SIZE}`,
+        filter?.values ?? [],
       );
       return { messages: result.rows.reverse().map(toMessage) };
     } catch (cause) {
@@ -52,12 +60,19 @@ export class ChatChannel {
       if (recent.rows[0] && Date.now() - new Date(recent.rows[0].created_at).getTime() < CHAT_COOLDOWN_MS) {
         throw new ChatError(429, "chat_rate_limited", "Wait a moment before sending another message");
       }
-      const inserted = await client.query<ChatRow>(`
-        INSERT INTO ${this.table} (player_id, author, body)
-        SELECT id, LEFT(COALESCE(NULLIF(BTRIM(nickname), ''), NULLIF(BTRIM(username), ''), first_name), 24), $2
-        FROM players WHERE id = $1
-        RETURNING id, author, body, created_at
-      `, [playerId, body]);
+      const inserted = this.scope
+        ? await client.query<ChatRow>(`
+          INSERT INTO ${this.table} (player_id, author, body, guild_id, channel)
+          SELECT id, LEFT(COALESCE(NULLIF(BTRIM(nickname), ''), NULLIF(BTRIM(username), ''), first_name), 24), $2, $3, $4
+          FROM players WHERE id = $1
+          RETURNING id, author, body, created_at
+        `, [playerId, body, this.scope.guildId, this.scope.channel])
+        : await client.query<ChatRow>(`
+          INSERT INTO ${this.table} (player_id, author, body)
+          SELECT id, LEFT(COALESCE(NULLIF(BTRIM(nickname), ''), NULLIF(BTRIM(username), ''), first_name), 24), $2
+          FROM players WHERE id = $1
+          RETURNING id, author, body, created_at
+        `, [playerId, body]);
       const row = inserted.rows[0];
       if (!row) throw new ChatError(404, "player_missing", "Player not found");
       await client.query("COMMIT");

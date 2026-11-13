@@ -22,9 +22,10 @@ export async function createStandardCardInstance(
   definition: CardDefinition,
   level: number,
   rng: IntegerRandomSource,
+  fixedBonusPower?: number,
 ): Promise<PlayerCardInstance> {
   const basePower = getBasePowerForLevel(level);
-  const bonusPower = generateStandardBonusPower(basePower, rng);
+  const bonusPower = fixedBonusPower ?? generateStandardBonusPower(basePower, rng);
   const instanceId = randomUUID();
   const result = await client.query(
     `

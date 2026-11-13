@@ -40,6 +40,8 @@ import { InventoryRepository } from "./inventory/inventoryRepository.js";
 import { handlePlayerCards, handleWeakPlayerCards } from "./inventory/playerCardsRoute.js";
 import { handleShopBundlePurchase, handleShopCardInfo, handleShopCatalog, handleShopPurchase } from "./shop/shopRoute.js";
 import { ShopService } from "./shop/shopService.js";
+import { handleHolidayBundlePurchase, handleHolidayShopCatalog } from "./shop/holidayShopRoute.js";
+import { HolidayShopService } from "./shop/holidayShopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
 import { MailService } from "./mail/mailService.js";
 import { handleLeaderboardRequest } from "./leaderboards/leaderboardRoute.js";
@@ -80,6 +82,9 @@ import { handleGuildRequest } from "./guild/guildRoute.js";
 import { GuildService } from "./guild/guildService.js";
 import { GuildForumService } from "./guild/guildForumService.js";
 import { GuildRaidService } from "./guild/guildRaidService.js";
+import { GuildDragonRaidService } from "./guild/dragonRaidService.js";
+import { GuildRaidChats } from "./guild/raidChat.js";
+import { GuildRaidStatusService } from "./guild/raidStatus.js";
 import { AdminAuthService } from "./admin/adminAuth.js";
 import { handleAdminRequest } from "./admin/adminRoute.js";
 import { AdminService } from "./admin/adminService.js";
@@ -95,6 +100,9 @@ const admin = new AdminService(pool);
 const guilds = new GuildService(pool);
 const guildForum = new GuildForumService(pool);
 const guildRaids = new GuildRaidService(pool);
+const guildDragons = new GuildDragonRaidService(pool, Math.random, Date.now, guilds);
+const guildRaidChats = new GuildRaidChats(pool);
+const guildRaidStatus = new GuildRaidStatusService(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const campaign = new CampaignService(pool);
@@ -104,6 +112,7 @@ const referrals = new ReferralService(pool, campaign);
 const limitedCards = new LimitedCardService(pool);
 const equipmentChests = new EquipmentChestService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
+const holidayShop = new HolidayShopService(pool, { campaign });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
 const leaderboards = new LeaderboardRepository(pool);
@@ -250,6 +259,8 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const shopCardInfoMatch = url.pathname.match(/^\/api\/shop\/cards\/info\/([^/]+)$/);
   const isShopPurchaseRoute = url.pathname === "/api/shop/cards/purchase";
   const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
+  const isHolidayShopRoute = url.pathname === "/api/shop/holidays";
+  const isHolidayBundlePurchaseRoute = url.pathname === "/api/shop/holidays/purchase";
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
   const isCardWorkshopCatalogRoute = url.pathname === "/api/shop/card-workshop";
   const isCardWorkshopCraftRoute = url.pathname === "/api/shop/card-workshop/craft";
@@ -279,7 +290,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -525,6 +536,9 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       forum: guildForum,
       guilds,
       raids: guildRaids,
+      dragons: guildDragons,
+      raidChats: guildRaidChats,
+      raidStatus: guildRaidStatus,
       players,
       responseHeaders: cors.headers,
     });
@@ -646,6 +660,28 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       botToken: environment.telegramBotToken,
       players,
       shop,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isHolidayShopRoute) {
+    await handleHolidayShopCatalog(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      holidayShop,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isHolidayBundlePurchaseRoute) {
+    await handleHolidayBundlePurchase(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      holidayShop,
+      players,
       responseHeaders: cors.headers,
     });
     return;

@@ -247,6 +247,7 @@
 
 .shop-tabs .shop-tab--cards { --shop-tab-tone: #e0b354; }
 .shop-tabs .shop-tab--workshop { --shop-tab-tone: #62c1cc; }
+.shop-tabs .shop-tab--holidays { --shop-tab-tone: #d98a5f; }
 
 .shop-tabs .shop-tab .app-icon {
   width: 17px;

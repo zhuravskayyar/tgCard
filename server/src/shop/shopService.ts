@@ -158,7 +158,7 @@ function toInteger(value: string | number, field: string) {
   return parsed;
 }
 
-function toBalance(row: PlayerBalanceRow): PlayerBalance {
+export function toBalance(row: Pick<PlayerBalanceRow, "gold" | "silver">): PlayerBalance {
   return {
     silver: toNonNegativeInteger(row.silver, "silver"),
     gold: toNonNegativeInteger(row.gold, "gold"),
@@ -218,7 +218,7 @@ function toPlayerFacingOffer(
   };
 }
 
-async function loadCurrentDeckPower(client: PoolClient, playerId: string) {
+export async function loadCurrentDeckPower(client: PoolClient, playerId: string) {
   const result = await client.query<DeckPowerCardRow>(
     `
       SELECT player_card_instances.level, player_card_instances.bonus_power

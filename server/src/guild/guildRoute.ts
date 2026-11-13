@@ -15,11 +15,18 @@ import { GuildForumService } from "./guildForumService.js";
 import { GuildAltarDomainError, GuildAltarPersistenceError } from "./altarService.js";
 import { GuildTreasuryDomainError, GuildTreasuryPersistenceError } from "./treasuryService.js";
 import { GuildRaidDomainError, GuildRaidPersistenceError, GuildRaidService } from "./guildRaidService.js";
+import { GuildDragonRaidDomainError, GuildDragonRaidPersistenceError, GuildDragonRaidService } from "./dragonRaidService.js";
+import { GuildRaidChats } from "./raidChat.js";
+import { GuildRaidStatusService } from "./raidStatus.js";
+import { ChatError } from "../chat/chatChannel.js";
 
 interface GuildRouteDependencies extends RouteAuthDependencies {
   forum: GuildForumService;
   guilds: GuildService;
   raids: GuildRaidService;
+  dragons: GuildDragonRaidService;
+  raidChats: GuildRaidChats;
+  raidStatus: GuildRaidStatusService;
   responseHeaders?: OutgoingHttpHeaders;
 }
 
@@ -144,6 +151,19 @@ function sendGuildError(response: ServerResponse, error: unknown, headers: Outgo
     sendJson(response, 503, { error: { code: "database_unavailable", message: "Guild service is unavailable" } }, headers);
     return true;
   }
+  if (error instanceof ChatError) {
+    sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
+    return true;
+  }
+  if (error instanceof GuildDragonRaidDomainError) {
+    sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
+    return true;
+  }
+  if (error instanceof GuildDragonRaidPersistenceError) {
+    console.error("Database unavailable during dragon raid request", error);
+    sendJson(response, 503, { error: { code: "database_unavailable", message: "Guild service is unavailable" } }, headers);
+    return true;
+  }
   if (error instanceof GuildRaidDomainError) {
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
     return true;
@@ -173,6 +193,10 @@ export async function handleGuildRequest(
 
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
+    if (request.method === "GET" && parts.length === 1 && parts[0] === "raid-status") {
+      sendJson(response, 200, { raid: await dependencies.raidStatus.forPlayer(player.id) }, headers);
+      return;
+    }
     if (request.method === "GET" && parts.length === 1 && parts[0] === "mine") {
       sendJson(response, 200, await dependencies.guilds.mine(player.id), headers);
       return;
@@ -256,6 +280,63 @@ export async function handleGuildRequest(
       sendJson(response, 200, await dependencies.guilds.donateGuildCardElements(player.id, guildId, body.fodderInstanceIds), headers);
       return;
     }
+    const chatChannel = parts[1] === "raid" && parts[2] === "chat" && parts.length === 3 ? "witches"
+      : parts[1] === "dragons" && parts[3] === "chat" && parts.length === 4 ? parts[2] : null;
+    if (chatChannel && request.method === "GET") {
+      sendJson(response, 200, await dependencies.raidChats.read(guildId, player.id, chatChannel), headers);
+      return;
+    }
+    if (chatChannel && request.method === "POST") {
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.body !== "string") throw new HttpRequestError(400, "invalid_message", "body is required");
+      sendJson(response, 201, await dependencies.raidChats.send(guildId, player.id, chatChannel, body.body), headers);
+      return;
+    }
+    if (parts[1] === "dragons") {
+      const lairCode = parts[2];
+      if (request.method === "GET" && parts.length === 2) {
+        sendJson(response, 200, await dependencies.dragons.listLairs(guildId, player.id), headers);
+        return;
+      }
+      if (lairCode && request.method === "GET" && parts.length === 3) {
+        sendJson(response, 200, await dependencies.dragons.getRaid(guildId, lairCode, player.id), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 4 && parts[3] === "enroll") {
+        sendJson(response, 200, await dependencies.dragons.enroll(player.id, guildId, lairCode), headers);
+        return;
+      }
+      if (lairCode && request.method === "DELETE" && parts.length === 4 && parts[3] === "enroll") {
+        sendJson(response, 200, await dependencies.dragons.leave(player.id, guildId, lairCode), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 4 && parts[3] === "start") {
+        sendJson(response, 200, await dependencies.dragons.start(player.id, guildId, lairCode), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 4 && parts[3] === "battle") {
+        sendJson(response, 201, await dependencies.dragons.startBattle(player.id, guildId, lairCode), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 4 && parts[3] === "upgrade") {
+        sendJson(response, 200, await dependencies.dragons.upgradeLair(player.id, guildId, lairCode), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 6 && parts[3] === "battle" && parts[5] === "action") {
+        const body = await readJsonBody(request);
+        if (!isRecord(body) || !Number.isSafeInteger(body.expectedVersion) || ![0, 1, 2].includes(body.slotIndex as number)) {
+          throw new HttpRequestError(400, "invalid_raid_action", "slotIndex and expectedVersion are required");
+        }
+        sendJson(response, 200, await dependencies.dragons.action(player.id, guildId, lairCode, parts[4]!, { expectedVersion: body.expectedVersion as number, slotIndex: body.slotIndex as 0 | 1 | 2 }), headers);
+        return;
+      }
+      if (lairCode && request.method === "POST" && parts.length === 6 && parts[3] === "battle" && parts[5] === "swap") {
+        const body = await readJsonBody(request);
+        if (!isRecord(body) || !Number.isSafeInteger(body.expectedVersion)) throw new HttpRequestError(400, "invalid_raid_swap", "expectedVersion is required");
+        sendJson(response, 200, await dependencies.dragons.swapCards(player.id, guildId, lairCode, parts[4]!, { expectedVersion: body.expectedVersion as number }), headers);
+        return;
+      }
+    }
     if (request.method === "GET" && parts.length === 2 && parts[1] === "raid") {
       sendJson(response, 200, await dependencies.raids.getActiveRaid(guildId, player.id), headers);
       return;
@@ -280,6 +361,16 @@ export async function handleGuildRequest(
       const body = await readJsonBody(request);
       if (!isRaidActionRequest(body)) throw new HttpRequestError(400, "invalid_raid_action", "bossSlot, slotIndex and expectedVersion are required");
       sendJson(response, 200, await dependencies.raids.action(player.id, guildId, parts[3]!, body), headers);
+      return;
+    }
+    if (request.method === "POST" && parts.length === 5 && parts[1] === "raid" && parts[2] === "battle" && parts[4] === "swap") {
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || !Number.isSafeInteger(body.expectedVersion)) throw new HttpRequestError(400, "invalid_raid_swap", "expectedVersion is required");
+      sendJson(response, 200, await dependencies.raids.swapCards(player.id, guildId, parts[3]!, { expectedVersion: body.expectedVersion as number }), headers);
+      return;
+    }
+    if (request.method === "POST" && parts.length === 5 && parts[1] === "raid" && parts[2] === "treasure" && (parts[4] === "dig" || parts[4] === "decline")) {
+      sendJson(response, 200, await dependencies.raids.treasureDecision(player.id, guildId, parts[3]!, parts[4] === "dig"), headers);
       return;
     }
     if (request.method === "POST" && parts.length === 3 && parts[1] === "guild-card" && parts[2] === "level-up") {

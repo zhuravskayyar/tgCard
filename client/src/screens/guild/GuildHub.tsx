@@ -52,6 +52,7 @@ const GUILD_ACTIVITY_LABELS: Readonly<Record<GuildActivityType, string>> = {
   campaign_win: "перемога в кампанії",
   campaign_loss: "бій у кампанії",
   tournament_battle: "бій на турнірі",
+  dragon_raid: "перемога над змієм",
   dungeon_complete: "завершення підземелля",
   arena_place_1: "1 місце на арені",
   arena_place_2: "2 місце на арені",
@@ -210,8 +211,8 @@ export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplicati
     <section className="guild-menu-section" aria-label="Щоденні справи гільдії">
       <div className="guild-menu-list">
         <MenuRow compact actionContent={<RowStatus attention={treasuryWait === 0} />} icon="inventory" subtitle={treasuryHint} iconSrc={GUILD_ROW_ART.treasury} metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
-        <MenuRow compact icon="campaign" subtitle="Битви з відьмами" iconSrc={GUILD_ROW_ART.raid} metalTexture disabled={busy} onClick={onRaid} title="Івент гільдії" />
-        <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} subtitle={profile.altar.upgrades.some((item) => item.canAfford) ? "Можна підсилити" : "Бонуси гільдії"} metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
+        <MenuRow compact icon="campaign" subtitle="Битви з відьмами і зміями" iconSrc={GUILD_ROW_ART.raid} metalTexture disabled={busy} onClick={onRaid} title="Рейди гільдії" />
+        <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} locked={!profile.altar.unlocked} subtitle={!profile.altar.unlocked ? `З ${profile.altar.unlockLevel} рівня гільдії` : profile.altar.active ? `Сьогодні +${formatNumber(profile.altar.active.hpPct)}% HP` : profile.altar.upgrades.some((item) => item.canAfford) ? "Настої на сьогодні" : "Настої з рейду на відьом"} metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
       </div>
     </section>
 
@@ -234,8 +235,8 @@ export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplicati
 }
 
 const GUILD_ALTAR_ASSETS: Record<GuildAltarCurrency, { asset: string; tone: string }> = {
-  gold: { asset: "/assets/guild/guild-altar-potion-purple.png", tone: "purple" },
-  silver: { asset: "/assets/guild/guild-altar-potion-green.png", tone: "green" },
+  gold: { asset: "/assets/guild/altar-potion-strong-v1.webp", tone: "purple" },
+  silver: { asset: "/assets/guild/altar-potion-mighty-v1.webp", tone: "green" },
 };
 
 export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, onForum, onDirectory, onRaid }: { profile: GuildProfileResponse; busy: boolean; onPurchaseAltar: (currency: GuildAltarCurrency) => Promise<GuildAltarUpgradeResponse>; onMembers: () => void; onForum: () => void; onDirectory: () => void; onRaid: () => void }) {
@@ -255,7 +256,7 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
     try {
       const result = await onPurchaseAltar(currency);
       setAltar(result.altar);
-      setAltarNotice({ error: false, text: `Алтар підсилено: ${result.previousLevel} → ${result.newLevel} (+${result.totalIncrease} рів.)` });
+      setAltarNotice({ error: false, text: `Настій діє до кінця дня: +${formatNumber(result.totalIncrease)}% HP у турнірі.` });
     } catch (error) {
       setAltarNotice({ error: true, text: guildErrorMessage(error) });
     } finally {
@@ -266,19 +267,19 @@ export function GuildDevelopment({ profile, busy, onPurchaseAltar, onMembers, on
 
   return <section className="guild-development guild-altar" aria-labelledby="guild-altar-title">
     <RibbonTitle as="h3" id="guild-altar-title" leading={<AppIcon name="guild" size={17} />} size="wide">АЛТАР · РІВЕНЬ {formatNumber(altar.currentLevel)}</RibbonTitle>
-    <p className="guild-altar__intro">Підсилення Алтаря купуються за ресурси гравця та діють одразу.</p>
-    <div className="guild-altar__activation"><strong>Підсилення активується одразу</strong><p>Завершена колекція «Відьми» додає +2 рівні лише до золотого підсилення.</p></div>
+    <p className="guild-altar__intro">Рівень алтаря — найвищий рівень відьом, переможених гільдією минулого тижня. Настої діють до 23:59 і додають HP у турнірі.</p>
+    <div className="guild-altar__activation"><strong>{altar.unlocked ? altar.active ? `Сьогодні діє +${formatNumber(altar.active.hpPct)}% HP` : "Настій можна купити раз на день" : `Алтар відкривається з ${altar.unlockLevel} рівня гільдії`}</strong><p>Зібрана колекція «Чотири чаклунки» робить міцний настій на 2 рівні сильнішим за ту саму ціну.</p></div>
     {altarNotice ? <p className={`guild-altar__status${altarNotice.error ? " guild-altar__status--error" : " action-feedback action-feedback--success"}`} role={altarNotice.error ? "alert" : "status"}>{altarNotice.text}</p> : null}
     <div className="guild-altar__upgrades" aria-label="Підсилення алтаря">
       {altar.upgrades.map((item) => {
         const asset = GUILD_ALTAR_ASSETS[item.currency];
         return <article className={`guild-altar-upgrade guild-altar-upgrade--${asset.tone}`} key={item.currency}>
           <span className="guild-altar-upgrade__art"><img alt="" src={asset.asset} /></span>
-          <div className="guild-altar-upgrade__body"><div className="guild-altar-upgrade__heading"><h4>{item.name}</h4><small><AppIcon name={item.currency} size={13} /> {formatNumber(item.price)}</small></div><p>+{item.totalIncrease} рів. {item.currency === "gold" ? "за золото" : "за срібло"}{item.collectionBonus ? ` · Відьми +${item.collectionBonus}` : ""}</p><button className="guild-altar__buy" disabled={busy || purchasing !== null || !item.canAfford || !profile.viewer.member} onClick={() => { void purchase(item.currency); }} type="button">{purchasing === item.currency ? "Підсилюємо…" : item.canAfford ? "Придбати" : "Недостатньо ресурсу"}</button></div>
+          <div className="guild-altar-upgrade__body"><div className="guild-altar-upgrade__heading"><h4>{item.name}</h4><small><AppIcon name={item.currency} size={13} /> {formatNumber(item.price)}</small></div><p>{altar.currentLevel === 0 ? "Минулого тижня відьом не перемогли" : `+${formatNumber(item.hpPct)}% HP до кінця дня${item.collectionBonus ? ` · чаклунки +${item.collectionBonus}` : ""}`}</p><button className="guild-altar__buy" disabled={busy || purchasing !== null || !item.canAfford || !profile.viewer.member} onClick={() => { void purchase(item.currency); }} type="button">{purchasing === item.currency ? "Купуємо…" : item.canAfford ? "Придбати" : altar.currentLevel === 0 || !altar.unlocked ? "Недоступно" : altar.active && altar.upgrades.length && altar.active.currency === item.currency ? "Уже діє" : "Недоступно"}</button></div>
         </article>;
       })}
     </div>
-    <p className="guild-altar__note">Карти колекції «Відьми» можна отримати лише в івентах гільдії.</p>
-    <div className="guild-altar__menu guild-menu-list" aria-label="Розділи алтаря"><MenuRow compact icon="campaign" metalTexture onClick={onRaid} title="Битви з відьмами" /><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div>
+    <p className="guild-altar__note">Карти «Чотирьох чаклунок» трапляються у відьминому скарбі.</p>
+    <div className="guild-altar__menu guild-menu-list" aria-label="Розділи алтаря"><MenuRow compact icon="campaign" metalTexture onClick={onRaid} title="Рейди на відьом" /><MenuRow compact detail={`${guild.memberCount} / ${guild.memberCapacity}`} icon="profile" metalTexture onClick={onMembers} title="Склад" /><MenuRow compact icon="collection" metalTexture onClick={onForum} title="Форум гільдії" /><MenuRow compact icon="ranking" metalTexture onClick={onDirectory} title="Найкращі гільдії" /></div>
   </section>;
 }

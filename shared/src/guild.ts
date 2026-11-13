@@ -11,6 +11,7 @@ export type GuildActivityType =
   | "campaign_win"
   | "campaign_loss"
   | "tournament_battle"
+  | "dragon_raid"
   /** Older contributions only: arena and dungeon pay no player XP, so they add no guild XP now. */
   | "dungeon_complete"
   | "arena_place_1"
@@ -39,21 +40,20 @@ export type GuildJournalEventType =
   | "xp_contributed"
   | "treasury_contributed"
   | "announcement_updated"
-  | "guild_card_upgraded";
+  | "guild_card_upgraded"
+  | "dragon_raid_won"
+  | "dragon_raid_lost"
+  | "dragon_lair_upgraded"
+  | "witch_raid_won";
 
 export type GuildForumVisibility = "public" | "private";
 
 export const GUILD_CONFIG = Object.freeze({
   unlockLevel: 10,
   creationCostSilver: 10_000,
-  maxLevel: 20,
+  maxLevel: 55,
   pageSize: 20,
-  maxMembersByLevel: Object.freeze([
-    30, 30, 30, 30, 30,
-    30, 30, 30, 30, 30,
-    30, 30, 30, 30, 30,
-    30, 30, 30, 30, 30,
-  ]),
+  maxMembersByLevel: Object.freeze(Array.from({ length: 55 }, () => 30)),
   nameMinLength: 3,
   nameMaxLength: 10,
   descriptionMaxLength: 500,
@@ -90,6 +90,41 @@ export const GUILD_CONFIG = Object.freeze({
     53_000_000,
     61_000_000,
     75_000_000,
+    164_000_000,
+    257_000_000,
+    299_000_000,
+    332_000_000,
+    382_000_000,
+    420_000_000,
+    481_000_000,
+    527_000_000,
+    597_000_000,
+    651_000_000,
+    1_164_000_000,
+    1_292_000_000,
+    1_432_000_000,
+    1_576_000_000,
+    1_726_000_000,
+    3_290_000_000,
+    3_680_000_000,
+    4_080_000_000,
+    4_510_000_000,
+    4_970_000_000,
+    10_800_000_000,
+    12_100_000_000,
+    14_080_000_000,
+    14_970_000_000,
+    16_430_000_000,
+    18_340_000_000,
+    19_850_000_000,
+    21_400_000_000,
+    23_130_000_000,
+    25_290_000_000,
+    5_000_000_000_000,
+    10_000_000_000_000,
+    20_000_000_000_000,
+    50_000_000_000_000,
+    100_000_000_000_000,
   ]),
 });
 
@@ -283,17 +318,28 @@ export interface GuildTreasuryCardCandidatesResponse {
 
 export type GuildAltarCurrency = "gold" | "silver";
 
+/** One altar potion; it lasts until the end of the UTC day. */
 export interface GuildAltarUpgradeView {
   canAfford: boolean;
+  /** Extra levels from the full «Чотири чаклунки» collection (gold potion only). */
   collectionBonus: number;
   currency: GuildAltarCurrency;
+  /** HP bonus in percent for tournament battles while the potion lasts. */
+  hpPct: number;
   name: string;
   price: number;
+  /** Altar level the potion gives (same as hpPct for gold, half for silver). */
   totalIncrease: number;
 }
 
 export interface GuildAltarView {
+  /** Highest witch level the guild beat last week; 0 when nothing was beaten. */
   currentLevel: number;
+  /** Required guild level for the altar (reference: 34). */
+  unlockLevel: number;
+  unlocked: boolean;
+  /** Potion bought today, if any. */
+  active: { currency: GuildAltarCurrency; hpPct: number; expiresAt: string } | null;
   upgrades: readonly GuildAltarUpgradeView[];
 }
 
@@ -309,7 +355,7 @@ export interface GuildRaidBossView {
 }
 
 export type GuildRaidBattleStatus = "active" | "won" | "lost";
-export type GuildRaidBattleLogKind = "attack" | "heal" | "curse" | "death";
+export type GuildRaidBattleLogKind = "attack" | "heal" | "curse" | "death" | "breath" | "swap";
 
 export interface GuildRaidEnrollmentView {
   canStart: boolean;
@@ -367,7 +413,8 @@ export interface GuildRaidResultParticipantView {
   photoUrl: string | null;
   placement: number;
   playerId: string;
-  reward: GuildRaidRewardView;
+  /** Rows from before the treasure rules carried a placement reward. */
+  reward?: GuildRaidRewardView;
 }
 
 export interface GuildRaidResultView {
@@ -377,6 +424,8 @@ export interface GuildRaidResultView {
   participantCount: number;
   participants: readonly GuildRaidResultParticipantView[];
   totalDamage: number;
+  /** The random participant who got the treasure offer for this level. */
+  treasurePlayer: { playerId: string; displayName: string } | null;
 }
 
 export interface GuildRaidDamageParticipantView {
@@ -393,7 +442,27 @@ export interface GuildRaidActionRequest {
   slotIndex: 0 | 1 | 2;
 }
 
+export type GuildWitchTreasureStatus = "offered" | "digging" | "claimed" | "declined" | "expired";
+
+export interface GuildWitchTreasureView {
+  id: string;
+  level: number;
+  status: GuildWitchTreasureStatus;
+  /** End of the raid week for an offer; end of digging while digging. */
+  availableUntil: string | null;
+  digEndsAt: string | null;
+  digMinutes: number;
+  reward: { kind: "gold" | "silver"; amount: number } | { kind: "card"; card: PlayerMailCardReward; bonusPower: number } | null;
+  mailId: string | null;
+}
+
 export interface GuildRaidView {
+  /** Guild level that opens witch raids (reference: 34). */
+  unlockLevel: number;
+  unlocked: boolean;
+  guildLevel: number;
+  /** The viewer's newest treasure this week, if any. */
+  treasure: GuildWitchTreasureView | null;
   bosses: readonly GuildRaidBossView[];
   battle: GuildRaidBattleView | null;
   damageLeaderboard: readonly GuildRaidDamageParticipantView[];
@@ -404,6 +473,103 @@ export interface GuildRaidView {
   lastResult: GuildRaidResultView | null;
   name: string;
   status: "open" | "active";
+}
+
+export interface GuildRaidSwapRequest {
+  expectedVersion: number;
+}
+
+export type GuildDragonLairKind = "ancient" | "rare";
+
+export interface GuildDragonLairView {
+  code: string;
+  kind: GuildDragonLairKind;
+  lairName: string;
+  dragon: { artKey: string; cardId: string; code: string; displayName: string; element: CardElement };
+  health: number;
+  currentHealth: number;
+  lairLevel: number;
+  respawnHours: number;
+  /** Next lair upgrade paid from the treasury; null at level 20 or above the guild level. */
+  nextUpgrade: { level: number; currency: "gold" | "silver"; amount: number; allowed: boolean } | null;
+  status: "open" | "active";
+  participantCount: number;
+  viewerEnrolled: boolean;
+  /** The dragon respawns for the viewer at this time after the viewer beat it. */
+  viewerAvailableAt: string | null;
+  defeatedCount: number;
+}
+
+export interface GuildDragonRaidListView {
+  lairs: readonly GuildDragonLairView[];
+  /** Dragon slayer points of the guild's players, highest first (reference: «Рейтинг драконоборцев»). */
+  ranking: readonly { playerId: string; displayName: string; points: number }[];
+  /** Dragons the guild has beaten in all lairs. */
+  successfulRaids: number;
+  /** Players signed up in any dragon raid of the guild. */
+  enrolledCount: number;
+  viewerEnrolledLair: string | null;
+  slayerPoints: number;
+  canUpgrade: boolean;
+  treasury: { gold: number; silver: number };
+  guildLevel: number;
+}
+
+export interface GuildDragonParticipantView {
+  playerId: string;
+  displayName: string;
+  photoUrl: string | null;
+  damage: number;
+  hp: number | null;
+  maxHp: number | null;
+  alive: boolean;
+  slayerPoints: number;
+}
+
+export interface GuildDragonBattleView {
+  battleId: string;
+  battleLog: readonly GuildRaidBattleLogEntry[];
+  cardChanges: number;
+  dragonActiveCards: readonly [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
+  playerActiveCards: readonly [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
+  playerHp: number;
+  playerMaxHp: number;
+  status: GuildRaidBattleStatus;
+  turnNumber: number;
+  version: number;
+}
+
+export interface GuildDragonResultView {
+  id: string;
+  outcome: "won" | "lost";
+  completedAt: string;
+  leaderName: string | null;
+  winner: { playerId: string; displayName: string; card: PlayerMailCardReward; mailId: string | null } | null;
+  participants: readonly { playerId: string; displayName: string; damage: number; pointsAfter: number; xp?: number }[];
+}
+
+export interface GuildDragonRaidView {
+  lair: GuildDragonLairView;
+  enrollment: GuildRaidEnrollmentView;
+  battle: GuildDragonBattleView | null;
+  participants: readonly GuildDragonParticipantView[];
+  breathDamage: number;
+  nextBreathAt: string | null;
+  lastResult: GuildDragonResultView | null;
+}
+
+/** The viewer's raid, for the reminder shown on other screens; null when they take part in none. */
+export type GuildRaidStatusView = {
+  kind: "dragon" | "witches";
+  lairCode: string | null;
+  name: string;
+  level?: number;
+  state: "enrolled" | "fighting" | "fallen" | "won" | "lost";
+} | null;
+
+export interface GuildDragonActionRequest {
+  expectedVersion: number;
+  slotIndex: 0 | 1 | 2;
 }
 
 export interface GuildAltarUpgradeResponse {

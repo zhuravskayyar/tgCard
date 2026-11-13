@@ -16,6 +16,8 @@ import "./guild/guild-polish.css";
 import "./guild/guild-book.css";
 
 interface GuildScreenProps {
+  /** Opens a section of the player's own guild right away (the raid reminder links to «raids»). */
+  initialTab?: "raids" | null;
   playerSummaryState: PlayerSummaryState;
   onRetryPlayerSummary: () => void;
 }
@@ -27,7 +29,7 @@ function confirmUi(text: string) {
   return window.confirm(translateUi(text, getUiLocale()));
 }
 
-export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildScreenProps) {
+export function GuildScreen({ initialTab = null, playerSummaryState, onRetryPlayerSummary }: GuildScreenProps) {
   const [mineState, setMineState] = useState<AsyncState<GuildMineResponse>>({ status: "loading" });
   const [profileState, setProfileState] = useState<AsyncState<GuildProfileResponse>>({ status: "loading" });
   const [guildCardCandidatesState, setGuildCardCandidatesState] = useState<AsyncState<PlayerCardInstance[]>>({ status: "ready", data: [] });
@@ -145,7 +147,7 @@ export function GuildScreen({ playerSummaryState, onRetryPlayerSummary }: GuildS
   return <section className="guild-screen">
     {isSubScreen ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
     {playerSummaryState.status === "loading" ? <GuildState>Завантаження гравця…</GuildState> : !player ? <GuildState error onRetry={onRetryPlayerSummary}>Не вдалося завантажити гравця. Увійдіть або повторіть спробу.</GuildState> : mineState.status === "loading" ? <GuildState>Завантаження гільдії…</GuildState> : mineState.status === "error" ? <GuildState error onRetry={retry}>{mineState.message}</GuildState> : mine ? <>
-      {profile ? <GuildProfile key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
+      {profile ? <GuildProfile initialTab={initialTab ?? undefined} key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
         onTabChange={setProfileTab}
         onApply={(message) => { void run(() => applyToGuild(profile.guild.id, message), "Заявку подано. Очікуйте рішення гільдії."); }}
         onJoin={() => { void run(() => joinGuild(profile.guild.id), "Ви приєдналися до гільдії."); }}

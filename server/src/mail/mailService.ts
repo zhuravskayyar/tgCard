@@ -25,6 +25,7 @@ interface MailRow {
   card_element: "fire" | "water" | "air" | "earth" | null;
   card_id: string | null;
   card_level: number | string | null;
+  card_bonus_power: number | string | null;
   card_collection_id: string | null;
   card_limited: boolean | null;
   card_min_rarity: CardRarity | null;
@@ -40,7 +41,7 @@ interface MailRow {
 const MAIL_SELECT = `
   player_mail.id, player_mail.subject, player_mail.body, player_mail.silver, player_mail.gold,
   player_mail.created_at, player_mail.claimed_at, player_mail.action_type, player_mail.action_completed_at,
-  player_mail.card_id, player_mail.card_level,
+  player_mail.card_id, player_mail.card_level, player_mail.card_bonus_power,
   reward_cards.art_key AS card_art_key, reward_cards.code AS card_code,
   reward_cards.description AS card_description, reward_cards.display_name AS card_display_name,
   reward_cards.element AS card_element, reward_cards.collection_id AS card_collection_id,
@@ -211,7 +212,9 @@ export class MailService {
             source: "raid",
           };
           const cardLevel = toNonNegativeInteger(message.card_level, "mail card level");
-          await createStandardCardInstance(client, playerId, definition, cardLevel, new CryptoCardRandomSource());
+          // A fixed bonus (witch treasure card: +1820) replaces the random standard bonus.
+          const fixedBonus = message.card_bonus_power === null || message.card_bonus_power === undefined ? undefined : toNonNegativeInteger(message.card_bonus_power, "mail card bonus");
+          await createStandardCardInstance(client, playerId, definition, cardLevel, new CryptoCardRandomSource(), fixedBonus);
           await recordCardDiscovery(client, playerId, message.card_id);
           await recalculateAutomaticDeck(client, playerId);
         }
