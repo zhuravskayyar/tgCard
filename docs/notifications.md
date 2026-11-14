@@ -55,10 +55,8 @@ VALUES ('Оновлення: …', 'Update: …', 'Update: …', 'Обновле
 - тексти бота `server/src/bot/notificationTexts.ts`;
 - тести `notificationService.test.ts`, `notificationService.integration.test.ts` (у транзакції з ROLLBACK).
 
-## Запуск у проді (ще не зроблено)
+## Прод (увімкнено 2026-11-14)
 
-1. Застосувати 094 на Neon вручну.
-2. Додати `CRON_SECRET` у змінні Vercel.
-3. Викликати sweep кожні 5 хв. Vercel Cron на тарифі Hobby — лише раз на добу, тож або Pro
-   (`"crons": [{ "path": "/api/internal/notifications/sweep", "schedule": "*/5 * * * *" }]` у `vercel.json`),
-   або зовнішній планувальник (cron-job.org, GitHub Actions `schedule`) з тим самим заголовком.
+- 094 застосовано на Neon; `CRON_SECRET` — у Vercel (Production, sensitive) і в секретах GitHub, значення однакове.
+- Планувальник: `.github/workflows/notifications-sweep.yml`, кожні 5 хв (GitHub може запізнюватись), є ручний запуск.
+- Змінюючи секрет, оновіть його в обох місцях і зробіть новий деплой.
