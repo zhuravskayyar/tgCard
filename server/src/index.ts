@@ -42,7 +42,12 @@ import { handleShopBundlePurchase, handleShopCardInfo, handleShopCatalog, handle
 import { ShopService } from "./shop/shopService.js";
 import { handleHolidayBundlePurchase, handleHolidayShopCatalog } from "./shop/holidayShopRoute.js";
 import { HolidayShopService } from "./shop/holidayShopService.js";
+import { handleChestShopRequest } from "./shop/chestShopRoute.js";
+import { ChestShopService } from "./shop/chestShopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
+import { TelegramApiClient } from "./bot/telegramApi.js";
+import { createTelegramSender, NotificationService } from "./notifications/notificationService.js";
+import { handleNotificationSweep, handlePlayerNotifications } from "./notifications/notificationRoute.js";
 import { MailService } from "./mail/mailService.js";
 import { handleLeaderboardRequest } from "./leaderboards/leaderboardRoute.js";
 import { handlePlayerProfileRequest } from "./leaderboards/playerProfileRoute.js";
@@ -58,6 +63,8 @@ import { handleCardWorkshopCatalog, handleCardWorkshopCraft } from "./shop/cardW
 import { CardWorkshopService } from "./shop/cardWorkshopService.js";
 import { handleArenaRequest } from "./arena/arenaRoute.js";
 import { ArenaService } from "./arena/arenaService.js";
+import { handleGuardianDragonRequest } from "./guardianDragon/guardianDragonRoute.js";
+import { GuardianDragonService } from "./guardianDragon/guardianDragonService.js";
 import { handleTournamentRequest } from "./tournament/tournamentRoute.js";
 import { TournamentService } from "./tournament/tournamentService.js";
 import { handleLimitedCardRedeem } from "./limited/limitedCardRoute.js";
@@ -113,6 +120,7 @@ const limitedCards = new LimitedCardService(pool);
 const equipmentChests = new EquipmentChestService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
 const holidayShop = new HolidayShopService(pool, { campaign });
+const chestShop = new ChestShopService(pool, { campaign });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
 const leaderboards = new LeaderboardRepository(pool);
@@ -123,6 +131,11 @@ const duels = new DuelService(pool, Math.random, campaign, guilds);
 const dungeon = new DungeonService(pool);
 const cardWorkshop = new CardWorkshopService(pool, undefined, campaign);
 const arena = new ArenaService(pool);
+const notifications = new NotificationService(pool, createTelegramSender(
+  new TelegramApiClient(environment.telegramBotToken),
+  process.env.CARDASTIKA_MINI_APP_URL?.trim() || environment.clientOrigin,
+));
+const guardianDragon = new GuardianDragonService(pool);
 const tournaments = new TournamentService(pool, undefined, undefined, undefined, undefined, guilds);
 const equipmentManual = new EquipmentManualService();
 const guildForumReference = new GuildForumReferenceService();
@@ -261,6 +274,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
   const isHolidayShopRoute = url.pathname === "/api/shop/holidays";
   const isHolidayBundlePurchaseRoute = url.pathname === "/api/shop/holidays/purchase";
+  const isChestShopRoute = url.pathname === "/api/chest-shop" || url.pathname.startsWith("/api/chest-shop/");
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
   const isCardWorkshopCatalogRoute = url.pathname === "/api/shop/card-workshop";
   const isCardWorkshopCraftRoute = url.pathname === "/api/shop/card-workshop/craft";
@@ -276,6 +290,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const mailActionMatch = url.pathname.match(/^\/api\/player\/mail\/([^/]+)\/action$/);
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
   const isArenaRoute = url.pathname.startsWith("/api/arena/");
+  const isGuardianDragonRoute = url.pathname === "/api/guardian-dragon" || url.pathname.startsWith("/api/guardian-dragon/");
   const isTournamentRoute = url.pathname === "/api/tournament" || url.pathname.startsWith("/api/tournament/");
   const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
   const isStoryTrialsRoute = url.pathname.startsWith("/api/player/trials");
@@ -290,7 +305,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isChestShopRoute ||isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isGuardianDragonRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -665,6 +680,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
     return;
   }
 
+  if (isChestShopRoute) {
+    await handleChestShopRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      chestShop,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
   if (isHolidayShopRoute) {
     await handleHolidayShopCatalog(request, response, {
       auth,
@@ -750,6 +776,27 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       players,
       responseHeaders: cors.headers,
     }, decodeURIComponent(dungeonCompleteMatch[1]!));
+    return;
+  }
+
+  if (url.pathname === "/api/internal/notifications/sweep") {
+    await handleNotificationSweep(request, response, { notifications, secret: process.env.CRON_SECRET?.trim() });
+    return;
+  }
+
+  if (url.pathname === "/api/player/notifications") {
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, cors.headers);
+      response.end();
+      return;
+    }
+    await handlePlayerNotifications(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      notifications,
+      players,
+      responseHeaders: cors.headers,
+    });
     return;
   }
 
@@ -855,6 +902,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       botToken: environment.telegramBotToken,
       players,
       tournaments,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isGuardianDragonRoute) {
+    await handleGuardianDragonRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      guardianDragon,
+      players,
       responseHeaders: cors.headers,
     });
     return;

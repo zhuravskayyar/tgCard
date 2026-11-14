@@ -1,9 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://app.cardastika.org/</loc>
-    <lastmod>2026-11-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-11-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://app.cardastika.org/" />
+    <xhtml:link rel="alternate" hreflang="uk" href="https://app.cardastika.org/uk/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://app.cardastika.org/ru/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://app.cardastika.org/de/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/" />
+  </url>
+  <url>
+    <loc>https://app.cardastika.org/uk/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://app.cardastika.org/" />
+    <xhtml:link rel="alternate" hreflang="uk" href="https://app.cardastika.org/uk/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://app.cardastika.org/ru/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://app.cardastika.org/de/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/" />
+  </url>
+  <url>
+    <loc>https://app.cardastika.org/ru/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://app.cardastika.org/" />
+    <xhtml:link rel="alternate" hreflang="uk" href="https://app.cardastika.org/uk/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://app.cardastika.org/ru/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://app.cardastika.org/de/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/" />
+  </url>
+  <url>
+    <loc>https://app.cardastika.org/de/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://app.cardastika.org/" />
+    <xhtml:link rel="alternate" hreflang="uk" href="https://app.cardastika.org/uk/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://app.cardastika.org/ru/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://app.cardastika.org/de/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/" />
   </url>
 </urlset>

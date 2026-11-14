@@ -1,0 +1,320 @@
+/* Guardian dragon: layout only. Every surface is a painted sprite from theme-sprites.css
+   or a dragon look from /assets/ui/guardian-dragon/. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+/* The engraving runs through the shared fire shader (ElementArt); the canvas overflows the box for sparks. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__art {
+  position: relative;
+  display: block;
+  width: min(72%, 260px);
+  aspect-ratio: 1;
+  animation: guardian-dragon-breathe 4.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__art .element-art { z-index: 1; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait figcaption {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--home-ink);
+  text-align: center;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait figcaption span { color: var(--home-ink-muted); }
+
+:root .app-shell .guardian-dragon-screen .guardian-dragon__progress {
+  position: relative;
+  width: min(100%, 340px);
+  margin: 0 auto;
+  padding-bottom: 18px;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__rail {
+  display: block;
+  height: 14px;
+  overflow: hidden;
+  padding: 3px 5px;
+  background: var(--sprite-progress-rail) center / 100% 100% no-repeat;
+}
+/* Same fill as the card level progress in card-upgrade.css. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__rail > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(#ffc650, #dd8108 55%, #ba5b04);
+  box-shadow: inset 0 1px #fff0a0;
+  transition: width var(--transition-fast);
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__marks {
+  position: absolute;
+  inset: auto 0 0;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__marks li {
+  position: absolute;
+  transform: translateX(-50%);
+  color: var(--home-ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__hikes, .guardian-dragon__hike) {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__marks li:last-child { transform: translateX(-100%); }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__hikes .guardian-dragon__button { padding-inline: 8px; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__hikes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 380px);
+  margin-inline: auto;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__button {
+  display: grid;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 14px 2px;
+  font: 700 14px/1 var(--font-display);
+  white-space: nowrap;
+  place-items: center;
+  color: var(--action-ink);
+  background: transparent;
+  border: 0 solid transparent;
+  border-image: var(--sprite-button-primary) 0 120 0 120 fill / 0 36px / 0 stretch;
+  box-shadow: none;
+  line-height: 1.1;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__button:disabled { opacity: .55; }
+/* The reward or minutes sit under the button, as captions on the reference page. */
+:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__hike-option, .guardian-dragon__feed-card) > small {
+  color: var(--home-ink-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__hike-option { display: grid; width: 100%; gap: 3px; justify-items: center; }
+:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__hike, .guardian-dragon__feed-all) .guardian-dragon__button,
+:root .app-shell .guardian-dragon-screen .guardian-dragon__feed-all { width: min(100%, 260px); justify-self: center; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__button--small {
+  min-height: 32px;
+  padding: 0 8px 1px;
+  font-size: 12px;
+  border-image: var(--sprite-button-secondary) 0 120 0 120 fill / 0 28px / 0 stretch;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__feed-card {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* ——— Motion ——— */
+@keyframes guardian-dragon-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.015); }
+}
+/* The egg rests, then rocks as if something inside is moving. */
+@keyframes guardian-dragon-egg {
+  0%, 70%, 100% { transform: rotate(0); }
+  74% { transform: rotate(-4deg); }
+  78% { transform: rotate(3.5deg); }
+  82% { transform: rotate(-2.5deg); }
+  86% { transform: rotate(1.5deg); }
+  90% { transform: rotate(0); }
+}
+@keyframes guardian-dragon-glow {
+  0%, 100% { filter: drop-shadow(0 6px 10px rgb(150 72 12 / 18%)); }
+  50% { filter: drop-shadow(0 8px 22px rgb(214 110 20 / 42%)); }
+}
+@keyframes guardian-dragon-fed {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.07) translateY(-6px); }
+  65% { transform: scale(.98); }
+  100% { transform: scale(1); }
+}
+@keyframes guardian-dragon-grew {
+  0% { transform: scale(.92); filter: brightness(1.6) drop-shadow(0 0 28px rgb(255 170 60 / 80%)); }
+  100% { transform: scale(1); filter: brightness(1) drop-shadow(0 6px 10px rgb(150 72 12 / 18%)); }
+}
+@keyframes guardian-dragon-shine {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(320%); }
+}
+@keyframes guardian-dragon-meter-pulse {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.45) saturate(1.3); }
+  100% { filter: brightness(1); }
+}
+@keyframes guardian-dragon-ready {
+  0%, 100% { filter: brightness(1); transform: translateY(0); }
+  50% { filter: brightness(1.18) drop-shadow(0 0 6px rgb(230 150 40 / 55%)); transform: translateY(-1px); }
+}
+
+:root .app-shell .guardian-dragon-screen .guardian-dragon__art > :is(canvas, img) { animation: guardian-dragon-glow 4.8s ease-in-out infinite; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait--stage-0 .guardian-dragon__art { animation: guardian-dragon-egg 5.5s ease-in-out infinite; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait.is-fed .guardian-dragon__art { animation: guardian-dragon-fed .7s ease-out; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait.is-grew .guardian-dragon__art { animation: guardian-dragon-grew .9s ease-out; }
+/* Away on a hike: only a faint trace of the dragon stays at the lair. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait.is-away .guardian-dragon__art { opacity: .35; filter: sepia(.6) blur(.4px); animation-duration: 9s; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__portrait.is-locked .guardian-dragon__art { filter: grayscale(.55) contrast(.9); }
+
+:root .app-shell .guardian-dragon-screen .guardian-dragon__rail > span { position: relative; overflow: hidden; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__rail > span::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgb(255 244 200 / 70%), transparent);
+  animation: guardian-dragon-shine 3.2s ease-in-out infinite;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__meter.is-fed .guardian-dragon__rail { animation: guardian-dragon-meter-pulse .8s ease-out; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__button[data-ready]:not(:disabled) { animation: guardian-dragon-ready 2.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__art, .guardian-dragon__art > *, .guardian-dragon__rail, .guardian-dragon__button),
+  :root .app-shell .guardian-dragon-screen .guardian-dragon__rail > span::after { animation: none !important; }
+}
+
+/* Element tabs for the feeding list, the same symbol row as the guild card screen. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__elements { display: flex; justify-content: center; gap: 22px; padding: 2px 0 4px; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__element {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  opacity: .5;
+  filter: saturate(.6);
+  transition: opacity 120ms ease, filter 120ms ease, transform 120ms ease;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__element.is-active { opacity: 1; filter: saturate(1.2) drop-shadow(0 0 4px rgb(214 130 30 / 70%)); transform: scale(1.12); }
+
+/* A fed card catches fire, chars and rises away as ash. */
+@keyframes guardian-dragon-burn {
+  0% { filter: none; transform: none; opacity: 1; }
+  30% { filter: sepia(1) saturate(3) brightness(1.25) drop-shadow(0 0 10px rgb(255 140 30 / 90%)); transform: scale(1.04); opacity: 1; }
+  70% { filter: sepia(1) saturate(2) brightness(.55) drop-shadow(0 -6px 14px rgb(255 100 20 / 70%)); transform: translateY(-8px) scale(.96); opacity: .7; }
+  100% { filter: brightness(.2) blur(2px); transform: translateY(-22px) scale(.82); opacity: 0; }
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__feed-art { display: block; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__feed-card.is-burning .guardian-dragon__feed-art { animation: guardian-dragon-burn 750ms ease-in forwards; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__feed-card.is-burning > :not(.guardian-dragon__feed-art) { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .guardian-dragon-screen .guardian-dragon__feed-card.is-burning .guardian-dragon__feed-art { animation: none; opacity: .3; }
+}
+
+/* ——— Battles and Magic tabs (layout only; plates are the shared deck-note and leaderboard sprites) ——— */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__caption {
+  color: var(--home-ink-muted);
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__price { display: inline-flex; align-items: center; gap: 4px; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__rating { gap: var(--space-2); padding: 0; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__flame {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--home-ink);
+  font-weight: 700;
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-art {
+  display: grid;
+  width: 96px;
+  justify-items: center;
+  gap: 2px;
+}
+
+:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-art strong { color: var(--home-ink); font-size: 16px; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--space-2);
+}
+:root .app-shell .guardian-dragon-screen .guardian-dragon__slot {
+  display: grid;
+  min-height: 112px;
+  place-items: center;
+  margin: 0;
+  font-size: 12px;
+  font-style: normal;
+  text-align: center;
+}
+/* Three tabs in one row, as on the reference dragon page. */
+:root[data-game-theme="light"] body .app-shell .app-content .guardian-dragon-screen .shop-tabs { width: min(100%, 360px); max-width: 360px; margin-inline: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Rating rows have no avatar: rank, name, score. Same weight as leaderboard-book.css so it wins. */
+:root[data-game-theme="light"] .app-shell .app-content .guardian-dragon-screen .guardian-dragon__rating .leaderboard-list > li .leaderboard-entry { grid-template-columns: 40px minmax(0, 1fr) auto; cursor: default; }
+:root[data-game-theme="light"] .app-shell .app-content .guardian-dragon-screen .guardian-dragon__rating .leaderboard-list > li.is-player:last-child { border-top: 3px double var(--book-ink-muted, #6d5434); }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-power { color: var(--home-ink); font-size: 22px; }
+
+
+/* Flame card and battle scene run through the shared shader (ElementArt): the canvas overflows for sparks. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-pic {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  animation: guardian-dragon-flame-roar 3.6s ease-in-out infinite;
+  transform-origin: 30% 40%;
+}
+:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) img { display: block; width: 100%; height: 100%; object-fit: contain; }
+:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) .element-art { z-index: 1; }
+:root .app-shell .guardian-dragon-screen .guardian-dragon__fights-art {
+  position: relative;
+  display: block;
+  width: min(80%, 300px);
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+  animation: guardian-dragon-clash 3.4s ease-in-out infinite;
+}
+/* A warm flash over the scene now and then, as if lightning struck between the dragons. */
+:root .app-shell .guardian-dragon-screen .guardian-dragon__lightning {
+  position: absolute;
+  inset: 8%;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle at 55% 45%, rgb(255 236 180 / 85%), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: guardian-dragon-lightning 3.4s linear infinite;
+}
+@keyframes guardian-dragon-flame-roar {
+  0%, 100% { transform: scale(1) rotate(0); filter: drop-shadow(0 4px 8px rgb(150 72 12 / 20%)); }
+  45% { transform: scale(1.04) rotate(-1.5deg); filter: drop-shadow(0 6px 18px rgb(230 120 20 / 55%)); }
+  55% { transform: scale(1.05) rotate(-1deg); filter: drop-shadow(0 6px 22px rgb(240 130 25 / 65%)); }
+}
+@keyframes guardian-dragon-clash {
+  0%, 60%, 100% { transform: translate(0, 0) rotate(0); }
+  64% { transform: translate(-3px, 1px) rotate(-.6deg); }
+  68% { transform: translate(3px, -1px) rotate(.6deg); }
+  72% { transform: translate(-2px, 0) rotate(-.3deg); }
+  76% { transform: translate(0, 0) rotate(0); }
+}
+@keyframes guardian-dragon-lightning {
+  0%, 62%, 100% { opacity: 0; }
+  64% { opacity: .9; }
+  66% { opacity: .15; }
+  68% { opacity: .7; }
+  74% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art, .guardian-dragon__lightning) { animation: none !important; }
+}

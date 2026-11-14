@@ -69,6 +69,10 @@ at a fixed high quality.
   50% the other, 100% otherwise.
 - The sum of deck power is your health.
 - After 10 duels in a row there is a 2 hour break, which gold can skip.
+- Duel manual (`/forum/3/217686/`, read 2026-11-13): reopening ten duels or auto-playing ten costs 25,
+  rising to 50, 100, 250, 500 (likely 1000) after every 1000 auto-played duels, reset daily; the price is
+  scaled by the break time left. After a won duel the rest can be auto-played for 1 each. A gold card
+  upgrade gives one extra duel. Details and our implementation: `docs/duel.md`.
 
 ## Campaigns
 

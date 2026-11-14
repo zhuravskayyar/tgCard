@@ -6,6 +6,8 @@ import { MenuTextureSlices } from "./MenuTextureSlices";
 interface MenuRowProps {
   active?: boolean;
   badge?: string;
+  /** Extra class for a special row, e.g. `menu-row--gilded`. */
+  className?: string;
   compact?: boolean;
   detail?: string;
   disabled?: boolean;
@@ -24,10 +26,10 @@ interface MenuRowProps {
   variant?: "default" | "book";
 }
 
-export function MenuRow({ active: _active = false, actionContent, attention = false, badge, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, onClick, subtitle, title, variant = "default" }: MenuRowProps) {
+export function MenuRow({ active: _active = false, actionContent, attention = false, badge, className, chevron = false, compact = false, detail, disabled = false, icon, iconSrc, illustrationSrc, locked = false, onClick, subtitle, title, variant = "default" }: MenuRowProps) {
   return (
     <button
-      className={`menu-row menu-row--metal-texture${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${variant === "book" ? " menu-row--book" : ""}`}
+      className={`menu-row menu-row--metal-texture${compact ? " menu-row--compact" : ""}${attention ? " menu-row--attention" : ""}${variant === "book" ? " menu-row--book" : ""}${className ? ` ${className}` : ""}`}
       disabled={disabled || !onClick}
       aria-label={locked ? `${title}: поки недоступно` : undefined}
       onClick={onClick}

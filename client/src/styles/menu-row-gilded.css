@@ -1,0 +1,44 @@
+/*
+ * Gilded menu row (the chest shop on Home): the painted parchment row stays, a gold wash is blended over it
+ * and a bright glint sweeps across. Effects only; the surface is still the row sprite.
+ */
+.app-shell .menu-row.menu-row--gilded::after,
+.app-shell .menu-row.menu-row--gilded::before {
+  position: absolute;
+  /* Above the parchment texture (z-index 0), below the row's text and icon (z-index 2). */
+  z-index: 1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  /* Clip both layers to the row sprite's own silhouette, so the gold never spills past the clasp shape. */
+  -webkit-mask: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+  mask: url("/assets/ui/home/menu-row-parchment-ink-v2.webp") center / 100% 100% no-repeat;
+}
+/* The gold wash: warms the parchment into leaf gold without hiding its texture. */
+.app-shell .menu-row.menu-row--gilded::before {
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgb(255 226 140 / 70%), transparent 60%),
+    linear-gradient(180deg, #f4cf6a 0%, #c9952f 55%, #8d6216 100%);
+  mix-blend-mode: color;
+  opacity: .78;
+}
+/* The glint: a narrow light band that crosses the row every few seconds. */
+.app-shell .menu-row.menu-row--gilded::after {
+  background: linear-gradient(105deg, transparent 40%, rgb(255 244 205 / 0%) 44%, rgb(255 244 205 / 85%) 50%, rgb(255 244 205 / 0%) 56%, transparent 60%) no-repeat;
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  mix-blend-mode: soft-light;
+  animation: menu-row-gilded-glint 4.5s ease-in-out infinite;
+}
+.app-shell .menu-row.menu-row--gilded > :is(.menu-row__icon, .menu-row__title, .menu-row__action, .menu-row__chevron) {
+  position: relative;
+  z-index: 2;
+}
+.app-shell .menu-row.menu-row--gilded .menu-row__detail { color: #5a3608; font-weight: 800; }
+@keyframes menu-row-gilded-glint {
+  0%, 55% { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .menu-row.menu-row--gilded::after { animation: none; opacity: 0; }
+}

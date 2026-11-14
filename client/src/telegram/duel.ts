@@ -1,7 +1,10 @@
 import type {
   ActiveDuelResponse,
   DuelActionRequest,
+  DuelAutoMode,
+  DuelAutoResult,
   DuelAvailability,
+  DuelResetResponse,
   DuelSearchResponse,
   DuelStartRequest,
   DuelView,
@@ -77,4 +80,14 @@ export function submitDuelAction(
     body,
     signal,
   });
+}
+
+/** Reopens ten Duels during the break for gold. */
+export function resetDuelBreak(initData: string, signal?: AbortSignal) {
+  return request<DuelResetResponse>(initData, "/api/duel/reset", { method: "POST", signal });
+}
+
+/** Plays the remaining charges ("remaining") or ten Duels during the break ("pack") automatically. */
+export function autoPlayDuels(initData: string, mode: DuelAutoMode, signal?: AbortSignal) {
+  return request<DuelAutoResult>(initData, "/api/duel/auto", { method: "POST", body: { mode }, signal });
 }

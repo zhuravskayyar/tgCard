@@ -4,7 +4,7 @@ import { buildStoryTrials, loadLocationProgress } from "../trials/storyTrialsSer
 import { CAMPAIGN_LOCATIONS } from "./campaignLocations.js";
 
 export const RARITY_RANK: Record<CardRarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
-export type CampaignEventType = "DECK_OPENED" | "CARD_DETAIL_OPENED" | "DUEL_FINISHED" | "DUEL_WON" | "DUEL_STRONG_HIT" | "DUEL_NEUTRAL_HIT" | "SHOP_CARD_PURCHASED" | "CARD_DISCOVERED" | "COLLECTION_OPENED" | "CARD_ABSORBED" | "CARD_LEVEL_UP" | "CARD_ACQUIRED" | "REFERRAL_ACCEPTED" | "FRIEND_CREATED" | "CAMPAIGN_CARD_DROP";
+export type CampaignEventType = "DECK_OPENED" | "CARD_DETAIL_OPENED" | "DUEL_FINISHED" | "DUEL_WON" | "DUEL_STRONG_HIT" | "DUEL_NEUTRAL_HIT" | "SHOP_CARD_PURCHASED" | "CARD_DISCOVERED" | "COLLECTION_OPENED" | "CARD_ABSORBED" | "CARD_LEVEL_UP" | "CARD_ACQUIRED" | "REFERRAL_ACCEPTED" | "FRIEND_CREATED" | "CAMPAIGN_CARD_DROP" | "CHEST_15_OPENED";
 export interface CampaignEventPayload {
   absorbedCards?: number;
   collectionScope?: "detail" | "list";

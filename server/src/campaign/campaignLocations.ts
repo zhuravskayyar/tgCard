@@ -113,7 +113,7 @@ export const CAMPAIGN_LOCATIONS: readonly CampaignLocation[] = [
   location(9, "Гоблінська ливарня", "Мідниця", "goblin_grinder", ["Гобліни збудували машину, що перемелює все живе.", "Зруйнуй її, перш ніж запрацює велика піч."], [
     t("l9-level", "Досягни 90 рівня", "level", 90, "duel"),
     t("l9-rating", "Досягни рейтингу дуелей 2 050 після попередньої пригоди", "duel_rating", 2050, "duel", undefined, true),
-    t("l9-chest", "Відкрий ще одну 15-ту скриню", "pending", 1, null, "chest_15", true),
+    t("l9-chest", "Відкрий ще одну 15-ту скриню", "event", 1, null, "CHEST_15_OPENED", true),
     t("l9-master", "Виграй ще один турнір майстрів", "pending", 1, null, "master_tournament", true),
     t("l9-guild-arena", "Завдай ще 9 млн шкоди на арені гільдій", "pending", 9000000, null, "guild_arena_damage", true),
     t("l9-invasion", "Завдай ще 99 млн шкоди у вторгненні", "pending", 99000000, null, "invasion_damage", true),

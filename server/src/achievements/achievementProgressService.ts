@@ -8,6 +8,7 @@ interface AchievementProgressRow {
   arena_mage_wins: string | number;
   arena_wins: string | number;
   completed_collections: string | number;
+  completed_chest_shops: string | number;
   duel_wins: string | number;
   forged_artifacts: string | number;
   forged_items: string | number;
@@ -87,6 +88,10 @@ export class AchievementProgressService {
               WHERE completions.player_id = players.id
             ), 0)::bigint AS completed_collections,
             COALESCE((
+              SELECT COUNT(*) FROM chest_shop_openings openings
+              WHERE openings.player_id = players.id AND openings.chest_number = 15
+            ), 0)::bigint AS completed_chest_shops,
+            COALESCE((
               SELECT SUM((payload->>'count')::numeric) FROM player_campaign_events
               WHERE player_id = players.id AND event_type = 'EQUIPMENT_FORGED' AND payload->>'category' = 'things'
             ), 0)::numeric AS forged_items,
@@ -161,7 +166,7 @@ export class AchievementProgressService {
           witchVictories: toSafeNumber(row.witch_victories, "witch victories"),
           deckPower: highest.get("deckPower") ?? 0,
           completedCollections: toSafeNumber(row.completed_collections, "completed collections"),
-          completedChestShops: null,
+          completedChestShops: toSafeNumber(row.completed_chest_shops, "completed chest shops"),
           marathonWins: null,
           giftsSent: null,
           giftsReceived: null,

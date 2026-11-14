@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { DeckRepository } from "../decks/deckRepository.js";
 import { PlayerRepository } from "../users/playerRepository.js";
-import { DuelCooldownError, DuelService, DuelStateConflictError } from "./duelService.js";
+import { DuelCooldownError, DuelNotEnoughGoldError, DuelPaidUnavailableError, DuelService, DuelStateConflictError } from "./duelService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let telegramSequence = 0n;
@@ -363,6 +363,81 @@ test("a loss grants its reward once and resets the Duel win streak", { skip: !da
       streak: persisted.rows[0]?.duel_win_streak,
       silver: Number(persisted.rows[0]?.silver),
     }, { xp: 0, losses: 1, streak: 0, silver: 50 });
+  } finally {
+    if (playerIds.length) await cleanup(pool, playerIds);
+    await pool.end();
+  }
+});
+
+test("paid Duels: the break price reopens ten Duels, auto-play runs real finished Duels and restarts the break", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const playerIds: string[] = [];
+  try {
+    const challenger = await players.findOrCreateFromTelegram(telegramUser("paid"));
+    playerIds.push(challenger.id);
+    await players.completeTutorial(challenger.id);
+    const service = new DuelService(pool);
+    // Full break left: full price 25.
+    await pool.query(
+      "UPDATE players SET duel_remaining = 0, duel_refill_at = NOW() + INTERVAL '2 hours', tutorial_eligible = FALSE, gold = 30 WHERE id = $1",
+      [challenger.id],
+    );
+    const onBreak = await service.findAvailability(challenger.id);
+    assert.equal(onBreak.breakPrice, 25);
+    assert.equal(onBreak.autoRemainingPrice, 0);
+    await assert.rejects(service.autoPlay(challenger.id, "remaining"), DuelPaidUnavailableError);
+
+    const reset = await service.resetBreak(challenger.id);
+    assert.equal(reset.gold, 5);
+    assert.equal(reset.availability.remaining, 10);
+    assert.equal(reset.availability.refillAt, null);
+    assert.equal(reset.availability.breakPrice, null);
+    assert.equal(reset.availability.autoRemainingPrice, 10);
+    await assert.rejects(service.resetBreak(challenger.id), DuelPaidUnavailableError);
+    // "remaining" is offered only after a won Duel with charges left.
+    await assert.rejects(service.autoPlay(challenger.id, "remaining"), DuelPaidUnavailableError);
+    const search = await service.search(challenger.id);
+    const manual = await service.start(challenger.id, search.searchId);
+    await pool.query("UPDATE duels SET status = 'lost', finished_at = NOW() WHERE id = $1", [manual.duelId]);
+    await assert.rejects(service.autoPlay(challenger.id, "remaining"), DuelPaidUnavailableError);
+    await pool.query("UPDATE duels SET status = 'won' WHERE id = $1", [manual.duelId]);
+    await assert.rejects(service.autoPlay(challenger.id, "remaining"), DuelNotEnoughGoldError);
+
+    await pool.query("UPDATE players SET duel_remaining = 3, gold = 3 WHERE id = $1", [challenger.id]);
+    const before = await pool.query<{ duel_wins: number; duel_losses: number }>("SELECT duel_wins, duel_losses FROM players WHERE id = $1", [challenger.id]);
+    const run = await service.autoPlay(challenger.id, "remaining");
+    assert.equal(run.played, 3);
+    assert.equal(run.wins + run.losses, 3);
+    assert.equal(run.goldSpent, 3);
+    assert.equal(run.availability.remaining, 0);
+    assert.ok(run.availability.refillAt);
+    assert.ok(run.availability.breakPrice !== null && run.availability.breakPrice >= 1);
+    const finished = await pool.query<{ status: string; rewards_granted: boolean; result: unknown }>(
+      "SELECT status, rewards_granted, result FROM duels WHERE challenger_id = $1",
+      [challenger.id],
+    );
+    // Three automatic rows plus the manual win marked by hand above.
+    const automatic = finished.rows.filter((row) => row.rewards_granted);
+    assert.equal(automatic.length, 3);
+    assert.ok(automatic.every((row) => row.status !== "active" && row.result));
+    const after = await pool.query<{ duel_wins: number; duel_losses: number; duel_auto_count: number }>(
+      "SELECT duel_wins, duel_losses, duel_auto_count FROM players WHERE id = $1",
+      [challenger.id],
+    );
+    assert.equal(after.rows[0]!.duel_wins + after.rows[0]!.duel_losses, before.rows[0]!.duel_wins + before.rows[0]!.duel_losses + 3);
+    assert.equal(after.rows[0]!.duel_auto_count, 3);
+
+    // The ten-Duel pack during the break, priced from the remaining break and the tier.
+    await pool.query("UPDATE players SET gold = 1000, duel_auto_count = 1000, duel_auto_day = (NOW() AT TIME ZONE 'UTC')::date WHERE id = $1", [challenger.id]);
+    assert.equal((await service.findAvailability(challenger.id)).breakPrice, 50);
+    const pack = await service.autoPlay(challenger.id, "pack");
+    assert.equal(pack.played, 10);
+    assert.equal(pack.goldSpent, 50);
+    assert.equal(pack.player.gold, 1000 - 50 + pack.gold);
+    const counter = await pool.query<{ duel_auto_count: number }>("SELECT duel_auto_count FROM players WHERE id = $1", [challenger.id]);
+    assert.equal(counter.rows[0]!.duel_auto_count, 1010);
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();

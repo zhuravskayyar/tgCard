@@ -1,0 +1,46 @@
+/* Chest shop: the same painted panel and buttons as the duel break screen. CSS only lays them out. */
+.chest-shop-screen { display: grid; gap: 12px; }
+.app-shell .app-content .chest-shop__panel {
+  display: flex;
+  width: min(100%, 430px);
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+  gap: 12px;
+  padding: 24px 20px;
+  color: var(--home-ink);
+  text-align: center;
+  border: 0 solid transparent;
+  border-image: var(--sprite-panel-frame) 62 fill / 22px / 0 stretch;
+}
+.chest-shop__panel h2 { margin: 0; color: var(--home-ink); font: 700 23px/1.1 var(--font-display); }
+.chest-shop__hint,
+.chest-shop__note { max-width: 32ch; margin: 0; color: var(--home-ink-muted); font: 500 14px/1.35 var(--font-display); }
+.chest-shop-screen > .chest-shop__note { justify-self: center; }
+.chest-shop__error { margin: 0; color: #9b3a2c; font: 700 13px/1.3 var(--font-body); }
+/* Possible prizes: one column per prize, a fixed icon slot, text left-aligned so the list lines up. */
+.chest-shop__prizes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; width: 100%; margin: 0; padding: 0 4px; list-style: none; text-align: left; }
+.chest-shop__prize { display: inline-flex; align-items: center; justify-content: flex-start; gap: 6px; font: 600 13px/1.25 var(--font-body); }
+.chest-shop__prize-icon { display: inline-grid; flex: none; width: 24px; height: 24px; place-items: center; }
+.chest-shop__prize-icon img,
+.chest-shop__prize-icon .currency-icon { width: 22px; height: 22px; object-fit: contain; }
+.chest-opening__prize .chest-shop__prize { justify-content: center; font: 700 19px/1.2 var(--font-display); }
+.chest-opening__prize .chest-shop__prize-icon { width: 34px; height: 34px; }
+.chest-opening__prize .chest-shop__prize-icon img,
+.chest-opening__prize .chest-shop__prize-icon .currency-icon { width: 32px; height: 32px; }
+.app-shell .app-content .chest-shop__action { width: min(88%, 300px); min-height: 46px; gap: 8px; font-size: 15px; }
+.chest-shop__price { display: inline-flex; align-items: center; gap: 3px; }
+/* The dark red primary sprite needs the light number metal. */
+:root .app-shell .chest-shop__action .chest-shop__price {
+  --number-metal-top: #fff5d3;
+  --number-metal-highlight: #fffaf0;
+  --number-metal-mid: #f1dcaa;
+  --number-metal-low: #dcb878;
+  --number-metal-outline: #34210e;
+}
+.chest-shop__feed ul { display: grid; width: 100%; gap: 8px; margin: 0; padding: 0; list-style: none; text-align: left; }
+.chest-shop__feed-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding-bottom: 8px; border-bottom: 1px solid rgb(90 60 30 / 18%); font: 500 13px/1.3 var(--font-body); }
+.chest-shop__feed-row:last-child { padding-bottom: 0; border-bottom: 0; }
+.chest-shop__feed-row strong { font: 700 14px/1.2 var(--font-display); }
+.chest-shop__feed-row small { color: var(--home-ink-muted); }
+.chest-shop__feed-row span { grid-column: 1 / -1; }

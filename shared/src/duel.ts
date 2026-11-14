@@ -143,4 +143,35 @@ export interface DuelAvailability {
   /** Gold won in Duels today; resets daily and on level-up. */
   goldEarnedToday: number;
   goldDailyLimit: number;
+  /** Gold to play the remaining charges automatically (1 per Duel); 0 when none remain. */
+  autoRemainingPrice: number;
+  /** Gold to reopen ten Duels or play ten automatically during the break; null outside it. */
+  breakPrice: number | null;
+}
+
+/** "remaining" plays the charges left; "pack" plays ten during the break. */
+export type DuelAutoMode = "remaining" | "pack";
+
+export interface DuelAutoRequest {
+  mode: DuelAutoMode;
+}
+
+export interface DuelAutoResult {
+  played: number;
+  wins: number;
+  losses: number;
+  xp: number;
+  silver: number;
+  /** Duel and level-up gold earned by the fights. */
+  gold: number;
+  goldSpent: number;
+  ratingChange: number;
+  reachedLevels: number[];
+  player: PlayerSummary;
+  availability: DuelAvailability;
+}
+
+export interface DuelResetResponse {
+  availability: DuelAvailability;
+  gold: number;
 }

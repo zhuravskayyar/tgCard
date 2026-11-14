@@ -195,6 +195,18 @@ float noise2(vec2 point) {
   local = local * local * (3.0 - 2.0 * local);
   return mix(mix(hash2(cell), hash2(cell + vec2(1.0, 0.0)), local.x), mix(hash2(cell + vec2(0.0, 1.0)), hash2(cell + vec2(1.0, 1.0)), local.x), local.y);
 }
+// Sine-free hash: phone GPUs lose precision in sin() of large arguments; this one stays stable in highp on phones.
+float hash2s(vec2 point) {
+  vec3 p3 = fract(vec3(point.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise2s(vec2 point) {
+  vec2 cell = floor(point);
+  vec2 local = fract(point);
+  local = local * local * (3.0 - 2.0 * local);
+  return mix(mix(hash2s(cell), hash2s(cell + vec2(1.0, 0.0)), local.x), mix(hash2s(cell + vec2(0.0, 1.0)), hash2s(cell + vec2(1.0, 1.0)), local.x), local.y);
+}
 float hash(float value) { return fract(sin(value * 12.9898) * 43758.5453); }
 float valueNoise(vec2 point) {
   vec2 cell = floor(point);
@@ -365,128 +377,136 @@ void main() {
       vec3 groove = vec3(0.12, 0.12, 0.13) + vec3(1.0) * wall * keyLight * 1.2;
       color = mix(silverLit, groove, ink);
     } else if (kind < 9.5) {
-      // Legendary, angelic gold Damascus: warm forged layers behind a gloria of gold rays.
-      float flow = cardPoint.y * 0.11 + cardPoint.x * 0.035 + noise2(cardPoint * 0.018) * 6.0 + noise2(cardPoint * 0.06) * 1.2;
-      float layer = smoothstep(-0.25, 0.25, sin(flow * 3.14159));
-      // The Damascus stays saturated gold; its thin alternating layers catch a little white-gold light.
-      float broad = smoothstep(0.45, 0.0, abs(axis - 0.08)) * 0.55 + (1.0 - uv.y) * 0.25;
-      float reflectedLight = 0.1 + 0.25 * diffuse + luminance(environment(reflected, 0.12)) * 0.35 + bands * 0.7 + broad * 0.55;
-      vec3 goldLit = mix(goldTone(reflectedLight * 0.6), goldTone(reflectedLight * 0.92) * vec3(0.98, 0.96, 0.88), layer);
-      vec3 groove = vec3(0.16, 0.12, 0.08) + vec3(1.0, 0.85, 0.55) * wall * keyLight;
-      vec3 plate = mix(goldLit * backShade, groove, ink);
-      float lightBreath = 0.94 + 0.06 * sin(animTime * 0.48);
-      // Gloria: a raised sunburst of long and short gold rays behind the figure, turning very slowly,
-      // a white core of light, and golden motes drifting upward.
-      vec2 fromGlory = cardPoint - vec2(120.0, 140.0);
-      float gloryRadius = length(fromGlory);
-      float gloryAngle = atan(fromGlory.y, fromGlory.x) + animTime * 0.04;
-      float raySlot = gloryAngle / 6.2832 * 28.0;
-      float rayLocal = fract(raySlot);
-      float rayLength = mix(118.0, 178.0, mod(floor(raySlot), 2.0));
-      float rayWidth = 0.34 * (1.0 - gloryRadius / rayLength);
-      float rayMask = smoothstep(0.03, 0.0, abs(rayLocal - 0.5) - rayWidth) * step(gloryRadius, rayLength) * smoothstep(16.0, 40.0, gloryRadius);
-      float pulse = 0.8 + 0.2 * sin(gloryRadius * 0.05 - animTime * 0.9);
-      vec3 rayGold = goldTone(0.7 + 0.25 * diffuse + bands * 0.6) * vec3(1.0, 0.98, 0.9);
-      plate = mix(plate, rayGold, rayMask * 0.78 * pulse);
-      plate += vec3(1.0, 0.99, 0.95) * (1.0 - smoothstep(0.0, 105.0, gloryRadius)) * 0.42 * lightBreath;
-      for (int m = 0; m < 2; m++) {
-        float size = m == 0 ? 24.0 : 15.0;
-        vec2 q = vec2(cardPoint.x + float(m) * 9.0 + sin(cardPoint.y * 0.04 + animTime * 0.7) * 3.0, cardPoint.y + animTime * (m == 0 ? 7.0 : 11.0)) / size;
-        vec2 cell = floor(q);
-        vec2 offset = vec2(hash2(cell + 1.3), hash2(cell + 6.7)) - 0.5;
-        float mote = smoothstep(0.12, 0.0, length(fract(q) - 0.5 - offset * 0.6)) * step(0.78, hash2(cell + 3.9));
-        plate += vec3(1.0, 0.93, 0.7) * mote * (0.6 + 0.4 * sin(animTime * 2.0 + hash2(cell) * 6.2832));
-      }
-      // Keep the figure's dark engraved lines crisp against the gold and reflected white light.
-      vec3 polished = goldTone(0.26 + 0.28 * diffuse + luminance(environment(reflected, 0.05)) * 0.4 + bands * 0.8 + broad * 0.55);
-      vec3 lines = vec3(0.12, 0.08, 0.04) + elementColor * pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 6.0) * 0.45;
-      vec3 figure = mix(lines, polished, smoothstep(0.2, 0.45, lum));
-      color = mix(plate + elementColor * (1.0 - backShade) * 0.4, figure, artAlpha);
-      // A fine white aura traces the silhouette; its slow breathing avoids a flickering edge.
+      // Legendary, angelic: pearl-white marble veined with gold, light falling from heaven above,
+      // a halo over the figure, clouds at its feet and white feathers drifting down.
+      // Time wraps every ten minutes so phone GPUs keep their precision; a still frame (reduced motion) stays complete.
+      float t = mod(animTime, 600.0);
+      float marble = noise2s(cardPoint * 0.02 + vec2(3.0, 1.0)) * 0.6 + noise2s(cardPoint * 0.07) * 0.3;
+      float vein = pow(1.0 - abs(sin((cardPoint.x * 0.025 + cardPoint.y * 0.012 + marble * 5.0) * 3.14159)), 16.0);
+      float reflectedLight = 0.25 * diffuse + luminance(environment(reflected, 0.12)) * 0.22 + bands * 0.35;
+      vec3 pearl = mix(vec3(0.78, 0.78, 0.82), vec3(0.98, 0.97, 0.93), sat(0.5 + reflectedLight));
+      // The upper half takes a cool sky tint; the pearl's nacre shifts colour as the card tilts.
+      pearl = mix(pearl, vec3(0.76, 0.85, 0.98), smoothstep(170.0, 60.0, cardPoint.y) * 0.4);
+      vec3 nacre = 0.5 + 0.5 * cos(6.2832 * (vec3(0.0, 0.33, 0.67) + axis * 1.3 + marble * 0.6));
+      pearl += (nacre - 0.5) * 0.08 * (0.6 + bands);
+      vec3 plate = mix(pearl, goldTone(0.55 + 0.3 * diffuse + bands * 0.6), vein * 0.75);
+      vec3 groove = vec3(0.5, 0.4, 0.24) + vec3(1.0, 0.9, 0.65) * wall * keyLight;
+      plate = mix(plate * mix(1.0, backShade, 0.6), groove, ink * 0.85);
+      // Heavenly light: soft beams fanning down from above the card, swaying slowly.
+      vec2 fromHeaven = cardPoint - vec2(120.0, -70.0);
+      float beamAngle = atan(fromHeaven.x, fromHeaven.y);
+      float beams = smoothstep(0.45, 0.95, noise2s(vec2(beamAngle * 10.0, t * 0.12)));
+      plate += vec3(1.0, 0.97, 0.86) * beams * smoothstep(330.0, 100.0, length(fromHeaven)) * 0.32;
+      // Keep the figure's dark lines crisp; its light parts read as ivory and pale gold.
+      vec3 ivory = mix(goldTone(0.55 + 0.3 * diffuse + bands * 0.5), vec3(1.0, 0.98, 0.93) * (0.85 + 0.2 * diffuse), smoothstep(0.55, 0.95, lum));
+      vec3 lines = vec3(0.16, 0.11, 0.06) + elementColor * pow(sat(dot(reflected, normalize(vec3(-0.35, 0.58, 0.7)))), 6.0) * 0.3;
+      vec3 figure = mix(lines, ivory, smoothstep(0.2, 0.45, lum));
+      color = mix(plate + elementColor * (1.0 - backShade) * 0.25, figure, artAlpha);
+      // A soft white aureole traces the silhouette.
       vec2 artPoint = uv + tilt * 0.02;
-      float around = max(max(texture2D(artTexture, artPoint + vec2(0.007, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.007, 0.0)).a),
-        max(texture2D(artTexture, artPoint + vec2(0.0, 0.006)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.006)).a));
-      float aureole = sat(around - artAlpha) * (0.9 + 0.1 * sin(animTime * 0.55));
-      color += vec3(1.0, 0.99, 0.96) * aureole * 0.9;
-      // The frame: gilded with a bevelled inner edge and a gold glint running around it.
+      float around = max(max(texture2D(artTexture, artPoint + vec2(0.008, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.008, 0.0)).a),
+        max(texture2D(artTexture, artPoint + vec2(0.0, 0.007)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.007)).a));
+      color += vec3(1.0, 0.99, 0.95) * sat(around - artAlpha) * (0.75 + 0.1 * sin(t * 0.55));
+      // The halo: a thin gold ring floating above the figure, glowing softly and following the tilt.
+      vec2 haloPoint = (cardPoint - vec2(120.0, 82.0) - vec2(tilt.x, -tilt.y) * 6.0) / vec2(31.0, 8.5);
+      float haloDist = abs(length(haloPoint) - 1.0);
+      float haloBreath = 0.85 + 0.15 * sin(t * 0.7);
+      color = mix(color, goldTone(0.85 + bands * 0.3) * vec3(1.0, 0.97, 0.85), smoothstep(0.14, 0.03, haloDist) * 0.9);
+      color += vec3(1.0, 0.95, 0.78) * smoothstep(0.8, 0.0, haloDist) * 0.3 * haloBreath;
+      // Clouds gather at the bottom and drift sideways, over the figure's feet.
+      float cloud = noise2s(vec2(cardPoint.x * 0.03 + t * 0.04, cardPoint.y * 0.05)) * 0.6 + noise2s(cardPoint * 0.09 + vec2(-t * 0.06, 0.0)) * 0.4;
+      float cloudMask = smoothstep(0.42, 0.72, cloud + smoothstep(220.0, 300.0, cardPoint.y) * 0.45 - 0.1) * smoothstep(195.0, 292.0, cardPoint.y);
+      color = mix(color, vec3(1.0, 0.99, 0.97) * (0.9 + 0.1 * diffuse), cloudMask * 0.8);
+      // Feathers: soft white quills falling and turning slowly; rows repeat every 40 cells, so the loop never jumps.
+      for (int m = 0; m < 2; m++) {
+        float size = m == 0 ? 30.0 : 21.0;
+        float fall = mod(t * (m == 0 ? 6.0 : 9.0), size * 40.0);
+        vec2 q = vec2(cardPoint.x + float(m) * 11.0 + sin(cardPoint.y * 0.03 + t * 0.5) * 4.0, cardPoint.y - fall) / size;
+        vec2 cell = vec2(floor(q.x), mod(floor(q.y), 40.0));
+        vec2 local = fract(q) - 0.5 - (vec2(hash2s(cell + 1.3), hash2s(cell + 6.7)) - 0.5) * 0.45;
+        float spin = hash2s(cell + 2.2) * 6.2832 + sin(t * 0.8 + hash2s(cell) * 6.0) * 0.6;
+        vec2 r = vec2(cos(spin) * local.x + sin(spin) * local.y, -sin(spin) * local.x + cos(spin) * local.y);
+        float vane = 1.0 - smoothstep(0.6, 1.0, length(r / vec2(0.07, 0.22)));
+        float quill = smoothstep(0.012, 0.0, abs(r.x)) * step(abs(r.y), 0.24);
+        float present = step(0.8, hash2s(cell + 3.9));
+        color = mix(color, vec3(1.0, 0.99, 0.96), vane * present * 0.85);
+        color = mix(color, vec3(0.86, 0.72, 0.42), quill * present * 0.6);
+      }
+      // The frame: pale gilding with a bevelled inner edge and a soft glint running around it.
       float innerArea = rect(cardPoint, vec2(120.0, 156.0), vec2(105.0, 141.0), vec2(1.0));
       float frameBand = 1.0 - innerArea;
-      // Kept in the saturated mid range of the gold ramp so the frame never washes out to white.
-      vec3 frameGold = goldTone(min(0.62, 0.3 + 0.22 * diffuse + bands * 0.4 + luminance(environment(reflected, 0.06)) * 0.2));
+      vec3 frameGold = goldTone(min(0.75, 0.42 + 0.22 * diffuse + bands * 0.4 + luminance(environment(reflected, 0.06)) * 0.2));
       float bevel = rect(cardPoint, vec2(120.0, 156.0), vec2(106.4, 142.4), vec2(0.6)) - innerArea;
       float outerLine = rect(cardPoint, vec2(120.0, 156.0), vec2(110.5, 146.5), vec2(0.6)) - rect(cardPoint, vec2(120.0, 156.0), vec2(109.0, 145.0), vec2(0.6));
       float perimeter = (cardPoint.x + (312.0 - cardPoint.y)) / 552.0;
-      float runner = smoothstep(0.06, 0.0, abs(fract(perimeter - animTime * 0.08) - 0.5) - 0.44);
+      float runner = smoothstep(0.06, 0.0, abs(fract(perimeter - t * 0.08) - 0.5) - 0.44);
       color = mix(color, frameGold, frameBand);
-      color += vec3(0.95, 0.72, 0.3) * (sat(bevel) * 0.35 + sat(outerLine) * 0.2) + vec3(1.0, 0.8, 0.4) * runner * frameBand * 0.2;
+      color += vec3(1.0, 0.96, 0.85) * (sat(bevel) * 0.4 + sat(outerLine) * 0.25) + vec3(1.0, 0.95, 0.8) * runner * frameBand * 0.22;
     } else {
-      // Mythic, infernal: black obsidian split by slowly pulsing lava veins, embers rising from the bottom,
-      // a rune circle smouldering behind the figure, and the figure burned into the card on a fourteen-second loop.
-      float cycle = fract(animTime / 14.0);
-      vec2 heatPoint = cardPoint - tilt * 8.0;
-      // Obsidian: near-black glass that still mirrors the scene and the moving highlight bands.
-      vec3 obsidian = vec3(0.035, 0.022, 0.026) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.12) * 0.14 + vec3(1.0, 0.82, 0.76) * bands * 0.3;
-      // Lava veins: ridges of two drifting noise fields; thin cracks glow orange at their core, dark red at the rim.
-      // The cracks slowly flow upward and sway, so the lava moves instead of sitting still.
-      vec2 flow = vec2(sin(cardPoint.y * 0.03 + animTime * 0.6) * 4.0, animTime * 7.0);
-      float n1 = noise2((heatPoint + flow) * 0.032);
-      float n2 = noise2((heatPoint + flow * 1.6) * 0.071);
-      float veins = sat(pow(1.0 - abs(n1 * 2.0 - 1.0), 7.0) + pow(1.0 - abs(n2 * 2.0 - 1.0), 11.0) * 0.6);
-      // Waves of heat travel up through the veins: brightness rolls along them rather than blinking in place.
-      float pulse = 0.55 + 0.45 * sin(cardPoint.y * 0.06 + animTime * 2.4 + n1 * 3.0);
-      vec3 lava = mix(vec3(0.45, 0.03, 0.0), vec3(1.0, 0.56, 0.12), veins) * veins * pulse * 1.7;
-      // Heat rises from the bottom edge (uv.y runs from the bottom).
-      vec3 heat = vec3(0.55, 0.08, 0.02) * smoothstep(0.42, 0.0, uv.y) * (0.75 + 0.25 * sin(animTime * 0.9));
-      // The rune circle: two rings and a band of glyph strokes that turns slowly and breathes.
-      vec2 fromCentre = heatPoint - vec2(120.0, 168.0);
+      // Mythic, satanic: black stone under drifting crimson smoke, an inverted pentagram in a ring of glyphs
+      // beating like a heart behind the figure, a blood-red rim around it and ash falling slowly.
+      // No fire and no orange: the palette stays black, crimson and bone. The figure is always fully visible.
+      float t = mod(animTime, 600.0);
+      vec2 deep = cardPoint - tilt * 8.0;
+      float phase = fract(t / 1.9);
+      float beat = smoothstep(0.0, 0.05, phase) * (1.0 - smoothstep(0.05, 0.22, phase))
+        + 0.65 * smoothstep(0.24, 0.29, phase) * (1.0 - smoothstep(0.29, 0.5, phase));
+      float pulse = 0.55 + 0.45 * beat;
+      vec3 stone = vec3(0.03, 0.01, 0.014) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.12) * 0.09 + vec3(0.9, 0.55, 0.58) * bands * 0.2;
+      // Crimson smoke rising slowly, thicker towards the bottom.
+      float smoke = noise2s(deep * 0.025 + vec2(0.0, t * 0.04)) * 0.6 + noise2s(deep * 0.06 + vec2(t * 0.03, t * 0.07)) * 0.4;
+      vec3 plate = stone + vec3(0.34, 0.0, 0.035) * smoothstep(0.38, 0.85, smoke) * (0.45 + 0.55 * smoothstep(0.7, 0.0, uv.y));
+      // The inverted pentagram (one point down) inside two rings, with a band of glyphs turning slowly.
+      vec2 fromCentre = deep - vec2(120.0, 168.0);
       float radius = length(fromCentre);
-      float angle = atan(fromCentre.y, fromCentre.x) + animTime * 0.12;
-      float rings = smoothstep(1.6, 0.0, abs(radius - 78.0)) + smoothstep(1.2, 0.0, abs(radius - 62.0)) * 0.8;
+      float star = 1000.0;
+      for (int i = 0; i < 5; i++) {
+        float a0 = 1.5708 + float(i) * 1.25664;
+        vec2 p0 = vec2(cos(a0), sin(a0)) * 64.0;
+        vec2 ba = vec2(cos(a0 + 2.51327), sin(a0 + 2.51327)) * 64.0 - p0;
+        vec2 pa = fromCentre - p0;
+        star = min(star, length(pa - ba * sat(dot(pa, ba) / dot(ba, ba))));
+      }
+      float rings = smoothstep(1.5, 0.0, abs(radius - 80.0)) + smoothstep(1.1, 0.0, abs(radius - 64.0)) * 0.9;
+      float angle = atan(fromCentre.y, fromCentre.x) - t * 0.05;
       float glyphSlot = floor(angle / 6.2832 * 18.0);
       float glyphPhase = fract(angle / 6.2832 * 18.0);
-      float glyphLength = 0.35 + 0.5 * hash2(vec2(glyphSlot, 3.0));
-      float glyphs = step(65.0, radius) * step(radius, 75.0) * smoothstep(0.12, 0.2, glyphPhase) * (1.0 - smoothstep(0.8, 0.88, glyphPhase))
-        * step(abs(radius - 70.0), glyphLength * 5.0) * step(0.5, fract(glyphPhase * 3.0 + hash2(vec2(glyphSlot, 7.0))));
-      float sigilGlow = (rings + glyphs * 0.9) * (0.45 + 0.35 * sin(animTime * 0.8));
-      vec3 sigil = vec3(1.0, 0.22, 0.06) * sigilGlow;
-      vec3 plate = obsidian + lava + heat + sigil;
-      plate = mix(plate, vec3(0.015, 0.008, 0.008), ink * (1.0 - artAlpha) * 0.7);
-      // The figure burns in from the bottom as a ragged fire front, holds, then crumbles back to embers.
-      float burn = smoothstep(0.04, 0.3, cycle) * (1.0 - smoothstep(0.84, 0.94, cycle));
-      float burnEdge = burn * 1.25 - 0.12;
-      float height = uv.y + (noise2(cardPoint * 0.11) - 0.5) * 0.08;
-      float revealed = 1.0 - smoothstep(burnEdge - 0.05, burnEdge, height);
-      float front = smoothstep(0.06, 0.0, abs(height - burnEdge)) * step(0.01, burn) * step(burn, 0.99);
-      // Bright parts of the drawing glow like embers, its ink stays charred black.
-      vec3 ember = mix(vec3(1.0, 0.42, 0.08), vec3(1.0, 0.88, 0.66), smoothstep(0.55, 0.95, lum));
-      vec3 figure = mix(vec3(0.03, 0.01, 0.008), ember * (0.75 + 0.35 * diffuse), smoothstep(0.25, 0.55, lum));
-      // A burning rim just outside the figure's silhouette.
+      float glyphLength = 0.35 + 0.5 * hash2s(vec2(glyphSlot, 3.0));
+      float glyphs = step(67.0, radius) * step(radius, 77.0) * smoothstep(0.12, 0.2, glyphPhase) * (1.0 - smoothstep(0.8, 0.88, glyphPhase))
+        * step(abs(radius - 72.0), glyphLength * 5.0) * step(0.5, fract(glyphPhase * 3.0 + hash2s(vec2(glyphSlot, 7.0))));
+      float sigilLines = smoothstep(1.4, 0.0, star) + rings + glyphs * 0.85;
+      float sigilGlow = smoothstep(9.0, 0.0, star) * 0.3 + smoothstep(8.0, 0.0, abs(radius - 72.0)) * 0.15;
+      plate += vec3(0.9, 0.02, 0.07) * (sigilLines * (0.5 + 0.5 * pulse) + sigilGlow * pulse);
+      plate = mix(plate, vec3(0.012, 0.004, 0.006), ink * (1.0 - artAlpha) * 0.7);
+      // The figure: charred black lines, its light parts pale as bone, shading into blood red in the mids.
+      vec3 bone = vec3(0.8, 0.7, 0.68) * (0.7 + 0.4 * diffuse) + vec3(1.0, 0.85, 0.85) * bands * 0.2;
+      vec3 figure = mix(vec3(0.02, 0.004, 0.008), mix(vec3(0.5, 0.03, 0.06), bone, smoothstep(0.5, 0.92, lum)), smoothstep(0.22, 0.55, lum));
+      color = mix(plate + elementColor * (1.0 - backShade) * 0.15, figure, artAlpha);
+      // A blood-red rim just outside the silhouette that swells with each heartbeat.
       vec2 artPoint = uv + tilt * 0.02;
-      float around = max(max(texture2D(artTexture, artPoint + vec2(0.007, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.007, 0.0)).a),
-        max(texture2D(artTexture, artPoint + vec2(0.0, 0.006)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.006)).a));
-      float rim = sat(around - artAlpha) * (0.7 + 0.3 * sin(animTime * 3.0 + cardPoint.y * 0.08));
-      float figureAlpha = artAlpha * revealed;
-      color = mix(plate + elementColor * (1.0 - backShade) * 0.25 * burn, figure, figureAlpha);
-      color += vec3(1.0, 0.36, 0.06) * rim * revealed * 1.3 + vec3(1.0, 0.6, 0.2) * front * (0.4 + artAlpha) * 0.9;
-      // Embers: two layers of sparks rising and flickering; only some cells hold one.
+      float around = max(max(texture2D(artTexture, artPoint + vec2(0.008, 0.0)).a, texture2D(artTexture, artPoint - vec2(0.008, 0.0)).a),
+        max(texture2D(artTexture, artPoint + vec2(0.0, 0.007)).a, texture2D(artTexture, artPoint - vec2(0.0, 0.007)).a));
+      color += vec3(0.95, 0.04, 0.08) * sat(around - artAlpha) * (0.7 + 0.5 * beat);
+      // Ash: dark motes with a crimson glint, falling slowly and swaying; rows repeat every 40 cells.
       for (int layer = 0; layer < 2; layer++) {
-        float size = layer == 0 ? 22.0 : 13.0;
-        float speed = layer == 0 ? 16.0 : 26.0;
-        vec2 q = vec2(cardPoint.x + float(layer) * 7.0 + sin(cardPoint.y * 0.05 + animTime) * 2.0, cardPoint.y + animTime * speed) / size;
-        vec2 cell = floor(q);
-        vec2 offset = vec2(hash2(cell), hash2(cell + 4.1)) - 0.5;
-        float spark = smoothstep(0.11, 0.0, length(fract(q) - 0.5 - offset * 0.6)) * step(0.72, hash2(cell + 9.3));
-        float twinkle = 0.55 + 0.45 * sin(animTime * 6.0 + hash2(cell + 2.0) * 6.2832);
-        color += vec3(1.0, 0.5, 0.12) * spark * twinkle * (0.5 + 0.7 * smoothstep(1.0, 0.0, uv.y));
+        float size = layer == 0 ? 22.0 : 14.0;
+        float fall = mod(t * (layer == 0 ? 5.0 : 8.0), size * 40.0);
+        vec2 q = vec2(cardPoint.x + float(layer) * 7.0 + sin(cardPoint.y * 0.04 + t * 0.6) * 3.0, cardPoint.y - fall) / size;
+        vec2 cell = vec2(floor(q.x), mod(floor(q.y), 40.0));
+        vec2 offset = vec2(hash2s(cell), hash2s(cell + 4.1)) - 0.5;
+        float mote = smoothstep(0.1, 0.0, length(fract(q) - 0.5 - offset * 0.6)) * step(0.74, hash2s(cell + 9.3));
+        color += vec3(0.7, 0.03, 0.06) * mote * (0.4 + 0.3 * sin(t * 1.5 + hash2s(cell + 2.0) * 6.2832));
       }
-      // The frame: blackened forged iron whose inner edge glows red-hot.
+      // Darker corners close the scene in.
+      color *= 1.0 - 0.45 * smoothstep(0.35, 0.75, length(platePoint));
+      // The frame: blackened iron, its inner edge and outer line glowing blood red with the heartbeat.
       float innerArea = rect(cardPoint, vec2(120.0, 156.0), vec2(105.0, 141.0), vec2(1.0));
       float frameBand = 1.0 - innerArea;
-      vec3 frameIron = vec3(0.05, 0.03, 0.03) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.1) * 0.18 + vec3(1.0, 0.8, 0.7) * bands * 0.4;
+      vec3 frameIron = vec3(0.045, 0.02, 0.024) * (0.7 + 0.5 * diffuse) + environment(reflected, 0.1) * 0.15 + vec3(1.0, 0.75, 0.75) * bands * 0.35;
       float hotEdge = rect(cardPoint, vec2(120.0, 156.0), vec2(106.6, 142.6), vec2(0.7)) - innerArea;
       float outerLine = rect(cardPoint, vec2(120.0, 156.0), vec2(110.5, 146.5), vec2(0.6)) - rect(cardPoint, vec2(120.0, 156.0), vec2(109.0, 145.0), vec2(0.6));
       color = mix(color, frameIron, frameBand);
-      color += vec3(1.0, 0.25, 0.05) * sat(hotEdge) * (0.8 + 0.4 * pulse) + vec3(0.7, 0.12, 0.04) * sat(outerLine) * 0.7;
+      color += vec3(0.85, 0.02, 0.06) * sat(hotEdge) * (0.6 + 0.5 * pulse) + vec3(0.55, 0.0, 0.04) * sat(outerLine) * 0.8;
     }
     if (kind > 6.5) {
       // The power tray and fleur-de-lis stay plain polished metal with their own light and dark; the medallion keeps its colours.
@@ -496,7 +516,7 @@ void main() {
       vec3 ui = mix(vec3(0.05, 0.05, 0.06), uiMetal * (0.78 + 0.25 * diffuse) + uiMetal * bands * 0.35, smoothstep(0.25, 0.6, lum));
       if (kind > 8.5 && kind < 9.5) {
         // Legendary: a dark bronze tray; the numerals and the fleur-de-lis shine white-gold, the rim is gilded.
-        float shine = 0.88 + 0.12 * sin(animTime * 1.5 + cardPoint.x * 0.035);
+        float shine = 0.88 + 0.12 * sin(mod(animTime, 600.0) * 1.5 + cardPoint.x * 0.035);
         vec3 bronze = vec3(0.16, 0.1, 0.035) * (0.75 + 0.45 * diffuse) + vec3(1.0, 0.9, 0.7) * bands * 0.25;
         vec3 gilt = mix(vec3(0.95, 0.68, 0.22), vec3(1.0, 0.96, 0.8), smoothstep(0.55, 0.9, lum)) * shine;
         float trayRim = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) - rect(cardPoint, vec2(120.0, 36.0), vec2(103.5, 18.5), vec2(1.2));
@@ -504,13 +524,13 @@ void main() {
         ui = mix(ui, goldTone(0.6 + 0.3 * diffuse + bands * 0.6), sat(trayRim));
       }
       if (kind > 9.5) {
-        // Mythic: a forged black-iron tray; the numerals and the fleur-de-lis glow red-hot and breathe,
-        // and the rim smoulders, matching the infernal plate instead of the silver of the lower rarities.
-        float glowBreath = 0.82 + 0.18 * sin(animTime * 1.8 + cardPoint.x * 0.04);
+        // Mythic: a forged black-iron tray; the numerals and the fleur-de-lis glow blood red and breathe,
+        // and the rim smoulders crimson, matching the satanic plate instead of the silver of the lower rarities.
+        float glowBreath = 0.82 + 0.18 * sin(mod(animTime, 600.0) * 1.8 + cardPoint.x * 0.04);
         vec3 iron = vec3(0.045, 0.028, 0.026) * (0.75 + 0.45 * diffuse) + vec3(1.0, 0.75, 0.65) * bands * 0.25;
-        vec3 hot = mix(vec3(0.95, 0.28, 0.05), vec3(1.0, 0.86, 0.5), smoothstep(0.55, 0.9, lum)) * glowBreath;
+        vec3 hot = mix(vec3(0.85, 0.03, 0.08), vec3(1.0, 0.78, 0.76), smoothstep(0.55, 0.9, lum)) * glowBreath;
         float trayRim = rect(cardPoint, vec2(120.0, 36.0), vec2(106.0, 21.0), vec2(2.0)) - rect(cardPoint, vec2(120.0, 36.0), vec2(103.5, 18.5), vec2(1.2));
-        ui = mix(iron, hot, smoothstep(0.3, 0.6, lum)) + vec3(0.9, 0.16, 0.03) * sat(trayRim) * (0.45 + 0.25 * sin(animTime * 1.3));
+        ui = mix(iron, hot, smoothstep(0.3, 0.6, lum)) + vec3(0.8, 0.02, 0.06) * sat(trayRim) * (0.45 + 0.25 * sin(mod(animTime, 600.0) * 1.3));
       }
       color = mix(color, ui, trayArea);
       color = mix(color, texel.rgb * (0.95 + 0.2 * diffuse), medallionArea);
@@ -1144,7 +1164,7 @@ export function mountCardMaterialShader({ artLayer, artworkSource, canvas, eleme
   let instance: CardShaderInstance | null = null;
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const material = MATERIALS[materialId] ?? MATERIALS.silver;
-  // Astronite's galaxy, the angelic gold's light and the infernal plate move on their own; the rest repaint on tilt alone.
+  // Astronite's galaxy, the angelic plate and the satanic plate move on their own; the rest repaint on tilt alone.
   const animated = (material.kind > 4.5 && material.kind < 5.5) || material.kind > 8.5;
   const cardRoot = canvas.closest<HTMLElement>(".deck-card, .duel-card, .card-detail-card, .shop-reveal__card, .limited-card-reveal__card, .campaign-boss-reward-card, .collection-card-visual, .collection-card-tile__plate, .player-profile-card-plate, .workshop-card__art, .battle-pass-card-thumbnail") ?? canvas.parentElement;
   const context = canvas.getContext("2d");

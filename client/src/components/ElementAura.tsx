@@ -171,7 +171,41 @@ vec4 fire(vec2 uv, float t) {
 float lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
 vec4 signature(vec4 c, vec2 uv, float t) {
-  if (u_sig < 0.5 || c.a <= 0.0) return c;
+  if (u_sig < 0.5 || (c.a <= 0.0 && u_sig < 9.5)) return c;
+  if (u_sig > 9.5) {
+    // Guardian dragon: embers breathe inside the light scales, a hot rim pulses, sparks rise around it.
+    vec4 g = art(uv);
+    vec3 base = c.a > 0.0 ? c.rgb / c.a : vec3(0.0);
+    float lit = lum(base);
+    float breath = 0.5 + 0.5 * sin(t * 1.3);
+    float heat = fbm(vec2(uv.x * 5.0, uv.y * 4.0 - t * 0.55));
+    float glow = smoothstep(0.38, 0.72, heat) * smoothstep(0.3, 0.8, lit) * (0.4 + 0.6 * breath);
+    vec3 molten = mix(vec3(0.85, 0.32, 0.05), vec3(1.0, 0.72, 0.28), heat);
+    base = mix(base, molten, glow * 0.85 * g.a);
+    float ring = 0.0;
+    float halo = 0.0;
+    for (int i = 0; i < 8; i++) {
+      float ang = float(i) * 0.7854;
+      vec2 dir = vec2(cos(ang), sin(ang));
+      ring += art(uv + dir * u_texel * 7.0).a;
+      halo += art(uv + dir * u_texel * 22.0).a;
+    }
+    float edge = clamp(ring / 8.0 - g.a, 0.0, 1.0);
+    float flickR = 0.7 + 0.3 * fbm(vec2(uv.y * 9.0 - t * 2.4, uv.x * 4.0));
+    float rimA = edge * (0.6 + 0.4 * breath) * flickR;
+    // A soft warm aura further out, breathing with the dragon.
+    float auraA = clamp(halo / 8.0 - g.a, 0.0, 1.0) * (0.18 + 0.22 * breath);
+    float near = art(uv - vec2(0.0, 0.06)).a + art(uv - vec2(0.0, 0.13)).a + art(uv - vec2(0.05, 0.09)).a;
+    float embers = (motes(uv + 1.3, t, vec2(0.06, 0.55), 0.45) + motes(uv * 1.7 + 4.1, t * 1.3, vec2(-0.05, 0.75), 0.55)) * clamp(near, 0.0, 1.0) * (1.0 - g.a);
+    vec4 outC = vec4(clamp(base, 0.0, 1.0) * c.a, c.a);
+    vec3 flame = vec3(1.0, 0.55, 0.12);
+    outC.rgb += vec3(0.95, 0.5, 0.1) * auraA * (1.0 - g.a);
+    outC.a = max(outC.a, auraA * (1.0 - g.a));
+    outC.rgb = mix(outC.rgb, flame, rimA * (1.0 - g.a));
+    outC.rgb += vec3(1.0, 0.68, 0.25) * embers * 1.5;
+    outC.a = max(outC.a, max(rimA * 0.95, min(1.0, embers)));
+    return outC;
+  }
   vec4 src = art(uv);
   float a = src.a;
   vec3 rgb = c.rgb / c.a;
@@ -287,6 +321,7 @@ const SIGNATURE: Readonly<Record<string, number>> = {
   sorceress_earth: 9,
   sorceress_fire: 9,
   sorceress_water: 9,
+  guardian_dragon: 10,
 };
 
 function prefersReducedMotion() {

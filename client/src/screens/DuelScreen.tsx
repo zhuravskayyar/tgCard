@@ -9,6 +9,8 @@ import "../styles/duel-screen.css";
 import { DuelSearchExperience, type DuelSearchExperiencePhase } from "./DuelSearchExperience";
 import type {
   CardElement,
+  DuelAutoMode,
+  DuelAutoResult,
   DuelAvailability,
   DuelCardSnapshot,
   DuelExchange,
@@ -31,8 +33,10 @@ import { Lariska } from "../components/Lariska";
 import { ResourceIcon } from "../components/ResourceIcon";
 import { getTelegramInitData } from "../telegram";
 import {
+  autoPlayDuels,
   DuelApiError,
   loadActiveDuel,
+  resetDuelBreak,
   loadDuel,
   loadDuelAvailability,
   searchDuelOpponent,
@@ -65,6 +69,7 @@ function preloadDuelArtwork(duel: DuelView) {
 type DuelScreenState =
   | { status: "loading" | "searching" | "cancelled" }
   | { status: "cooldown" }
+  | { status: "auto-result"; summary: DuelAutoResult }
   | { status: "preview"; search: DuelSearchResponse }
   | { status: "duel"; duel: DuelView }
   | { status: "no-opponent" }
@@ -537,7 +542,52 @@ function DuelRatingMeter({ compact = false, rating, ratingChange }: { compact?: 
   );
 }
 
-function DuelResultView({ duel, availability, onReturn, onTutorialResult, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; availability: DuelAvailability | null; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; tutorialMode?: boolean; tutorialResultError?: string | null }) {
+/** An asset-backed duel button with its gold price; the label stays its own text node for translation. */
+function DuelPaidButton({ disabled, label, onClick, price, secondary = false }: { disabled: boolean; label: string; onClick: () => void; price: number; secondary?: boolean }) {
+  return (
+    <button className={`duel-search-button ${secondary ? "duel-search-button--again" : "duel-search-button--attack"} duel-paid-button`} disabled={disabled} onClick={onClick} type="button">
+      <span>{label}</span>
+      <span className="duel-paid-button__price"><CurrencyIcon kind="gold" size={18} /><span className="ui-number">{formatUiNumber(price)}</span></span>
+    </button>
+  );
+}
+
+/** "8 дуелей за" with the Ukrainian plural; each form has its own translation row. */
+function formatDuelCount(count: number) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  if (last === 1 && lastTwo !== 11) return `${count} дуель за`;
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return `${count} дуелі за`;
+  return `${count} дуелей за`;
+}
+
+function DuelPaidError({ message }: { message: string | null }) {
+  return message ? <p className="duel-paid-error" role="alert">{message}</p> : null;
+}
+
+/** Totals of an automatic run, on the same painted panel as the break screen. */
+function DuelAutoSummary({ onReturn, summary }: { onReturn: () => void; summary: DuelAutoResult }) {
+  const latestLevel = summary.reachedLevels.at(-1);
+  const ratingChange = `${summary.ratingChange > 0 ? "+" : summary.ratingChange < 0 ? "−" : ""}${formatUiNumber(Math.abs(summary.ratingChange))}`;
+  return (
+    <section className="duel-cooldown-panel duel-auto-summary">
+      <AppIcon name="tournament" size={38} />
+      <h2>Автобої завершено</h2>
+      <p className="duel-outcome__wins">{`Перемог: ${summary.wins} з ${summary.played}`}</p>
+      <p className="duel-outcome__received">Ти отримав:</p>
+      <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
+        <span aria-label={`Срібло: ${summary.silver}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={summary.silver} /></span>
+        <span aria-label={`Досвід: ${summary.xp}`} className="duel-outcome__reward" data-reward-source="xp"><ResourceIcon kind="xp" size={20} /><CountUpValue value={summary.xp} /></span>
+        {summary.gold > 0 ? <span aria-label={`Золото: ${summary.gold}`} className="duel-outcome__reward" data-reward-source="gold"><CurrencyIcon kind="gold" size={20} /><CountUpValue value={summary.gold} /></span> : null}
+      </div>
+      <p className="duel-outcome__note">{`Зміна рейтингу: ${ratingChange}`}</p>
+      {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
+      <button className="duel-search-button duel-search-button--attack duel-outcome__next" onClick={onReturn} type="button">До дуелей</button>
+    </section>
+  );
+}
+
+function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutorialResult, paidError = null, paidPending = false, tutorialMode, tutorialResultError = null, onOpenLeagues, onOpenTasks, onOpenShop }: DuelResultNavigation & { duel: DuelView; availability: DuelAvailability | null; onAutoRemaining?: () => void; onReturn: () => void; onTutorialResult?: () => void | Promise<void>; paidError?: string | null; paidPending?: boolean; tutorialMode?: boolean; tutorialResultError?: string | null }) {
   const result = duel.result;
   const [tutorialResultPending, setTutorialResultPending] = useState(false);
   if (!result) return null;
@@ -595,7 +645,15 @@ function DuelResultView({ duel, availability, onReturn, onTutorialResult, tutori
       </section>
       {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
       {result.accountBoostMultiplier === 2 ? <p className="duel-outcome__note">Буст ×2 активний</p> : null}
-      <button className="duel-search-button duel-search-button--attack duel-outcome__next" onClick={onReturn} type="button">{availability && availability.remaining > 0 ? "Ще дуель" : "До дуелей"}</button>
+      <button className="duel-search-button duel-search-button--attack duel-outcome__next" disabled={paidPending} onClick={onReturn} type="button">{availability && availability.remaining > 0 ? "Ще дуель" : "До дуелей"}</button>
+      {/* Reference: after a won Duel with charges left, the rest can be played automatically for 1 gold each. */}
+      {won && onAutoRemaining && availability && availability.remaining > 0 && availability.autoRemainingPrice > 0 ? (
+        <>
+          <p className="duel-outcome__note">Пройти решту дуелей?</p>
+          <DuelPaidButton disabled={paidPending} label={paidPending ? "Бої тривають…" : formatDuelCount(availability.remaining)} onClick={onAutoRemaining} price={availability.autoRemainingPrice} secondary />
+        </>
+      ) : null}
+      <DuelPaidError message={paidError} />
       <section className="duel-result-battle duel-outcome__battle" aria-label="Підсумки бою">
         <header>
           <span aria-label={`Залишок вашого здоров’я: ${duel.playerHp}`}>♥ {formatNumber(duel.playerHp)}</span>
@@ -617,6 +675,10 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
   const [state, setState] = useState<DuelScreenState>({ status: "loading" });
   const [availability, setAvailability] = useState<DuelAvailability | null>(null);
   const [pendingSlot, setPendingSlot] = useState<0 | 1 | 2 | null>(null);
+  const [paidAction, setPaidAction] = useState<null | "reset" | "auto">(null);
+  const paidPending = paidAction !== null;
+  const paidInFlightRef = useRef(false);
+  const [paidError, setPaidError] = useState<string | null>(null);
   const resultReady = useBattleResultReady(state.status === "duel" && state.duel.status === "active", state.status === "duel" && state.duel.status !== "active", state.status === "duel" && state.duel.status !== "active" ? state.duel.status === "won" ? "win" : "loss" : null);
   const requestInFlightRef = useRef(false);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
@@ -755,6 +817,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
   }, []);
 
   async function handleSearchAgain() {
+    setPaidError(null);
     const initData = getTelegramInitData();
     if (!initData) return;
     try {
@@ -805,6 +868,63 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
     }
   }
 
+  function paidErrorMessage(error: unknown) {
+    return error instanceof DuelApiError && error.code === "not_enough_gold"
+      ? "Недостатньо золота."
+      : "Дію не виконано. Оновіть дані та спробуйте ще раз.";
+  }
+
+  async function handleResetBreak() {
+    const initData = getTelegramInitData();
+    // A ref, not state: a second tap in the same frame must not pay twice.
+    if (!initData || paidInFlightRef.current) return;
+    paidInFlightRef.current = true;
+    setPaidAction("reset");
+    setPaidError(null);
+    try {
+      const reset = await resetDuelBreak(initData);
+      setAvailability(reset.availability);
+      onPlayerSummaryChange({ gold: reset.gold });
+      await search(initData);
+    } catch (error) {
+      setPaidError(paidErrorMessage(error));
+      void loadDuelAvailability(initData).then(setAvailability).catch(() => undefined);
+    } finally {
+      paidInFlightRef.current = false;
+      setPaidAction(null);
+    }
+  }
+
+  async function handleAutoPlay(mode: DuelAutoMode) {
+    const initData = getTelegramInitData();
+    // A ref, not state: a second tap in the same frame must not pay twice.
+    if (!initData || paidInFlightRef.current) return;
+    paidInFlightRef.current = true;
+    setPaidAction("auto");
+    setPaidError(null);
+    try {
+      const summary = await autoPlayDuels(initData, mode);
+      // A finished manual result may still hold its rewards for the HUD; the run already includes them.
+      pendingResultPlayerRef.current = null;
+      window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
+      setAvailability(summary.availability);
+      onPlayerSummaryChange({
+        duelHighestLeagueIndex: summary.player.duelHighestLeagueIndex,
+        duelRating: summary.player.duelRating,
+        gold: summary.player.gold,
+        level: summary.player.level,
+        silver: summary.player.silver,
+      });
+      setState({ status: "auto-result", summary });
+    } catch (error) {
+      setPaidError(paidErrorMessage(error));
+      void loadDuelAvailability(initData).then(setAvailability).catch(() => undefined);
+    } finally {
+      paidInFlightRef.current = false;
+      setPaidAction(null);
+    }
+  }
+
   async function handleAction(slotIndex: 0 | 1 | 2) {
     if (state.status !== "duel" || state.duel.status !== "active" || pendingSlot !== null || requestInFlightRef.current) return;
     const initData = getTelegramInitData();
@@ -840,6 +960,17 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
     void loadDuelAvailability(initData, controller.signal).then(setAvailability).catch(() => undefined);
     return () => controller.abort();
   }, [state.status === "duel" ? state.duel.duelId : null, state.status === "duel" ? state.duel.status : null, tutorialMode]);
+
+  // The break price shrinks with the time left, so the shown price is refreshed every minute.
+  useEffect(() => {
+    if (state.status !== "cooldown" || tutorialMode) return undefined;
+    const initData = getTelegramInitData();
+    if (!initData) return undefined;
+    const timer = window.setInterval(() => {
+      void loadDuelAvailability(initData).then(setAvailability).catch(() => undefined);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [state.status, tutorialMode]);
 
   useEffect(() => {
     if (state.status !== "cooldown" || !availability?.refillAt) return undefined;
@@ -878,6 +1009,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
   }, []);
 
   function returnToDuels() {
+    setPaidError(null);
     window.localStorage.removeItem(LAST_DUEL_STORAGE_KEY);
     void handleSearchAgain();
   }
@@ -885,17 +1017,26 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
   if (state.status === "duel") {
     return !resultReady
       ? <DuelBattle duel={state.duel} onAction={handleAction} pendingSlot={pendingSlot} tutorialAllowedSlot={tutorialAllowedSlot} tutorialMode={tutorialMode} />
-      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} availability={availability} onReturn={returnToDuels} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
+      : <DuelResultView onOpenLeagues={onOpenLeagues} onOpenTasks={onOpenTasks} onOpenShop={onOpenShop} duel={state.duel} availability={availability} onAutoRemaining={tutorialMode ? undefined : () => void handleAutoPlay("remaining")} onReturn={returnToDuels} paidError={paidError} paidPending={paidPending} onTutorialResult={onTutorialResult} tutorialMode={tutorialMode} tutorialResultError={tutorialResultError} />;
   }
 
   return (
     <div className="duel-page duel-search-screen">
       <DuelHeading onBack={onBack} />
-      {state.status === "cooldown" ? (
+      {state.status === "auto-result" ? (
+        <DuelAutoSummary onReturn={returnToDuels} summary={state.summary} />
+      ) : state.status === "cooldown" ? (
         <section className="duel-cooldown-panel">
           <AppIcon name="tournament" size={38} />
           <h2>Дуелі на перерві</h2>
           <DuelAvailabilitySummary availability={availability} />
+          {availability?.breakPrice ? (
+            <div className="duel-search-actions">
+              <DuelPaidButton disabled={paidPending} label="Відкрити 10 дуелей" onClick={() => void handleResetBreak()} price={availability.breakPrice} />
+              <DuelPaidButton disabled={paidPending} label={paidAction === "auto" ? "Бої тривають…" : "Пройти 10 автоматично"} onClick={() => void handleAutoPlay("pack")} price={availability.breakPrice} secondary />
+            </div>
+          ) : null}
+          <DuelPaidError message={paidError} />
           <p>Після перерви знову будуть доступні {availability?.max ?? "…"} дуелей.</p>
         </section>
       ) : (

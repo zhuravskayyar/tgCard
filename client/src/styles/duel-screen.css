@@ -448,6 +448,25 @@
 .duel-search-button:disabled { cursor: wait; opacity: .7; }
 .duel-search-button:focus-visible { outline: 2px solid #9b6b2f; outline-offset: 4px; }
 .duel-search-button--cancel { width: min(86%, 340px); }
+/* Paid Duels: the label and its gold price share the existing button sprites. */
+:root .app-shell .app-content .duel-paid-button { gap: 6px; font-size: 13px; letter-spacing: .04em; white-space: nowrap; }
+.duel-paid-button > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.duel-paid-button__price { display: inline-flex; flex: none; align-items: center; gap: 3px; letter-spacing: 0; }
+/* The dark red primary sprite needs the light number metal, as numbers on other dark plates use. */
+:root .app-shell .duel-search-button--attack.duel-paid-button .duel-paid-button__price {
+  --number-metal-top: #fff5d3;
+  --number-metal-highlight: #fffaf0;
+  --number-metal-mid: #f1dcaa;
+  --number-metal-low: #dcb878;
+  --number-metal-outline: #34210e;
+  font-size: 15px;
+}
+.app-shell .app-content .duel-outcome .duel-paid-button { width: min(88%, 320px); }
+@media (prefers-reduced-motion: reduce) {
+  .duel-auto-summary :is(.duel-outcome__received, .duel-outcome__reward, .duel-outcome__wins, .duel-outcome__note, .duel-outcome__next) { animation: none; }
+}
+.duel-paid-error { margin: 0; color: #9b3a2c; font: 700 13px/1.3 var(--font-body); }
+.app-shell .app-content .duel-auto-summary { gap: 12px; }
 
 .duel-search-experience--preview .duel-search-view--found {
   gap: 3px;

@@ -8,6 +8,7 @@ import { DeckScreen } from "./screens/DeckScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { RecordsScreen } from "./screens/RecordsScreen";
 import { ShopScreen } from "./screens/ShopScreen";
+import { ChestShopScreen } from "./screens/ChestShopScreen";
 import { CardDetailScreen } from "./screens/CardDetailScreen";
 import { WeakCardsScreen } from "./screens/WeakCardsScreen";
 import { BestiaryBook } from "./components/bestiary/BestiaryBook";
@@ -26,6 +27,7 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 import { ProfileSettingsScreen } from "./screens/ProfileSettingsScreen";
 import { InventoryScreen } from "./screens/InventoryScreen";
 import { EquipmentScreen } from "./screens/EquipmentScreen";
+import { GuardianDragonScreen } from "./screens/GuardianDragonScreen";
 import { ForgeScreen } from "./screens/ForgeScreen";
 import { BattlePassScreen } from "./screens/BattlePassScreen";
 import { TasksScreen } from "./screens/TasksScreen";
@@ -49,7 +51,7 @@ import { getPlayerDisplayName, isArenaUnlocked, type CardElement, type DuelView,
 import { EMPTY_EQUIPMENT, reconcileEquipment } from "./equipment/equipmentState";
 import { INTERACTIVE_TUTORIAL_ENABLED } from "./config/features";
 
-type Screen = "tournament" | "home" | "profile" | "profile-settings" | "records" | "guild" | "inventory" | "equipment" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks" | "trials" | "save-profile" | "booster-preview" | "material-lab";
+type Screen = "tournament" | "home" | "profile" | "profile-settings" | "records" | "guild" | "inventory" | "equipment" | "guardian-dragon" | "forge" | "settings" | "player-profile" | "mail" | "duel" | "arena" | "dungeon" | "leagues" | "deck" | "weak" | "card" | "shop" | "collections" | "collection" | "collection-card" | "campaign" | "campaign-stage" | "campaign-boss" | "battle-pass" | "tasks" | "trials" | "save-profile" | "booster-preview" | "material-lab" | "chest-shop";
 
 const MaterialLab = import.meta.env.DEV ? lazy(() => import("./screens/MaterialLabScreen").then(({ MaterialLabScreen }) => ({ default: MaterialLabScreen }))) : null;
 const BoosterPreview = import.meta.env.DEV ? lazy(() => import("./screens/BoosterPreviewScreen").then(({ BoosterPreviewScreen }) => ({ default: BoosterPreviewScreen }))) : null;
@@ -118,12 +120,12 @@ export function App() {
   const initialWeakReturnScreen = isOneOf(initialFrom, ["card", "trials", "campaign-stage", "deck", "home"] as const) ? initialFrom : "home";
   const initialCollectionsReturnScreen = isOneOf(initialFrom, ["home", "trials", "campaign-stage"] as const) ? initialFrom : "home";
   const initialCardReturnScreen = isOneOf(initialFrom, ["deck", "weak", "collection-card"] as const) ? initialFrom : "deck";
-  const [screen, setScreen] = useState<Screen>(import.meta.env.DEV && initialPath === "/lab/booster" ? "booster-preview" : import.meta.env.DEV && initialPath === "/lab/materials" ? "material-lab" : initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "trials" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/tournament" ? "tournament" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/forge" ? "forge" : initialPath === "/records" ? "records" : initialPath === "/profile/settings" ? "profile-settings" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : initialPath === "/trials" ? "trials" : initialPath === "/trials/save" ? "save-profile" : "home");
+  const [screen, setScreen] = useState<Screen>(import.meta.env.DEV && initialPath === "/lab/booster" ? "booster-preview" : import.meta.env.DEV && initialPath === "/lab/materials" ? "material-lab" : initialPlayerProfile ? "player-profile" : initialCollectionCard ? "collection-card" : initialCollection ? "collection" : initialPath === "/collections" ? "collections" : initialCampaignStage ? "trials" : initialPath === "/campaign/boss" ? "campaign-boss" : initialPath === "/campaign" ? "campaign" : initialPath === "/duel" ? "duel" : initialPath === "/arena" ? "arena" : initialPath === "/tournament" ? "tournament" : initialPath === "/dungeon" ? "dungeon" : initialPath === "/leagues" ? "leagues" : initialPath === "/mail" ? "mail" : initialPath === "/settings" ? "settings" : initialPath === "/inventory" ? "inventory" : initialPath === "/equipment" ? "equipment" : initialPath === "/guardian-dragon" ? "guardian-dragon" : initialPath === "/forge" ? "forge" : initialPath === "/records" ? "records" : initialPath === "/profile/settings" ? "profile-settings" : initialPath === "/profile" ? "profile" : initialPath === "/guild" ? "guild" : initialPath === "/deck" ? "deck" : initialWeak ? "weak" : initialCard ? "card" : initialPath === "/shop" ? "shop" : initialPath === "/chest-shop" ? "chest-shop" :initialPath === "/battle-pass" ? "battle-pass" : initialPath === "/tasks" ? "tasks" : initialPath === "/trials" ? "trials" : initialPath === "/trials/save" ? "save-profile" : "home");
   const [deckReturnScreen, setDeckReturnScreen] = useState<"home" | "profile" | "campaign-stage" | "tasks" | "trials">(initialDeckReturnScreen);
   const [shopReturnScreen, setShopReturnScreen] = useState<"home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials">(initialShopReturnScreen);
   const [mailReturnScreen, setMailReturnScreen] = useState<"home" | "profile">(initialMailReturnScreen);
   const [duelReturnScreen, setDuelReturnScreen] = useState<"home" | "campaign-stage" | "tasks" | "trials">(initialDuelReturnScreen);
-  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "trials" | "campaign-stage" | "deck" | "home">(initialWeakReturnScreen);
+  const [weakReturnScreen, setWeakReturnScreen] = useState<"card" | "trials" | "campaign-stage" | "deck" | "home" | "guardian-dragon">(initialWeakReturnScreen);
   const [collectionsReturnScreen, setCollectionsReturnScreen] = useState<"home" | "trials" | "campaign-stage">(initialCollectionsReturnScreen);
   const [campaignStageId] = useState(() => decodeURIComponent(initialCampaignStage?.[1] ?? "") || "stage_1");
   const [cardInstanceId, setCardInstanceId] = useState<string | null>(() => decodeURIComponent(initialCard?.[1] ?? "") || null);
@@ -274,6 +276,11 @@ export function App() {
     updatePath(`/players/${encodeURIComponent(playerId)}`);
   }
 
+  function openChestShop() {
+    setScreen("chest-shop");
+    updatePath("/chest-shop");
+  }
+
   function openShop(returnScreen: "home" | "deck" | "collection" | "campaign-stage" | "tasks" | "trials") {
     if (campaignTraining && returnScreen !== "campaign-stage") { openCampaign(); return; }
     setShopReturnScreen(returnScreen);
@@ -306,6 +313,18 @@ export function App() {
     setEquipmentItemId(itemId);
     setScreen("equipment");
     updatePath(itemId ? `/equipment?item=${encodeURIComponent(itemId)}` : "/equipment");
+  }
+
+  function openGuardianDragon() {
+    if (campaignTraining) { openCampaign(); return; }
+    setScreen("guardian-dragon");
+    updatePath("/guardian-dragon");
+  }
+
+  function openGuardianDragonWeakCards() {
+    setWeakReturnScreen("guardian-dragon");
+    setScreen("weak");
+    updatePath("/cards/weak");
   }
 
   function openForge() {
@@ -721,15 +740,18 @@ export function App() {
           onOpenDungeon={openDungeon}
           onOpenTasks={openTasks}
           onOpenEquipment={openEquipment}
+          onOpenGuardianDragon={openGuardianDragon}
           onOpenLeaderboard={openLeagues}
           onOpenBattlePass={openBattlePass}
           onOpenShop={() => openShop("home")}
+          onOpenChestShop={openChestShop}
            onResumeTutorial={resumeTutorial}
           playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
           arenaUnlocked={playerSummaryState.status === "ready" ? isArenaUnlocked(playerSummaryState.data.duelRating, playerSummaryState.data.duelHighestLeagueIndex) : undefined}
           tutorialStatus={tutorial.status}
         />
       ) : null}
+      {screen === "chest-shop" ? <ChestShopScreen onBack={goHome} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "tasks" ? <TasksScreen onBack={goHome} onNavigateTrial={navigateFromTrials} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "guild" ? <GuildScreen initialTab={guildInitialTab} key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
@@ -789,6 +811,7 @@ export function App() {
       {screen === "settings" ? <SettingsScreen onBack={goHome} onLogout={retry} onReplayTutorial={() => { tutorial.replay(); goHome(); }} playerSummaryState={playerSummaryState} showTutorialReplay={tutorial.eligible} /> : null}
       {screen === "inventory" ? <InventoryScreen nickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : "Гравець"} onBack={() => navigateFromBottom("profile")} onEquippedSkinChange={(equippedNicknameSkin) => updateBalance({ equippedNicknameSkin })} /> : null}
       {screen === "equipment" ? <EquipmentScreen completedCollectionIds={playerSummaryState.status === "ready" ? (playerSummaryState.data.collectionBonuses ?? []).map(({ collectionId }) => collectionId) : []} equipped={equipment} initialItemId={equipmentItemId} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={() => navigateFromBottom("profile")} onEquippedChange={handleEquipmentChange} onOpenForge={openForge} saveError={equipmentSaveError} savePending={equipmentSavePending} /> : null}
+      {screen === "guardian-dragon" ? <GuardianDragonScreen onBack={goHome} onGoldChange={(gold) => updateBalance({ gold })} onOpenDeck={() => openDeck("home")} onOpenWeakCards={openGuardianDragonWeakCards} /> : null}
       {screen === "forge" ? <ForgeScreen cardShards={playerSummaryState.status === "ready" ? playerSummaryState.data.cardShards ?? 0 : 0} equipped={equipment} gold={playerSummaryState.status === "ready" ? playerSummaryState.data.gold : 0} onChangeElement={handleEquipmentElementChange} onForge={handleEquipmentForge} onQuickForge={handleEquipmentQuickForge} inventory={playerEquipmentState.state.status === "ready" ? playerEquipmentState.state.data.inventory : []} inventoryStatus={playerEquipmentState.status} onBack={openEquipment} /> : null}
       {screen === "mail" ? <MailScreen changeNickname={updateNickname} claim={claimMail} currentNickname={playerSummaryState.status === "ready" ? getPlayerDisplayName(playerSummaryState.data) : ""} onBack={() => mailReturnScreen === "profile" ? navigateFromBottom("profile") : goHome()} onBalanceChange={updateBalance} onRetry={retryMail} resolveAction={resolveMailAction} state={mailState} /> : null}
       {screen === "leagues" ? <LeaderboardScreen onBack={() => navigateFromBottom("profile")} onOpenPlayerProfile={openPlayerProfile} playerSummaryState={playerSummaryState} /> : null}
@@ -807,7 +830,7 @@ export function App() {
       ) : null}
       {screen === "weak" ? (
         <WeakCardsScreen
-          onBack={() => weakReturnScreen === "card" && cardInstanceId ? openCard(cardInstanceId, "weak") : weakReturnScreen === "trials" ? openTrials() : weakReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : weakReturnScreen === "deck" ? openDeck(deckReturnScreen) : goHome()}
+          onBack={() => weakReturnScreen === "card" && cardInstanceId ? openCard(cardInstanceId, "weak") : weakReturnScreen === "trials" ? openTrials() : weakReturnScreen === "campaign-stage" ? openCampaignStage(campaignStageId) : weakReturnScreen === "deck" ? openDeck(deckReturnScreen) : weakReturnScreen === "guardian-dragon" ? openGuardianDragon() : goHome()}
           onOpenCampaign={openCampaign}
           onOpenCard={(id) => openCard(id, "weak")}
           onOpenDeck={() => openDeck("home")}

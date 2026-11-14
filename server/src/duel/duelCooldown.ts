@@ -1,3 +1,4 @@
+import { getDuelAutoRemainingPrice, getDuelBreakPrice } from "@cardastika/game-core";
 import type { DuelAvailability } from "@cardastika/shared";
 
 type DuelCharges = Pick<DuelAvailability, "remaining" | "max" | "refillAt">;
@@ -32,7 +33,31 @@ export function spendDuel(availability: DuelCharges, now: Date, cooldownReductio
     remaining,
     max: DUEL_CAPACITY,
     refillAt: remaining === 0
-      ? new Date(now.getTime() + Math.max(60_000, DUEL_COOLDOWN_MS - cooldownReductionMinutes * 60_000)).toISOString()
+      ? new Date(now.getTime() + getDuelBreakMs(cooldownReductionMinutes)).toISOString()
+      : null,
+  };
+}
+
+/** Break length: two hours, minus the completed collection reduction, never under a minute. */
+export function getDuelBreakMs(cooldownReductionMinutes = 0) {
+  return Math.max(60_000, DUEL_COOLDOWN_MS - cooldownReductionMinutes * 60_000);
+}
+
+/** Gold prices for automatic and reopened Duels, read from the current charges. */
+export function getDuelPaidPrices(
+  charges: DuelCharges,
+  autoDuelsToday: number,
+  cooldownReductionMinutes: number,
+  now: Date,
+): Pick<DuelAvailability, "autoRemainingPrice" | "breakPrice"> {
+  return {
+    autoRemainingPrice: getDuelAutoRemainingPrice(charges.remaining),
+    breakPrice: charges.remaining === 0 && charges.refillAt
+      ? getDuelBreakPrice(
+        autoDuelsToday,
+        new Date(charges.refillAt).getTime() - now.getTime(),
+        getDuelBreakMs(cooldownReductionMinutes),
+      )
       : null,
   };
 }

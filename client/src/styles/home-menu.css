@@ -676,6 +676,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: repeat(var(--home-link-count), var(--home-link-height));
+  /* Rows that appear only sometimes (the chest shop) keep the same height. */
+  grid-auto-rows: var(--home-link-height);
   gap: var(--home-link-gap);
   width: min(100%, 380px);
   margin-inline: auto;

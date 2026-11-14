@@ -1,4 +1,18 @@
 export type {
+  GuardianDragonFeedRequest,
+  GuardianDragonFeedResponse,
+  GuardianDragonFightResponse,
+  GuardianDragonFightResult,
+  GuardianDragonFightsView,
+  GuardianDragonFlameView,
+  GuardianDragonRatingResponse,
+  GuardianDragonRatingRow,
+  GuardianDragonHikeHoursValue,
+  GuardianDragonHikeRequest,
+  GuardianDragonHikeView,
+  GuardianDragonView,
+} from "./guardianDragon.js";
+export type {
   TournamentLeague,
   TournamentRegularLeague,
   TournamentSchedule,
@@ -69,6 +83,10 @@ export type {
   ActiveDuelResponse,
   DuelAvailability,
   DuelActionRequest,
+  DuelAutoMode,
+  DuelAutoRequest,
+  DuelAutoResult,
+  DuelResetResponse,
   DuelBattleModifiers,
   DuelCardSnapshot,
   DuelCardSource,
@@ -241,6 +259,7 @@ export {
   type HolidayShopEvent,
   type HolidayShopResponse,
 } from "./shop.js";
+export type * from "./chestShop.js";
 export type {
   DungeonCompleteRequest,
   DungeonCompleteResponse,
@@ -409,3 +428,12 @@ export {
   type AchievementStatisticKey,
   type PlayerAchievementProgressResponse,
 } from "./achievements.js";
+export {
+  NOTIFICATION_KINDS,
+  NOTIFICATION_LOCALES,
+  type NotificationKind,
+  type NotificationLocale,
+  type NotificationPreferences,
+  type NotificationSettingsResponse,
+  type NotificationSettingsUpdate,
+} from "./notifications.js";

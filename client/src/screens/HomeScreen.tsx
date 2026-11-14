@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ARENA_UNLOCK_DUEL_RATING, type DuelAvailability } from "@cardastika/shared";
+import { ARENA_UNLOCK_DUEL_RATING, type ChestShopView, type DuelAvailability } from "@cardastika/shared";
 import { MenuRow } from "../components/MenuRow";
 import { ModeTile, type ModeAccent } from "../components/ModeTile";
 import type { AppIconName } from "../components/AppIcon";
@@ -9,10 +9,14 @@ import type { TutorialStatus } from "../hooks/useTutorial";
 import { getTelegramInitData } from "../telegram";
 import { loadArenaPresence } from "../telegram/arena";
 import { loadDuelAvailability } from "../telegram/duel";
+import { loadChestShop } from "../telegram/chestShop";
+import "../styles/menu-row-gilded.css";
 
 interface HomeItem {
   available?: boolean;
   icon: AppIconName;
+  /** Row icon file when it is not named after the AppIcon. */
+  iconSprite?: string;
   sprite: string;
   title: string;
 }
@@ -36,6 +40,7 @@ const secondaryActions: HomeItem[] = [
   { title: "Завдання", icon: "tasks", sprite: "row-tasks" },
   { title: "Алмазні нагороди", icon: "battle-pass", sprite: "row-battle-pass" },
   { title: "Спорядження", icon: "equipment", sprite: "row-equipment" },
+  { title: "Дракон-захисник", icon: "skull", sprite: "row-guardian-dragon", iconSprite: "row-icon-guardian-dragon" },
   { title: "Колекції", icon: "collection", sprite: "row-collection" },
   { title: "Найкращі", icon: "ranking", sprite: "row-ranking" },
   { title: "Магазин", icon: "shop", sprite: "row-shop" },
@@ -87,6 +92,29 @@ function useDuelTileStatus(enabled: boolean) {
   return `Перерва ${timeLeft}`;
 }
 
+// Until the painted row illustration arrives, the row shows the existing chest sprite as its icon.
+const CHEST_SHOP_ROW_ICON = "/assets/ui/chest/chest-closed-icon.webp";
+
+/** "3 год 52 хв" while the chest shop is open, "Відчинити" when this week's opening is ready, else undefined. */
+function useChestShopRowDetail(enabled: boolean) {
+  const [shop, setShop] = useState<ChestShopView | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!enabled || !initData) return undefined;
+    const controller = new AbortController();
+    void loadChestShop(initData, controller.signal).then(setShop).catch(() => undefined);
+    const ticker = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => { controller.abort(); window.clearInterval(ticker); };
+  }, [enabled]);
+  if (!enabled || !shop) return undefined;
+  if (shop.status === "available") return "Відчинити";
+  if (shop.status !== "open" || !shop.openUntil) return undefined;
+  const minutes = Math.ceil((new Date(shop.openUntil).getTime() - now) / 60_000);
+  if (minutes <= 0) return undefined;
+  return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
+}
+
 interface HomeScreenProps {
   campaignTitle?: string;
   onOpenCampaign: () => void;
@@ -101,14 +129,17 @@ interface HomeScreenProps {
   onOpenCollections: () => void;
   onOpenTasks: () => void;
   onOpenEquipment: () => void;
+  onOpenGuardianDragon: () => void;
   onOpenBattlePass: () => void;
   onOpenShop: () => void;
+  onOpenChestShop: () => void;
   playerLevel?: number;
   /** Undefined while the player summary is loading. */
   arenaUnlocked?: boolean;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenLeaderboard, onOpenShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenGuardianDragon, onOpenLeaderboard, onOpenShop, onOpenChestShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
+  const chestShopDetail = useChestShopRowDetail(playerLevel !== undefined && playerLevel > 1);
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
   const arenaLocked = arenaUnlocked === false;
@@ -129,7 +160,8 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
           ))}
         </section>
         <section className="home-menu" aria-label="Розділи гри">
-          {secondaryActions.map((action) => (
+          {/* The guardian dragon belongs to mages from the third epic duel league, the arena's threshold. */}
+          {secondaryActions.filter((action) => action.sprite !== "row-guardian-dragon" || arenaUnlocked === true).map((action) => (
             <MenuRow
               attention={action.icon === "tasks" ? hasDailyTaskReward : action.icon === "battle-pass" ? hasBattlePassReward : false}
               badge={action.available === false ? "Скоро" : undefined}
@@ -138,13 +170,17 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
               key={action.title}
               chevron
               icon={action.icon}
-              iconSrc={homeSprite(`row-icon-${action.icon}`)}
+              iconSrc={homeSprite(action.iconSprite ?? `row-icon-${action.icon}`)}
               illustrationSrc={homeSprite(action.sprite)}
               metalTexture
-              onClick={action.icon === "tasks" ? onOpenTasks : action.icon === "battle-pass" ? onOpenBattlePass : action.icon === "equipment" ? onOpenEquipment : action.icon === "shop" ? onOpenShop : action.icon === "collection" ? onOpenCollections : action.icon === "ranking" ? onOpenLeaderboard : undefined}
+              onClick={action.sprite === "row-guardian-dragon" ? onOpenGuardianDragon : action.icon === "tasks" ? onOpenTasks : action.icon === "battle-pass" ? onOpenBattlePass : action.icon === "equipment" ? onOpenEquipment : action.icon === "shop" ? onOpenShop : action.icon === "collection" ? onOpenCollections : action.icon === "ranking" ? onOpenLeaderboard : undefined}
               title={action.title}
             />
           ))}
+          {/* Chest shop: below the shop, only while this week's opening is ready or running (reference: «Лавка сундуков» with its time left). */}
+          {chestShopDetail ? (
+            <MenuRow chevron className="menu-row--gilded" detail={chestShopDetail} icon="shop" iconSrc={CHEST_SHOP_ROW_ICON} metalTexture onClick={onOpenChestShop} title="Лавка скринь" />
+          ) : null}
         </section>
       </div>
     </div>

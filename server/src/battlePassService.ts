@@ -220,7 +220,8 @@ async function loadBalance(database: Database, playerId: string) {
   return toBalance(row);
 }
 
-async function loadLowestDeckCardLevel(database: Database, playerId: string) {
+/** Level of the weakest card in the battle deck (the reference's "9th card"). */
+export async function loadLowestDeckCardLevel(database: Database, playerId: string) {
   const result = await database.query<LowestDeckCardLevelRow>(
     `
       SELECT MIN(player_card_instances.level)::integer AS level
@@ -236,7 +237,8 @@ async function loadLowestDeckCardLevel(database: Database, playerId: string) {
   return toInteger(level);
 }
 
-async function loadRewardCardDefinition(database: Database) {
+/** A random standard shop card used as a reward card. */
+export async function loadRewardCardDefinition(database: Database) {
   const result = await database.query<CardDefinitionRow>(
     `
       SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity

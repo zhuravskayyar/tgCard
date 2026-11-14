@@ -373,7 +373,24 @@ const wordPattern = new RegExp(`(?<!\\p{L})(${wordTranslations.map(([source]) =>
 
 const isUiLocale = (value: string | null | undefined): value is UiLocale => UI_LOCALES.includes(value as UiLocale);
 
-/** A manually selected language wins; otherwise Telegram players get their Telegram language, including Russian. */
+const ENTRY_LOCALE_KEY = "cardastika.locale.entry";
+
+/** The language landings (/uk/, /ru/, /de/) open the game with ?lang=; it lasts for this browser tab only. */
+function getEntryLocale(): UiLocale | null {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("lang");
+    if (isUiLocale(fromUrl)) {
+      sessionStorage.setItem(ENTRY_LOCALE_KEY, fromUrl);
+      return fromUrl;
+    }
+    const saved = sessionStorage.getItem(ENTRY_LOCALE_KEY);
+    return isUiLocale(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A manually selected language wins, then the landing the player came from; otherwise Telegram players get their Telegram language, including Russian. */
 export function getUiLocale(): UiLocale {
   if (!LANGUAGE_PICKER_ENABLED) return "uk";
   try {
@@ -385,6 +402,8 @@ export function getUiLocale(): UiLocale {
   } catch {
     // Without storage there is simply no saved choice.
   }
+  const entry = getEntryLocale();
+  if (entry) return entry;
   if (!getTelegramWebApp()) return "en";
   const code = getTelegramLanguageCode();
   return isUiLocale(code) ? code : "en";

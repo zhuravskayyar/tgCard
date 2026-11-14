@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import {
   applyAccountXp,
   applyDuelOutcomeToStats,
+  chooseAutoDuelSlot,
+  DUEL_AUTO_PACK_SIZE,
   calculateEquipmentSummary,
   calculateDuelReward,
   DUEL_GOLD_BASE_SHARE_PCT,
@@ -31,8 +33,11 @@ import type {
   CollectionModifier,
   CollectionModifierType,
   DuelBattleModifiers,
+  DuelAutoMode,
+  DuelAutoResult,
   DuelAvailability,
   DuelCardSnapshot,
+  DuelResetResponse,
   DuelExchange,
   DuelOpponentPreview,
   DuelOutcome,
@@ -59,13 +64,31 @@ import {
   createBotOpponentSnapshot,
   type BotCardTemplate,
 } from "./botOpponent.js";
-import { getDuelAvailability, spendDuel, type DuelCooldownState } from "./duelCooldown.js";
+import {
+  getDuelAvailability,
+  getDuelBreakMs,
+  getDuelPaidPrices,
+  spendDuel,
+  type DuelCooldownState,
+} from "./duelCooldown.js";
 
 const SEARCH_LIFETIME_MS = 10 * 60 * 1_000;
 const MAX_BATTLE_LOG_ENTRIES = 10;
 const TUTORIAL_PLAYER_POWERS = [12, 12, 12, 12, 12, 12, 12, 12, 12] as const;
 const TUTORIAL_ENEMY_POWERS = [12, 12, 12, 12, 12, 12, 12, 12, 12] as const;
 const CARD_ELEMENTS: readonly CardElement[] = ["fire", "water", "air", "earth"];
+/** Safety cap for one simulated fight; real fights end far sooner because HP only falls. */
+const MAX_AUTO_DUEL_TURNS = 500;
+
+interface AutoCounterRow {
+  /** Read as `::text` (YYYY-MM-DD) for the same reason as duel_gold_day. */
+  duel_auto_day: string | null;
+  duel_auto_count: number;
+}
+
+function autoDuelsToday(row: AutoCounterRow, now: Date) {
+  return row.duel_auto_day === now.toISOString().slice(0, 10) ? Number(row.duel_auto_count) : 0;
+}
 
 interface ParticipantRow {
   account_xp: number;
@@ -208,6 +231,20 @@ export class DuelStateConflictError extends Error {
   constructor() {
     super("Duel state version is stale or the Duel is already finished");
     this.name = "DuelStateConflictError";
+  }
+}
+
+export class DuelNotEnoughGoldError extends Error {
+  constructor() {
+    super("Not enough gold");
+    this.name = "DuelNotEnoughGoldError";
+  }
+}
+
+export class DuelPaidUnavailableError extends Error {
+  constructor() {
+    super("This paid Duel option is not available right now");
+    this.name = "DuelPaidUnavailableError";
   }
 }
 
@@ -524,22 +561,28 @@ export class DuelService {
   ) {}
 
   async findAvailability(challengerId: string): Promise<DuelAvailability> {
-    const result = await this.pool.query<DuelCooldownState & Pick<ParticipantRow, "level" | "duel_gold_earned_today" | "duel_gold_day" | "duel_gold_level">>(
-      "SELECT duel_remaining, duel_refill_at, level, duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level FROM players WHERE id = $1",
+    return this.readAvailability(this.pool, challengerId, new Date());
+  }
+
+  private async readAvailability(database: Pool | PoolClient, challengerId: string, now: Date): Promise<DuelAvailability> {
+    const result = await database.query<DuelCooldownState & AutoCounterRow & Pick<ParticipantRow, "level" | "duel_gold_earned_today" | "duel_gold_day" | "duel_gold_level">>(
+      `SELECT duel_remaining, duel_refill_at, level, duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level,
+        duel_auto_day::text AS duel_auto_day, duel_auto_count
+      FROM players WHERE id = $1`,
       [challengerId],
     );
     const row = result.rows[0];
     if (!row) throw new DuelMissingError();
-    const now = new Date();
     // Same reset rule as the Duel reward: the counter belongs to one UTC day; a level-up only raises the limit.
     const sameDay = row.duel_gold_day === now.toISOString().slice(0, 10);
-    const [completed, currencyBoost] = await Promise.all([
-      getCompletedCollectionModifiers(this.pool, challengerId),
-      getCurrencyBoostStatus(this.pool, challengerId, now),
-    ]);
-    const { duelGoldLimitBonus } = getPlayerCollectionModifiers(completed, "duel");
+    // Sequential: a transaction client runs one query at a time.
+    const completed = await getCompletedCollectionModifiers(database, challengerId);
+    const currencyBoost = await getCurrencyBoostStatus(database, challengerId, now);
+    const { duelCooldownMinutes, duelGoldLimitBonus } = getPlayerCollectionModifiers(completed, "duel");
+    const charges = getDuelAvailability(row, now);
     return {
-      ...getDuelAvailability(row, now),
+      ...charges,
+      ...getDuelPaidPrices(charges, autoDuelsToday(row, now), duelCooldownMinutes, now),
       goldEarnedToday: sameDay ? Number(row.duel_gold_earned_today) : 0,
       goldDailyLimit: getDuelGoldDailyLimit(row.level, currencyBoost.multiplier, duelGoldLimitBonus),
     };
@@ -839,194 +882,20 @@ export class DuelService {
         : duel.opponent_snapshot;
 
       if (resolved.status !== "active") {
-        const playerResult = await client.query<ParticipantRow>(
-          `
-          SELECT id, username, nickname, first_name, photo_url, level, silver, gold,
-            account_xp, duel_wins, duel_losses, duel_win_streak,
-              duel_rating, duel_highest_league_index,
-              duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level, duel_gold_streak, tutorial_eligible
-            FROM players
-            WHERE id = $1
-            FOR UPDATE
-        `,
-          [challengerId],
-        );
-        const player = playerResult.rows[0];
-        if (!player) throw new DuelMissingError();
-        const tutorialVictory = resolved.status === "lost"
-          && duel.tutorial_mode;
-        if (tutorialVictory) {
+        if (resolved.status === "lost" && duel.tutorial_mode) {
           persistedPlayerHp = Math.max(1, resolved.playerHp);
           persistedEnemyHp = 0;
           persistedStatus = "won";
         }
-        const outcome: DuelOutcome = persistedStatus === "won" ? "win" : "loss";
-        const boost = await getAccountBoostStatus(client, challengerId, actionNow);
-        const currencyBoost = await getCurrencyBoostStatus(client, challengerId, actionNow);
-        const completedCollectionModifiers = await getCompletedCollectionModifiers(client, challengerId);
-        const currentModifiers = toBattleModifiers(completedCollectionModifiers);
-        const goldModifiers = getPlayerCollectionModifiers(completedCollectionModifiers, "duel");
-        // Reference manual: a win pays XP equal to the defeated opponent's HP; overkill damage is not XP.
-        const baseReward = calculateDuelReward(
-          player.level,
-          outcome,
-          currentModifiers,
-          boost.multiplier,
-          Math.min(playerDamageTotal, duel.opponent_snapshot.startingHp),
-        );
-        const reward = {
-          ...baseReward,
-          silver: baseReward.silver * currencyBoost.multiplier,
-          ...(duel.tutorial_mode ? { xp: 35, silver: 100 } : {}),
-        };
-        await this.guildActivity?.recordActivity(
-          client,
-          challengerId,
-          outcome === "win" ? "duel_win" : "duel_loss",
-          `duel:${duelId}`,
-          reward.xp,
-          actionNow,
-        );
-        const calculatedLeagueProgression = applyLeagueProgression({
-          highestLeagueIndex: toSafeInteger(player.duel_highest_league_index, "Duel highest league index"),
-          ratingBefore: toSafeInteger(player.duel_rating, "Duel rating"),
-          result: outcome,
-          rewardMultiplier: boost.multiplier * currencyBoost.multiplier,
-          silverBonus: currentModifiers.silverRewardPct / 100,
-        });
-        const leagueProgression = duel.tutorial_mode
-          ? {
-            ...calculatedLeagueProgression,
-            promotionReward: 0,
-            silverReward: 100,
-            totalSilverEarned: 100,
-          }
-          : calculatedLeagueProgression;
-        const progression = applyAccountXp({
-          level: player.level,
-          xp: toSafeInteger(player.account_xp, "Account XP"),
-          gainedXp: reward.xp,
-        });
-        const actionDate = actionNow.toISOString().slice(0, 10);
-        const storedDuelGold = toSafeInteger(player.duel_gold_earned_today, "Duel daily gold");
-        const storedDuelGoldDate = player.duel_gold_day;
-        // As in the reference manual: the counter resets only with the next (UTC) day; a level-up
-        // raises the limit (= new level) but keeps what was already earned today.
-        const earnedDuelGold = storedDuelGoldDate === actionDate ? storedDuelGold : 0;
-        const duelGoldReward = duel.tutorial_mode
-          ? 0
-          : getDuelGoldReward(
-            progression.newLevel,
-            outcome,
-            earnedDuelGold,
-            toSafeInteger(player.duel_gold_streak, "Duels since Duel gold"),
-            this.random,
-            currencyBoost.multiplier,
-            {
-              limitBonus: goldModifiers.duelGoldLimitBonus,
-              sharePct: Math.max(DUEL_GOLD_BASE_SHARE_PCT, goldModifiers.duelGoldSharePct),
-            },
-          );
-        const duelGoldEarnedToday = earnedDuelGold + duelGoldReward;
-        const duelGoldStreak = duel.tutorial_mode ? player.duel_gold_streak : duelGoldReward > 0 ? 0 : player.duel_gold_streak + 1;
-        const levelUpGoldReward = progression.goldReward * currencyBoost.multiplier;
-        const stats = applyDuelOutcomeToStats({
-          duelWins: player.duel_wins,
-          duelLosses: player.duel_losses,
-          duelWinStreak: player.duel_win_streak,
-        }, outcome);
-        const nextSilver = toSafeInteger(player.silver, "Silver") + leagueProgression.totalSilverEarned;
-        const nextGold = toSafeInteger(player.gold, "Gold") + levelUpGoldReward + duelGoldReward;
-        if (!Number.isSafeInteger(nextSilver) || !Number.isSafeInteger(nextGold)) {
-          throw new Error("Duel reward exceeds safe currency limits");
-        }
-        const updatedPlayerResult = await client.query<ParticipantRow>(
-          `
-            UPDATE players
-            SET level = $2,
-              account_xp = $3,
-              silver = $4,
-              gold = $5,
-              duel_wins = $6,
-              duel_losses = $7,
-              duel_win_streak = $8,
-              duel_rating = $9,
-              rating = $9,
-              duel_highest_league_index = $10,
-              duel_gold_earned_today = $11,
-              duel_gold_day = $12,
-              duel_gold_level = $13,
-              duel_gold_streak = $14,
-              updated_at = NOW()
-            WHERE id = $1
-            RETURNING id, username, nickname, first_name, photo_url, level, silver, gold,
-              account_xp, duel_wins, duel_losses, duel_win_streak,
-              duel_rating, duel_highest_league_index,
-              duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level, duel_gold_streak
-          `,
-          [
-            challengerId,
-            progression.newLevel,
-            progression.remainingXp,
-            nextSilver,
-            nextGold,
-            stats.duelWins,
-            stats.duelLosses,
-            stats.duelWinStreak,
-            leagueProgression.ratingAfter,
-            leagueProgression.highestLeagueIndexAfter,
-            duelGoldEarnedToday,
-            actionDate,
-            progression.newLevel,
-            duelGoldStreak,
-          ],
-        );
-        result = {
-          outcome,
-          accountBoostMultiplier: boost.multiplier,
-          boostExpiresAt: boost.expiresAt,
-          xp: reward.xp,
-          leagueProgression,
-          promotionReward: leagueProgression.promotionReward,
-          silver: leagueProgression.totalSilverEarned,
-          silverReward: leagueProgression.silverReward,
-          totalSilverEarned: leagueProgression.totalSilverEarned,
-          gold: levelUpGoldReward,
-          duelGoldReward,
-          levelUpGoldReward,
-          reachedLevels: progression.reachedLevels,
-          winStreak: stats.duelWinStreak,
-          player: toPlayerSummary(updatedPlayerResult.rows[0]!),
-        };
-        let neutralHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1).length;
-        if (this.campaign) {
-          const neutralHitResult = await client.query<{ count: string }>(
-            `
-              SELECT COUNT(*) AS count
-              FROM player_campaign_events
-              WHERE player_id = $1 AND event_type = 'DUEL_NEUTRAL_HIT'
-                AND payload->>'duelId' = $2
-            `,
-            [challengerId, duelId],
-          );
-          neutralHits = Number(neutralHitResult.rows[0]?.count ?? 0);
-        }
-        const strongHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1.5).length;
-        await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
+        result = await this.grantDuelRewards(client, challengerId, {
+          battleLog,
           duelId,
-          outcome,
-          gold: duelGoldReward,
-          duelRating: leagueProgression.ratingAfter,
-          winStreak: stats.duelWinStreak,
-          neutralHits,
-          strongHits,
-        }, actionNow);
-        if (outcome === "win") {
-          await this.campaign?.recordEvent(client, challengerId, "DUEL_WON", {
-            duelId,
-            winStreak: stats.duelWinStreak,
-          }, actionNow);
-        }
+          now: actionNow,
+          opponentStartingHp: duel.opponent_snapshot.startingHp,
+          outcome: persistedStatus === "won" ? "win" : "loss",
+          playerDamageTotal,
+          tutorialMode: duel.tutorial_mode,
+        });
         rewardsGranted = true;
       }
 
@@ -1079,5 +948,431 @@ export class DuelService {
     } finally {
       client.release();
     }
+  }
+  /** Reference: during the break, gold reopens ten manual Duels and the break timer resets. */
+  async resetBreak(challengerId: string): Promise<DuelResetResponse> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const now = new Date();
+      const availability = await this.lockPaidAvailability(client, challengerId, now);
+      const price = availability.breakPrice;
+      if (price === null) throw new DuelPaidUnavailableError();
+      const gold = await this.payGold(client, challengerId, price);
+      await client.query(
+        "UPDATE players SET duel_remaining = $2, duel_refill_at = NULL, updated_at = NOW() WHERE id = $1",
+        [challengerId, availability.max],
+      );
+      const next = await this.readAvailability(client, challengerId, now);
+      await client.query("COMMIT");
+      return { availability: next, gold };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Reference: the game picks the opponents, fights and shows the totals. "remaining" plays the charges
+   * left for 1 gold each; "pack" plays ten during the break for the break price. Every fight is a real
+   * finished Duel with the same rewards and events as a manual one, and the break starts afresh.
+   */
+  async autoPlay(challengerId: string, mode: DuelAutoMode): Promise<DuelAutoResult> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const now = new Date();
+      const availability = await this.lockPaidAvailability(client, challengerId, now);
+      const count = mode === "remaining" ? availability.remaining : DUEL_AUTO_PACK_SIZE;
+      const price = mode === "remaining" ? availability.autoRemainingPrice : availability.breakPrice;
+      if (count <= 0 || price === null || price <= 0) throw new DuelPaidUnavailableError();
+      if (mode === "remaining") {
+        // Reference: offered only after a won Duel that was not the last of the cycle.
+        const latest = await client.query<{ status: DuelStatus }>(
+          "SELECT status FROM duels WHERE challenger_id = $1 AND opponent_kind = 'bot' AND tutorial_mode = FALSE ORDER BY created_at DESC LIMIT 1",
+          [challengerId],
+        );
+        if (availability.remaining >= availability.max || latest.rows[0]?.status !== "won") throw new DuelPaidUnavailableError();
+      }
+      await this.payGold(client, challengerId, price);
+
+      const challenger = await loadDuelParticipant(client, challengerId);
+      const templates = await loadBotCardTemplates(client);
+      const playerGuildCard = toGuildDuelCard(challenger.guildCard);
+      const ratingBefore = toSafeInteger(challenger.player.duel_rating, "Duel rating");
+      let winStreak = challenger.player.duel_win_streak;
+      const totals = { wins: 0, losses: 0, xp: 0, silver: 0, gold: 0 };
+      const reachedLevels: number[] = [];
+      let last: DuelResult | null = null;
+
+      for (let index = 0; index < count; index += 1) {
+        const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, winStreak);
+        const opponent = createBotOpponentSnapshot(challenger.snapshot, range, templates, this.random);
+        const duelId = randomUUID();
+        const fight = await this.simulateFight(client, challengerId, duelId, challenger.snapshot, opponent, playerGuildCard, now);
+        const result = await this.grantDuelRewards(client, challengerId, {
+          battleLog: fight.battleLog,
+          duelId,
+          now,
+          opponentStartingHp: opponent.startingHp,
+          outcome: fight.status === "won" ? "win" : "loss",
+          playerDamageTotal: fight.playerDamageTotal,
+          tutorialMode: false,
+        });
+        await client.query(
+          `
+            INSERT INTO duels (
+              id, challenger_id, opponent_id, opponent_kind, status, tutorial_mode,
+              challenger_snapshot, opponent_snapshot, player_guild_card, enemy_guild_card,
+              player_hp, enemy_hp, player_active_slots, enemy_active_slots,
+              player_reserve_queue, enemy_reserve_queue, battle_log, player_damage_total,
+              turn_number, result, rewards_granted, finished_at
+            )
+            VALUES ($1, $2, NULL, 'bot', $3, FALSE, $4, $5, $6, NULL, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, TRUE, NOW())
+          `,
+          [
+            duelId,
+            challengerId,
+            fight.status,
+            JSON.stringify(challenger.snapshot),
+            JSON.stringify(opponent),
+            playerGuildCard ? JSON.stringify(playerGuildCard) : null,
+            fight.playerHp,
+            fight.enemyHp,
+            JSON.stringify(fight.playerPool.activeCards),
+            JSON.stringify(fight.enemyPool.activeCards),
+            JSON.stringify(fight.playerPool.reserveQueue),
+            JSON.stringify(fight.enemyPool.reserveQueue),
+            JSON.stringify(fight.battleLog),
+            fight.playerDamageTotal,
+            fight.turnNumber,
+            JSON.stringify(result),
+          ],
+        );
+        if (result.outcome === "win") totals.wins += 1;
+        else totals.losses += 1;
+        totals.xp += result.xp;
+        totals.silver += result.silver;
+        totals.gold += (result.duelGoldReward ?? 0) + (result.levelUpGoldReward ?? 0);
+        reachedLevels.push(...result.reachedLevels);
+        winStreak = result.winStreak;
+        last = result;
+      }
+
+      // All charges are spent and the break starts now, as after a tenth manual Duel.
+      const counters = await client.query<AutoCounterRow>(
+        "SELECT duel_auto_day::text AS duel_auto_day, duel_auto_count FROM players WHERE id = $1",
+        [challengerId],
+      );
+      await client.query(
+        `UPDATE players SET duel_remaining = 0, duel_refill_at = $2, duel_auto_day = $3, duel_auto_count = $4, updated_at = NOW()
+        WHERE id = $1`,
+        [
+          challengerId,
+          new Date(now.getTime() + getDuelBreakMs(challenger.duelCooldownMinutes)),
+          now.toISOString().slice(0, 10),
+          autoDuelsToday(counters.rows[0]!, now) + count,
+        ],
+      );
+      const nextAvailability = await this.readAvailability(client, challengerId, now);
+      await client.query("COMMIT");
+      const player = last!.player;
+      return {
+        played: count,
+        ...totals,
+        goldSpent: price,
+        ratingChange: (player.duelRating ?? ratingBefore) - ratingBefore,
+        reachedLevels,
+        player,
+        availability: nextAvailability,
+      };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /** Locks the player row (same order as start) and reads charges and prices under that lock. */
+  private async lockPaidAvailability(client: PoolClient, challengerId: string, now: Date) {
+    const locked = await client.query("SELECT 1 FROM players WHERE id = $1 FOR UPDATE", [challengerId]);
+    if (!locked.rowCount) throw new DuelMissingError();
+    const active = await client.query("SELECT 1 FROM duels WHERE challenger_id = $1 AND status = 'active'", [challengerId]);
+    if (active.rowCount) throw new DuelAlreadyActiveError();
+    return this.readAvailability(client, challengerId, now);
+  }
+
+  private async payGold(client: PoolClient, challengerId: string, price: number) {
+    const paid = await client.query<{ gold: string | number }>(
+      "UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1 AND gold >= $2 RETURNING gold",
+      [challengerId, price],
+    );
+    if (!paid.rows[0]) throw new DuelNotEnoughGoldError();
+    return toSafeInteger(paid.rows[0].gold, "Gold");
+  }
+
+  /** One automatic fight to the end with the same exchange rules as a manual Duel. */
+  private async simulateFight(
+    client: PoolClient,
+    challengerId: string,
+    duelId: string,
+    player: DuelSideSnapshot,
+    enemy: DuelSideSnapshot,
+    playerGuildCard: DuelCardSnapshot | null,
+    now: Date,
+  ) {
+    let playerPool = initializeCyclicCardPool(player.cards, this.random);
+    let enemyPool = initializeCyclicCardPool(enemy.cards, this.random);
+    let playerHp = player.startingHp;
+    let enemyHp = enemy.startingHp;
+    let turnNumber = 0;
+    let playerDamageTotal = 0;
+    let status: DuelStatus = "active";
+    const exchanges: DuelExchange[] = [];
+    while (status === "active") {
+      if (turnNumber >= MAX_AUTO_DUEL_TURNS) {
+        status = playerHp >= enemyHp ? "won" : "lost";
+        break;
+      }
+      const resolved = resolveDuelExchange({
+        playerHp,
+        enemyHp,
+        playerPool,
+        enemyPool,
+        playerModifiers: player.modifiers,
+        enemyModifiers: enemy.modifiers,
+        playerMaxHp: player.startingHp,
+        enemyMaxHp: enemy.startingHp,
+        playerGuildCard,
+        enemyGuildCard: null,
+        equipmentEnabled: false,
+        random: this.random,
+        slotIndex: chooseAutoDuelSlot(
+          toActiveCards(playerPool.activeCards, "player active slots"),
+          toActiveCards(enemyPool.activeCards, "enemy active slots"),
+        ),
+        turnNumber,
+      });
+      if (resolved.exchange.playerMultiplier === 1.5) {
+        await this.campaign?.recordEvent(client, challengerId, "DUEL_STRONG_HIT", { duelId }, now);
+      } else if (resolved.exchange.playerMultiplier === 1) {
+        await this.campaign?.recordEvent(client, challengerId, "DUEL_NEUTRAL_HIT", { duelId }, now);
+      }
+      exchanges.push(resolved.exchange);
+      playerDamageTotal += resolved.exchange.playerDamage;
+      playerPool = resolved.playerPool;
+      enemyPool = resolved.enemyPool;
+      playerHp = resolved.playerHp;
+      enemyHp = resolved.enemyHp;
+      turnNumber = resolved.exchange.turnNumber;
+      status = resolved.status;
+    }
+    return {
+      status: status as "won" | "lost",
+      playerHp,
+      enemyHp,
+      playerPool,
+      enemyPool,
+      turnNumber,
+      playerDamageTotal,
+      battleLog: exchanges.slice(-MAX_BATTLE_LOG_ENTRIES),
+    };
+  }
+
+  /** Rewards, stats, league and events for one finished Duel; shared by manual and automatic fights. */
+  private async grantDuelRewards(client: PoolClient, challengerId: string, input: {
+    battleLog: DuelExchange[];
+    duelId: string;
+    now: Date;
+    opponentStartingHp: number;
+    outcome: DuelOutcome;
+    playerDamageTotal: number;
+    tutorialMode: boolean;
+  }): Promise<DuelResult> {
+    const { battleLog, duelId, now, opponentStartingHp, outcome, playerDamageTotal, tutorialMode } = input;
+    const playerResult = await client.query<ParticipantRow>(
+      `
+      SELECT id, username, nickname, first_name, photo_url, level, silver, gold,
+        account_xp, duel_wins, duel_losses, duel_win_streak,
+          duel_rating, duel_highest_league_index,
+          duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level, duel_gold_streak, tutorial_eligible
+        FROM players
+        WHERE id = $1
+        FOR UPDATE
+    `,
+      [challengerId],
+    );
+    const player = playerResult.rows[0];
+    if (!player) throw new DuelMissingError();
+    const boost = await getAccountBoostStatus(client, challengerId, now);
+    const currencyBoost = await getCurrencyBoostStatus(client, challengerId, now);
+    const completedCollectionModifiers = await getCompletedCollectionModifiers(client, challengerId);
+    const currentModifiers = toBattleModifiers(completedCollectionModifiers);
+    const goldModifiers = getPlayerCollectionModifiers(completedCollectionModifiers, "duel");
+    // Reference manual: a win pays XP equal to the defeated opponent's HP; overkill damage is not XP.
+    const baseReward = calculateDuelReward(
+      player.level,
+      outcome,
+      currentModifiers,
+      boost.multiplier,
+      Math.min(playerDamageTotal, opponentStartingHp),
+    );
+    const reward = {
+      ...baseReward,
+      silver: baseReward.silver * currencyBoost.multiplier,
+      ...(tutorialMode ? { xp: 35, silver: 100 } : {}),
+    };
+    await this.guildActivity?.recordActivity(
+      client,
+      challengerId,
+      outcome === "win" ? "duel_win" : "duel_loss",
+      `duel:${duelId}`,
+      reward.xp,
+      now,
+    );
+    const calculatedLeagueProgression = applyLeagueProgression({
+      highestLeagueIndex: toSafeInteger(player.duel_highest_league_index, "Duel highest league index"),
+      ratingBefore: toSafeInteger(player.duel_rating, "Duel rating"),
+      result: outcome,
+      rewardMultiplier: boost.multiplier * currencyBoost.multiplier,
+      silverBonus: currentModifiers.silverRewardPct / 100,
+    });
+    const leagueProgression = tutorialMode
+      ? {
+        ...calculatedLeagueProgression,
+        promotionReward: 0,
+        silverReward: 100,
+        totalSilverEarned: 100,
+      }
+      : calculatedLeagueProgression;
+    const progression = applyAccountXp({
+      level: player.level,
+      xp: toSafeInteger(player.account_xp, "Account XP"),
+      gainedXp: reward.xp,
+    });
+    const actionDate = now.toISOString().slice(0, 10);
+    const storedDuelGold = toSafeInteger(player.duel_gold_earned_today, "Duel daily gold");
+    const storedDuelGoldDate = player.duel_gold_day;
+    // As in the reference manual: the counter resets only with the next (UTC) day; a level-up
+    // raises the limit (= new level) but keeps what was already earned today.
+    const earnedDuelGold = storedDuelGoldDate === actionDate ? storedDuelGold : 0;
+    const duelGoldReward = tutorialMode
+      ? 0
+      : getDuelGoldReward(
+        progression.newLevel,
+        outcome,
+        earnedDuelGold,
+        toSafeInteger(player.duel_gold_streak, "Duels since Duel gold"),
+        this.random,
+        currencyBoost.multiplier,
+        {
+          limitBonus: goldModifiers.duelGoldLimitBonus,
+          sharePct: Math.max(DUEL_GOLD_BASE_SHARE_PCT, goldModifiers.duelGoldSharePct),
+        },
+      );
+    const duelGoldEarnedToday = earnedDuelGold + duelGoldReward;
+    const duelGoldStreak = tutorialMode ? player.duel_gold_streak : duelGoldReward > 0 ? 0 : player.duel_gold_streak + 1;
+    const levelUpGoldReward = progression.goldReward * currencyBoost.multiplier;
+    const stats = applyDuelOutcomeToStats({
+      duelWins: player.duel_wins,
+      duelLosses: player.duel_losses,
+      duelWinStreak: player.duel_win_streak,
+    }, outcome);
+    const nextSilver = toSafeInteger(player.silver, "Silver") + leagueProgression.totalSilverEarned;
+    const nextGold = toSafeInteger(player.gold, "Gold") + levelUpGoldReward + duelGoldReward;
+    if (!Number.isSafeInteger(nextSilver) || !Number.isSafeInteger(nextGold)) {
+      throw new Error("Duel reward exceeds safe currency limits");
+    }
+    const updatedPlayerResult = await client.query<ParticipantRow>(
+      `
+        UPDATE players
+        SET level = $2,
+          account_xp = $3,
+          silver = $4,
+          gold = $5,
+          duel_wins = $6,
+          duel_losses = $7,
+          duel_win_streak = $8,
+          duel_rating = $9,
+          rating = $9,
+          duel_highest_league_index = $10,
+          duel_gold_earned_today = $11,
+          duel_gold_day = $12,
+          duel_gold_level = $13,
+          duel_gold_streak = $14,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, username, nickname, first_name, photo_url, level, silver, gold,
+          account_xp, duel_wins, duel_losses, duel_win_streak,
+          duel_rating, duel_highest_league_index,
+          duel_gold_earned_today, duel_gold_day::text AS duel_gold_day, duel_gold_level, duel_gold_streak
+      `,
+      [
+        challengerId,
+        progression.newLevel,
+        progression.remainingXp,
+        nextSilver,
+        nextGold,
+        stats.duelWins,
+        stats.duelLosses,
+        stats.duelWinStreak,
+        leagueProgression.ratingAfter,
+        leagueProgression.highestLeagueIndexAfter,
+        duelGoldEarnedToday,
+        actionDate,
+        progression.newLevel,
+        duelGoldStreak,
+      ],
+    );
+    const result: DuelResult = {
+      outcome,
+      accountBoostMultiplier: boost.multiplier,
+      boostExpiresAt: boost.expiresAt,
+      xp: reward.xp,
+      leagueProgression,
+      promotionReward: leagueProgression.promotionReward,
+      silver: leagueProgression.totalSilverEarned,
+      silverReward: leagueProgression.silverReward,
+      totalSilverEarned: leagueProgression.totalSilverEarned,
+      gold: levelUpGoldReward,
+      duelGoldReward,
+      levelUpGoldReward,
+      reachedLevels: progression.reachedLevels,
+      winStreak: stats.duelWinStreak,
+      player: toPlayerSummary(updatedPlayerResult.rows[0]!),
+    };
+    let neutralHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1).length;
+    if (this.campaign) {
+      const neutralHitResult = await client.query<{ count: string }>(
+        `
+          SELECT COUNT(*) AS count
+          FROM player_campaign_events
+          WHERE player_id = $1 AND event_type = 'DUEL_NEUTRAL_HIT'
+            AND payload->>'duelId' = $2
+        `,
+        [challengerId, duelId],
+      );
+      neutralHits = Number(neutralHitResult.rows[0]?.count ?? 0);
+    }
+    const strongHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1.5).length;
+    await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
+      duelId,
+      outcome,
+      gold: duelGoldReward,
+      duelRating: leagueProgression.ratingAfter,
+      winStreak: stats.duelWinStreak,
+      neutralHits,
+      strongHits,
+    }, now);
+    if (outcome === "win") {
+      await this.campaign?.recordEvent(client, challengerId, "DUEL_WON", {
+        duelId,
+        winStreak: stats.duelWinStreak,
+      }, now);
+    }
+    return result;
   }
 }

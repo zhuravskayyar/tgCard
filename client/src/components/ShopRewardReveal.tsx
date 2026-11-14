@@ -68,6 +68,8 @@ interface ShopRewardRevealProps {
   /** Heading over the unopened pack (shop default: "Пакунок придбано"). */
   packHeading?: string;
   purchasing?: boolean;
+  /** Skip the pack: the card was already unboxed elsewhere (e.g. it rose out of a chest). */
+  revealedAtOnce?: boolean;
   /** Heading over the revealed card, replacing the shop wording. */
   revealHeading?: string;
   purchases: readonly ShopPurchaseResponse[];
@@ -77,6 +79,7 @@ export function ShopRewardReveal({
   canBuyTen = false,
   continueLabel = "Продовжити",
   forged = false,
+  revealedAtOnce = false,
   errorMessage,
   onBuyAgain,
   onBuyTen,
@@ -88,7 +91,7 @@ export function ShopRewardReveal({
   revealHeading,
 }: ShopRewardRevealProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [unboxStage, setUnboxStage] = useState<UnboxStage>(() => !forged ? "idle" : prefersReducedMotion() ? "done" : "forge");
+  const [unboxStage, setUnboxStage] = useState<UnboxStage>(() => revealedAtOnce ? "done" : !forged ? "idle" : prefersReducedMotion() ? "done" : "forge");
   const [fromBooster, setFromBooster] = useState(false);
   const revealRef = useRef<HTMLElement>(null);
   const useStandardUnbox = useCallback(() => setUnboxStage("fallback"), []);

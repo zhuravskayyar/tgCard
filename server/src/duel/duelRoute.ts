@@ -1,7 +1,10 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import type {
   DuelActionRequest,
+  DuelAutoMode,
+  DuelAutoResult,
   DuelAvailability,
+  DuelResetResponse,
   DuelSearchResponse,
   DuelStartRequest,
   DuelView,
@@ -15,6 +18,8 @@ import {
   DuelDeckInvalidError,
   DuelMissingError,
   DuelNoOpponentFoundError,
+  DuelNotEnoughGoldError,
+  DuelPaidUnavailableError,
   DuelSearchInvalidError,
   DuelStateConflictError,
   DuelTutorialActionError,
@@ -22,6 +27,8 @@ import {
 
 interface DuelOperations {
   action(playerId: string, duelId: string, input: DuelActionRequest): Promise<DuelView>;
+  autoPlay(playerId: string, mode: DuelAutoMode): Promise<DuelAutoResult>;
+  resetBreak(playerId: string): Promise<DuelResetResponse>;
   findAvailability(playerId: string): Promise<DuelAvailability>;
   findActive(playerId: string): Promise<DuelView | null>;
   findById(playerId: string, duelId: string): Promise<DuelView>;
@@ -40,6 +47,10 @@ function isStartRequest(value: unknown): value is DuelStartRequest {
     && typeof (value as Record<string, unknown>).searchId === "string"
     && Boolean(String((value as Record<string, unknown>).searchId).trim())
     && ((value as Record<string, unknown>).tutorial === undefined || typeof (value as Record<string, unknown>).tutorial === "boolean");
+}
+
+function isAutoMode(value: unknown): value is DuelAutoMode {
+  return value === "remaining" || value === "pack";
 }
 
 function isActionRequest(value: unknown): value is DuelActionRequest {
@@ -87,6 +98,14 @@ function sendDuelError(
     sendJson(response, 409, { error: { code: "duel_state_conflict", message: error.message } }, headers);
     return true;
   }
+  if (error instanceof DuelNotEnoughGoldError) {
+    sendJson(response, 409, { error: { code: "not_enough_gold", message: error.message } }, headers);
+    return true;
+  }
+  if (error instanceof DuelPaidUnavailableError) {
+    sendJson(response, 409, { error: { code: "duel_paid_unavailable", message: error.message } }, headers);
+    return true;
+  }
   if (error instanceof DuelTutorialActionError) {
     sendJson(response, 409, { error: { code: "tutorial_action_invalid", message: error.message } }, headers);
     return true;
@@ -123,6 +142,16 @@ export async function handleDuelRequest(
       const body = await readJsonBody(request);
       if (!isStartRequest(body)) throw new HttpRequestError(400, "invalid_duel_start", "searchId is required");
       sendJson(response, 201, await dependencies.duels.start(player.id, body.searchId, body.tutorial === true), headers);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/duel/reset") {
+      sendJson(response, 200, await dependencies.duels.resetBreak(player.id), headers);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/duel/auto") {
+      const body = await readJsonBody(request) as { mode?: unknown } | null;
+      if (!isAutoMode(body?.mode)) throw new HttpRequestError(400, "invalid_duel_auto", "mode must be remaining or pack");
+      sendJson(response, 200, await dependencies.duels.autoPlay(player.id, body.mode), headers);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/duel/active") {

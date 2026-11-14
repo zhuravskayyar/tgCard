@@ -287,3 +287,6 @@ export {
 
 export { getDominantDeckElement } from "./deckElement.js";
 export * from "./dragonRaid.js";
+export * from "./duelPaid.js";
+export * from "./chestShop.js";
+export * from "./guardianDragon.js";

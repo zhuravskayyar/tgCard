@@ -1,5 +1,5 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import type { PlayerCardsResponse, WeakPlayerCardsResponse } from "@cardastika/shared";
+import type { CardElement, PlayerCardsResponse, WeakPlayerCardsResponse } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError, type PlayerRepository } from "../users/playerRepository.js";
@@ -21,6 +21,15 @@ function readWeakPage(request: IncomingMessage) {
   const limit = Number(rawLimit);
   if (!Number.isSafeInteger(page) || page < 1 || limit !== WEAK_PAGE_SIZE) return null;
   return page;
+}
+
+const CARD_ELEMENTS = new Set(["fire", "water", "earth", "air"]);
+
+/** Optional `element` narrows the weak cards to one element (the guardian dragon's feeding tabs). */
+function readWeakElement(request: IncomingMessage): CardElement | undefined | null {
+  const raw = new URL(request.url ?? "/api/player/cards/weak", "http://localhost").searchParams.get("element");
+  if (raw === null) return undefined;
+  return CARD_ELEMENTS.has(raw) ? raw as CardElement : null;
 }
 
 export async function handlePlayerCards(
@@ -67,14 +76,15 @@ export async function handleWeakPlayerCards(
 
   try {
     const page = readWeakPage(request);
-    if (page === null) {
+    const element = readWeakElement(request);
+    if (page === null || element === null) {
       sendJson(response, 400, {
         error: { code: "invalid_pagination", message: "Weak cards use positive pages of exactly 9 cards" },
       }, responseHeaders);
       return;
     }
     const { player } = await authenticateRoutePlayer(request, dependencies);
-    const result = await dependencies.inventory.findWeakPageByPlayerId(player.id, page, WEAK_PAGE_SIZE);
+    const result = await dependencies.inventory.findWeakPageByPlayerId(player.id, page, WEAK_PAGE_SIZE, element);
     const body: WeakPlayerCardsResponse = {
       cards: result.cards,
       page,

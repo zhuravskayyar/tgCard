@@ -3,6 +3,7 @@ import type {
   AbsorptionCandidatesResponse,
   AbsorptionPreviewResponse,
   BulkAbsorptionPreviewResponse,
+  CardElement,
   CardProgressionActionResponse,
   PlayerCardDetailResponse,
   WeakPlayerCardsResponse,
@@ -61,8 +62,8 @@ async function request(
   return value;
 }
 
-export async function loadWeakCards(initData: string, page: number, signal?: AbortSignal) {
-  const value = await request(initData, `/api/player/cards/weak?page=${page}&limit=9`, signal);
+export async function loadWeakCards(initData: string, page: number, signal?: AbortSignal, element?: CardElement) {
+  const value = await request(initData, `/api/player/cards/weak?page=${page}&limit=9${element ? `&element=${element}` : ""}`, signal);
   if (!isPagination<WeakPlayerCardsResponse>(value)) throw new PlayerDataError(502);
   return value;
 }

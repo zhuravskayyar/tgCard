@@ -29,6 +29,7 @@ import "./styles/shop-stall.css";
 import "./styles/equipment-book.css";
 import "./styles/profile-book.css";
 import "./styles/bestiary.css";
+import "./styles/guardian-dragon.css";
 
 const rootElement = document.getElementById("root");
 const isAdminPath = window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/");
