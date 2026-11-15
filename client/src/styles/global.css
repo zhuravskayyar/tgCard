@@ -7519,11 +7519,7 @@ button.mode-tile::before,
 .arena-log li em { min-width: 32px; color: #d1af6e; font-size: var(--font-micro); font-style: normal; text-align: right; }
 .arena-result { justify-items: center; text-align: center; }
 .arena-result > span { color: var(--text-muted); font-size: var(--font-micro); letter-spacing: .1em; text-transform: uppercase; }
-.arena-result h1 { margin: 0; }
 .arena-result__place { color: var(--text-secondary); font-size: var(--font-xs); }
-.arena-result__rewards { display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.arena-result__rewards span { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 3px; padding: 6px; color: var(--text-secondary); background: var(--bg-inset); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); font-size: var(--font-micro); }
-.arena-result__rewards img { width: 18px; height: 18px; object-fit: contain; }
 .arena-result > small { color: var(--text-muted); font-size: var(--font-micro); }
 .arena-result__subtitle { margin: -8px 0 0; color: #d9b776; font-size: var(--font-xs); }
 .arena-result__standings { display: grid; width: 100%; gap: var(--space-3); text-align: left; }
@@ -7644,7 +7640,6 @@ button.mode-tile::before,
 }
 
 @media (max-width: 360px) {
-  .arena-result__rewards { grid-template-columns: 1fr; }
 }
 
 .auth-screen {
@@ -13258,7 +13253,6 @@ body {
 .league-list__rewards b { display: inline-flex; align-items: center; gap: 3px; }
 .league-progress-card__rewards > span { display: inline-flex; align-items: center; gap: 3px; }
 .duel-secondary-button small .currency-icon { width: 15px; height: 15px; vertical-align: -3px; }
-.arena-result__rewards .currency-icon { width: 18px; height: 18px; }
 .duel-result__level-up small { display: inline-flex; align-items: center; gap: 3px; }
 .battle-pass-boost-icon .currency-icon { width: 17px; height: 17px; }
 

@@ -29,6 +29,7 @@ import { LeagueBadge } from "../components/LeagueBadge";
 import { DUEL_LEAGUE_CONFIG, getLeagueByRating, getLeagueIndexByRating } from "@cardastika/shared";
 import { formatFullUiNumber, formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { MenuRow } from "../components/MenuRow";
+import { BattleOutcomeHeader, CountUpValue } from "../components/BattleOutcome";
 import { Lariska } from "../components/Lariska";
 import { ResourceIcon } from "../components/ResourceIcon";
 import { getTelegramInitData } from "../telegram";
@@ -442,45 +443,6 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
 }
 
 const REWARD_SHOWCASE_MS = 1_500;
-const DUEL_RESULT_CREST_WIN = "/assets/ui/duel/result-victory-crest-v1.webp";
-const DUEL_RESULT_CREST_LOSS = "/assets/ui/duel/result-defeat-crest-v2.webp";
-
-/** Rewards tick up from zero once the crest has landed. */
-function CountUpValue({ value, delay = 650, duration = 900 }: { value: number; delay?: number; duration?: number }) {
-  const [shown, setShown] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches ? value : 0);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setShown(value); return; }
-    let frame = 0;
-    const startAt = performance.now() + delay;
-    const tick = (now: number) => {
-      const progress = Math.max(0, Math.min(1, (now - startAt) / duration));
-      setShown(Math.round(value * (1 - (1 - progress) ** 3)));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [delay, duration, value]);
-  return <span className="duel-outcome__reward-value ui-number">{formatUiNumber(shown)}</span>;
-}
-
-/** The stamped crest, light rays, sparks and unrolling title ribbon shared by every duel outcome screen. */
-function DuelOutcomeHeader({ won }: { won: boolean }) {
-  // Translate before splitting: the runtime translator cannot match single-letter spans.
-  const title = translateUi(won ? "ПЕРЕМОГА" : "ПОРАЗКА", getUiLocale());
-  return (
-    <header className="duel-outcome__crest">
-      {won ? <span aria-hidden="true" className="duel-outcome__rays" /> : null}
-      <img alt="" className="duel-outcome__crest-art" src={won ? DUEL_RESULT_CREST_WIN : DUEL_RESULT_CREST_LOSS} />
-      <span aria-hidden="true" className={`duel-outcome__particles${won ? " duel-outcome__particles--win" : " duel-outcome__particles--loss"}`}>
-        {Array.from({ length: 12 }, (_, index) => <i key={index} />)}
-      </span>
-      <h1 aria-label={title} className="duel-outcome__title">
-        {Array.from(title, (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter}</span>)}
-      </h1>
-    </header>
-  );
-}
-
 function formatDuelCooldown(refillAt: string, now: number) {
   const seconds = Math.max(0, Math.ceil((new Date(refillAt).getTime() - now) / 1_000));
   const hours = Math.floor(seconds / 3_600);
@@ -594,7 +556,7 @@ function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutor
   if (tutorialMode) {
     return (
       <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
-        <DuelOutcomeHeader won />
+        <BattleOutcomeHeader won />
         <p className="duel-outcome__received">Ти отримав:</p>
         <div aria-label="Нагороди за перемогу" className="duel-outcome__loot">
           <span aria-label={`Срібло: ${result.silver}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={result.silver} /></span>
@@ -631,7 +593,7 @@ function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutor
   const silverReward = result.totalSilverEarned ?? result.silver;
   return (
     <section className={`duel-page duel-result duel-outcome duel-outcome--${won ? "win" : "loss"}`}>
-      <DuelOutcomeHeader won={won} />
+      <BattleOutcomeHeader won={won} />
       <p className="duel-outcome__received">Ти отримав:</p>
       <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
         <span aria-label={`Срібло: ${silverReward}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={silverReward} /></span>

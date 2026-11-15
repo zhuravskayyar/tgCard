@@ -12,6 +12,7 @@ export type GuildActivityType =
   | "campaign_loss"
   | "tournament_battle"
   | "dragon_raid"
+  | "invasion_attack"
   /** Older contributions only: arena and dungeon pay no player XP, so they add no guild XP now. */
   | "dungeon_complete"
   | "arena_place_1"

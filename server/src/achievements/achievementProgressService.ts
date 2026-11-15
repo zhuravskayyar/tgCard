@@ -18,6 +18,10 @@ interface AchievementProgressRow {
   tournament_championships: string | number;
   witch_victories: string | number;
   dragon_victories: string | number;
+  urfin_boss_damage: string | number;
+  urfin_super_strikes: string | number;
+  urfin_card_rewards: string | number;
+  urfin_first_places: string | number;
 }
 
 interface AchievementHighWaterRow {
@@ -98,7 +102,23 @@ export class AchievementProgressService {
             COALESCE((
               SELECT SUM((payload->>'count')::numeric) FROM player_campaign_events
               WHERE player_id = players.id AND event_type = 'EQUIPMENT_FORGED' AND payload->>'category' = 'artifacts'
-            ), 0)::numeric AS forged_artifacts
+            ), 0)::numeric AS forged_artifacts,
+            COALESCE((
+              SELECT MAX(per_invasion.total) FROM (
+                SELECT SUM(damage) AS total FROM invasion_participants participants
+                WHERE participants.player_id = players.id GROUP BY participants.invasion_number
+              ) per_invasion
+            ), 0)::numeric AS urfin_boss_damage,
+            COALESCE((
+              SELECT SUM(super_strikes) FROM invasion_participants participants WHERE participants.player_id = players.id
+            ), 0)::bigint AS urfin_super_strikes,
+            COALESCE((
+              SELECT COUNT(DISTINCT (prizes.invasion_number, prizes.boss_number)) FROM invasion_prizes prizes
+              WHERE prizes.player_id = players.id AND prizes.kind IN ('first_place', 'damage')
+            ), 0)::bigint AS urfin_card_rewards,
+            COALESCE((
+              SELECT COUNT(*) FROM invasion_prizes prizes WHERE prizes.player_id = players.id AND prizes.kind = 'first_place'
+            ), 0)::bigint AS urfin_first_places
           FROM players
           WHERE players.id = $1
         `,
@@ -153,10 +173,10 @@ export class AchievementProgressService {
           arenaTop100: highest.get("arenaTop100") ?? 0,
           arenaChampion: highest.get("arenaChampion") ?? 0,
           tournamentChampion: toSafeNumber(row.tournament_championships, "tournament championships"),
-          urfinBossDamage: null,
-          urfinSuperStrikes: null,
-          urfinCardRewards: null,
-          urfinDamageRank: null,
+          urfinBossDamage: toSafeNumber(row.urfin_boss_damage, "invasion boss damage"),
+          urfinSuperStrikes: toSafeNumber(row.urfin_super_strikes, "invasion super strikes"),
+          urfinCardRewards: toSafeNumber(row.urfin_card_rewards, "invasion card rewards"),
+          urfinDamageRank: toSafeNumber(row.urfin_first_places, "invasion first places"),
           guildGold: toSafeNumber(row.guild_gold, "guild gold contributions"),
           guildElementDonations: toSafeNumber(row.guild_element_donations, "guild element contributions"),
           guildDragonHunts: toSafeNumber(row.dragon_victories, "dragon victories"),

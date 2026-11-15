@@ -495,6 +495,21 @@
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-lobby .guild-raid-result__standings li.is-defeated { opacity: .6; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-battle__result { color: var(--book-ink); }
 
+/* Raid results: the shared parchment outcome page (crest, ribbon) with book ink, like every other battle result. */
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result { gap: 8px; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result :is(.duel-outcome__title, .duel-outcome__title *, .battle-outcome__subtitle, .duel-outcome__received) { font-family: var(--font-display) !important; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result :is(.guild-raid-result__meta, .guild-raid-result__summary, .guild-raid-result__leaders-title, .guild-raid-result__participants, .guild-raid-result__bosses > p, .guild-raid-result__defeat-copy p, .guild-raid-result__battle-art :is(strong, span, small), .guild-raid-lobby__hint) { color: var(--book-ink); text-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result :is(.guild-raid-result__summary strong, .guild-raid-result__defeat-copy strong, .guild-raid-result__damage, .guild-raid-result__reward--currency, .guild-raid-result__reward--card) { color: var(--book-ink-accent); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__meta { margin: 0; font-size: var(--font-sm); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result :is(.guild-raid-result__summary, .guild-raid-result__leaders-title, .guild-raid-result__defeat-copy, .guild-raid-result__standings li) { width: 100%; box-sizing: border-box; border-color: rgb(93 69 42 / 35%); background: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__bosses { width: 100%; box-sizing: border-box; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__bosses > p { transform: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__standings { box-sizing: border-box; width: 100%; margin: 0; padding: 6px 10px; color: var(--book-ink); border-style: solid; border-width: 20px 18px; border-image: var(--sprite-text-plate) 62 fill / 20px stretch; border-radius: 0; background: none; box-shadow: none; }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__standings :is(strong, .guild-raid-result__placement) { color: var(--book-ink); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__standings small { color: var(--book-ink-muted); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result .guild-raid-result__boss { border: 0; background: none; box-shadow: none; filter: drop-shadow(0 4px 6px rgb(40 20 5 / 35%)); }
+:root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-result :is(.guild-raid-result__empty-copy, .guild-raid-result__reward--empty) { color: var(--book-ink-muted); }
+
 /* Raid lobby: the bosses are plain engravings on the parchment, about twice the battle portrait, no card backing. */
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-lobby .guild-raid__bosses { box-sizing: border-box; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 2px; }
 :root[data-game-theme="light"] .app-shell .app-content .guild-screen .guild-raid-lobby .guild-raid__bosses--single { grid-template-columns: minmax(0, 1fr); }

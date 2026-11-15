@@ -84,6 +84,16 @@ export function isArenaUnlocked(duelRating = 0, duelHighestLeagueIndex = 0) {
   const byRating = getLeagueIndexByRating(Number.isFinite(duelRating) ? Math.max(0, Math.trunc(duelRating)) : 0, DUEL_LEAGUE_CONFIG);
   return Math.max(byRating, duelHighestLeagueIndex) >= ARENA_UNLOCK_DUEL_LEAGUE_INDEX;
 }
+/**
+ * The reference opens «Нашествие» from the third legendary duel league (2600 on its scale):
+ * index 12 of 21, three steps above the arena's third epic. Ours is Чемпіон III.
+ */
+export const INVASION_UNLOCK_DUEL_LEAGUE_INDEX = 12;
+
+export function isInvasionUnlocked(duelRating = 0, duelHighestLeagueIndex = 0) {
+  const byRating = getLeagueIndexByRating(Number.isFinite(duelRating) ? Math.max(0, Math.trunc(duelRating)) : 0, DUEL_LEAGUE_CONFIG);
+  return Math.max(byRating, duelHighestLeagueIndex) >= INVASION_UNLOCK_DUEL_LEAGUE_INDEX;
+}
 export const ARENA_DEMOTION_BUFFER = 100;
 
 // Same 21 leagues and promotion silver as duels, on the Arena's own rating scale.

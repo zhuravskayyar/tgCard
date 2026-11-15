@@ -35,6 +35,7 @@ import {
   submitGuildRaidAction,
 } from "../../telegram/guild";
 import { ELEMENT_LABELS, GuildState, guildErrorMessage } from "./GuildUi";
+import { BattleOutcomeHeader } from "../../components/BattleOutcome";
 
 interface GuildRaidScreenProps {
   profile: GuildProfileResponse;
@@ -190,8 +191,9 @@ function RaidReward({ participant, treasurePlayerId }: { participant: GuildRaidR
 }
 
 function RaidResult({ result, canStart, onStart, pending }: { result: GuildRaidResultView; canStart: boolean; onStart: () => void; pending: boolean }) {
-  return <section aria-label="Підсумок рейду" className="guild-raid-result">
-    <div className="guild-raid-result__banner"><span>Рейд завершено</span><h3>ВІДЬМИ ПЕРЕМОЖЕНІ</h3><small>Рівень {result.level} · учасників {result.participantCount}</small></div>
+  return <section aria-label="Підсумок рейду" className="battle-outcome-panel guild-raid-result">
+    <BattleOutcomeHeader subtitle="Відьми переможені" won />
+    <p className="guild-raid-result__meta">Рівень {result.level} · учасників {result.participantCount}</p>
     <div className="guild-raid-result__summary"><span>Загальна шкода</span><strong>{formatRaidNumber(result.totalDamage)}</strong></div>
     {result.treasurePlayer ? <p className="guild-raid-lobby__hint">Доступ до відьминого скарбу отримав випадковий учасник: <strong>{result.treasurePlayer.displayName}</strong>.</p> : null}
     <ol className="guild-raid-result__standings" aria-label="Результати учасників рейду">
@@ -214,8 +216,8 @@ function RaidDefeatResult({ altarLevel, bosses, leaderboard, nextLevel, particip
   onRetry: () => void;
   pending: boolean;
 }) {
-  return <section aria-label="Підсумок поразки в рейді" className="guild-raid-result guild-raid-result--defeat">
-    <div className="guild-raid-result__banner"><h3>ВАША КОМАНДА<br />ПЕРЕМОЖЕНА</h3></div>
+  return <section aria-label="Підсумок поразки в рейді" className="battle-outcome-panel guild-raid-result guild-raid-result--defeat">
+    <BattleOutcomeHeader subtitle="Ваша команда переможена" won={false} />
     <div aria-label="Відьми рейду" className="guild-raid-result__bosses">
       {bosses[0] ? <span className="guild-raid-result__boss"><img alt={`${bosses[0].displayName}, стихія ${ELEMENT_LABELS[bosses[0].element]}`} onError={hideMissingCardArt} src={`/card-art/${bosses[0].artKey}.webp`} /></span> : <span />}
       <p>Відьми насміхаються<br />над цими магами…</p>

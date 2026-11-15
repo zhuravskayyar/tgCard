@@ -42,6 +42,7 @@ import {
   submitArenaAction,
 } from "../telegram/arena";
 import "../styles/arena-book.css";
+import { BattleOutcomeHeader, OutcomeLoot, OutcomeReward } from "../components/BattleOutcome";
 
 type ArenaPage = "lobby" | "league" | "rules";
 
@@ -391,10 +392,9 @@ function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; o
     </li>
   );
   return (
-    <section className={`arena-result ${won ? "is-win" : "is-loss"}`}>
-      <span>Арена завершена</span>
-      <h1>{won ? "ПЕРЕМОГА" : winners.size === 0 ? "БІЙ БЕЗ ПЕРЕМОЖЦІВ" : "ПОРАЗКА"}</h1>
-      {won ? <p className="arena-result__subtitle">Ви один із переможців!</p> : null}
+    <section className={`battle-outcome-panel arena-result ${won ? "is-win" : "is-loss"}`}>
+      <BattleOutcomeHeader subtitle={won ? "Ви один із переможців!" : winners.size === 0 ? "Бій без переможців" : undefined} won={won} />
+      {result.reward.promotionSilver > 0 ? <OutcomeLoot label="Нагорода за нову лігу"><OutcomeReward icon={<CurrencyIcon kind="silver" size={20} />} label="Срібло" source="silver" value={result.reward.promotionSilver} /></OutcomeLoot> : null}
       {!result.reward.counted ? <p className="arena-result__subtitle">Для щоденних завдань потрібно зробити щонайменше три ходи. Результат бою та рейтинг враховано.</p> : null}
       <strong className="arena-result__place">Рейтинг арени: {result.reward.ratingAfter} ({result.reward.ratingChange > 0 ? "+" : ""}{result.reward.ratingChange})</strong>
       {result.leagueAfter.index > result.leagueBefore.index ? <p className="arena-result__subtitle">Нова ліга: {result.leagueAfter.name}</p> : null}
@@ -402,7 +402,6 @@ function ArenaResult({ match, onArena, onQueue, pending }: { match: ArenaView; o
         {winnerParticipants.length > 0 ? <div className="arena-result__group arena-result__group--winners"><h2>Переможці</h2><ol>{ordered.filter(({ id }) => winners.has(id)).map(renderParticipant)}</ol></div> : null}
         <div className="arena-result__group arena-result__group--contenders"><h2>{winnerParticipants.length > 0 ? "Претенденти" : "Учасники"}</h2><ol>{ordered.filter(({ id }) => !winners.has(id)).map(renderParticipant)}</ol></div>
       </div>
-      {result.reward.promotionSilver > 0 ? <div className="arena-result__rewards"><span><CurrencyIcon kind="silver" size={18} />+{formatUiNumber(result.reward.promotionSilver)} срібла за нову лігу</span></div> : null}
       <div className="arena-result__actions"><button className="duel-primary-button" disabled={pending !== null} onClick={onQueue} type="button">Записатися знову</button><button className="duel-secondary-button" onClick={onArena} type="button">На арену</button></div>
     </section>
   );

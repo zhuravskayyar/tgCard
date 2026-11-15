@@ -8,6 +8,8 @@ import { useBattleResultReady } from "../../components/useBattlePresentation";
 import { formatUiNumber } from "../../i18n";
 import { BattleLog, DuelBattle } from "../DuelScreen";
 import { TournamentPodium } from "./TournamentPodium";
+import { BattleOutcomeHeader, OutcomeLoot, OutcomeReward } from "../../components/BattleOutcome";
+import { ResourceIcon } from "../../components/ResourceIcon";
 
 const ELEMENT_NAMES: Record<CardElement, string> = { fire: "Вогонь", water: "Вода", air: "Повітря", earth: "Земля" };
 
@@ -122,8 +124,11 @@ export function TournamentRun({ run, clockOffset, pending, error, onAction, onEx
     {(run.status === "battle" || run.status === "buff_selection") && !match ? <p className="tournament-run-state__lead" role="status">Готуємо бій…</p> : null}
     {run.status === "cancelled" ? <p className="tournament-run-state__lead">Турнір не відбувся: для сітки потрібні щонайменше двоє гравців.</p> : null}
     {run.status === "round_wait" ? <>
-      {match?.outcome ? <p className="tournament-run-state__lead">{match.outcome === "win" ? "Перемога в раунді" : "Поразка в раунді"}</p> : <p className="tournament-run-state__lead">Ти проходиш у наступний раунд без бою</p>}
-      {match?.outcome ? <p className="tournament-run-state__note">Завдана шкода {formatUiNumber(match.playerDamage)} : {formatUiNumber(match.opponentDamage)}{match.ratingChange !== null ? ` · рейтинг ${signed(match.ratingChange)}` : ""}{match.xp !== null ? ` · досвід +${formatUiNumber(match.xp)}` : ""}</p> : null}
+      {match?.outcome ? <div className="battle-outcome-panel">
+        <BattleOutcomeHeader subtitle={match.outcome === "win" ? "Перемога в раунді" : "Поразка в раунді"} won={match.outcome === "win"} />
+        {match.xp ? <OutcomeLoot label="Нагороди за бій"><OutcomeReward icon={<ResourceIcon kind="xp" size={20} />} label="Досвід" source="xp" value={match.xp} /></OutcomeLoot> : null}
+        <p className="tournament-run-state__note">Завдана шкода {formatUiNumber(match.playerDamage)} : {formatUiNumber(match.opponentDamage)}{match.ratingChange !== null ? ` · рейтинг ${signed(match.ratingChange)}` : ""}</p>
+      </div> : <p className="tournament-run-state__lead">Ти проходиш у наступний раунд без бою</p>}
       {run.stage ? <p className="tournament-run-state__note">Пари наступного раунду визначаться через {clock(run.stage.pairedAt - now)}</p> : null}
     </> : null}
     {finished ? <>

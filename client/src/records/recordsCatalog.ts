@@ -44,10 +44,10 @@ export const ACHIEVEMENT_RECORD_GROUPS: readonly AchievementRecordGroup[] = [
     ],
   },
   {
-    title: "Нашестя Урфіна",
+    title: "Навала Шуліки",
     records: [
-      { id: "urfin-boss-damage", title: "Шкода босам за одне нашестя", image: image("urfin-boss-damage"), description: "Нанось шкоду босам протягом одного Нашестя Урфіна.", statistic: "urfinBossDamage", unit: "шкоди", levels: counted([1_000_000, 25_000_000, 100_000_000]) },
-      { id: "urfin-super-strikes", title: "Суперудари в нашесті", image: image("urfin-super-strikes"), description: "Виконуй суперудари під час Нашестя Урфіна.", statistic: "urfinSuperStrikes", unit: "суперударів", levels: counted([5, 25, 100]) },
+      { id: "urfin-boss-damage", title: "Шкода босам за одну навалу", image: image("urfin-boss-damage"), description: "Завдавай шкоди босам протягом однієї Навали Шуліки.", statistic: "urfinBossDamage", unit: "шкоди", levels: counted([1_000_000, 25_000_000, 100_000_000]) },
+      { id: "urfin-super-strikes", title: "Суперудари в навалі", image: image("urfin-super-strikes"), description: "Виконуй суперудари під час Навали Шуліки.", statistic: "urfinSuperStrikes", unit: "суперударів", levels: counted([5, 25, 100]) },
       { id: "urfin-card-rewards", title: "Отримані карти за шкоду босу", image: image("urfin-card-rewards"), description: "Отримуй карти як нагороду за шкоду босам.", statistic: "urfinCardRewards", unit: "", levels: [
         { threshold: 1, target: "1 карту" }, { threshold: 10, target: "10 карт" }, { threshold: 50, target: "50 карт" },
       ] },

@@ -19,7 +19,10 @@ test("guild balance is config-driven and level thresholds are monotonic", () => 
   assert.equal(getGuildLevelForExperience(1_000_000), 2);
   assert.equal(getGuildLevelForExperience(75_000_000), 20);
   assert.equal(getGuildNextLevelExperience(1), 1_000_000);
-  assert.equal(getGuildNextLevelExperience(20), null);
+  // The cap follows the reference (55); level 20 is no longer the last one.
+  assert.equal(GUILD_CONFIG.maxLevel, 55);
+  assert.notEqual(getGuildNextLevelExperience(20), null);
+  assert.equal(getGuildNextLevelExperience(GUILD_CONFIG.maxLevel), null);
 });
 
 test("guild names accept Ukrainian and Latin names and reject unsafe forms", () => {

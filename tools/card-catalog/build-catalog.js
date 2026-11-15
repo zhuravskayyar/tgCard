@@ -192,6 +192,9 @@ fs.writeFileSync(repo + "/docs/card-art-prompts.md", promptsMd, "utf8");
 
 // Game data. Bonuses that existing systems can apply are real; the rest wait for their mechanic and do nothing yet.
 const CODE = { boobs: "spring_bloom", power: "old_soldiers" };
+/** Bonuses applied directly by their mode (e.g. the invasion reads «Механічний двір» itself), not via modifiers. */
+const LIVE_WITHOUT_MODIFIER = new Set(["mechanists"]);
+
 const WORKING = {
   elementals: { type: "silver_reward_pct", value: 10, scope: "duel" },
   highelem: { type: "duel_cooldown_minutes", value: 30, scope: "duel" },
@@ -221,7 +224,7 @@ const data = {
     code: CODE[code] ?? code,
     displayName: name,
     bonus: WORKING[code] ?? { type: "none", value: 1 },
-    bonusLabel: typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : WORKING[code] || TOURNAMENT_LABELS[code] === true ? bonus : bonus + " (запрацює разом із цією механікою)",
+    bonusLabel: typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : WORKING[code] || TOURNAMENT_LABELS[code] === true || LIVE_WITHOUT_MODIFIER.has(code) ? bonus : bonus + " (запрацює разом із цією механікою)",
     cardIds: list.split(",").map((entry) => entry.split("/")[1]),
   })),
   uncollectedCardIds: UNCOLLECTED.split(",").map((entry) => entry.split("/")[1]),

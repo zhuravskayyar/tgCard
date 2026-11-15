@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CampaignBossView, CampaignMapView, PlayerSummary, StoryTrialsView } from "@cardastika/shared";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { CardBack } from "../components/CardBack";
@@ -9,6 +9,8 @@ import { CardHud } from "../components/CardHud";
 import { RewardCardSurface } from "../components/RewardCardSurface";
 import { CurrencyIcon } from "../components/CurrencyDisplay";
 import { MenuRow } from "../components/MenuRow";
+import { BattleOutcomeHeader, OutcomeLoot, OutcomeReward } from "../components/BattleOutcome";
+import { ResourceIcon } from "../components/ResourceIcon";
 import { useCardArtworkSource } from "../components/cardArtSource";
 import { formatFullUiNumber, getUiLocale, translateUi } from "../i18n";
 import { getTelegramInitData } from "../telegram";
@@ -85,12 +87,14 @@ export function CampaignScreen({ onBack, onOpenBoss, onOpenTrials }: {
 
 type BossState = { status: "loading" } | { status: "battle"; battle: CampaignBossView } | { status: "error"; message: string };
 
-function CampaignBossOutcomeBanner({ won }: { won: boolean }) {
-  const title = tx(won ? "Перемога!" : "Поразка").toLocaleUpperCase(getUiLocale());
-  return <div className={`campaign-boss-outcome campaign-boss-outcome--${won ? "win" : "loss"}`}>
-    <span aria-hidden="true" className="campaign-boss-outcome__particles">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</span>
-    <h2 aria-label={title}>{Array.from(title, (letter, index) => <span key={`${letter}-${index}`} style={{ "--letter-index": index } as CSSProperties}>{letter === " " ? "\u00a0" : letter}</span>)}</h2>
-  </div>;
+/** Boss rewards on the same HUD plates as every other battle result. */
+function BossRewards({ gold, silver, xp }: { gold: number; silver: number; xp: number }) {
+  if (gold <= 0 && silver <= 0 && xp <= 0) return null;
+  return <OutcomeLoot label={tx("Нагороди за бій")}>
+    {silver > 0 ? <OutcomeReward icon={<CurrencyIcon kind="silver" size={20} />} label={tx("Срібло")} source="silver" value={silver} /> : null}
+    {xp > 0 ? <OutcomeReward icon={<ResourceIcon kind="xp" size={20} />} label={tx("Досвід")} source="xp" value={xp} /> : null}
+    {gold > 0 ? <OutcomeReward icon={<CurrencyIcon kind="gold" size={20} />} label={tx("Золото")} source="gold" value={gold} /> : null}
+  </OutcomeLoot>;
 }
 
 function PendingBossReward({ pending, error, onRetry }: { pending: boolean; error: string | null; onRetry: () => void }) {
@@ -111,12 +115,11 @@ function BossVictoryResult({ battle, claimPending, claimError, onClaim, onReturn
   const result = battle.result;
   return <div className="campaign-adventures">
     <ScreenHeading onBack={onReturn} title={tx(battle.opponent.name)} />
-    <section className="adventure-plate campaign-adventure-result">
-      <CampaignBossOutcomeBanner won />
+    <section className="battle-outcome-panel campaign-adventure-result">
+      <BattleOutcomeHeader won />
       {result ? <>
         {result.thanks?.map(text => <p key={text}>{tx(text)}</p>)}
-        {result.gold > 0 || result.silver > 0 ? <p>{tx("Нагорода:")} {formatFullUiNumber(result.gold)}<CurrencyIcon kind="gold" size={17} /> {formatFullUiNumber(result.silver)}<CurrencyIcon kind="silver" size={17} /></p> : null}
-        <p>{tx(`Досвід: +${formatFullUiNumber(result.xp)} XP`)}</p>
+        <BossRewards gold={result.gold} silver={result.silver} xp={result.xp} />
       </> : <PendingBossReward error={claimError} onRetry={onClaim} pending={claimPending} />}
       {result?.rewardCard ? <div className="campaign-boss-reward">
         <strong>{tx("Ти здобув карту!")}</strong>
@@ -153,11 +156,11 @@ function BossDefeatResult({ battle, claimPending, claimError, onClaim, onReturn 
   const result = battle.result;
   return <div className="campaign-adventures">
     <ScreenHeading onBack={onReturn} title={tx(battle.opponent.name)} />
-    <section className="adventure-plate campaign-adventure-result">
-      <CampaignBossOutcomeBanner won={false} />
+    <section className="battle-outcome-panel campaign-adventure-result">
+      <BattleOutcomeHeader won={false} />
       {result ? <>
+        <BossRewards gold={0} silver={0} xp={result.xp} />
         <p>{tx("Переглянь колоду й спробуй ще раз.")}</p>
-        <p>{tx(`Досвід: +${formatFullUiNumber(result.xp)} XP`)}</p>
         <button className="adventure-button ui-button ui-button--primary" onClick={onReturn} type="button">{tx("До кампанії")}</button>
       </> : <PendingBossReward error={claimError} onRetry={onClaim} pending={claimPending} />}
     </section>

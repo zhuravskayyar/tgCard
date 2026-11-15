@@ -194,6 +194,8 @@ export {
   ARENA_UNLOCK_DUEL_LEAGUE_INDEX,
   ARENA_UNLOCK_DUEL_RATING,
   isArenaUnlocked,
+  INVASION_UNLOCK_DUEL_LEAGUE_INDEX,
+  isInvasionUnlocked,
   DUEL_LEAGUE_CONFIG,
   getArenaLeagueIndexAfter,
   applyLeagueProgression,
@@ -451,3 +453,4 @@ export {
   type NotificationSettingsResponse,
   type NotificationSettingsUpdate,
 } from "./notifications.js";
+export type * from "./invasion.js";

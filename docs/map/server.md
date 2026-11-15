@@ -7,6 +7,7 @@
 - У кожній: `*Route.ts` (HTTP), `*Service.ts` (логіка + БД), `*.integration.test.ts`.
 - `auth/` — перевірка Telegram init-data; `bot/` — Telegram-бот.
 - `database/` — `pool.ts`, `migrate.ts`, сіди; міграції SQL у `server/migrations/NNN_*.sql`.
+- `invasion/` — «Навала Шуліки» (глобальний бос, 24 боси, `/api/invasion*`): [[invasion]], міграція 098, правила в [[game-core]].
 - `battlePass*`, `dailyRewards*` — лежать у корені `server/src`.
 
 Деплой і міграції: [[deployment]].

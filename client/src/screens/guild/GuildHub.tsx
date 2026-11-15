@@ -53,6 +53,7 @@ const GUILD_ACTIVITY_LABELS: Readonly<Record<GuildActivityType, string>> = {
   campaign_loss: "бій у кампанії",
   tournament_battle: "бій на турнірі",
   dragon_raid: "перемога над змієм",
+  invasion_attack: "напад на навалі",
   dungeon_complete: "завершення підземелля",
   arena_place_1: "1 місце на арені",
   arena_place_2: "2 місце на арені",

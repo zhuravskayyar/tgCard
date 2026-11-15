@@ -52,7 +52,10 @@ test("achievement progress reads collected player statistics and leaves untracke
     assert.equal(statistics.completedCollections, 0);
     assert.equal(statistics.witchVictories, 1);
     assert.ok(statistics.deckPower !== null && statistics.deckPower >= 0);
-    assert.equal(statistics.urfinBossDamage, null);
+    assert.equal(statistics.urfinBossDamage, 0);
+    assert.equal(statistics.urfinSuperStrikes, 0);
+    assert.equal(statistics.urfinCardRewards, 0);
+    assert.equal(statistics.urfinDamageRank, 0);
     assert.equal(statistics.guildDragonHunts, 0);
     assert.equal(statistics.giftsSent, null);
 

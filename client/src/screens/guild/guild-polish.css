@@ -1870,31 +1870,7 @@
 .guild-screen .guild-raid-battle__result--win { border: 1px solid #668747; background: rgb(41 67 25 / 42%); color: #c3dc9e; }
 .guild-screen .guild-raid-battle__result--loss { border: 1px solid #774841; background: rgb(65 28 27 / 42%); color: #e4a08e; }
 
-.guild-screen .guild-raid-result {
-  display: grid;
-  gap: 7px;
-  min-height: 560px;
-  padding: 42px 28px 34px;
-  border: 0;
-  background: url('/assets/guild/witch-raid-victory-frame.png') center / 100% 100% no-repeat;
-}
-.guild-screen .guild-raid-result__banner {
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  padding: 6px 6px 8px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.guild-screen .guild-raid-result__banner > span { color: #9fc8db; font-size: var(--font-micro); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.guild-screen .guild-raid-result__banner h3 { margin: 0; color: #f3d38e; font: 700 18px/1.15 var(--font-display); letter-spacing: .06em; text-align: center; text-shadow: 0 2px 3px #000; }
-.guild-screen .guild-raid-result__banner small { color: #a9c8d3; font-size: var(--font-micro); }
-.guild-screen .guild-raid-result--defeat { background-image: url('/assets/guild/witch-raid-defeat-frame.png'); }
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner { background: transparent; }
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner > span { color: #d79b83; }
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner h3 { color: #efb09a; }
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner small { color: #c99b8d; }
+/* Raid results sit on the shared parchment outcome panel (battle-outcome.css); ink colours live in guild-book.css. */
 .guild-screen .guild-raid-result__summary { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); padding: 5px 8px; border-bottom: 1px solid #4d3a27; color: #bda982; font-size: var(--font-micro); }
 .guild-screen .guild-raid-result__summary strong { color: #e2c275; font-variant-numeric: tabular-nums; }
 .guild-screen .guild-raid-result__empty-copy { margin: 0; color: #b8aa95; font-size: var(--font-micro); text-align: center; }
@@ -1927,52 +1903,13 @@
   .guild-screen .guild-raid-battle__boss-select .guild-raid__portrait { width: 38px; height: 51px; }
   .guild-screen .guild-raid-battle__target-panel { padding-inline: 6px; }
   .guild-screen .guild-raid-battle__card-matrix .duel-card-row { gap: 2px; }
-  .guild-screen .guild-raid-result { min-height: 520px; padding: 38px 22px 28px; }
   .guild-screen .guild-raid-result__standings li { grid-template-columns: 25px minmax(0, 1fr) minmax(84px, auto); gap: var(--space-1); padding-inline: 2px; }
   .guild-screen .guild-raid-result--defeat .guild-raid-result__standings li { grid-template-columns: 25px minmax(0, 1fr); }
   .guild-screen .guild-raid-result__standings .league-badge--sm { width: 24px; height: 24px; }
   .guild-screen .guild-raid-result__reward--currency { font-size: var(--font-micro); gap: 1px 4px; }
 }
 
-/* Defeat result: compact legacy raid composition from the second reference. */
-.guild-screen:has(.guild-raid-result--defeat) .guild-raid { gap: 0; }
-.guild-screen:has(.guild-raid-result--defeat) .guild-raid__title { display: none; }
-.guild-screen .guild-profile:has(.guild-raid-result--defeat) {
-  padding: 0 5px 8px;
-  border-color: #5a3926;
-  background: #000;
-  box-shadow: inset 0 0 18px rgb(105 57 28 / 20%);
-}
-.guild-screen .guild-raid-result--defeat {
-  position: relative;
-  display: grid;
-  gap: 0;
-  min-height: 650px;
-  overflow: hidden;
-  padding: 11px 0 16px;
-  border: 1px solid #5a3926;
-  border-radius: 0;
-  background:
-    linear-gradient(180deg, transparent 40%, rgb(0 0 0 / 34%) 62%, rgb(0 0 0 / 88%) 100%),
-    url('/assets/guild/witch-raid-defeat-frame.png') center / 100% 100% no-repeat;
-  box-shadow: inset 0 0 22px rgb(125 69 31 / 20%);
-}
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner {
-  position: relative;
-  z-index: 1;
-  min-height: 53px;
-  padding: 0 6px;
-  align-content: start;
-}
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner h3 {
-  transform: translateY(50px);
-  color: #f0ddc3;
-  font: 700 19px/1.05 var(--font-display);
-  letter-spacing: .08em;
-  text-shadow: 0 1px 3px #000, 0 0 7px rgb(214 145 68 / 24%);
-}
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner > span,
-.guild-screen .guild-raid-result--defeat .guild-raid-result__banner small { display: none; }
+/* Defeat result: witches flank the taunt line under the shared outcome crest. */
 .guild-screen .guild-raid-result__bosses {
   position: relative;
   z-index: 1;
@@ -2068,9 +2005,6 @@
 .guild-screen .guild-raid-result__battle-art small { color: #b5905a; font-size: var(--font-micro); }
 
 @media (max-width: 390px) {
-  .guild-screen .guild-raid-result--defeat { min-height: 625px; padding-top: 9px; }
-  .guild-screen .guild-raid-result--defeat .guild-raid-result__banner { min-height: 49px; }
-  .guild-screen .guild-raid-result--defeat .guild-raid-result__banner h3 { font-size: var(--font-lg); }
   .guild-screen .guild-raid-result__bosses { grid-template-columns: 55px minmax(0, 1fr) 55px; gap: 5px; min-height: 79px; padding-inline: 4px; }
   .guild-screen .guild-raid-result__boss { width: 50px; height: 66px; }
   .guild-screen .guild-raid-result__bosses > p { font-size: var(--font-sm); }

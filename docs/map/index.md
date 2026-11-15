@@ -32,6 +32,7 @@
 | Арт карт | [[card-art-workflow]] | |
 | Екіпірування | [[equipment-manual]] | `equipment.ts`, `EquipmentScreen.tsx` |
 | Дракон-захисник | [[reference-elem-guardian-dragon]] | `game-core/src/guardianDragon.ts`, `server/src/guardianDragon/`, міграції 091, 093 і 095 (рівень полум'я: `flame/absorb`, `flame/upgrade`), `GuardianDragonScreen.tsx` + `GuardianDragonTabs.tsx` (походи, битви, магія; вхід із меню головної) |
+| Навала Шуліки | [[reference-elem-invasion]] · [[invasion]] | 24 глобальні боси, цикли 9 с; правила `game-core/src/invasion.ts`, контракт `shared/src/invasion.ts`, гейт `isInvasionUnlocked` (ліга 12), сервер `server/src/invasion/`, міграція 098, екран `screens/invasion/InvasionScreen.tsx` |
 | Battle Pass | [[battle-pass]] | `battlePassService.ts` у корені `server/src` |
 | Щоденні нагороди | [[daily-login-rewards]] | `dailyRewardsService.ts` |
 | Косметика | [[cosmetics]] | |

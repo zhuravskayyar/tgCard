@@ -67,6 +67,8 @@ import { handleArenaRequest } from "./arena/arenaRoute.js";
 import { ArenaService } from "./arena/arenaService.js";
 import { handleGuardianDragonRequest } from "./guardianDragon/guardianDragonRoute.js";
 import { GuardianDragonService } from "./guardianDragon/guardianDragonService.js";
+import { handleInvasionRequest } from "./invasion/invasionRoute.js";
+import { InvasionService } from "./invasion/invasionService.js";
 import { handleTournamentRequest } from "./tournament/tournamentRoute.js";
 import { TournamentService } from "./tournament/tournamentService.js";
 import { handleLimitedCardRedeem } from "./limited/limitedCardRoute.js";
@@ -139,6 +141,7 @@ const notifications = new NotificationService(pool, createTelegramSender(
   process.env.CARDASTIKA_MINI_APP_URL?.trim() || environment.clientOrigin,
 ));
 const guardianDragon = new GuardianDragonService(pool);
+const invasion = new InvasionService(pool, Math.random, Date.now, undefined, guilds);
 const tournaments = new TournamentService(pool, undefined, undefined, undefined, undefined, guilds);
 const equipmentManual = new EquipmentManualService();
 const guildForumReference = new GuildForumReferenceService();
@@ -296,6 +299,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isDuelRoute = url.pathname.startsWith("/api/duel/");
   const isArenaRoute = url.pathname.startsWith("/api/arena/");
   const isGuardianDragonRoute = url.pathname === "/api/guardian-dragon" || url.pathname.startsWith("/api/guardian-dragon/");
+  const isInvasionRoute = url.pathname === "/api/invasion" || url.pathname.startsWith("/api/invasion/");
   const isTournamentRoute = url.pathname === "/api/tournament" || url.pathname.startsWith("/api/tournament/");
   const isCampaignRoute = url.pathname.startsWith("/api/player/campaign");
   const isStoryTrialsRoute = url.pathname.startsWith("/api/player/trials");
@@ -310,7 +314,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isCollectionPackRoute || isCollectionPackPurchaseRoute || isChestShopRoute ||isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isGuardianDragonRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isCollectionPackRoute || isCollectionPackPurchaseRoute || isChestShopRoute ||isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isGuardianDragonRoute || isInvasionRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -930,6 +934,17 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       botToken: environment.telegramBotToken,
       players,
       tournaments,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isInvasionRoute) {
+    await handleInvasionRequest(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      invasion,
+      players,
       responseHeaders: cors.headers,
     });
     return;

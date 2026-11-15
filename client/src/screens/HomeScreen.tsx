@@ -33,7 +33,7 @@ const modes: ModeItem[] = [
   { title: "Турнір", icon: "tournament", sprite: "mode-tournament", accent: "gold" },
   { title: "Арена", icon: "arena", sprite: "mode-arena", accent: "bronze" },
   { title: "Колода", icon: "deck", sprite: "mode-deck", accent: "bronze" },
-  { title: "Навала", icon: "skull", sprite: "mode-dungeon", accent: "bronze", status: "Скоро" },
+  { title: "Навала", icon: "skull", sprite: "mode-dungeon", accent: "bronze" },
 ];
 
 const secondaryActions: HomeItem[] = [
@@ -130,6 +130,7 @@ interface HomeScreenProps {
   onOpenTasks: () => void;
   onOpenEquipment: () => void;
   onOpenGuardianDragon: () => void;
+  onOpenInvasion: () => void;
   onOpenBattlePass: () => void;
   onOpenShop: () => void;
   onOpenChestShop: () => void;
@@ -138,7 +139,7 @@ interface HomeScreenProps {
   arenaUnlocked?: boolean;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenGuardianDragon, onOpenLeaderboard, onOpenShop, onOpenChestShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenGuardianDragon, onOpenInvasion, onOpenLeaderboard, onOpenShop, onOpenChestShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
   const chestShopDetail = useChestShopRowDetail(playerLevel !== undefined && playerLevel > 1);
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
@@ -156,7 +157,7 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
       <div className="home-screen__content">
         <section className="mode-grid" aria-label="Ігрові режими">
           {modes.map((mode) => (
-            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "arena" && arenaLocked ? `Дуелі ${ARENA_UNLOCK_DUEL_RATING}` : mode.icon === "arena" && arenaOccupied ? "Хтось є" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.icon === "duel" ? duelStatus : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
+            <ModeTile dataTutorialTarget={mode.icon === "deck" ? "home-deck" : undefined} iconSrc={homeSprite(mode.sprite)} key={mode.title} {...mode} status={novice && mode.icon === "arena" ? "Після кампанії" : mode.icon === "arena" && arenaLocked ? `Дуелі ${ARENA_UNLOCK_DUEL_RATING}` : mode.icon === "arena" && arenaOccupied ? "Хтось є" : mode.icon === "campaign" && campaignTitle ? campaignTitle : mode.icon === "duel" ? duelStatus : mode.status} onClick={mode.icon === "duel" ? onOpenDuel : mode.icon === "tournament" ? onOpenTournament : mode.icon === "arena" ? onOpenArena : mode.icon === "dungeon" ? onOpenDungeon : mode.icon === "skull" ? onOpenInvasion : mode.icon === "deck" ? onOpenDeck : mode.icon === "campaign" ? onOpenCampaign : undefined} />
           ))}
         </section>
         <section className="home-menu" aria-label="Розділи гри">

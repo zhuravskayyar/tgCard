@@ -332,7 +332,7 @@ export const CATALOG_DATA: {
     "type": "none",
     "value": 1
    },
-   "bonusLabel": "+5% картам і здоров'ю проти босів Навали (запрацює разом із цією механікою)",
+   "bonusLabel": "+5% картам і здоров'ю проти босів Навали",
    "cardIds": [
     "icarus_disciple",
     "studded_wheel",
