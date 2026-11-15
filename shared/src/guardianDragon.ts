@@ -51,6 +51,17 @@ export interface GuardianDragonFlameView {
   /** Completed «Dragon fans» (+10 mastery) and «Dragon whisperers» (×2) collections. */
   dragonFans: boolean;
   dragonWhisperers: boolean;
+  /** Share (0…100) of the current level's elemental progress; weak cards fill it, gold covers the rest. */
+  progressPercent: number;
+  /** Gold the next level costs now (progress lowers it), null at the maximum level. */
+  upgradePrice: number | null;
+  /** Power the next level adds at the current mastery, null at the maximum level. */
+  upgradePowerGain: number | null;
+  /** The player has the gold for the next level. */
+  upgradeReady: boolean;
+  /** Weak cards "Поглинути слабкі" would take now, and the progress share they add. */
+  absorbableCards: number;
+  absorbGainPercent: number;
 }
 
 export interface GuardianDragonFightResult {
@@ -96,4 +107,26 @@ export interface GuardianDragonFeedResponse {
 
 export interface GuardianDragonHikeRequest {
   hours: GuardianDragonHikeHoursValue;
+}
+
+export interface GuardianDragonFlameAbsorbRequest {
+  /** Weak cards of any element to absorb; omit to let the server pick the weakest that fit the level. */
+  instanceIds?: string[];
+}
+
+export interface GuardianDragonFlameAbsorbResponse {
+  dragon: GuardianDragonView;
+  consumedInstanceIds: string[];
+}
+
+export interface GuardianDragonFlameUpgradeRequest {
+  /** The price the button showed; the server refuses another price with `price_changed`. */
+  expectedPrice?: number;
+}
+
+export interface GuardianDragonFlameUpgradeResponse {
+  dragon: GuardianDragonView;
+  goldSpent: number;
+  /** The player's gold after the upgrade, for the top bar. */
+  playerGold: number;
 }

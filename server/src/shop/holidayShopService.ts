@@ -1,4 +1,5 @@
 import {
+  priceMissingCollectionCards,
   selectGeneratedLevelForRarity,
   selectShopLevelForRarity,
   type GeneratedLevelPolicy,
@@ -32,8 +33,10 @@ import {
   loadCurrentDeckPower,
   ShopBundleMissingError,
   ShopBundleUnavailableError,
+  ShopCollectionCompleteError,
   ShopPersistenceError,
   ShopPlayerMissingError,
+  ShopPriceChangedError,
   toBalance,
 } from "./shopService.js";
 
@@ -67,6 +70,7 @@ interface HolidayBundleRow {
   collection_name: string | null;
   currency: string;
   display_name: string;
+  full_set: boolean;
   holiday_id: string;
   id: string;
   price: number;
@@ -80,11 +84,13 @@ interface CollectionCardRow {
   code: string;
   collection_id: string | null;
   description: string;
+  discovered: boolean;
   display_name: string | null;
   element: CardDefinition["element"];
   limited: boolean;
   min_rarity: CardRarity;
   shop_eligible: boolean;
+  source: string;
 }
 
 interface HolidayShopDependencies {
@@ -113,6 +119,15 @@ function toRarity(value: string): CardRarity {
   return rarity;
 }
 
+/**
+ * The price of a full-set bundle for a player: the ladder price of the cards still undiscovered,
+ * never above the whole collection's price (`bundle.price`); nothing discovered keeps that price.
+ */
+function fullSetPrice(listPrice: number, members: readonly CollectionCardRow[], missing: readonly CollectionCardRow[]) {
+  if (!members.length || !missing.length) return listPrice;
+  return priceMissingCollectionCards(missing.map((card) => card.min_rarity), members.length, listPrice);
+}
+
 /** Picks `count` distinct items with a partial Fisher–Yates shuffle. */
 function pickDistinct<T>(items: readonly T[], count: number, rng: ShopRandomSource) {
   const pool = [...items];
@@ -124,7 +139,7 @@ function pickDistinct<T>(items: readonly T[], count: number, rng: ShopRandomSour
 }
 
 const BUNDLE_COLUMNS = `
-  bundles.id, bundles.holiday_id, bundles.display_name, bundles.collection_code,
+  bundles.id, bundles.holiday_id, bundles.display_name, bundles.collection_code, bundles.full_set,
   bundles.card_count, bundles.rarity, bundles.currency, bundles.price, bundles.purchase_limit,
   collections.display_name AS collection_name
 `;
@@ -199,6 +214,22 @@ export class HolidayShopService {
         [playerId, bundleResult.rows.map((bundle) => bundle.id)],
       );
       const purchased = new Map(purchaseResult.rows.map((row) => [`${row.bundle_id}:${row.window_start.slice(0, 10)}`, Number(row.purchase_count)]));
+      const fullSetCodes = [...new Set(bundleResult.rows.filter((bundle) => bundle.full_set).map((bundle) => bundle.collection_code))];
+      const memberRows = fullSetCodes.length
+        ? (await this.pool.query<CollectionCardRow & { collection_code: string }>(
+            `
+              SELECT collections.code AS collection_code, cards.id AS card_id, cards.code, cards.display_name, cards.art_key,
+                cards.element, cards.collection_id, cards.min_rarity, cards.shop_eligible, cards.description, cards.limited, cards.source,
+                EXISTS (SELECT 1 FROM player_card_discoveries discoveries WHERE discoveries.card_id = cards.id AND discoveries.player_id = $1) AS discovered
+              FROM collections
+              INNER JOIN collection_cards ON collection_cards.collection_id = collections.id
+              INNER JOIN cards ON cards.id = collection_cards.card_id
+              WHERE collections.code = ANY($2::text[])
+              ORDER BY collections.code, collection_cards.position
+            `,
+            [playerId, fullSetCodes],
+          )).rows
+        : [];
 
       return {
         holidays: shown.map(({ row, window }): HolidayShopEvent => ({
@@ -212,9 +243,13 @@ export class HolidayShopService {
             .filter((bundle) => bundle.holiday_id === row.id)
             .map((bundle) => {
               const currency = toCurrency(bundle.currency);
-              const price = Number(bundle.price);
+              const members = bundle.full_set ? memberRows.filter((card) => card.collection_code === bundle.collection_code) : [];
+              const missing = members.filter((card) => !card.discovered);
+              const price = bundle.full_set ? fullSetPrice(Number(bundle.price), members, missing) : Number(bundle.price);
               return {
                 id: bundle.id,
+                fullSet: bundle.full_set,
+                missingCount: bundle.full_set && members.length ? missing.length : Number(bundle.card_count),
                 displayName: bundle.display_name,
                 collectionName: bundle.collection_name ?? bundle.collection_code,
                 cardCount: Number(bundle.card_count),
@@ -235,7 +270,7 @@ export class HolidayShopService {
   }
 
   /** One transaction: the gold, the limit counter and every card land together or not at all. */
-  async purchase(playerId: string, bundleId: string): Promise<HolidayBundlePurchaseResponse> {
+  async purchase(playerId: string, bundleId: string, expectedPrice?: number): Promise<HolidayBundlePurchaseResponse> {
     let client: PoolClient;
     try {
       client = await this.pool.connect();
@@ -262,7 +297,7 @@ export class HolidayShopService {
       if (!window) throw new HolidayNotActiveError();
       const currency = toCurrency(bundle.currency);
       const rarity = toRarity(bundle.rarity);
-      const price = Number(bundle.price);
+      const listPrice = Number(bundle.price);
       const cardCount = Number(bundle.card_count);
 
       const playerResult = await client.query<{ gold: string | number; silver: string | number }>(
@@ -271,6 +306,42 @@ export class HolidayShopService {
       );
       const player = playerResult.rows[0];
       if (!player) throw new ShopPlayerMissingError();
+      // Cards are read under the player lock: a full set grants only undiscovered cards and is priced by them.
+      const cardsResult = await client.query<CollectionCardRow>(
+        `
+          SELECT cards.id AS card_id, cards.code, cards.display_name, cards.art_key, cards.element,
+            cards.collection_id, cards.min_rarity, cards.shop_eligible, cards.description, cards.limited, cards.source,
+            EXISTS (SELECT 1 FROM player_card_discoveries discoveries WHERE discoveries.card_id = cards.id AND discoveries.player_id = $2) AS discovered
+          FROM collection_cards
+          INNER JOIN collections ON collections.id = collection_cards.collection_id
+          INNER JOIN cards ON cards.id = collection_cards.card_id
+          WHERE collections.code = $1
+          ORDER BY collection_cards.position
+          FOR SHARE OF cards
+        `,
+        [bundle.collection_code, playerId],
+      );
+      const sellable = cardsResult.rows.filter((card) => !card.limited && card.source === "standard");
+      let price = listPrice;
+      let chosen: CollectionCardRow[];
+      if (bundle.full_set) {
+        // Never sell a partial catalog set: every member must be a sellable standard card.
+        if (!cardsResult.rows.length || sellable.length !== cardsResult.rows.length) throw new ShopBundleUnavailableError();
+        chosen = cardsResult.rows.filter((card) => !card.discovered);
+        if (!chosen.length) throw new ShopCollectionCompleteError();
+        price = fullSetPrice(listPrice, cardsResult.rows, chosen);
+      } else {
+        const eligible = sellable.filter((card) => (rarityRank.get(card.min_rarity) ?? 99) <= (rarityRank.get(rarity) ?? -1));
+        if (eligible.length < cardCount) throw new ShopBundleUnavailableError();
+        // Undiscovered species first; already discovered ones only fill up what the new ones cannot.
+        const fresh = eligible.filter((card) => !card.discovered);
+        const seen = eligible.filter((card) => card.discovered);
+        chosen = [
+          ...pickDistinct(fresh, Math.min(cardCount, fresh.length), this.rng),
+          ...pickDistinct(seen, Math.max(0, cardCount - fresh.length), this.rng),
+        ];
+      }
+      if (expectedPrice !== undefined && expectedPrice !== price) throw new ShopPriceChangedError();
       if (toBalance(player)[currency] < price) throw new InsufficientShopFundsError(currency);
 
       const limitResult = await client.query<{ purchase_count: number }>(
@@ -286,23 +357,6 @@ export class HolidayShopService {
       );
       const purchasedRow = limitResult.rows[0];
       if (!purchasedRow) throw new HolidayLimitReachedError();
-
-      const cardsResult = await client.query<CollectionCardRow>(
-        `
-          SELECT cards.id AS card_id, cards.code, cards.display_name, cards.art_key, cards.element,
-            cards.collection_id, cards.min_rarity, cards.shop_eligible, cards.description, cards.limited
-          FROM collection_cards
-          INNER JOIN collections ON collections.id = collection_cards.collection_id
-          INNER JOIN cards ON cards.id = collection_cards.card_id
-          WHERE collections.code = $1 AND cards.limited = FALSE AND cards.source = 'standard'
-          ORDER BY collection_cards.position
-          FOR SHARE OF cards
-        `,
-        [bundle.collection_code],
-      );
-      const eligible = cardsResult.rows.filter((card) => (rarityRank.get(card.min_rarity) ?? 99) <= (rarityRank.get(rarity) ?? -1));
-      if (eligible.length < cardCount) throw new ShopBundleUnavailableError();
-      const chosen = pickDistinct(eligible, cardCount, this.rng);
 
       const previousDeckPower = await loadCurrentDeckPower(client, playerId);
       const balanceResult = await client.query<{ gold: string | number; silver: string | number }>(
@@ -333,7 +387,8 @@ export class HolidayShopService {
           shopEligible: row.shop_eligible,
           limited: row.limited,
         };
-        const level = selectGeneratedLevelForRarity(rarity, this.rng, this.levelPolicy);
+        // A full set creates each card at the level range of its own rarity, the other bundles at the bundle rarity.
+        const level = selectGeneratedLevelForRarity(bundle.full_set ? row.min_rarity : rarity, this.rng, this.levelPolicy);
         const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
         const discovery = await recordCardDiscovery(client, playerId, definition.id);
         rewards.push(reward);
@@ -369,7 +424,9 @@ export class HolidayShopService {
         error instanceof InsufficientShopFundsError ||
         error instanceof ShopBundleMissingError ||
         error instanceof ShopBundleUnavailableError ||
-        error instanceof ShopPlayerMissingError
+        error instanceof ShopCollectionCompleteError ||
+        error instanceof ShopPlayerMissingError ||
+        error instanceof ShopPriceChangedError
       ) {
         throw error;
       }

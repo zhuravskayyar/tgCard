@@ -74,13 +74,14 @@
   gap: var(--space-2);
 }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__marks li:last-child { transform: translateX(-100%); }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__hikes .guardian-dragon__button { padding-inline: 8px; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__hikes .guardian-dragon__button { padding-inline: 8px; }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__hikes {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: min(100%, 380px);
   margin-inline: auto;
 }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__button {
+:root .app-shell .guardian-dragon-screen .guardian-dragon__hikes--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__button {
   display: grid;
   width: 100%;
   min-height: 40px;
@@ -96,7 +97,7 @@
   box-shadow: none;
   line-height: 1.1;
 }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__button:disabled { opacity: .55; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__button:disabled { opacity: .55; }
 /* The reward or minutes sit under the button, as captions on the reference page. */
 :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__hike-option, .guardian-dragon__feed-card) > small {
   color: var(--home-ink-muted);
@@ -108,7 +109,7 @@
 :root .app-shell .guardian-dragon-screen .guardian-dragon__hike-option { display: grid; width: 100%; gap: 3px; justify-items: center; }
 :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__hike, .guardian-dragon__feed-all) .guardian-dragon__button,
 :root .app-shell .guardian-dragon-screen .guardian-dragon__feed-all { width: min(100%, 260px); justify-self: center; }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__button--small {
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__button--small {
   min-height: 32px;
   padding: 0 8px 1px;
   font-size: 12px;
@@ -180,10 +181,10 @@
   animation: guardian-dragon-shine 3.2s ease-in-out infinite;
 }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__meter.is-fed .guardian-dragon__rail { animation: guardian-dragon-meter-pulse .8s ease-out; }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__button[data-ready]:not(:disabled) { animation: guardian-dragon-ready 2.2s ease-in-out infinite; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__button[data-ready]:not(:disabled) { animation: guardian-dragon-ready 2.2s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__art, .guardian-dragon__art > *, .guardian-dragon__rail, .guardian-dragon__button),
+  :root .app-shell :is(.guardian-dragon-screen, .deck-screen) :is(.guardian-dragon__art, .guardian-dragon__art > *, .guardian-dragon__rail, .guardian-dragon__button),
   :root .app-shell .guardian-dragon-screen .guardian-dragon__rail > span::after { animation: none !important; }
 }
 
@@ -226,7 +227,7 @@
 }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__price { display: inline-flex; align-items: center; gap: 4px; }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__rating { gap: var(--space-2); padding: 0; }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__flame {
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__flame {
   display: grid;
   justify-items: center;
   gap: 4px;
@@ -234,14 +235,14 @@
   color: var(--home-ink);
   font-weight: 700;
 }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-art {
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__flame-art {
   display: grid;
   width: 96px;
   justify-items: center;
   gap: 2px;
 }
 
-:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-art strong { color: var(--home-ink); font-size: 16px; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__flame-art strong { color: var(--home-ink); font-size: 16px; }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -263,11 +264,11 @@
 /* Rating rows have no avatar: rank, name, score. Same weight as leaderboard-book.css so it wins. */
 :root[data-game-theme="light"] .app-shell .app-content .guardian-dragon-screen .guardian-dragon__rating .leaderboard-list > li .leaderboard-entry { grid-template-columns: 40px minmax(0, 1fr) auto; cursor: default; }
 :root[data-game-theme="light"] .app-shell .app-content .guardian-dragon-screen .guardian-dragon__rating .leaderboard-list > li.is-player:last-child { border-top: 3px double var(--book-ink-muted, #6d5434); }
-:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-power { color: var(--home-ink); font-size: 22px; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__flame-power { color: var(--home-ink); font-size: 22px; }
 
 
 /* Flame card and battle scene run through the shared shader (ElementArt): the canvas overflows for sparks. */
-:root .app-shell .guardian-dragon-screen .guardian-dragon__flame-pic {
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) .guardian-dragon__flame-pic {
   position: relative;
   display: block;
   width: 100%;
@@ -275,8 +276,8 @@
   animation: guardian-dragon-flame-roar 3.6s ease-in-out infinite;
   transform-origin: 30% 40%;
 }
-:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) img { display: block; width: 100%; height: 100%; object-fit: contain; }
-:root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) .element-art { z-index: 1; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) img { display: block; width: 100%; height: 100%; object-fit: contain; }
+:root .app-shell :is(.guardian-dragon-screen, .deck-screen) :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art) .element-art { z-index: 1; }
 :root .app-shell .guardian-dragon-screen .guardian-dragon__fights-art {
   position: relative;
   display: block;
@@ -316,5 +317,81 @@
   74% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root .app-shell .guardian-dragon-screen :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art, .guardian-dragon__lightning) { animation: none !important; }
+  :root .app-shell :is(.guardian-dragon-screen, .deck-screen) :is(.guardian-dragon__flame-pic, .guardian-dragon__fights-art, .guardian-dragon__lightning) { animation: none !important; }
 }
+
+/* ——— Deck screen: «Додаткові карти» and the compact dragon block (layout only; plates are the shared sprites) ——— */
+:root .app-shell .deck-screen :is(.deck-extras, .deck-dragon) { display: grid; gap: 11px; margin-top: 9px; justify-items: center; }
+:root .app-shell .deck-screen .deck-extras__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+/* Stats and magic slots share one three-column grid, so every column centre lines up with the slot below it. */
+:root .app-shell .deck-screen :is(.deck-dragon__magic, .deck-dragon__stats) {
+  display: grid;
+  grid-template-columns: repeat(3, 26%);
+  justify-content: center;
+  column-gap: 12px;
+  width: 100%;
+}
+:root .app-shell .deck-screen .deck-dragon__magic { align-items: center; }
+:root .app-shell .deck-screen .deck-dragon__magic > .deck-dragon__slot { width: auto; }
+:root .app-shell .deck-screen .deck-extras__row { align-items: flex-start; }
+:root .app-shell .deck-screen :is(.deck-extras__slot, .deck-dragon__slot) { display: grid; flex: 0 0 26%; width: 26%; gap: 4px; margin: 0; min-width: 0; justify-items: center; align-content: start; }
+:root .app-shell .deck-screen .deck-extras__slot > .deck-card { width: 100%; }
+:root .app-shell .deck-screen :is(.deck-extras__slot, .deck-dragon__slot) figcaption {
+  color: var(--home-ink-muted);
+  font: 700 12px/1.2 var(--font-body, inherit);
+  text-align: center;
+}
+/* The closed slot keeps the deck-card proportions (10 / 13): dimmed painted back with the painted lock or a plus on top. */
+:root .app-shell .deck-screen .deck-extras__locked {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 10 / 13;
+}
+:root .app-shell .deck-screen .deck-extras__locked .card-back { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: var(--radius-md); filter: brightness(.7) sepia(.25); }
+:root .app-shell .deck-screen .deck-dragon__slot .deck-extras__locked .card-back { filter: brightness(.8) saturate(.7); }
+:root .app-shell .deck-screen .deck-extras__lock { position: absolute; inset: 0; display: grid; place-items: center; color: #f6e6c0; font: 800 34px/1 var(--font-display); text-shadow: 0 0 3px #1c1208, 0 1px 2px #1c1208; }
+:root .app-shell .deck-screen .deck-extras__link {
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--home-ink-muted);
+  background: none;
+  border: 0;
+  font: 700 13px/1.2 var(--font-body, inherit);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+}
+:root .app-shell .deck-screen .deck-extras__help {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-columns: auto;
+  align-items: start;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+  text-align: left;
+}
+:root .app-shell .deck-screen .deck-extras__help li { margin: 0; padding: 0; }
+:root .app-shell .deck-screen .deck-extras__help strong { font-weight: 800; }
+
+:root .app-shell .deck-screen .deck-dragon__status { margin: 0; color: var(--home-ink); font: 600 14px/1.2 var(--font-body, inherit); text-align: center; }
+:root .app-shell .deck-screen .deck-dragon__stats {
+  color: var(--home-ink-muted);
+  font: 600 13px/1.25 var(--font-body, inherit);
+  text-align: center;
+}
+:root .app-shell .deck-screen .deck-dragon__stats > span { white-space: nowrap; }
+:root .app-shell .deck-screen .deck-dragon__stats > span:first-child { grid-column: 1; }
+:root .app-shell .deck-screen .deck-dragon__stats > span:last-child { grid-column: 3; }
+:root .app-shell .deck-screen .deck-dragon__stats strong { display: block; color: var(--home-ink); font: 800 18px/1.2 var(--font-display); }
+:root .app-shell .deck-screen .deck-dragon__button { width: min(100%, 260px); justify-self: center; }

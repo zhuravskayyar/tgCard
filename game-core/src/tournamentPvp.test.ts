@@ -182,3 +182,24 @@ test("tournament collections: element power without HP, HP collection, stronger 
   // 2 x (7 x 100 + 2 x 120) x 1.05
   assert.equal(buffed.sides[0].maxHp, Math.round(2 * (7 * 100 + 2 * 120) * 1.05));
 });
+
+test("guardian dragon HP is flat per side, after the x2 multiplier and percent, and survives a buff change", () => {
+  const start = 1_000_000;
+  const pct = { ...modifiers(), battleHpPct: 10 };
+  const state = createTournamentDuel({
+    id: "m-dragon", battleStartsAt: start, random,
+    sides: [
+      { playerId: "a", deck: deck("a"), modifiers: pct, dragonHp: 500 },
+      { playerId: "b", deck: deck("b"), modifiers: modifiers() },
+    ],
+  });
+  assert.equal(state.sides[0].maxHp, Math.round(1800 * 1.1) + 500);
+  assert.equal(state.sides[1].maxHp, 1800);
+  const plain = createTournamentDuel({
+    id: "m-plain", battleStartsAt: start, random,
+    sides: [{ playerId: "a", deck: deck("a"), modifiers: pct }, { playerId: "b", deck: deck("b"), modifiers: modifiers() }],
+  });
+  const buffed = chooseTournamentBuff(state, 0, "water", start - 1);
+  assert.equal(buffed.sides[0].maxHp, chooseTournamentBuff(plain, 0, "water", start - 1).sides[0].maxHp + 500);
+  assert.equal(buffed.sides[0].hp, buffed.sides[0].maxHp);
+});

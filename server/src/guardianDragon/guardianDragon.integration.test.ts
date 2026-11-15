@@ -160,3 +160,79 @@ test("guardian dragon: gate, feeding, hikes, cancel and monthly rebirth", { skip
     await pool.end();
   }
 });
+
+test("guardian dragon flame: absorb weak cards, pay for the level, keep it through rebirth", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const user = createTelegramUser();
+  const time = clock("2031-06-10T12:00:00Z");
+  const service = new GuardianDragonService(pool, { now: time.now });
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
+    await assert.rejects(service.upgradeFlame(player.id), GuardianDragonLockedError);
+    await pool.query("UPDATE players SET duel_rating = $2, gold = 0 WHERE id = $1", [player.id, ARENA_UNLOCK_DUEL_RATING]);
+    const weak = Array.from({ length: 3 }, () => randomUUID());
+    const guarded = randomUUID();
+    await pool.query(
+      `INSERT INTO player_card_instances (id, player_id, card_id, level, bonus_power)
+       SELECT input.id, $1, $2, 1, 0 FROM unnest($3::uuid[]) AS input(id)`,
+      [player.id, STARTER_CARDS[0]!.id, [...weak, guarded]],
+    );
+    await pool.query("UPDATE player_card_instances SET protected_from_absorption = TRUE WHERE id = $1", [guarded]);
+    await recalculateAutomaticDeckForPlayer(pool, player.id);
+
+    // Level 90 → 91 is priced like a card: 3400 gold, +90 base power (40 at the starting mastery 45).
+    const light = (await service.getDragon(player.id)).flame;
+    assert.equal(light.absorbableCards, 0);
+    assert.equal(light.absorbGainPercent, 0);
+    const fresh = (await service.getDragon(player.id, true)).flame;
+    assert.equal(fresh.level, 90);
+    assert.equal(fresh.upgradePrice, 3400);
+    assert.equal(fresh.upgradePowerGain, 40);
+    assert.equal(fresh.upgradeReady, false);
+    assert.equal(fresh.progressPercent, 0);
+    assert.ok(fresh.absorbableCards > 0 && fresh.absorbableCards <= weak.length);
+
+    await expectState(service.upgradeFlame(player.id, 3400), "insufficient_gold");
+    await expectState(service.absorbFlame(player.id, [guarded]), "card_not_feedable");
+    await expectState(service.absorbFlame(player.id, [randomUUID()]), "card_not_feedable");
+
+    const absorbed = await service.absorbFlame(player.id, [weak[0]!]);
+    assert.deepEqual(absorbed.consumedInstanceIds, [weak[0]]);
+    const progressed = Number((await pool.query("SELECT flame_level_progress_elements FROM guardian_dragons WHERE player_id = $1", [player.id])).rows[0].flame_level_progress_elements);
+    assert.ok(progressed > 0);
+    const bulk = await service.absorbFlame(player.id);
+    assert.ok(bulk.consumedInstanceIds.length >= 1 && !bulk.consumedInstanceIds.includes(guarded));
+    await expectState(service.absorbFlame(player.id), "nothing_to_absorb");
+    assert.equal((await pool.query("SELECT 1 FROM player_card_instances WHERE id = ANY($1::uuid[])", [weak])).rowCount, weak.length - 1 - bulk.consumedInstanceIds.length);
+
+    await pool.query("UPDATE players SET gold = 3500 WHERE id = $1", [player.id]);
+    const ready = (await service.getDragon(player.id)).flame;
+    assert.equal(ready.upgradeReady, true);
+    assert.equal(ready.upgradePrice, 3400);
+    await expectState(service.upgradeFlame(player.id, 3000), "price_changed");
+    const upgraded = await service.upgradeFlame(player.id, 3400);
+    assert.equal(upgraded.goldSpent, 3400);
+    assert.equal(upgraded.playerGold, 100);
+    assert.equal(upgraded.dragon.flame.level, 91);
+    assert.equal(upgraded.dragon.flame.upgradePrice, 3800);
+    assert.equal(Number((await pool.query("SELECT gold FROM players WHERE id = $1", [player.id])).rows[0].gold), 100);
+    await expectState(service.upgradeFlame(player.id, 3800), "insufficient_gold");
+
+    // Flame upgrades are permanent: the monthly rebirth leaves level and progress alone.
+    await pool.query("UPDATE guardian_dragons SET flame_level_progress_elements = 12.5 WHERE player_id = $1", [player.id]);
+    time.set("2031-07-01T00:00:00Z");
+    const reborn = await service.getDragon(player.id);
+    assert.equal(reborn.monthKey, "2031-07");
+    assert.equal(reborn.flame.level, 91);
+    assert.equal(Number((await pool.query("SELECT flame_level_progress_elements FROM guardian_dragons WHERE player_id = $1", [player.id])).rows[0].flame_level_progress_elements), 12.5);
+
+    // The top of the scale is a dead end, as for cards.
+    await pool.query("UPDATE guardian_dragons SET flame_level = 180 WHERE player_id = $1", [player.id]);
+    await expectState(service.upgradeFlame(player.id), "maximum_level");
+    await expectState(service.absorbFlame(player.id), "maximum_level");
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1::bigint", [user.id]);
+    await pool.end();
+  }
+});

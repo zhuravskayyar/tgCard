@@ -1,4 +1,4 @@
-import { getBasePowerForLevel } from "./cardProgression.js";
+import { MAX_CARD_LEVEL, canLevelUp, getBasePowerForLevel, getUpgradeProgress, type CardProgressionState, type UpgradeAvailability } from "./cardProgression.js";
 
 /**
  * Guardian dragon from the reference manual (`docs/reference-elem-guardian-dragon.md`).
@@ -154,15 +154,15 @@ export function getGuardianDragonPaidSendPrice(sendsThisCooldown: number) {
 
 /**
  * «Dragon flame»: card base power × mastery / 100. «Dragon fans» add 10 mastery first, then
- * «Dragon whisperers» double the damage (manual example). The manual names the 9th deck card, but the
- * live game shows the flame as its own card: level 90, 3130 at mastery 50 = base power of level 90 × 50 / 100.
+ * «Dragon whisperers» double the damage (manual example). `cardBasePower` is the base power of the flame
+ * card's level (the flame is its own card outside the elements, not the 9th deck card): level 90, 3130 at
+ * mastery 50 = base power of level 90 × 50 / 100.
  */
 export function getGuardianDragonFlameDamage(cardBasePower: number, mastery: number, collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {}) {
-  const ninthCardPower = cardBasePower;
-  assertWhole(ninthCardPower, "Card power");
+  assertWhole(cardBasePower, "Card power");
   assertWhole(mastery, "Mastery");
   const effectiveMastery = mastery + (collections.dragonFans ? 10 : 0);
-  const damage = Math.floor(ninthCardPower * effectiveMastery / 100);
+  const damage = Math.floor(cardBasePower * effectiveMastery / 100);
   return collections.dragonWhisperers ? damage * 2 : damage;
 }
 
@@ -172,6 +172,40 @@ export const GUARDIAN_DRAGON_FLAME_START_LEVEL = 90;
 /** The flame card's power at its level: the base power of an ordinary card of that level × mastery / 100. */
 export function getGuardianDragonFlamePower(level: number, mastery: number, collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {}) {
   return getGuardianDragonFlameDamage(getBasePowerForLevel(level), mastery, collections);
+}
+
+export interface GuardianDragonFlameUpgrade {
+  availability: UpgradeAvailability;
+  /** Gold the next level costs now (progress lowers it), null at the top or without table data. */
+  requiredGold: number | null;
+  /** Power the next level adds at the current mastery and collections, null at the top. */
+  powerGain: number | null;
+  filledElements: number;
+  requiredElements: number;
+  percent: number;
+}
+
+/**
+ * The flame levels up exactly like a card (same level table, element progress and gold price):
+ * level 90 → 91 costs 3400 gold and adds 90 base power, which is +45 at mastery 50.
+ */
+export function getGuardianDragonFlameUpgrade(
+  state: CardProgressionState,
+  availableGold: number,
+  mastery: number,
+  collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {},
+): GuardianDragonFlameUpgrade {
+  const progress = getUpgradeProgress(state.levelProgressElements, state.level);
+  const { availability, requiredGold } = canLevelUp(state, availableGold);
+  const atTop = state.level >= MAX_CARD_LEVEL;
+  return {
+    availability,
+    requiredGold: atTop ? null : requiredGold,
+    powerGain: atTop ? null : getGuardianDragonFlamePower(state.level + 1, mastery, collections) - getGuardianDragonFlamePower(state.level, mastery, collections),
+    filledElements: progress.filledElements,
+    requiredElements: progress.requiredElements,
+    percent: progress.percent,
+  };
 }
 
 /** Index 0…4 of the dragon's look. */

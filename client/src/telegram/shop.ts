@@ -15,6 +15,11 @@ import {
   type HolidayShopBundle,
   type HolidayShopEvent,
   type HolidayShopResponse,
+  type CollectionPackCard,
+  type CollectionPackPurchaseResponse,
+  type CollectionPackSetOffer,
+  type CollectionPackView,
+  type CollectionPacksResponse,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
@@ -306,6 +311,8 @@ function isHolidayBundle(value: unknown): value is HolidayShopBundle {
     typeof bundle.displayName === "string" &&
     typeof bundle.collectionName === "string" &&
     isPositiveInteger(bundle.cardCount) &&
+    typeof bundle.fullSet === "boolean" &&
+    isNonNegativeInteger(bundle.missingCount) &&
     typeof bundle.rarity === "string" && CARD_RARITIES.some((rarity) => rarity === bundle.rarity) &&
     typeof bundle.currency === "string" && SHOP_CURRENCIES.some((currency) => currency === bundle.currency) &&
     isPositiveInteger(bundle.price) &&
@@ -342,14 +349,14 @@ export async function loadHolidayShop(initData: string, signal: AbortSignal): Pr
   return value as HolidayShopResponse;
 }
 
-export async function purchaseHolidayBundle(initData: string, bundleId: string, signal: AbortSignal): Promise<HolidayBundlePurchaseResponse> {
+export async function purchaseHolidayBundle(initData: string, bundleId: string, signal: AbortSignal, expectedPrice?: number): Promise<HolidayBundlePurchaseResponse> {
   const response = await fetch(getApiEndpoint("/api/shop/holidays/purchase"), {
     method: "POST",
     headers: {
       Authorization: getPlayerAuthHeader(initData),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ bundleId }),
+    body: JSON.stringify(expectedPrice === undefined ? { bundleId } : { bundleId, expectedPrice }),
     cache: "no-store",
     credentials: "same-origin",
     signal,
@@ -359,4 +366,84 @@ export async function purchaseHolidayBundle(initData: string, bundleId: string, 
   const purchase = parseBundlePurchase(value);
   if (typeof value?.bundleId !== "string" || !isPositiveInteger(value.purchased)) throw new ShopApiError(502, "invalid_response");
   return { ...purchase, bundleId: value.bundleId, purchased: Number(value.purchased) };
+}
+
+function isPackCard(value: unknown): value is CollectionPackCard {
+  if (!value || typeof value !== "object") return false;
+  const card = value as Record<string, unknown>;
+  return (
+    typeof card.cardId === "string" &&
+    typeof card.discovered === "boolean" &&
+    (card.displayName === null || typeof card.displayName === "string") &&
+    typeof card.element === "string" && CARD_ELEMENTS.some((element) => element === card.element) &&
+    typeof card.rarity === "string" && CARD_RARITIES.some((rarity) => rarity === card.rarity)
+  );
+}
+
+function isPackSetOffer(value: unknown): value is CollectionPackSetOffer {
+  if (!value || typeof value !== "object") return false;
+  const offer = value as Record<string, unknown>;
+  return (
+    typeof offer.id === "string" &&
+    typeof offer.collectionName === "string" &&
+    typeof offer.bonusLabel === "string" &&
+    isNonNegativeInteger(offer.missingCount) &&
+    Array.isArray(offer.cards) && offer.cards.every(isPackCard) &&
+    isPositiveInteger(offer.price) &&
+    isPositiveInteger(offer.purchaseLimit) &&
+    isNonNegativeInteger(offer.purchased) &&
+    typeof offer.canAfford === "boolean"
+  );
+}
+
+function isPackView(value: unknown): value is CollectionPackView {
+  if (!value || typeof value !== "object") return false;
+  const pack = value as Record<string, unknown>;
+  const random = pack.randomOffer as Record<string, unknown> | undefined;
+  return (
+    typeof pack.id === "string" &&
+    typeof pack.displayName === "string" &&
+    isPositiveInteger(pack.returnsInWeeks) &&
+    Array.isArray(pack.setOffers) && pack.setOffers.every(isPackSetOffer) &&
+    !!random && typeof random === "object" &&
+    typeof random.id === "string" &&
+    isPositiveInteger(random.price) &&
+    isNonNegativeInteger(random.totalCount) &&
+    isNonNegativeInteger(random.discoveredCount) &&
+    typeof random.canAfford === "boolean"
+  );
+}
+
+export async function loadCollectionPacks(initData: string, signal: AbortSignal): Promise<CollectionPacksResponse> {
+  const response = await fetch(getApiEndpoint("/api/shop/collection-packs"), {
+    headers: { Authorization: getPlayerAuthHeader(initData) },
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<CollectionPacksResponse> | null;
+  if (typeof value?.endsAt !== "string" || Number.isNaN(Date.parse(value.endsAt)) || !Array.isArray(value.nextWeekPackNames) || !value.nextWeekPackNames.every((name) => typeof name === "string") || !Array.isArray(value.packs) || !value.packs.every(isPackView)) {
+    throw new ShopApiError(502, "invalid_response");
+  }
+  return value as CollectionPacksResponse;
+}
+
+export async function purchaseCollectionPack(initData: string, offerId: string, signal: AbortSignal, expectedPrice?: number): Promise<CollectionPackPurchaseResponse> {
+  const response = await fetch(getApiEndpoint("/api/shop/collection-packs/purchase"), {
+    method: "POST",
+    headers: {
+      Authorization: getPlayerAuthHeader(initData),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(expectedPrice === undefined ? { offerId } : { offerId, expectedPrice }),
+    cache: "no-store",
+    credentials: "same-origin",
+    signal,
+  });
+  if (!response.ok) return parseError(response);
+  const value = await response.json() as Partial<CollectionPackPurchaseResponse> | null;
+  const purchase = parseBundlePurchase(value);
+  if (typeof value?.offerId !== "string" || !isNonNegativeInteger(value.purchased)) throw new ShopApiError(502, "invalid_response");
+  return { ...purchase, offerId: value.offerId, purchased: Number(value.purchased) };
 }

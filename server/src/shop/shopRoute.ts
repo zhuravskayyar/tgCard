@@ -14,10 +14,12 @@ import {
   InsufficientShopFundsError,
   ShopBundleMissingError,
   ShopBundleUnavailableError,
+  ShopCollectionCompleteError,
   ShopLevelSelectionPolicyUnavailableError,
   ShopOfferMissingError,
   ShopPersistenceError,
   ShopPlayerMissingError,
+  ShopPriceChangedError,
 } from "./shopService.js";
 import { ShopRewardUnavailableError } from "./shopRewardSelector.js";
 
@@ -90,6 +92,14 @@ export function sendShopError(
     sendJson(response, 503, {
       error: { code: "reward_unavailable", message: "No eligible canonical reward is available" },
     }, responseHeaders);
+    return;
+  }
+  if (error instanceof ShopPriceChangedError) {
+    sendJson(response, 409, { error: { code: "price_changed", message: error.message } }, responseHeaders);
+    return;
+  }
+  if (error instanceof ShopCollectionCompleteError) {
+    sendJson(response, 409, { error: { code: "collection_complete", message: error.message } }, responseHeaders);
     return;
   }
   if (error instanceof ShopBundleUnavailableError) {

@@ -8,7 +8,7 @@ import { sendShopError } from "./shopRoute.js";
 interface HolidayShopRouteDependencies extends RouteAuthDependencies {
   holidayShop: {
     getCatalog(playerId: string): Promise<HolidayShopResponse>;
-    purchase(playerId: string, bundleId: string): Promise<HolidayBundlePurchaseResponse>;
+    purchase(playerId: string, bundleId: string, expectedPrice?: number): Promise<HolidayBundlePurchaseResponse>;
   };
   responseHeaders?: OutgoingHttpHeaders;
 }
@@ -16,7 +16,10 @@ interface HolidayShopRouteDependencies extends RouteAuthDependencies {
 export function isHolidayBundlePurchaseRequest(value: unknown): value is HolidayBundlePurchaseRequest {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  return Object.keys(record).length === 1 && typeof record.bundleId === "string" && Boolean(record.bundleId.trim());
+  const keys = Object.keys(record);
+  if (keys.some((key) => key !== "bundleId" && key !== "expectedPrice")) return false;
+  if (record.expectedPrice !== undefined && !(Number.isInteger(record.expectedPrice) && Number(record.expectedPrice) > 0)) return false;
+  return typeof record.bundleId === "string" && Boolean(record.bundleId.trim());
 }
 
 function sendHolidayError(response: ServerResponse, error: unknown, headers: OutgoingHttpHeaders) {
@@ -63,9 +66,9 @@ export async function handleHolidayBundlePurchase(
     const { player } = await authenticateRoutePlayer(request, dependencies);
     const body = await readJsonBody(request);
     if (!isHolidayBundlePurchaseRequest(body)) {
-      throw new HttpRequestError(400, "invalid_bundle_purchase_request", "Only bundleId may be submitted");
+      throw new HttpRequestError(400, "invalid_bundle_purchase_request", "Only bundleId and expectedPrice may be submitted");
     }
-    sendJson(response, 200, await dependencies.holidayShop.purchase(player.id, body.bundleId), headers);
+    sendJson(response, 200, await dependencies.holidayShop.purchase(player.id, body.bundleId, body.expectedPrice), headers);
   } catch (error) {
     sendHolidayError(response, error, headers);
   }

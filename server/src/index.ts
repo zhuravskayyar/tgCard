@@ -42,6 +42,8 @@ import { handleShopBundlePurchase, handleShopCardInfo, handleShopCatalog, handle
 import { ShopService } from "./shop/shopService.js";
 import { handleHolidayBundlePurchase, handleHolidayShopCatalog } from "./shop/holidayShopRoute.js";
 import { HolidayShopService } from "./shop/holidayShopService.js";
+import { handleCollectionPackCatalog, handleCollectionPackPurchase } from "./shop/collectionPackRoute.js";
+import { CollectionPackService } from "./shop/collectionPackService.js";
 import { handleChestShopRequest } from "./shop/chestShopRoute.js";
 import { ChestShopService } from "./shop/chestShopService.js";
 import { handleMailAction, handleMailClaim, handlePlayerMail } from "./mail/mailRoute.js";
@@ -86,7 +88,7 @@ import { handleBattlePassRequest } from "./battlePassRoute.js";
 import { BattlePassService } from "./battlePassService.js";
 import { handleDevAuthRequest } from "./dev/devAuthRoute.js";
 import { handleGuildRequest } from "./guild/guildRoute.js";
-import { GuildService } from "./guild/guildService.js";
+import { GuildService, loadGuildCardForMember } from "./guild/guildService.js";
 import { GuildForumService } from "./guild/guildForumService.js";
 import { GuildRaidService } from "./guild/guildRaidService.js";
 import { GuildDragonRaidService } from "./guild/dragonRaidService.js";
@@ -120,6 +122,7 @@ const limitedCards = new LimitedCardService(pool);
 const equipmentChests = new EquipmentChestService(pool);
 const shop = new ShopService(pool, { campaign, limitedCards });
 const holidayShop = new HolidayShopService(pool, { campaign });
+const collectionPacks = new CollectionPackService(pool, { campaign });
 const chestShop = new ChestShopService(pool, { campaign });
 const nicknameSkins = new NicknameSkinService(pool);
 const mail = new MailService(pool);
@@ -274,6 +277,8 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
   const isShopBundlePurchaseRoute = url.pathname === "/api/shop/bundles/purchase";
   const isHolidayShopRoute = url.pathname === "/api/shop/holidays";
   const isHolidayBundlePurchaseRoute = url.pathname === "/api/shop/holidays/purchase";
+  const isCollectionPackRoute = url.pathname === "/api/shop/collection-packs";
+  const isCollectionPackPurchaseRoute = url.pathname === "/api/shop/collection-packs/purchase";
   const isChestShopRoute = url.pathname === "/api/chest-shop" || url.pathname.startsWith("/api/chest-shop/");
   const isLimitedCardRedeemRoute = url.pathname === "/api/shop/limited/redeem";
   const isCardWorkshopCatalogRoute = url.pathname === "/api/shop/card-workshop";
@@ -305,7 +310,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (
     request.method === "OPTIONS" &&
-    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isChestShopRoute ||isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isGuardianDragonRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
+    (isTournamentRoute || isAdminRoute || isTelegramAuthRoute || isTelegramWebAuthRoute || isGoogleAuthRoute || isGuestAuthRoute || isAuthConfigRoute || isAuthMeRoute || isAuthRefreshRoute || isAuthLinkRoute || isAuthLogoutRoute || isPlayerHeartbeatRoute || isDevAuthRoute || isPlayerCardsRoute || isPlayerInventoryRoute || isPlayerEquipmentRoute || isEquipmentManualRoute || isGuildForumReferenceRoute || isGuildRoute || isNicknameSkinCatalogRoute || isNicknameSkinPurchaseRoute || isNicknameSkinEquipRoute || isWeakPlayerCardsRoute || isPlayerDeckRoute || isPlayerAchievementProgressRoute || publicAchievementProgressMatch || isShopCatalogRoute || shopCardInfoMatch || isShopPurchaseRoute || isHolidayShopRoute || isHolidayBundlePurchaseRoute || isCollectionPackRoute || isCollectionPackPurchaseRoute || isChestShopRoute ||isLimitedCardRedeemRoute || isCardWorkshopCatalogRoute || isCardWorkshopCraftRoute || isDungeonStartRoute || dungeonCompleteMatch || isPlayerMailRoute || isPlayerNicknameRoute || isPlayerTutorialCompletionRoute || isLeaderboardRoute || playerProfileMatch || mailClaimMatch || isDuelRoute || isArenaRoute || isGuardianDragonRoute || isCampaignRoute || isStoryTrialsRoute || isBattlePassRoute || cardProgressionMatch || collectionMatch)
   ) {
     response.writeHead(204, cors.headers);
     response.end();
@@ -643,6 +648,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       players,
       responseHeaders: cors.headers,
       weakCards: inventory,
+      guildCard: { findForMember: (playerId) => loadGuildCardForMember(pool, playerId) },
     });
     return;
   }
@@ -707,6 +713,28 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       auth,
       botToken: environment.telegramBotToken,
       holidayShop,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isCollectionPackRoute) {
+    await handleCollectionPackCatalog(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      collectionPacks,
+      players,
+      responseHeaders: cors.headers,
+    });
+    return;
+  }
+
+  if (isCollectionPackPurchaseRoute) {
+    await handleCollectionPackPurchase(request, response, {
+      auth,
+      botToken: environment.telegramBotToken,
+      collectionPacks,
       players,
       responseHeaders: cors.headers,
     });

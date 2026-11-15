@@ -65,10 +65,17 @@ function parseDeck(value: unknown): PlayerDeckResponse {
   ) {
     throw new PlayerDataError(502);
   }
+  const guild = (response.extraCards as { guild?: { status?: unknown; card?: unknown } } | undefined)?.guild;
   return {
     cards: response.cards,
     totalPower: Number(response.totalPower),
     baseBattleHp: Number(response.baseBattleHp),
+    // Ally and goblin cards are not in the game yet, so only the guild slot can hold a card.
+    extraCards: {
+      ally: { status: "locked" },
+      guild: guild?.status === "card" && isPlayerCardInstance(guild.card) ? { status: "card", card: guild.card } : { status: "locked" },
+      goblin: { status: "locked" },
+    },
   };
 }
 

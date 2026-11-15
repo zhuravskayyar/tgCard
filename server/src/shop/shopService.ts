@@ -116,6 +116,22 @@ export class ShopBundleUnavailableError extends Error {
   }
 }
 
+/** The price the client showed is not the price the server computes now (e.g. cards were discovered meanwhile). */
+export class ShopPriceChangedError extends Error {
+  constructor() {
+    super("The price of this offer has changed");
+    this.name = "ShopPriceChangedError";
+  }
+}
+
+/** A full-collection offer for a collection the player already completed: nothing is left to grant. */
+export class ShopCollectionCompleteError extends Error {
+  constructor() {
+    super("Every card of this collection is already discovered");
+    this.name = "ShopCollectionCompleteError";
+  }
+}
+
 export class ShopPlayerMissingError extends Error {
   constructor() {
     super("Player does not exist");

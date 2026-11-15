@@ -18,6 +18,8 @@ const purchaseErrorMessages: Record<string, string> = {
   insufficient_gold: "Недостатньо золота",
   holiday_not_active: "Це свято вже минуло.",
   holiday_limit_reached: "Ліміт покупок цього набору вичерпано.",
+  price_changed: "Ціна змінилася. Перевірте її ще раз.",
+  collection_complete: "Усі карти цієї колекції вже зібрано.",
   bundle_unavailable: "Карти цього набору тимчасово недоступні.",
   bundle_not_found: "Цей набір більше не доступний.",
   database_unavailable: "Магазин тимчасово недоступний.",
@@ -45,11 +47,15 @@ interface HolidayBundlePanelProps {
 function HolidayBundlePanel({ active, availableBalance, bundle, disabled, onPurchase, purchasing }: HolidayBundlePanelProps) {
   const [insufficientOpen, setInsufficientOpen] = useState(false);
   const soldOut = bundle.purchased >= bundle.purchaseLimit;
+  // A full set grants only undiscovered cards: none left reads «Зібрано», some left reads «Докупити відсутні».
+  const collected = bundle.fullSet && bundle.missingCount === 0;
+  const partial = bundle.fullSet && bundle.missingCount > 0 && bundle.missingCount < bundle.cardCount;
+  const title = partial ? `Докупити відсутні (${bundle.missingCount}) · ${bundle.displayName}` : bundle.displayName;
   const shortage = typeof availableBalance === "number" ? Math.max(0, bundle.price - availableBalance) : null;
   const currencyLabel = bundle.currency === "silver" ? "срібла" : "золота";
 
   function handlePurchaseClick() {
-    if (disabled || !active || soldOut) return;
+    if (disabled || !active || soldOut || collected) return;
     if (!bundle.canAfford) {
       if (shortage !== null && shortage > 0) setInsufficientOpen(true);
       return;
@@ -70,17 +76,17 @@ function HolidayBundlePanel({ active, availableBalance, bundle, disabled, onPurc
             </span>
           </div>
           <div className="shop-offer__copy">
-            <h3>{bundle.displayName}</h3>
-            <p className="shop-offer__guarantee">{`${rarityLabels[bundle.rarity]} · Карт у наборі: ${bundle.cardCount}`}</p>
+            <h3>{title}</h3>
+            <p className="shop-offer__guarantee">{bundle.fullSet ? `Відкрито: ${bundle.cardCount - bundle.missingCount} з ${bundle.cardCount}` : `${rarityLabels[bundle.rarity]} · Карт у наборі: ${bundle.cardCount}`}</p>
             <p className="shop-offer__guarantee">{`Куплено: ${bundle.purchased} з ${bundle.purchaseLimit}`}</p>
             <button
-              aria-label={soldOut ? "Ліміт вичерпано" : !active ? "Скоро" : `Купити ${bundle.displayName} за ${bundle.price} ${currencyLabel}`}
+              aria-label={collected ? "Зібрано" : soldOut ? "Ліміт вичерпано" : !active ? "Скоро" : `Купити ${title} за ${bundle.price} ${currencyLabel}`}
               className={`shop-offer__purchase shop-offer__purchase--${bundle.currency}`}
-              disabled={disabled || !active || soldOut}
+              disabled={disabled || !active || soldOut || collected}
               onClick={handlePurchaseClick}
               type="button"
             >
-              {purchasing ? <span>Купуємо…</span> : soldOut ? <span>Ліміт вичерпано</span> : !active ? <span>Скоро</span> : <><span>Купити</span><CurrencyIcon kind={bundle.currency} /><strong>{bundle.price}</strong></>}
+              {purchasing ? <span>Купуємо…</span> : collected ? <span>Зібрано</span> : soldOut ? <span>Ліміт вичерпано</span> : !active ? <span>Скоро</span> : <><span>Купити</span><CurrencyIcon kind={bundle.currency} /><strong>{bundle.price}</strong></>}
             </button>
           </div>
         </div>
@@ -124,7 +130,7 @@ export function HolidayShopSection({ balance, onPurchased }: HolidayShopSectionP
               bundle={bundle}
               disabled={purchasingBundleId !== null}
               key={bundle.id}
-              onPurchase={() => void purchase(bundle.id).then((result) => { if (result) onPurchased(result); })}
+              onPurchase={() => void purchase(bundle.id, bundle.price).then((result) => { if (result) onPurchased(result); })}
               purchasing={purchasingBundleId === bundle.id}
             />
           ))}

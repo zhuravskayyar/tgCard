@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type ShopPurchaseResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { ShopOfferPanel } from "../components/ShopOfferPanel";
+import { SwipeSlider } from "../components/SwipeSlider";
 import { ShopRewardReveal } from "../components/ShopRewardReveal";
 import { ShopOfferDetails } from "../components/ShopOfferDetails";
 import { ShopCardInfoScreen } from "./ShopCardInfoScreen";
@@ -21,6 +22,7 @@ import { ShopBoostSection } from "../components/ShopBoostSection";
 import { ShopBundleBanner } from "../components/ShopBundleBanner";
 import { SHOP_BUNDLES } from "../shop/shopBundles";
 import { HolidayShopSection } from "../components/HolidayShopSection";
+import { CollectionPacksSection } from "../components/CollectionPacksSection";
 import type { ShopBundlePurchaseResponse } from "@cardastika/shared";
 
 interface ShopScreenProps {
@@ -438,7 +440,8 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
               <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
                 <ShopSectionHeading>По одній карті</ShopSectionHeading>
                 {catalogState.catalog.offers.length ? (
-                  [...catalogState.catalog.offers]
+                  <SwipeSlider labels={catalogState.catalog.offers.map((_, index) => `Набір ${index + 1} з ${catalogState.catalog.offers.length}`)}>
+                  {[...catalogState.catalog.offers]
                     .sort((left, right) => {
                       if (!beginnerContext || !player) {
                         return (shopOfferRarityOrder.get(left.guaranteedRarity) ?? 99) - (shopOfferRarityOrder.get(right.guaranteedRarity) ?? 99);
@@ -465,12 +468,14 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
                         purchasing={purchasingOfferId === offer.id}
                       />
                     );
-                    })
+                    })}
+                  </SwipeSlider>
                 ) : (
                   <div className="shop-inline-empty">Пропозиції карт тимчасово відсутні.</div>
                 )}
               </section>
 
+              <CollectionPacksSection balance={player ?? undefined} onPurchased={handleHolidayPurchased} />
               </div>
             )
           ) : null}

@@ -250,12 +250,14 @@ export function getTournamentBuffOptions(
 export function getTournamentStartingHp(cards: readonly { element: CardElement; finalPower: number }[], input: {
   additionalCards?: readonly { element: CardElement; finalPower: number }[];
   hpPercent?: number; buffElement?: CardElement; buffPercent?: number;
+  /** Flat HP (guardian dragon) added after the multiplier and the percent. */
+  flatHp?: number;
 } = {}) {
   const hpPercent = integer(input.hpPercent ?? 0, "HP percentage");
   const buffPercent = integer(input.buffPercent ?? TOURNAMENT_RULES.buffPercent, "buff percentage");
   const power = [...cards, ...input.additionalCards ?? []].reduce((sum, card) => sum + Math.round(integer(card.finalPower, "card power", 1)
     * (card.element === input.buffElement ? (100 + buffPercent) / 100 : 1)), 0);
-  return Math.round(power * TOURNAMENT_RULES.hpMultiplier * (100 + hpPercent) / 100);
+  return Math.round(power * TOURNAMENT_RULES.hpMultiplier * (100 + hpPercent) / 100) + Math.max(0, Math.trunc(input.flatHp ?? 0));
 }
 
 /**

@@ -1,5 +1,5 @@
 import { getBaseBattleHp, getDeckPower } from "@cardastika/game-core";
-import type { PlayerDeckCard, PlayerDeckResponse } from "@cardastika/shared";
+import type { PlayerDeckCard, StoredPlayerDeck } from "@cardastika/shared";
 import type { Pool } from "pg";
 import {
   mapCardInstanceRow,
@@ -28,7 +28,7 @@ export class DeckPersistenceError extends Error {
   }
 }
 
-async function loadDeck(database: Pool, playerId: string): Promise<PlayerDeckResponse> {
+async function loadDeck(database: Pool, playerId: string): Promise<StoredPlayerDeck> {
   const deckResult = await database.query<DeckIdRow>(
     "SELECT id FROM player_decks WHERE player_id = $1",
     [playerId],

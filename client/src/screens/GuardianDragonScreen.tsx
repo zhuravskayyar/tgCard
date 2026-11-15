@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CardElement, GuardianDragonHikeHoursValue, GuardianDragonView } from "@cardastika/shared";
 import { getGuardianDragonFeedMinutes } from "@cardastika/game-core";
 import { DeckCard } from "../components/DeckCard";
@@ -9,10 +9,11 @@ import { GuardianDragonBattles, GuardianDragonMagic } from "./GuardianDragonTabs
 import { MenuRow } from "../components/MenuRow";
 import { Pagination } from "../components/Pagination";
 import { ScreenHeading } from "../components/ScreenHeading";
+import { useGuardianDragon } from "../hooks/useGuardianDragon";
 import { useWeakCards } from "../hooks/useWeakCards";
 import { formatUiNumber, getUiNumberLocale } from "../i18n";
 import { getTelegramInitData } from "../telegram";
-import { cancelGuardianDragonHike, feedGuardianDragon, GuardianDragonApiError, loadGuardianDragon, startGuardianDragonHike } from "../telegram/guardianDragon";
+import { cancelGuardianDragonHike, feedGuardianDragon, GuardianDragonApiError, startGuardianDragonHike } from "../telegram/guardianDragon";
 
 interface GuardianDragonScreenProps {
   onBack: () => void;
@@ -20,12 +21,6 @@ interface GuardianDragonScreenProps {
   onOpenDeck: () => void;
   onOpenWeakCards: () => void;
 }
-
-type DragonState =
-  | { status: "loading" }
-  | { status: "unavailable" }
-  | { status: "error" }
-  | { status: "ready"; data: GuardianDragonView };
 
 /** Feeding tabs, one per element, as on the reference dragon page. */
 const FEED_ELEMENTS: readonly CardElement[] = ["fire", "water", "earth", "air"];
@@ -59,29 +54,6 @@ function dragonErrorMessage(error: unknown) {
   return "Дію не виконано. Оновіть дані та спробуйте ще раз.";
 }
 
-function useGuardianDragon() {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<DragonState>({ status: "loading" });
-  const retry = useCallback(() => setAttempt((current) => current + 1), []);
-  useEffect(() => {
-    const initData = getTelegramInitData();
-    if (!initData) {
-      setState({ status: "unavailable" });
-      return;
-    }
-    const controller = new AbortController();
-    setState({ status: "loading" });
-    void loadGuardianDragon(initData, controller.signal)
-      .then((data) => setState({ status: "ready", data }))
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setState({ status: "error" });
-      });
-    return () => controller.abort();
-  }, [attempt]);
-  return { retry, setState, state };
-}
-
 function DragonProgress({ dragon }: { dragon: GuardianDragonView }) {
   const percent = Math.min(100, dragon.progressMinutes / dragon.progressMaxMinutes * 100);
   return <div className="guardian-dragon__progress">
@@ -93,7 +65,7 @@ function DragonProgress({ dragon }: { dragon: GuardianDragonView }) {
 }
 
 export function GuardianDragonScreen({ onBack, onGoldChange, onOpenDeck, onOpenWeakCards }: GuardianDragonScreenProps) {
-  const { retry, setState, state } = useGuardianDragon();
+  const { retry, setState, state } = useGuardianDragon(true);
   const [page, setPage] = useState(1);
   const [feedElement, setFeedElement] = useState<CardElement>("fire");
   const weak = useWeakCards(page, feedElement);
@@ -187,7 +159,7 @@ export function GuardianDragonScreen({ onBack, onGoldChange, onOpenDeck, onOpenW
       </div> : null}
 
       {dragon && tab === "fights" ? <GuardianDragonBattles dragon={dragon} locked={locked} onDragon={(next) => setState({ status: "ready", data: next })} onGoldChange={onGoldChange} onRefresh={retry} /> : null}
-      {dragon && tab === "magic" ? <GuardianDragonMagic dragon={dragon} /> : null}
+      {dragon && tab === "magic" ? <GuardianDragonMagic dragon={dragon} locked={locked} onDragon={(next) => setState({ status: "ready", data: next })} onGoldChange={onGoldChange} onRefresh={retry} /> : null}
 
       {dragon && tab === "hikes" ? <>
         <p className="deck-note deck-note--info weak-cards-intro">{locked ? "Дракон з’являється в третій епічній лізі дуелей." : "Дракон додає вам здоров’я, рівне своєму. Годуйте його слабкими картами й відправляйте в похід."}</p>

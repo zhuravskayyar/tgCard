@@ -3,6 +3,8 @@ import type { DailyTaskView } from "@cardastika/shared";
 import { ScreenHeading } from "../components/ScreenHeading";
 import { AppIcon } from "../components/AppIcon";
 import { DeckCard } from "../components/DeckCard";
+import { DeckDragonBlock } from "../components/DeckDragonBlock";
+import { DeckExtraCards } from "../components/DeckExtraCards";
 import { ElementMedallion } from "../components/ElementMedallion";
 import { ElementSymbol } from "../components/ElementSymbol";
 import { MenuRow } from "../components/MenuRow";
@@ -17,6 +19,8 @@ interface DeckScreenProps {
   onOpenCampaign: () => void;
   onOpenCard: (instanceId: string) => void;
   onOpenDuel: () => void;
+  onOpenGuardianDragon: () => void;
+  onOpenGuild: () => void;
   onOpenShop: () => void;
   onOpenTasks: () => void;
   onOpenWeakCards: () => void;
@@ -43,7 +47,7 @@ function deckTaskCopy(task: DailyTaskView) {
     : "Щоденне завдання: підвищ рівень карти.";
 }
 
-export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onOpenShop, onOpenTasks, onOpenWeakCards, showTutorialRule = false }: DeckScreenProps) {
+export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onOpenGuardianDragon, onOpenGuild, onOpenShop, onOpenTasks, onOpenWeakCards, showTutorialRule = false }: DeckScreenProps) {
   const { retry, state } = usePlayerDeck();
   const { state: weakState } = useWeakCards(1);
   const { state: battlePassState } = useBattlePass();
@@ -94,6 +98,9 @@ export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onO
               {DECK_ELEMENTS.map((element) => <span key={element}><ElementMedallion element={element} /><strong>{elementCounts?.[element] ?? 0}</strong></span>)}
             </div>
           )}
+
+          {showTutorialRule ? null : <DeckExtraCards extraCards={state.deck.extraCards} onOpenGuild={onOpenGuild} />}
+          {showTutorialRule ? null : <DeckDragonBlock onOpenDragon={onOpenGuardianDragon} />}
 
           <div className="deck-notes">
             {deckTask ? (

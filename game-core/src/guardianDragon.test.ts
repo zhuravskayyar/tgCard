@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { MAX_CARD_LEVEL } from "./cardProgression.js";
 import {
+  GUARDIAN_DRAGON_FLAME_START_LEVEL,
   GUARDIAN_DRAGON_MAX_HEALTH,
+  getGuardianDragonFlameUpgrade,
   addGuardianDragonHealth,
   canStartGuardianDragonHike,
   getGuardianDragonFeedMinutes,
@@ -108,4 +111,26 @@ test("the free send reopens after the cooldown", () => {
   assert.equal(isGuardianDragonFreeSendReady(null, now), true);
   assert.equal(isGuardianDragonFreeSendReady(new Date("2031-01-01T10:00:01Z"), now), false);
   assert.equal(isGuardianDragonFreeSendReady(new Date("2031-01-01T09:59:59Z"), now), true);
+});
+
+test("the flame levels up like a card: 90 to 91 costs 3400 and adds +45 power at mastery 50", () => {
+  const start = { level: GUARDIAN_DRAGON_FLAME_START_LEVEL, levelProgressElements: 0, storedElements: 0 };
+  const upgrade = getGuardianDragonFlameUpgrade(start, 3400, 50);
+  assert.equal(upgrade.requiredGold, 3400);
+  assert.equal(upgrade.powerGain, 45);
+  assert.equal(upgrade.availability, "ready");
+  assert.equal(getGuardianDragonFlameUpgrade(start, 3399, 50).availability, "insufficient_gold");
+  // Elemental progress lowers the price exactly as it does for cards.
+  const half = getGuardianDragonFlameUpgrade({ ...start, levelProgressElements: upgrade.requiredElements / 2 }, 0, 50);
+  assert.ok(half.requiredGold! < 3400 && half.requiredGold! >= 1500);
+  assert.equal(half.percent, 50);
+  // Fans add 10 mastery, whisperers double the gain.
+  assert.equal(getGuardianDragonFlameUpgrade(start, 0, 50, { dragonFans: true, dragonWhisperers: true }).powerGain, 108);
+});
+
+test("the flame stops at the maximum card level", () => {
+  const top = getGuardianDragonFlameUpgrade({ level: MAX_CARD_LEVEL, levelProgressElements: 0, storedElements: 0 }, 1_000_000, 50);
+  assert.equal(top.availability, "maximum_level");
+  assert.equal(top.requiredGold, null);
+  assert.equal(top.powerGain, null);
 });

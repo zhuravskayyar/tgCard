@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
 import { HolidayLimitReachedError, HolidayNotActiveError, HolidayShopService } from "./holidayShopService.js";
-import { InsufficientShopFundsError, ShopPersistenceError } from "./shopService.js";
+import { InsufficientShopFundsError, ShopCollectionCompleteError, ShopPersistenceError, ShopPriceChangedError } from "./shopService.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 let sequence = 0n;
@@ -32,6 +32,10 @@ async function createFixture(pool: Pool) {
   const collectionId = `collection_${collectionCode}`;
   const holidayId = `test_holiday_${suffix}`;
   const bundleId = `test_holiday_bundle_${suffix}`;
+  const oneBundleId = `test_holiday_one_${suffix}`;
+  const fullBundleId = `test_holiday_full_${suffix}`;
+  // Ladder prices of the three cards: rare 25, rare 25, epic 37.5.
+  const cardRarities = ["rare", "rare", "epic"];
   const cardIds = [0, 1, 2].map((index) => `test_holiday_card_${suffix}_${index}`);
   await pool.query(
     "INSERT INTO collections (id, code, display_name, buff_type, buff_value, buff_scope, bonus_label, position) VALUES ($1, $2, 'Святкова тестова', 'none', 0, 'all_battles', '', 999)",
@@ -39,8 +43,8 @@ async function createFixture(pool: Pool) {
   );
   for (const [index, cardId] of cardIds.entries()) {
     await pool.query(
-      "INSERT INTO cards (id, code, display_name, art_key, element, collection_id) VALUES ($1, $2, 'Holiday test card', NULL, 'fire', $3)",
-      [cardId, cardId.replaceAll("_", "-"), collectionId],
+      "INSERT INTO cards (id, code, display_name, art_key, element, collection_id, min_rarity) VALUES ($1, $2, 'Holiday test card', NULL, 'fire', $3, $4)",
+      [cardId, cardId.replaceAll("_", "-"), collectionId, cardRarities[index]],
     );
     await pool.query("INSERT INTO collection_cards (collection_id, card_id, position) VALUES ($1, $2, $3)", [collectionId, cardId, index + 1]);
   }
@@ -52,9 +56,20 @@ async function createFixture(pool: Pool) {
     "INSERT INTO shop_holiday_bundles (id, holiday_id, display_name, collection_code, card_count, rarity, currency, price, purchase_limit, position) VALUES ($1, $2, 'Тестовий набір', $3, 2, 'epic', 'gold', 100, 1, 1)",
     [bundleId, holidayId, collectionCode],
   );
+  await pool.query(
+    "INSERT INTO shop_holiday_bundles (id, holiday_id, display_name, collection_code, card_count, rarity, currency, price, purchase_limit, position) VALUES ($1, $2, 'Одна карта', $3, 1, 'epic', 'gold', 10, 3, 2)",
+    [oneBundleId, holidayId, collectionCode],
+  );
+  await pool.query(
+    "INSERT INTO shop_holiday_bundles (id, holiday_id, display_name, collection_code, card_count, rarity, currency, price, purchase_limit, position, full_set) VALUES ($1, $2, 'Уся колекція', $3, 3, 'epic', 'gold', 90, 1, 3, TRUE)",
+    [fullBundleId, holidayId, collectionCode],
+  );
   return {
     bundleId,
+    cardIds,
+    fullBundleId,
     holidayId,
+    oneBundleId,
     async cleanup() {
       await pool.query("DELETE FROM shop_holidays WHERE id = $1", [holidayId]);
       await pool.query("DELETE FROM player_card_instances WHERE card_id = ANY($1::text[])", [cardIds]);
@@ -88,14 +103,18 @@ test("a holiday bundle debits gold, grants distinct cards and respects its limit
     const holiday = catalog.holidays.find(({ id }) => id === fixture.holidayId);
     assert.equal(holiday?.active, true);
     assert.equal(holiday?.endsAt, "2031-07-06T00:00:00.000Z");
-    assert.deepEqual(holiday?.bundles.map(({ purchased, canAfford, collectionName }) => ({ purchased, canAfford, collectionName })), [
-      { purchased: 0, canAfford: true, collectionName: "Святкова тестова" },
+    assert.deepEqual(holiday?.bundles.map(({ purchased, canAfford, collectionName, fullSet }) => ({ purchased, canAfford, collectionName, fullSet })), [
+      { purchased: 0, canAfford: true, collectionName: "Святкова тестова", fullSet: false },
+      { purchased: 0, canAfford: true, collectionName: "Святкова тестова", fullSet: false },
+      { purchased: 0, canAfford: true, collectionName: "Святкова тестова", fullSet: true },
     ]);
 
     const result = await shop.purchase(player.id, fixture.bundleId);
     assert.equal(result.rewards.length, 2);
     assert.equal(new Set(result.rewards.map(({ cardId }) => cardId)).size, 2);
     assert.ok(result.rewards.every(({ rarity }) => rarity === "epic"));
+    // A stale price is refused without spending anything.
+    await assert.rejects(shop.purchase(player.id, fixture.oneBundleId, 11), ShopPriceChangedError);
     assert.deepEqual({ gold: result.updatedBalance.gold, purchased: result.purchased }, { gold: 150, purchased: 1 });
 
     await assert.rejects(shop.purchase(player.id, fixture.bundleId), HolidayLimitReachedError);
@@ -105,6 +124,109 @@ test("a holiday bundle debits gold, grants distinct cards and respects its limit
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [user.id]);
     await fixture.cleanup();
+    await pool.end();
+  }
+});
+
+test("a random holiday card prefers undiscovered cards and falls back to any card", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const fixture = await createFixture(pool);
+  const user = createTelegramUser();
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET gold = 200 WHERE id = $1", [player.id]);
+    // The always-zero rng would pick card 0 without the preference; cards 0 and 1 are already discovered.
+    for (const cardId of fixture.cardIds.slice(0, 2)) {
+      await pool.query("INSERT INTO player_card_discoveries (player_id, card_id) VALUES ($1, $2)", [player.id, cardId]);
+    }
+    const shop = new HolidayShopService(pool, { now: duringHoliday, rng: firstRandom });
+
+    const first = await shop.purchase(player.id, fixture.oneBundleId, 10);
+    assert.deepEqual(first.rewards.map(({ cardId }) => cardId), [fixture.cardIds[2]]);
+    assert.deepEqual(first.newDiscoveryCardIds, [fixture.cardIds[2]]);
+    // Everything discovered: any card again.
+    const second = await shop.purchase(player.id, fixture.oneBundleId, 10);
+    assert.equal(second.rewards.length, 1);
+    assert.deepEqual(second.newDiscoveryCardIds, []);
+
+    // A two-card bundle with one new card gives the new one plus one other.
+    await pool.query("DELETE FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2", [player.id, fixture.cardIds[1]]);
+    const pair = await shop.purchase(player.id, fixture.bundleId);
+    assert.ok(pair.rewards.some(({ cardId }) => cardId === fixture.cardIds[1]));
+    assert.equal(new Set(pair.rewards.map(({ cardId }) => cardId)).size, 2);
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [user.id]);
+    await fixture.cleanup();
+    await pool.end();
+  }
+});
+
+test("a full holiday set is priced by the missing cards and grants only those", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const fixture = await createFixture(pool);
+  const user = createTelegramUser();
+  try {
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
+    await pool.query("UPDATE players SET gold = 300 WHERE id = $1", [player.id]);
+    const shop = new HolidayShopService(pool, { now: duringHoliday, rng: firstRandom });
+    const offerOf = async () => (await shop.getCatalog(player.id)).holidays.find(({ id }) => id === fixture.holidayId)!.bundles.find(({ id }) => id === fixture.fullBundleId)!;
+    const discover = (cardId: string) => pool.query("INSERT INTO player_card_discoveries (player_id, card_id) VALUES ($1, $2)", [player.id, cardId]);
+
+    // Nothing discovered: the configured whole-collection price.
+    assert.deepEqual({ price: (await offerOf()).price, missing: (await offerOf()).missingCount, cards: (await offerOf()).cardCount }, { price: 90, missing: 3, cards: 3 });
+    // Ladder: missing the epic alone 37.5 → 40; missing rare + epic 62.5 → 65, below the 90 of the whole set.
+    await discover(fixture.cardIds[0]!);
+    await discover(fixture.cardIds[1]!);
+    assert.deepEqual({ price: (await offerOf()).price, missing: (await offerOf()).missingCount }, { price: 40, missing: 1 });
+    await pool.query("DELETE FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2", [player.id, fixture.cardIds[1]]);
+    assert.deepEqual({ price: (await offerOf()).price, missing: (await offerOf()).missingCount }, { price: 65, missing: 2 });
+
+    await assert.rejects(shop.purchase(player.id, fixture.fullBundleId, 90), ShopPriceChangedError);
+    const gold = async () => Number((await pool.query<{ gold: number }>("SELECT gold FROM players WHERE id = $1", [player.id])).rows[0]?.gold);
+    assert.equal(await gold(), 300);
+
+    const result = await shop.purchase(player.id, fixture.fullBundleId, 65);
+    // Only the undiscovered cards, each at the level range of its own rarity.
+    assert.deepEqual(result.rewards.map(({ cardId, rarity }) => ({ cardId, rarity })).sort((a, b) => a.cardId.localeCompare(b.cardId)), [
+      { cardId: fixture.cardIds[1], rarity: "rare" },
+      { cardId: fixture.cardIds[2], rarity: "epic" },
+    ]);
+    assert.deepEqual(result.newDiscoveryCardIds.sort(), [fixture.cardIds[1], fixture.cardIds[2]].sort());
+    assert.ok(result.collectionCompleted);
+    assert.deepEqual({ gold: result.updatedBalance.gold, purchased: result.purchased }, { gold: 235, purchased: 1 });
+
+    // Fully collected: «Зібрано» (the list price stays positive) and no purchase.
+    assert.deepEqual({ price: (await offerOf()).price, missing: (await offerOf()).missingCount, purchased: (await offerOf()).purchased }, { price: 90, missing: 0, purchased: 1 });
+    await assert.rejects(shop.purchase(player.id, fixture.fullBundleId, 90), ShopCollectionCompleteError);
+    // The limit of one per occurrence still holds when a card is undiscovered again.
+    await pool.query("DELETE FROM player_card_discoveries WHERE player_id = $1 AND card_id = $2", [player.id, fixture.cardIds[2]]);
+    await assert.rejects(shop.purchase(player.id, fixture.fullBundleId, 40), HolidayLimitReachedError);
+    assert.equal(await gold(), 235);
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [user.id]);
+    await fixture.cleanup();
+    await pool.end();
+  }
+});
+
+test("the six seeded holiday full sets exist and cost their ladder price", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  try {
+    const rows = await pool.query<{ collection_code: string; price: number; card_count: number; actual: string }>(
+      `
+        SELECT bundles.collection_code, bundles.price, bundles.card_count,
+          (SELECT COUNT(*) FROM collection_cards INNER JOIN collections ON collections.id = collection_cards.collection_id WHERE collections.code = bundles.collection_code) AS actual
+        FROM shop_holiday_bundles bundles WHERE bundles.full_set = TRUE AND bundles.id LIKE '%\_set' ORDER BY bundles.collection_code
+      `,
+    );
+    assert.deepEqual(rows.rows.map((row) => [row.collection_code, Number(row.price)]), [
+      ["ancient_order", 230], ["berserks", 100], ["dragon_whisperers", 100], ["dwarves_peace", 100], ["treasure_hunters", 100], ["ufavorites", 100],
+    ]);
+    for (const row of rows.rows) assert.equal(Number(row.actual), Number(row.card_count), `${row.collection_code} size`);
+  } finally {
     await pool.end();
   }
 });

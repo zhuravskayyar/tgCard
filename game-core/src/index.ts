@@ -290,3 +290,5 @@ export * from "./dragonRaid.js";
 export * from "./duelPaid.js";
 export * from "./chestShop.js";
 export * from "./guardianDragon.js";
+export * from "./collectionPacks.js";
+export * from "./guardianDragonBattle.js";

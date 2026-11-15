@@ -45,6 +45,8 @@ export interface DuelSideSnapshot {
   name: string;
   photoUrl: string | null;
   startingHp: number;
+  /** Guardian dragon health already inside `startingHp` (flat); real players in dragon-enabled modes only. */
+  dragonHpBonus?: number;
   /** Equipped artifact ids, shown to everyone in battles where artifacts work. */
   artifactItemIds?: string[];
 }

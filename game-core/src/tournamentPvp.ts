@@ -241,6 +241,8 @@ export interface TournamentDuelSide {
   elementPowerPct?: Record<CardElement, number>;
   /** HP collection, added to the battle HP bonus. */
   collectionHpPct?: number;
+  /** Guardian dragon health, flat HP added after the multiplier and the percent bonuses. */
+  dragonHp?: number;
   /** This side's own cards. */
   own: TournamentCardCycle<DuelCardSnapshot>;
   /** The opponent's cards in the order this side sees them; never the opponent's own layout. */
@@ -288,6 +290,8 @@ export interface TournamentDuelEntrant {
   deck: readonly DuelCardSnapshot[];
   modifiers: DuelBattleModifiers;
   collections?: TournamentCollectionBonuses;
+  /** Guardian dragon health, flat HP added after the percent bonuses. */
+  dragonHp?: number;
 }
 
 function hpPercentOf(side: Pick<TournamentDuelSide, "modifiers" | "collectionHpPct">) {
@@ -305,7 +309,7 @@ export function createTournamentDuel(input: {
   if (a.playerId === b.playerId) throw new RangeError("A tournament player cannot face themselves");
   const side = (self: typeof a, other: typeof a): TournamentDuelSide => {
     const collections = self.collections ?? getTournamentCollectionBonuses([]);
-    const maxHp = getTournamentStartingHp(self.deck, { hpPercent: self.modifiers.battleHpPct + collections.hpPct });
+    const maxHp = getTournamentStartingHp(self.deck, { hpPercent: self.modifiers.battleHpPct + collections.hpPct, flatHp: self.dragonHp ?? 0 });
     return {
       playerId: self.playerId,
       modifiers: self.modifiers,
@@ -313,6 +317,7 @@ export function createTournamentDuel(input: {
       buffPercent: collections.buffPercent,
       elementPowerPct: { ...collections.elementPowerPct },
       collectionHpPct: collections.hpPct,
+      ...(self.dragonHp ? { dragonHp: self.dragonHp } : {}),
       own: cycleFrom(shuffleCards(self.deck, input.random), input.battleStartsAt),
       view: cycleFrom(shuffleCards(other.deck, input.random), input.battleStartsAt),
       hp: maxHp,
@@ -343,7 +348,7 @@ export function chooseTournamentBuff(state: TournamentDuelState, sideIndex: 0 | 
   if (now >= state.battleStartsAt) throw new RangeError("Tournament buffs close when the battle starts");
   const sides = [...state.sides] as TournamentDuelState["sides"];
   const side = sides[sideIndex];
-  const maxHp = getTournamentStartingHp(deckOf(side), { hpPercent: hpPercentOf(side), buffElement: element, buffPercent: side.buffPercent });
+  const maxHp = getTournamentStartingHp(deckOf(side), { hpPercent: hpPercentOf(side), buffElement: element, buffPercent: side.buffPercent, flatHp: side.dragonHp ?? 0 });
   sides[sideIndex] = { ...side, buff: element, maxHp, hp: maxHp };
   return { ...state, sides };
 }

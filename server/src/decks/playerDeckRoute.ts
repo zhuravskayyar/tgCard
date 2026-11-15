@@ -1,6 +1,6 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import { getAbsorbableElementsByElement, getCardUpgradeIndicator } from "@cardastika/game-core";
-import type { PlayerCardInstance } from "@cardastika/shared";
+import type { ExtraCardSlot, PlayerCardInstance } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
@@ -23,6 +23,8 @@ interface PlayerDeckDependencies extends RouteAuthDependencies {
   automaticDeck: AutomaticDeckLookup;
   /** All of the player's weak cards, used to mark deck cards that absorbing them would level up. */
   weakCards?: { findWeakByPlayerId(playerId: string): Promise<PlayerCardInstance[]> };
+  /** The card the player's guild leader picked; absent for players without a guild or card. */
+  guildCard?: { findForMember(playerId: string): Promise<PlayerCardInstance | null> };
 }
 
 export async function handlePlayerDeck(
@@ -52,8 +54,15 @@ export async function handlePlayerDeck(
       const upgradeIndicator = getCardUpgradeIndicator(card.level, card.levelProgressElements, absorbable[card.element]);
       return upgradeIndicator ? { ...card, upgradeIndicator } : card;
     });
+    let guildCard: PlayerCardInstance | null = null;
+    try {
+      guildCard = dependencies.guildCard ? await dependencies.guildCard.findForMember(player.id) : null;
+    } catch (guildCardError) {
+      console.error("Guild card lookup failed", guildCardError);
+    }
+    const guild: ExtraCardSlot = guildCard ? { status: "card", card: guildCard } : { status: "locked" };
     await dependencies.campaign?.recordExternalEvent(player.id, "DECK_OPENED");
-    sendJson(response, 200, { ...deck, cards }, responseHeaders);
+    sendJson(response, 200, { ...deck, cards, extraCards: { ally: { status: "locked" }, guild, goblin: { status: "locked" } } }, responseHeaders);
   } catch (error) {
     if (isAuthFailure(error)) {
       sendJson(response, 401, {

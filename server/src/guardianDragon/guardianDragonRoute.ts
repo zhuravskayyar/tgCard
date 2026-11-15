@@ -1,18 +1,20 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
 import { isGuardianDragonHikeHours } from "@cardastika/game-core";
-import type { CardElement, GuardianDragonFeedResponse, GuardianDragonFightResponse, GuardianDragonHikeHoursValue, GuardianDragonRatingResponse, GuardianDragonView } from "@cardastika/shared";
+import type { CardElement, GuardianDragonFeedResponse, GuardianDragonFightResponse, GuardianDragonFlameAbsorbResponse, GuardianDragonFlameUpgradeResponse, GuardianDragonHikeHoursValue, GuardianDragonRatingResponse, GuardianDragonView } from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "../auth/routeAuth.js";
 import { HttpRequestError, readJsonBody, sendJson } from "../http/json.js";
 import { PlayerPersistenceError } from "../users/playerRepository.js";
 import { GuardianDragonLockedError, GuardianDragonPersistenceError, GuardianDragonStateError } from "./guardianDragonService.js";
 
 interface GuardianDragonOperations {
-  getDragon(playerId: string): Promise<GuardianDragonView>;
+  getDragon(playerId: string, includeFlameAbsorb?: boolean): Promise<GuardianDragonView>;
   feed(playerId: string, instanceIds?: readonly string[], element?: CardElement): Promise<GuardianDragonFeedResponse>;
   startHike(playerId: string, hours: GuardianDragonHikeHoursValue): Promise<GuardianDragonView>;
   cancelHike(playerId: string): Promise<GuardianDragonView>;
   fight(playerId: string, expectedPrice?: number): Promise<GuardianDragonFightResponse>;
   getRating(playerId: string, page: number): Promise<GuardianDragonRatingResponse>;
+  absorbFlame(playerId: string, instanceIds?: readonly string[]): Promise<GuardianDragonFlameAbsorbResponse>;
+  upgradeFlame(playerId: string, expectedPrice?: number): Promise<GuardianDragonFlameUpgradeResponse>;
 }
 
 interface GuardianDragonRouteDependencies extends RouteAuthDependencies {
@@ -59,7 +61,7 @@ export async function handleGuardianDragonRequest(request: IncomingMessage, resp
     const { player } = await authenticateRoutePlayer(request, dependencies);
     const dragon = dependencies.guardianDragon;
     if (request.method === "GET" && pathname === "/api/guardian-dragon") {
-      return sendJson(response, 200, await dragon.getDragon(player.id), headers);
+      return sendJson(response, 200, await dragon.getDragon(player.id, searchParams.get("flame") === "1"), headers);
     }
     if (request.method === "POST" && pathname === "/api/guardian-dragon/feed") {
       const body = await readJsonBody(request);
@@ -81,6 +83,15 @@ export async function handleGuardianDragonRequest(request: IncomingMessage, resp
       const page = Number(searchParams.get("page") ?? "1");
       if (!Number.isSafeInteger(page) || page < 1) throw new HttpRequestError(400, "invalid_request", "page must be a positive whole number");
       return sendJson(response, 200, await dragon.getRating(player.id, page), headers);
+    }
+    if (request.method === "POST" && pathname === "/api/guardian-dragon/flame/absorb") {
+      return sendJson(response, 200, await dragon.absorbFlame(player.id, readFeedInstanceIds(await readJsonBody(request))), headers);
+    }
+    if (request.method === "POST" && pathname === "/api/guardian-dragon/flame/upgrade") {
+      const body = await readJsonBody(request);
+      const expected = body && typeof body === "object" ? (body as Record<string, unknown>).expectedPrice : undefined;
+      if (expected !== undefined && (!Number.isSafeInteger(expected) || Number(expected) < 0)) throw new HttpRequestError(400, "invalid_request", "expectedPrice must be a non-negative whole number");
+      return sendJson(response, 200, await dragon.upgradeFlame(player.id, expected as number | undefined), headers);
     }
     if (request.method === "POST" && pathname === "/api/guardian-dragon/hike/cancel") {
       return sendJson(response, 200, await dragon.cancelHike(player.id), headers);

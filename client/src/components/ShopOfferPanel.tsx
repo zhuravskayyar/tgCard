@@ -63,6 +63,7 @@ export function ShopOfferPanel({
       aria-label={offer.free ? "Купити безкоштовно" : `Купити за ${offer.price} ${currencyLabel}`}
       className={`shop-offer__purchase shop-offer__purchase--${offer.currency}`}
       data-tutorial-target={dataTutorialTarget}
+      data-ready={!disabled && offer.canAfford ? "" : undefined}
       disabled={disabled}
       onClick={handlePurchaseClick}
       type="button"
@@ -73,14 +74,14 @@ export function ShopOfferPanel({
 
   return (
     <>
-      <article className={`shop-offer shop-offer--${offer.guaranteedRarity}${expanded ? "" : " shop-offer--shelf-compact"}`}>
+      <article className={`shop-offer shop-offer--${offer.guaranteedRarity}${expanded ? "" : " shop-offer--shelf-compact"}${purchasing ? " shop-offer--purchasing" : ""}`}>
       <div className="shop-offer__summary">
         <div className="shop-offer__symbol" aria-hidden="true">
           <span className="shop-pack-body">
           <img alt="" className="shop-offer__artwork" src="/assets/ui/shop/stall/pack-noseal-v3.webp" />
           <span aria-hidden="true" className={`shop-pack-foil shop-pack-foil--${offer.guaranteedRarity}`} /><span aria-hidden="true" className={`shop-pack-gilt shop-pack-gilt--${offer.guaranteedRarity}`} />
           <img alt="" className={`shop-pack-seal shop-pack-seal--${offer.guaranteedRarity}`} src="/assets/ui/shop/stall/pack-seal-v2.webp" />
-          <span aria-hidden="true" className={`shop-pack-sheen shop-pack-sheen--${offer.guaranteedRarity}`} />
+          <span aria-hidden="true" className={`shop-pack-sheen shop-pack-sheen--${offer.guaranteedRarity}`} /><span aria-hidden="true" className="shop-pack-glint" />
           </span>
         </div>
         <div className="shop-offer__copy">

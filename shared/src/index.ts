@@ -4,6 +4,10 @@ export type {
   GuardianDragonFightResponse,
   GuardianDragonFightResult,
   GuardianDragonFightsView,
+  GuardianDragonFlameAbsorbRequest,
+  GuardianDragonFlameAbsorbResponse,
+  GuardianDragonFlameUpgradeRequest,
+  GuardianDragonFlameUpgradeResponse,
   GuardianDragonFlameView,
   GuardianDragonRatingResponse,
   GuardianDragonRatingRow,
@@ -76,8 +80,11 @@ export {
 } from "./collection.js";
 export {
   DECK_SIZE,
+  type ExtraCardSlot,
   type PlayerDeckCard,
+  type PlayerDeckExtraCards,
   type PlayerDeckResponse,
+  type StoredPlayerDeck,
 } from "./deck.js";
 export type {
   ActiveDuelResponse,
@@ -253,6 +260,13 @@ export {
   type CardWorkshopCraftRequest,
   type CardWorkshopCraftResponse,
   type CardWorkshopResponse,
+  type CollectionPackCard,
+  type CollectionPackPurchaseRequest,
+  type CollectionPackPurchaseResponse,
+  type CollectionPackRandomOffer,
+  type CollectionPackSetOffer,
+  type CollectionPackView,
+  type CollectionPacksResponse,
   type HolidayBundlePurchaseRequest,
   type HolidayBundlePurchaseResponse,
   type HolidayShopBundle,

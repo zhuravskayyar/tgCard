@@ -136,3 +136,18 @@ They appear below the card information and deck-state section and above the
 persistent `BottomNav`. Always use the shared `MenuRow` component and its
 compact variant; do not duplicate its visual styles locally. `TopHud` and
 `BottomNav` remain visible while Card Detail is open.
+
+## Deck: extra cards and compact dragon
+
+Below the nine deck cards and element medallions the Deck screen shows
+«Додаткові карти»: three equal slots (ally, guild, goblin) with centred
+captions and a «Де взяти додаткові карти» link that toggles an inline hint. The
+guild slot renders the guild card with `DeckCard` (the server sends it in
+`extraCards.guild` from `loadGuildCardForMember`); a closed slot is the dimmed
+shared card back with the painted lock. The ally and goblin slots are
+always-closed placeholders until guild alliances and the weekly goblin card
+exist. Under it a compact guardian dragon block appears only when the dragon is
+unlocked: hike status, health, mastery, the flame card between two empty magic
+slots, a «Дракон-захисник» button and a «Як зробити дракона сильнішим» link,
+both opening the dragon screen. It reuses `useGuardianDragon` and
+`GuardianDragonFlameCard`.

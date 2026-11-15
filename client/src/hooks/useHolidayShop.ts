@@ -37,7 +37,7 @@ export function useHolidayShop() {
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const purchase = useCallback(async (bundleId: string): Promise<HolidayBundlePurchaseResponse | null> => {
+  const purchase = useCallback(async (bundleId: string, expectedPrice?: number): Promise<HolidayBundlePurchaseResponse | null> => {
     const initData = getTelegramInitData();
     if (!initData || controllerRef.current) return null;
     const controller = new AbortController();
@@ -45,7 +45,7 @@ export function useHolidayShop() {
     setPurchaseErrorCode(null);
     setPurchasingBundleId(bundleId);
     try {
-      const result = await purchaseHolidayBundle(initData, bundleId, controller.signal);
+      const result = await purchaseHolidayBundle(initData, bundleId, controller.signal, expectedPrice);
       setState((current) => current.status === "ready"
         ? {
             status: "ready",
@@ -61,10 +61,19 @@ export function useHolidayShop() {
             },
           }
         : current);
+      // Discoveries change what full sets still cost, so take the fresh catalog (no loading flash).
+      void loadHolidayShop(initData, controller.signal)
+        .then((data) => setState({ status: "ready", data }))
+        .catch(() => undefined);
       return result;
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         setPurchaseErrorCode(error instanceof ShopApiError ? error.code : "shop_request_failed");
+        if (error instanceof ShopApiError && (error.code === "price_changed" || error.code === "collection_complete")) {
+          void loadHolidayShop(initData, controller.signal)
+            .then((data) => setState({ status: "ready", data }))
+            .catch(() => undefined);
+        }
       }
       return null;
     } finally {

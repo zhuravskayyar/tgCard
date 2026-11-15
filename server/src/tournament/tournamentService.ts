@@ -66,6 +66,7 @@ import { createMagicSourceInstance, createStandardCardInstance, CryptoCardRandom
 import { ChatChannel } from "../chat/chatChannel.js";
 import { recordCardDiscovery } from "../collections/discoveryService.js";
 import { loadDuelParticipant, toGuildDuelCard } from "../duel/duelService.js";
+import { loadGuardianDragonBattleHealth } from "../guardianDragon/guardianDragonBattleHealth.js";
 import { loadActiveAltarHpPct } from "../guild/altarService.js";
 import type { GuildActivityRecorder } from "../guild/guildService.js";
 import { PlayerPersistenceError, PlayerRepository } from "../users/playerRepository.js";
@@ -541,12 +542,14 @@ export class TournamentService {
         if (!existing) {
           if (pending.stage > currentStage) continue;
           const [a, b] = pending.playerIds.map(id => entries.get(id)!.snapshot!) as [EntrySnapshot, EntrySnapshot];
+          // The dragon's health is read when the match is created and added flat, after the ×2 and the percent bonuses.
+          const [dragonA, dragonB] = [await loadGuardianDragonBattleHealth(client, pending.playerIds[0], now), await loadGuardianDragonBattleHealth(client, pending.playerIds[1], now)];
           const duel = createTournamentDuel({
             id: `${event.id}:${pending.id}`,
             battleStartsAt: getTournamentStageWindow(startsAt, pending.stage).battleStartsAt,
             sides: [
-              { playerId: pending.playerIds[0], deck: a.deck, modifiers: a.side.modifiers, ...(a.collections ? { collections: a.collections } : {}) },
-              { playerId: pending.playerIds[1], deck: b.deck, modifiers: b.side.modifiers, ...(b.collections ? { collections: b.collections } : {}) },
+              { playerId: pending.playerIds[0], deck: a.deck, modifiers: a.side.modifiers, dragonHp: dragonA, ...(a.collections ? { collections: a.collections } : {}) },
+              { playerId: pending.playerIds[1], deck: b.deck, modifiers: b.side.modifiers, dragonHp: dragonB, ...(b.collections ? { collections: b.collections } : {}) },
             ],
             random: this.random,
           });

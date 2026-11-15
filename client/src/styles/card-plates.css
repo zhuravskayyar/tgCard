@@ -409,3 +409,26 @@
     drop-shadow(1px 0 0 #0d1f05) drop-shadow(-1px 0 0 #0d1f05) drop-shadow(0 1px 0 #0d1f05) drop-shadow(0 -1px 0 #0d1f05)
     drop-shadow(0 0 4px rgb(140 230 90 / 85%));
 }
+
+/* Legendary = antique gold overlay (see docs/card-art-workflow.md). The aureole sits BEHIND the card, outside the art:
+   a very faint warm glow from the shared legendary palette (cards/legendaryPalette.ts). */
+.card-detail-card.deck-card--legendary::before {
+  position: absolute;
+  z-index: -1;
+  inset: -9% -13%;
+  display: block;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--legendary-gold) 44%, transparent), color-mix(in srgb, var(--legendary-bronze) 14%, transparent) 62%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+/* Profile "strongest cards": a legendary card is shown a little larger with a deeper shadow and a soft gold glow. */
+.player-profile-card-preview--legendary { overflow: visible; }
+.player-profile-card-preview--legendary .player-profile-card-plate {
+  z-index: 1;
+  transform: scale(1.12);
+  transform-origin: 50% 55%;
+  filter: drop-shadow(0 8px 7px rgb(0 0 0 / 55%)) drop-shadow(0 0 10px color-mix(in srgb, var(--legendary-gold) 40%, transparent));
+}

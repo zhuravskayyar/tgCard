@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { installSoundEffects } from "./audio";
 import { LanguageProvider } from "./i18n";
+import { installLegendaryCssVariables } from "./cards/legendaryPalette";
 import "./theme";
 import "./styles/global.css";
 import "./styles/tokens.css";
@@ -52,6 +53,9 @@ createRoot(rootElement).render(
     </LanguageProvider>
   </StrictMode>,
 );
+
+// The legendary gold palette is defined once in TypeScript; CSS layers read it through custom properties.
+installLegendaryCssVariables();
 
 // Dev-only phone diagnostics (`?fps=1`); production builds drop this branch.
 if (import.meta.env.DEV) {

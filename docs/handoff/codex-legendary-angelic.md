@@ -50,3 +50,18 @@
 ## 5. Далі за планом (після легендарної)
 
 5. e2e-тести; 6. статус рейду; 7. залежність `alegreya-sans`; 8. отримання джерел магії. Перед ними уточнити з користувачем.
+
+## 6. Update 2026-11-15: legendary = antique gold overlay (replaces the angelic idea)
+
+The owner's design review rejected the angel theme: it read as "more yellow", and a universal legendary material must also suit demons, beasts, necro and mechanical cards. Kind 9 (`gold-damascus`) in `client/src/cards/cardMaterialShader.ts` is now **antique gold over dark bronze**; the mythic branch (kind 10) is untouched.
+
+- Palette: defined once in `client/src/cards/legendaryPalette.ts` (bronze-dark, bronze, antique-gold, warm-gold, highlight). The shader receives it as GLSL `LEG_*` constants; CSS gets it as `--legendary-*` custom properties installed from `main.tsx`.
+- Centre of the art stays clean (calm bronze plate, faint damask only near the edges). All pathos is on the perimeter:
+  two-layer frame (thin light inner edge + thick antique-gold band with bronze outer rim, flowing damask and barely visible light-crack veins),
+  crown spikes top-centre and bottom-centre, corner diamond ornaments, small round edge glints.
+- Effects: slow diagonal sheen (strong at the edges, veil in the middle), two fine gold-dust layers, two star flares waking at random frame points, faint warm silhouette rim.
+  No wings, feathers, clouds, halo or heavy white light.
+- Second marker: the power tray is a dark-bronze damask plate with a double gold rim (gilded outer rim plus thin light inner line) and white-gold numerals. No new sprite is needed: the tray is drawn inside the shader.
+- CSS (no shader possible outside the card): `.card-detail-card.deck-card--legendary::before` is a very faint aureole behind the card; a legendary card in the profile "strongest cards" row is shown 12% larger with a deeper shadow and soft gold glow (`.player-profile-card-preview--legendary`, in `styles/card-plates.css`).
+- Still animates on its own (as before), cost is the same order as the angelic branch (two dust layers, two flares, four art taps for the rim). Reduced motion keeps a complete still frame (`animTime = 0`).
+- Not verified on a phone here: run the phone FPS check from section 4 (`/deck?allLegendary=1&fps=1`) before sign-off.

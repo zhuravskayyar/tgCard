@@ -1,5 +1,6 @@
 import {
   BASE_POWER_BY_LEVEL,
+  GUARDIAN_DRAGON_FLAME_START_LEVEL,
   GUARDIAN_DRAGON_FREE_FIGHTS_COOLDOWN_HOURS,
   GUARDIAN_DRAGON_HIKES,
   GUARDIAN_DRAGON_KEEP_MASTERY_TOP,
@@ -11,15 +12,24 @@ import {
   MAGIC_SOURCE_POWER,
   MAX_CARD_LEVEL,
   addGuardianDragonHealth,
+  advanceCardLevel,
+  applyAbsorptionEfficiency,
+  applyElementalPotential,
+  canLevelUp,
   canStartGuardianDragonHike,
   getGuardianDragonFlamePower,
+  getGuardianDragonFlameUpgrade,
   getGuardianDragonFreeFights,
   getGuardianDragonHike,
   getGuardianDragonMonthKey,
   getGuardianDragonPaidSendPrice,
   getGuardianDragonStage,
+  getPlayerCollectionModifiers,
+  getUpgradeProgress,
+  getTransferableElementValue,
   isGuardianDragonFreeSendReady,
   resolveGuardianDragonFights,
+  selectBulkAbsorption,
   selectGuardianDragonFeed,
   type GuardianDragonHikeHours,
 } from "@cardastika/game-core";
@@ -27,11 +37,14 @@ import {
   isArenaUnlocked,
   type CardElement,
   type GuardianDragonFeedResponse,
+  type GuardianDragonFlameAbsorbResponse,
+  type GuardianDragonFlameUpgradeResponse,
   type GuardianDragonFightResponse,
   type GuardianDragonRatingResponse,
   type GuardianDragonView,
 } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
+import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
 
 /** Reference: the dragon belongs to mages who reached the third epic duel league, the same gate as the arena. */
 const isGuardianDragonUnlocked = isArenaUnlocked;
@@ -44,7 +57,7 @@ export class GuardianDragonLockedError extends Error {
   constructor() { super("The guardian dragon opens in the third epic duel league"); this.name = "GuardianDragonLockedError"; }
 }
 export class GuardianDragonStateError extends Error {
-  constructor(readonly code: "hike_running" | "not_enough_progress" | "no_hike" | "progress_full" | "nothing_to_feed" | "card_not_feedable" | "insufficient_gold" | "price_changed", message: string) {
+  constructor(readonly code: "hike_running" | "not_enough_progress" | "no_hike" | "progress_full" | "nothing_to_feed" | "card_not_feedable" | "insufficient_gold" | "price_changed" | "maximum_level" | "nothing_to_absorb" | "unsupported_level_data", message: string) {
     super(message);
     this.name = "GuardianDragonStateError";
   }
@@ -67,11 +80,22 @@ interface DragonRow {
   prev_month_key: string | null;
   prev_rating: number | null;
   flame_level: number;
+  /** NUMERIC columns come back from pg as strings. */
+  flame_level_progress_elements: string | number;
+  flame_stored_elements: string | number;
 }
 
-const COLUMNS = "month_key, health, mastery_tenths, progress_minutes, hike_hours, hike_health_gain, hike_ends_at, rating, fights_cooldown_until, paid_sends, prev_month_key, prev_rating, flame_level";
+const COLUMNS = "month_key, health, mastery_tenths, progress_minutes, hike_hours, hike_health_gain, hike_ends_at, rating, fights_cooldown_until, paid_sends, prev_month_key, prev_rating, flame_level, flame_level_progress_elements, flame_stored_elements";
 
 interface PlayerGateRow { duel_rating: number; duel_highest_league_index: number; gold: number }
+
+function flameStateOf(row: Pick<DragonRow, "flame_level" | "flame_level_progress_elements" | "flame_stored_elements"> | null) {
+  return {
+    level: row?.flame_level ?? GUARDIAN_DRAGON_FLAME_START_LEVEL,
+    levelProgressElements: Number(row?.flame_level_progress_elements ?? 0),
+    storedElements: Number(row?.flame_stored_elements ?? 0),
+  };
+}
 
 function nextMonthStart(now: Date) {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
@@ -84,10 +108,11 @@ export class GuardianDragonService {
 
   private now() { return this.options.now?.() ?? new Date(); }
 
-  async getDragon(playerId: string) {
+  /** `includeFlameAbsorb` adds the absorb preview (a heavy card scan); the deck block does not need it. */
+  async getDragon(playerId: string, includeFlameAbsorb = false) {
     return this.transaction(async (client, now) => {
       const { row, unlocked } = await this.load(client, playerId, now);
-      return this.view(client, playerId, row, unlocked, now);
+      return this.view(client, playerId, row, unlocked, now, includeFlameAbsorb);
     });
   }
 
@@ -184,6 +209,48 @@ export class GuardianDragonService {
     });
   }
 
+  /**
+   * «Поглинути слабкі» for the flame: weak cards of any element (the flame has none) outside the deck are
+   * burnt for level progress, with the same value and collection bonus as a card absorbing them.
+   */
+  async absorbFlame(playerId: string, instanceIds?: readonly string[]): Promise<GuardianDragonFlameAbsorbResponse> {
+    return this.transaction(async (client, now) => {
+      const { row } = await this.loadUnlocked(client, playerId, now);
+      if (row.flame_level >= MAX_CARD_LEVEL) throw new GuardianDragonStateError("maximum_level", "The flame is already at the maximum level");
+      const plan = await this.planFlameAbsorb(client, playerId, row, true, instanceIds);
+      if (instanceIds && plan.candidateCount !== new Set(instanceIds).size) {
+        throw new GuardianDragonStateError("card_not_feedable", "Only your weak cards outside the deck can be absorbed");
+      }
+      if (!plan.ids.length) throw new GuardianDragonStateError("nothing_to_absorb", "No weak cards fit into the current level");
+      const after = applyElementalPotential(flameStateOf(row), plan.addedElements);
+      const deleted = await client.query("DELETE FROM player_card_instances WHERE player_id = $1 AND id = ANY($2::uuid[])", [playerId, plan.ids]);
+      if (deleted.rowCount !== plan.ids.length) throw new GuardianDragonPersistenceError();
+      const updated = await this.save(client, playerId, { ...row, flame_level_progress_elements: after.levelProgressElements, flame_stored_elements: after.storedElements });
+      return { dragon: await this.view(client, playerId, updated, true, now), consumedInstanceIds: plan.ids };
+    });
+  }
+
+  /**
+   * The flame levels up like a card: the gold price comes from the card tables and shrinks with progress.
+   * Level, progress and overflow are permanent and survive the monthly rebirth.
+   */
+  async upgradeFlame(playerId: string, expectedPrice?: number): Promise<GuardianDragonFlameUpgradeResponse> {
+    return this.transaction(async (client, now) => {
+      const { row, gold } = await this.loadUnlocked(client, playerId, now);
+      const state = flameStateOf(row);
+      if (state.level >= MAX_CARD_LEVEL) throw new GuardianDragonStateError("maximum_level", "The flame is already at the maximum level");
+      const check = canLevelUp(state, gold);
+      if (check.requiredGold === null) throw new GuardianDragonStateError("unsupported_level_data", "The next level has no confirmed price");
+      // The client sends the price it showed, so a retry or a second device never pays without seeing it.
+      if (expectedPrice !== undefined && expectedPrice !== check.requiredGold) throw new GuardianDragonStateError("price_changed", "The upgrade price has changed");
+      if (check.availability !== "ready") throw new GuardianDragonStateError("insufficient_gold", "Not enough gold for this level");
+      const next = advanceCardLevel(state);
+      await client.query("UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1", [playerId, check.requiredGold]);
+      const updated = await this.save(client, playerId, { ...row, flame_level: next.level, flame_level_progress_elements: next.levelProgressElements, flame_stored_elements: next.storedElements });
+      return { dragon: await this.view(client, playerId, updated, true, now), goldSpent: check.requiredGold, playerGold: gold - check.requiredGold };
+    });
+  }
+
   /** This month's dragon rating, five a page, with the viewer's own place under it. */
   async getRating(playerId: string, page: number): Promise<GuardianDragonRatingResponse> {
     const monthKey = getGuardianDragonMonthKey(this.now());
@@ -222,7 +289,7 @@ export class GuardianDragonService {
     };
   }
 
-  private async view(client: PoolClient, playerId: string, row: DragonRow | null, unlocked: boolean, now: Date): Promise<GuardianDragonView> {
+  private async view(client: PoolClient, playerId: string, row: DragonRow | null, unlocked: boolean, now: Date, includeFlameAbsorb = true): Promise<GuardianDragonView> {
     const health = row?.health ?? 0;
     const onHike = Boolean(row?.hike_ends_at);
     const mastery = masteryOf(row);
@@ -234,7 +301,13 @@ export class GuardianDragonService {
     );
     const codes = new Set(collections.rows.map(({ code }) => code));
     const bonus = { dragonFans: codes.has("dragon_fans") || codes.has("magic_1"), dragonWhisperers: codes.has("dragon_whisperers") };
-    const flameLevel = row?.flame_level ?? 90;
+    const flameLevel = row?.flame_level ?? GUARDIAN_DRAGON_FLAME_START_LEVEL;
+    const flameState = flameStateOf(row);
+    const gold = Number((await client.query<{ gold: string | number }>("SELECT gold FROM players WHERE id = $1", [playerId])).rows[0]?.gold ?? 0);
+    const upgrade = getGuardianDragonFlameUpgrade(flameState, gold, mastery, bonus);
+    // Preview of the bulk absorb button: only for an unlocked dragon, with no row locks.
+    const absorb = includeFlameAbsorb && unlocked && row ? await this.planFlameAbsorb(client, playerId, row, false) : null;
+    const absorbed = absorb ? applyElementalPotential(flameState, absorb.addedElements) : null;
     const freeReady = isGuardianDragonFreeSendReady(row?.fights_cooldown_until ?? null, now);
     const rating = row?.rating ?? 0;
     return {
@@ -267,8 +340,55 @@ export class GuardianDragonService {
         maxLevel: MAX_CARD_LEVEL,
         powerAtMaxLevel: getGuardianDragonFlamePower(MAX_CARD_LEVEL, mastery, bonus),
         ...bonus,
+        progressPercent: upgrade.percent,
+        upgradePrice: upgrade.requiredGold,
+        upgradePowerGain: upgrade.powerGain,
+        upgradeReady: upgrade.availability === "ready",
+        absorbableCards: absorb?.ids.length ?? 0,
+        absorbGainPercent: absorbed ? Math.max(0, Math.round((getUpgradeProgress(absorbed.levelProgressElements, flameLevel).percent - upgrade.percent) * 100) / 100) : 0,
       },
     };
+  }
+
+  /**
+   * Which weak cards the flame absorbs and what they add. With `instanceIds` those exact cards (all must be
+   * weak); without, the weakest that fit into the level without overshooting it, as for a card.
+   */
+  private async planFlameAbsorb(client: PoolClient, playerId: string, row: DragonRow, lock: boolean, instanceIds?: readonly string[]) {
+    const state = flameStateOf(row);
+    if (state.level >= MAX_CARD_LEVEL) return { ids: [] as string[], addedElements: 0, candidateCount: 0 };
+    const parameters: unknown[] = [playerId];
+    let filter = "";
+    if (instanceIds) {
+      parameters.push([...new Set(instanceIds)]);
+      filter = " AND player_card_instances.id = ANY($2::uuid[])";
+    }
+    const result = await client.query<{ id: string; level: number; level_progress_elements: string | number; stored_elements: string | number }>(
+      `SELECT player_card_instances.id, player_card_instances.level, player_card_instances.level_progress_elements, player_card_instances.stored_elements
+       FROM player_card_instances
+       LEFT JOIN player_decks ON player_decks.player_id = player_card_instances.player_id
+       LEFT JOIN deck_slots ON deck_slots.deck_id = player_decks.id AND deck_slots.card_instance_id = player_card_instances.id
+       WHERE player_card_instances.player_id = $1
+         AND deck_slots.card_instance_id IS NULL
+         AND player_card_instances.protected_from_absorption = FALSE${filter}
+       ORDER BY player_card_instances.id
+       ${lock ? "FOR UPDATE OF player_card_instances" : ""}`,
+      parameters,
+    );
+    const cards = result.rows.map((card) => ({
+      id: card.id,
+      transferableElements: getTransferableElementValue({ level: Number(card.level), levelProgressElements: Number(card.level_progress_elements), storedElements: Number(card.stored_elements) }),
+    }));
+    const modifiers = getPlayerCollectionModifiers(await getCompletedCollectionModifiers(client, playerId), "absorption");
+    let ids = cards.map(({ id }) => id);
+    if (!instanceIds) {
+      const progress = getUpgradeProgress(state.levelProgressElements, state.level);
+      const remaining = progress.requiredElements - progress.filledElements - state.storedElements;
+      ids = remaining > 0 ? selectBulkAbsorption(cards, remaining, (base) => applyAbsorptionEfficiency(base, modifiers), 100) : [];
+    }
+    const chosen = new Set(ids);
+    const base = cards.filter(({ id }) => chosen.has(id)).reduce((total, card) => total + card.transferableElements, 0);
+    return { ids, addedElements: ids.length ? applyAbsorptionEfficiency(base, modifiers) : 0, candidateCount: cards.length };
   }
 
   private async loadUnlocked(client: PoolClient, playerId: string, now: Date) {
@@ -329,11 +449,13 @@ export class GuardianDragonService {
       `UPDATE guardian_dragons
        SET month_key = $2, health = $3, mastery_tenths = $4, mastery = $4 / 10, progress_minutes = $5,
            hike_hours = $6, hike_health_gain = $7, hike_ends_at = $8, rating = $9, fights_cooldown_until = $10,
-           paid_sends = $11, prev_month_key = $12, prev_rating = $13, flame_level = $14, updated_at = NOW()
+           paid_sends = $11, prev_month_key = $12, prev_rating = $13, flame_level = $14,
+           flame_level_progress_elements = $15, flame_stored_elements = $16, updated_at = NOW()
        WHERE player_id = $1
        RETURNING ${COLUMNS}`,
       [playerId, row.month_key, row.health, row.mastery_tenths, row.progress_minutes, row.hike_hours, row.hike_health_gain, row.hike_ends_at,
-        row.rating, row.fights_cooldown_until, row.paid_sends, row.prev_month_key, row.prev_rating, row.flame_level],
+        row.rating, row.fights_cooldown_until, row.paid_sends, row.prev_month_key, row.prev_rating, row.flame_level,
+        row.flame_level_progress_elements, row.flame_stored_elements],
     );
     return result.rows[0]!;
   }

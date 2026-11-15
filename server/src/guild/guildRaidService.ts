@@ -43,6 +43,7 @@ import type {
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { hasCompletedCollection } from "../collections/discoveryService.js";
 import { DuelDeckInvalidError, loadDuelParticipant, toGuildDuelCard } from "../duel/duelService.js";
+import { loadGuardianDragonBattleHealth } from "../guardianDragon/guardianDragonBattleHealth.js";
 import { applyDragonHunterTitle, hasDragonHunterTitle } from "./dragonHunterTitle.js";
 
 const WITCH_RAID_LEVEL = 1;
@@ -1132,6 +1133,8 @@ export class GuildRaidService {
         if (guildCard) guildCard.finalPower = Math.round(guildCard.finalPower * (100 + WAR_DWARVES_PCT) / 100);
         loaded.snapshot.startingHp = Math.round(loaded.snapshot.startingHp * (100 + WAR_DWARVES_PCT) / 100);
       }
+      // Guardian dragon: its health is added flat, after the guild card, the dwarves' percent and any other multiplier.
+      loaded.snapshot.startingHp += await loadGuardianDragonBattleHealth(client, playerId, new Date());
       const bosses = await this.loadBosses(client, raid.id, true);
       const witchDecks = await this.ensureWitchDecks(client, raid, bosses);
       const playerPool = initializeCyclicCardPool(loaded.snapshot.cards, this.random);

@@ -1,4 +1,4 @@
-import type { CardElement, GuardianDragonFeedResponse, GuardianDragonFightResponse, GuardianDragonHikeHoursValue, GuardianDragonRatingResponse, GuardianDragonView } from "@cardastika/shared";
+import type { CardElement, GuardianDragonFeedResponse, GuardianDragonFightResponse, GuardianDragonFlameAbsorbResponse, GuardianDragonFlameUpgradeResponse, GuardianDragonHikeHoursValue, GuardianDragonRatingResponse, GuardianDragonView } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getPlayerAuthHeader } from "./index";
 
@@ -40,8 +40,9 @@ async function request<T>(initData: string, path: string, options: { body?: unkn
   }
 }
 
-export function loadGuardianDragon(initData: string, signal?: AbortSignal) {
-  return request<GuardianDragonView>(initData, "/api/guardian-dragon", { signal });
+/** `withFlameAbsorb` also asks for the absorb preview; without it absorbableCards and absorbGainPercent are 0. */
+export function loadGuardianDragon(initData: string, signal?: AbortSignal, withFlameAbsorb = false) {
+  return request<GuardianDragonView>(initData, withFlameAbsorb ? "/api/guardian-dragon?flame=1" : "/api/guardian-dragon", { signal });
 }
 
 /** Without ids the server feeds weak cards, weakest first, until the scale is full. */
@@ -64,4 +65,14 @@ export function fightGuardianDragon(initData: string, expectedPrice: number) {
 
 export function loadGuardianDragonRating(initData: string, page: number, signal?: AbortSignal) {
   return request<GuardianDragonRatingResponse>(initData, `/api/guardian-dragon/rating?page=${page}`, { signal });
+}
+
+/** Absorbs weak cards of any element into the flame's level progress; without ids the server picks the weakest that fit. */
+export function absorbGuardianDragonFlame(initData: string, instanceIds?: string[]) {
+  return request<GuardianDragonFlameAbsorbResponse>(initData, "/api/guardian-dragon/flame/absorb", { method: "POST", body: instanceIds ? { instanceIds } : {} });
+}
+
+/** `expectedPrice` is the price the button showed; the server refuses another price. */
+export function upgradeGuardianDragonFlame(initData: string, expectedPrice: number) {
+  return request<GuardianDragonFlameUpgradeResponse>(initData, "/api/guardian-dragon/flame/upgrade", { method: "POST", body: { expectedPrice } });
 }

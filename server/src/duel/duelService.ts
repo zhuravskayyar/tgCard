@@ -18,6 +18,7 @@ import {
   getMatchmakingRange,
   getEquipmentCollectionElementPct,
   getPlayerCollectionModifiers,
+  addFlatBattleHp,
   getStartingHp,
   initializeCyclicCardPool,
   isDeckPowerInMatchmakingRange,
@@ -56,6 +57,7 @@ import { getCompletedCollectionModifiers } from "../collections/discoveryService
 import { parseStoredEquipment } from "../equipment/equipmentState.js";
 import type { CampaignService } from "../campaign/campaignService.js";
 import { loadGuildCardForMember, type GuildActivityRecorder } from "../guild/guildService.js";
+import { loadGuardianDragonBattleHealth } from "../guardianDragon/guardianDragonBattleHealth.js";
 import {
   mapCardInstanceRow,
   type CardInstanceProjectionRow,
@@ -442,6 +444,8 @@ export async function loadDuelParticipant(
   client: PoolClient,
   playerId: string,
   scope: CollectionBonusScope = "duel",
+  /** Modes where the guardian dragon adds its health (duels, arena); the snapshot then carries `dragonHpBonus`. */
+  options: { dragonHp?: boolean; now?: Date } = {},
 ): Promise<LoadedParticipant> {
   const playerResult = await client.query<ParticipantRow>(
     `
@@ -519,6 +523,7 @@ export async function loadDuelParticipant(
   const equippedDeckPower = getDeckPower(cards);
   const effectiveDeckPower = getEffectiveDeckPower(equippedDeckPower, modifiers.deckPowerPct);
   const guildCard = await loadGuildCardForMember(client, playerId);
+  const dragonHpBonus = options.dragonHp ? await loadGuardianDragonBattleHealth(client, playerId, options.now ?? new Date()) : 0;
   return {
     player,
     deckPower,
@@ -532,7 +537,8 @@ export async function loadDuelParticipant(
       cards,
       modifiers,
       effectiveDeckPower,
-      startingHp: getStartingHp(effectiveDeckPower, modifiers.battleHpPct),
+      startingHp: addFlatBattleHp(getStartingHp(effectiveDeckPower, modifiers.battleHpPct), dragonHpBonus),
+      ...(dragonHpBonus ? { dragonHpBonus } : {}),
       ...(artifactItemIds.length ? { artifactItemIds } : {}),
     },
     guildCard,
@@ -687,7 +693,7 @@ export class DuelService {
       const search = searchResult.rows[0];
       if (!search) throw new DuelSearchInvalidError();
 
-      const challenger = await loadDuelParticipant(client, challengerId);
+      const challenger = await loadDuelParticipant(client, challengerId, "duel", { dragonHp: true });
       const tutorialMode = tutorial && challenger.player.tutorial_eligible;
       const availability = getDuelAvailability(cooldown.rows[0], new Date());
       if (!tutorialMode && availability.remaining === 0) throw new DuelCooldownError(availability.refillAt!);
@@ -698,7 +704,7 @@ export class DuelService {
         opponentSnapshot = search.opponent_snapshot;
       } else {
         if (!search.opponent_id || search.opponent_snapshot) throw new DuelSearchInvalidError();
-        opponentParticipant = await loadDuelParticipant(client, search.opponent_id);
+        opponentParticipant = await loadDuelParticipant(client, search.opponent_id, "duel", { dragonHp: true });
         opponentSnapshot = opponentParticipant.snapshot;
       }
       const range = getMatchmakingRange(challenger.snapshot.effectiveDeckPower, challenger.player.duel_win_streak);
@@ -998,7 +1004,7 @@ export class DuelService {
       }
       await this.payGold(client, challengerId, price);
 
-      const challenger = await loadDuelParticipant(client, challengerId);
+      const challenger = await loadDuelParticipant(client, challengerId, "duel", { dragonHp: true });
       const templates = await loadBotCardTemplates(client);
       const playerGuildCard = toGuildDuelCard(challenger.guildCard);
       const ratingBefore = toSafeInteger(challenger.player.duel_rating, "Duel rating");

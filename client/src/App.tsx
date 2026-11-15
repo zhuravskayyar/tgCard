@@ -822,6 +822,8 @@ export function App() {
           onOpenCampaign={openCampaign}
           onOpenCard={(id) => openCard(id, "deck")}
           onOpenDuel={() => openDuel()}
+          onOpenGuardianDragon={openGuardianDragon}
+          onOpenGuild={openGuild}
           onOpenShop={() => openShop("deck")}
           onOpenTasks={openTasks}
           onOpenWeakCards={openDeckWeakCards}

@@ -13,6 +13,7 @@ import {
   getArenaCardChangeCost,
   getArenaQueueDurationMs,
   getElementMultiplier,
+  addFlatBattleHp,
   getStartingHp,
   initializeCyclicCardPool,
   shuffleCards,
@@ -189,7 +190,8 @@ function cloneModifiers(snapshot: DuelSideSnapshot) {
 
 function createParticipant(snapshot: DuelSideSnapshot, id: string, isBot: boolean, random = Math.random, guildCard: DuelCardSnapshot | null = null): ArenaBattleParticipantSnapshot {
   const pool = initializeCyclicCardPool(snapshot.cards, random);
-  const maxHp = getStartingHp(snapshot.effectiveDeckPower * 3, snapshot.modifiers.battleHpPct);
+  // The guardian dragon health is flat: it comes after the ×3 arena multiplier and the percent bonuses. Bots have none.
+  const maxHp = addFlatBattleHp(getStartingHp(snapshot.effectiveDeckPower * 3, snapshot.modifiers.battleHpPct), isBot ? 0 : snapshot.dragonHpBonus);
   return {
     ...(snapshot.artifactItemIds?.length ? { artifactItemIds: [...snapshot.artifactItemIds] } : {}),
     activeSlots: pool.activeCards,
@@ -1060,7 +1062,7 @@ export class ArenaService {
       const players: QueuedArenaPlayer[] = [];
       for (const entry of queued.rows) {
         try {
-          const loaded = await loadDuelParticipant(client, entry.player_id, "arena");
+          const loaded = await loadDuelParticipant(client, entry.player_id, "arena", { dragonHp: true });
           players.push({
             createdAt: entry.created_at,
             guildCard: toGuildDuelCard(loaded.guildCard),
