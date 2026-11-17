@@ -3,7 +3,6 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { CARD_RARITIES, type CardRarity, type CollectionCompletionNotice, type ShopPurchaseResponse } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
 import { ShopOfferPanel } from "../components/ShopOfferPanel";
-import { SwipeSlider } from "../components/SwipeSlider";
 import { ShopRewardReveal } from "../components/ShopRewardReveal";
 import { ShopOfferDetails } from "../components/ShopOfferDetails";
 import { ShopCardInfoScreen } from "./ShopCardInfoScreen";
@@ -183,6 +182,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
   const [view, setView] = useState<ShopView>("categories");
   const [section, setSection] = useState<ShopSection>("cards");
   const [activeCategory, setActiveCategory] = useState<ShopCategoryId | null>(null);
+  const [selectedCollectionPackId, setSelectedCollectionPackId] = useState<string | null>(null);
   const [batchPurchasing, setBatchPurchasing] = useState(false);
   const [purchaseCount, setPurchaseCount] = useState(0);
   const [reveal, setReveal] = useState<ShopReveal | null>(null);
@@ -439,8 +439,9 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
               <div className="shop-sections">
               <section className="shop-base-offers" aria-label="Постійні пропозиції карт">
                 <ShopSectionHeading>По одній карті</ShopSectionHeading>
+                <p className="shop-single-card-hint">Обери пакунок. Торкнися шансу, щоб переглянути всі можливі карти.</p>
                 {catalogState.catalog.offers.length ? (
-                  <SwipeSlider labels={catalogState.catalog.offers.map((_, index) => `Набір ${index + 1} з ${catalogState.catalog.offers.length}`)}>
+                  <div className="shop-single-card-list">
                   {[...catalogState.catalog.offers]
                     .sort((left, right) => {
                       if (!beginnerContext || !player) {
@@ -469,13 +470,13 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
                       />
                     );
                     })}
-                  </SwipeSlider>
+                  </div>
                 ) : (
                   <div className="shop-inline-empty">Пропозиції карт тимчасово відсутні.</div>
                 )}
               </section>
 
-              <CollectionPacksSection balance={player ?? undefined} onPurchased={handleHolidayPurchased} />
+              <CollectionPacksSection balance={player ?? undefined} onPurchased={handleHolidayPurchased} onSelectPack={setSelectedCollectionPackId} selectedPackId={selectedCollectionPackId} />
               </div>
             )
           ) : null}

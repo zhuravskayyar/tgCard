@@ -24,7 +24,7 @@ interface ShopOfferDetailsProps {
 export function ShopOfferDetails({ availableBalance, disabled, errorMessage, offer, onBack, onOpenCard, onPurchase, purchasing }: ShopOfferDetailsProps) {
   const groups = [...offer.pool].sort((left, right) => CARD_RARITIES.indexOf(right.rarity) - CARD_RARITIES.indexOf(left.rarity));
   return <>
-    <ScreenHeading backLabel="До пропозицій" onBack={onBack} title={<>Карти за <CurrencyIcon kind={offer.currency} /> {offer.price}</>} />
+    <ScreenHeading backLabel="До пропозицій" onBack={onBack} title={offer.free ? "Безкоштовний пакунок" : <>Карти за <CurrencyIcon kind={offer.currency} /> {offer.price}</>} />
     <ShopOfferPanel availableBalance={availableBalance} disabled={disabled} expanded offer={offer} onPurchase={onPurchase} purchasing={purchasing} />
     {errorMessage ? <p className="shop-error" role="alert">{errorMessage}</p> : null}
     <RibbonTitle size="wide">Прямо зараз у продажу</RibbonTitle>

@@ -87,6 +87,7 @@ export function ShopOfferPanel({
         <div className="shop-offer__copy">
           <h3>{rarityLabels[offer.guaranteedRarity]} карта</h3>
           {expanded ? <p className="shop-offer__guarantee">Одна карта в пакунку</p> : null}
+          {!expanded ? <p className="shop-offer__guarantee">1 карта · не нижче {upgradeLabels[offer.guaranteedRarity]}</p> : null}
           {!expanded && leadUpgrade ? (
             onDetails ? (
               <button aria-label={`Детальніше: ${formatPercentage(leadUpgrade.chance)}% шанс ${upgradeLabels[leadUpgrade.rarity]}`} className="shop-offer__chance shop-offer__chance--link" onClick={onDetails} type="button">

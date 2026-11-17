@@ -1493,3 +1493,27 @@
 
 /* Weekly collection packs: each pack has its own painted seal (emblem and wax colour baked in), so no rarity tint. */
 .shop-pack-seal.shop-pack-seal--emblem { filter: drop-shadow(0 2px 2px rgb(20 10 2 / 60%)) !important; animation: none; }
+
+/* Single-card offers are compared in one vertical list, with no hidden carousel pages. */
+:root[data-game-theme="light"] body .app-shell .app-content .shop-single-card-list { display: grid; gap: 8px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-single-card-hint {
+  margin: 0 10px 2px;
+  color: #5f4024;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-collection-tabs { margin: 4px 0 2px; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-collection-tabs .shop-tab {
+  min-height: 44px;
+  padding-inline: 10px;
+  white-space: normal;
+}
+:root[data-game-theme="light"] body .app-shell .app-content .shop-collection-tabs .shop-tab span { line-height: 1.15; }
+:root[data-game-theme="light"] body .app-shell .app-content .shop-collection-offers { gap: 8px; }
+
+/* The compact offer actions should still be comfortable to tap on a phone. */
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__purchase,
+:root[data-game-theme="light"] body .app-shell .app-content .shop-offer--shelf-compact .shop-offer__chance--link {
+  min-height: 44px;
+}

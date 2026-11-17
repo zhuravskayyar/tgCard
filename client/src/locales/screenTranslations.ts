@@ -2772,6 +2772,10 @@ export const SCREEN_TRANSLATIONS: ReadonlyArray<readonly [string, string, string
   ["{s} боїв", "{s} fights", "{s} Kämpfe", "{s} боёв"],
   ["Битва драконів", "Dragon battle", "Drachenkampf", "Битва драконов"],
   // Shop: collections of the week
+  ["Обери пакунок. Торкнися шансу, щоб переглянути всі можливі карти.", "Choose a pack. Tap the chance to see all possible cards.", "Wähle ein Paket. Tippe auf die Chance, um alle möglichen Karten zu sehen.", "Выбери пак. Нажми на шанс, чтобы увидеть все возможные карты."],
+  ["1 карта · не нижче {s}", "1 card · at least {s}", "1 Karte · mindestens {s}", "1 карта · не ниже {s}"],
+  ["Безкоштовний пакунок", "Free pack", "Kostenloses Paket", "Бесплатный пак"],
+  ["Колекції цього тижня", "This week's collections", "Kollektionen dieser Woche", "Коллекции этой недели"],
   ["Колекції тижня","Collections of the week","Kollektionen der Woche","Коллекции недели"],
   ["Оновлення через {s}","Refreshes in {s}","Erneuerung in {s}","Обновление через {s}"],
   ["Повна колекція · {s}","Full collection · {s}","Komplette Kollektion · {s}","Полная коллекция · {s}"],

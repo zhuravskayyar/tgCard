@@ -4,7 +4,6 @@ import { CARD_RARITIES } from "@cardastika/shared";
 import { useCollectionPacks } from "../hooks/useCollectionPacks";
 import { CurrencyIcon } from "./CurrencyDisplay";
 import { ShopInsufficientFundsModal } from "./ShopInsufficientFundsModal";
-import { SwipeSlider } from "./SwipeSlider";
 
 const purchaseErrorMessages: Record<string, string> = {
   insufficient_gold: "Недостатньо золота",
@@ -111,10 +110,12 @@ function PackOfferPanel({ availableGold, bonus, canAfford, collected = false, de
 interface CollectionPacksSectionProps {
   balance?: { gold: number; silver: number };
   onPurchased: (result: CollectionPackPurchaseResponse) => void;
+  onSelectPack: (packId: string) => void;
+  selectedPackId: string | null;
 }
 
 /** «Колекції тижня»: two collection packs rotate every ISO week, so every collection can be completed. */
-export function CollectionPacksSection({ balance, onPurchased }: CollectionPacksSectionProps) {
+export function CollectionPacksSection({ balance, onPurchased, onSelectPack, selectedPackId }: CollectionPacksSectionProps) {
   const { purchase, purchaseErrorCode, purchasingOfferId, retry, state } = useCollectionPacks();
   const [now, setNow] = useState(() => Date.now());
 
@@ -131,7 +132,10 @@ export function CollectionPacksSection({ balance, onPurchased }: CollectionPacks
   if (!state.data.packs.length) return null;
 
   const many = state.data.packs.length > 1;
+  const selectedPack = state.data.packs.find((pack) => pack.id === selectedPackId) ?? state.data.packs[0]!;
   const buy = (offerId: string, price: number) => void purchase(offerId, price).then((result) => { if (result) onPurchased(result); });
+  const highest = (rarities: CardRarity[]) => rarities.reduce((best, rarity) => ((rarityRank.get(rarity) ?? 0) > (rarityRank.get(best) ?? 0) ? rarity : best), rarities[0] ?? "epic");
+  const packRarity = highest(selectedPack.setOffers.flatMap((offer) => offer.cards.map((card) => card.rarity)));
 
   return (
     <section aria-label="Колекції тижня" className="shop-base-offers shop-holiday">
@@ -140,20 +144,23 @@ export function CollectionPacksSection({ balance, onPurchased }: CollectionPacks
         <h2>Колекції тижня</h2>
         <span aria-hidden="true" />
       </div>
-      {many ? <p className="shop-holiday__note">{`Гортай убік · колекцій: ${state.data.packs.length}`}</p> : null}
       <p className="shop-holiday__note">{`Оновлення через ${formatRemaining(state.data.endsAt, now)}`}</p>
       {state.data.nextWeekPackNames.length ? (
         <p className="shop-holiday__note shop-holiday__schedule">Наступного тижня: {state.data.nextWeekPackNames.map((name, index) => <span key={name}>{index ? " · " : ""}<b>{name}</b></span>)}</p>
       ) : null}
-      <SwipeSlider labels={state.data.packs.map((pack) => pack.displayName)}>
-      {state.data.packs.map((pack) => {
-        const highest = (rarities: CardRarity[]) => rarities.reduce((best, rarity) => ((rarityRank.get(rarity) ?? 0) > (rarityRank.get(best) ?? 0) ? rarity : best), rarities[0] ?? "epic");
-        const packRarity = highest(pack.setOffers.flatMap((offer) => offer.cards.map((card) => card.rarity)));
-        return (
-          <div className="shop-sections" key={pack.id}>
-            <h3 className="shop-holiday__note">{pack.displayName}</h3>
-            <p className="shop-holiday__note shop-holiday__schedule">{returnsLabel(pack.returnsInWeeks)}</p>
-            {pack.setOffers.map((offer) => {
+      {many ? <div aria-label="Колекції цього тижня" className="shop-tabs shop-collection-tabs" role="group">
+        {state.data.packs.map((pack) => <button
+          aria-pressed={pack.id === selectedPack.id}
+          className={pack.id === selectedPack.id ? "shop-tab shop-tab--active" : "shop-tab"}
+          key={pack.id}
+          onClick={() => onSelectPack(pack.id)}
+          type="button"
+        ><span>{pack.displayName}</span></button>)}
+      </div> : null}
+      <div aria-label={selectedPack.displayName} className="shop-sections shop-collection-offers" key={selectedPack.id}>
+            {!many ? <h3 className="shop-holiday__note">{selectedPack.displayName}</h3> : null}
+            <p className="shop-holiday__note shop-holiday__schedule">{returnsLabel(selectedPack.returnsInWeeks)}</p>
+            {selectedPack.setOffers.map((offer) => {
               const discovered = offer.cards.filter((card) => card.discovered).length;
               const partial = offer.missingCount > 0 && offer.missingCount < offer.cards.length;
               return (
@@ -170,7 +177,7 @@ export function CollectionPacksSection({ balance, onPurchased }: CollectionPacks
                   key={offer.id}
                   onPurchase={() => buy(offer.id, offer.price)}
                   price={offer.price}
-                  sealSrc={`/assets/ui/shop/stall/seals/pack-seal-${pack.id}.webp`}
+                  sealSrc={`/assets/ui/shop/stall/seals/pack-seal-${selectedPack.id}.webp`}
                   purchasing={purchasingOfferId === offer.id}
                   rarity={highest(offer.cards.map((card) => card.rarity))}
                   soldOut={offer.purchased >= offer.purchaseLimit}
@@ -180,21 +187,18 @@ export function CollectionPacksSection({ balance, onPurchased }: CollectionPacks
             })}
             <PackOfferPanel
               availableGold={balance?.gold}
-              canAfford={pack.randomOffer.canAfford}
-              details={["Нові види — першими", `Відкрито: ${pack.randomOffer.discoveredCount} з ${pack.randomOffer.totalCount}`]}
+              canAfford={selectedPack.randomOffer.canAfford}
+              details={["Нові види — першими", `Відкрито: ${selectedPack.randomOffer.discoveredCount} з ${selectedPack.randomOffer.totalCount}`]}
               disabled={purchasingOfferId !== null}
-              onPurchase={() => buy(pack.randomOffer.id, pack.randomOffer.price)}
-              price={pack.randomOffer.price}
-              sealSrc={`/assets/ui/shop/stall/seals/pack-seal-${pack.id}.webp`}
-              purchasing={purchasingOfferId === pack.randomOffer.id}
+              onPurchase={() => buy(selectedPack.randomOffer.id, selectedPack.randomOffer.price)}
+              price={selectedPack.randomOffer.price}
+              sealSrc={`/assets/ui/shop/stall/seals/pack-seal-${selectedPack.id}.webp`}
+              purchasing={purchasingOfferId === selectedPack.randomOffer.id}
               rarity={packRarity}
               soldOut={false}
               title="Випадкова карта"
             />
-          </div>
-        );
-      })}
-      </SwipeSlider>
+      </div>
       {purchaseErrorCode ? <p className="shop-error" role="alert">{purchaseErrorMessages[purchaseErrorCode] ?? "Не вдалося виконати покупку."}</p> : null}
     </section>
   );
