@@ -16,6 +16,7 @@ import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 import { formatUiNumber, getUiLocale, translateUi } from "../i18n";
 import { ResourceIcon } from "../components/ResourceIcon";
+import { WinterFestiveMark } from "../components/WinterFestiveMark";
 import { FeaturedAchievements } from "../records/FeaturedAchievements";
 import { useAchievementProgress } from "../records/useAchievementProgress";
 import type { PlayerSummaryState } from "../types/player";
@@ -175,6 +176,7 @@ export function ProfileScreen({
           <section aria-label="Гравець" className="eq-plate pf-identity">
             <span className="eq-frame pf-portrait">
               <AvatarImage alt={`Аватар ${displayName}`} name={displayName} photoUrl={player.photoUrl} seed={player.id} />
+              <WinterFestiveMark until={player.winterFestiveUntil} />
             </span>
             <div className="pf-identity__copy">
               <NicknameSkinPreview nickname={displayName} skinId={player.equippedNicknameSkin} />

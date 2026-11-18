@@ -468,5 +468,5 @@ export const CARD_TRANSLATIONS: ReadonlyArray<readonly [string, string, string, 
   ["Перші зміїні чари","First Serpent Spells","Erste Drachenzauber","Первые змеиные чары"],
   ["Цілющі зміїні чари","Healing Serpent Spells","Heilende Drachenzauber","Целебные змеиные чары"],
   ["Легенди Twitch","Twitch Legends","Twitch-Legenden","Легенды Twitch"],
-  ["Бонус колекції визначимо після її розширення","The collection bonus will be set when the collection grows","Der Sammlungsbonus wird festgelegt, wenn die Sammlung wächst","Бонус коллекции определим, когда она расширится"],
+  ["Не призначений","Not assigned","Nicht festgelegt","Не назначен"],
 ];

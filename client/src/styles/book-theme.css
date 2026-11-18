@@ -672,6 +672,10 @@
   background: #b7792f !important;
   box-shadow: none;
 }
+/* Completion tracks (daily tasks, quests) fill green; pity/workshop tracks keep bronze. */
+:root .app-shell .app-content :is(.tasks-screen__daily-progress-track, .quest-paper__track) > * {
+  background: linear-gradient(90deg, var(--progress-fill-start), var(--progress-fill-end)) !important;
+}
 
 /* Shop counter life: categories arrive one by one, each ware breathes in a warm candle glow,
    a gold-leaf glint passes over the folios in turn, and a few motes drift in the light. */

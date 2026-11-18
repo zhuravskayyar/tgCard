@@ -1,0 +1,28 @@
+.winter-festive-mark {
+  display: inline-grid;
+  width: 1.2em;
+  height: 1.2em;
+  margin-inline-end: .3em;
+  place-items: center;
+  border: 1px solid #9eb9c4;
+  border-radius: 50%;
+  background: #253f50;
+  color: #eefaff;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: .04em;
+}
+
+.pf-portrait .winter-festive-mark {
+  position: absolute;
+  z-index: 1;
+  right: 3px;
+  bottom: 3px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  color: #eefaff;
+  font-size: 15px;
+  box-shadow: 0 1px 4px #152733;
+}

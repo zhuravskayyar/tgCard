@@ -26,7 +26,8 @@ const trialActions: Record<StoryTrialNavigationTarget, { icon: AppIconName; labe
   shop: { icon: "shop", label: "Магазин" },
 };
 
-function StoryTrialRow({ onClaim, onOpen, pending, trial }: {
+function StoryTrialRow({ next, onClaim, onOpen, pending, trial }: {
+  next?: boolean;
   onClaim: () => void;
   onOpen: () => void;
   pending: boolean;
@@ -37,8 +38,9 @@ function StoryTrialRow({ onClaim, onOpen, pending, trial }: {
   const claimed = trial.state === "claimed";
   const done = completed || claimed;
   return (
-    <article className={`quest-paper story-notice${trial.navigation === "save-profile" ? " story-notice--official" : ""}${claimed ? " quest-paper--claimed" : completed ? " quest-paper--completed" : ""}`}>
+    <article className={`quest-paper story-notice${trial.navigation === "save-profile" ? " story-notice--official" : ""}${claimed ? " quest-paper--claimed" : completed ? " quest-paper--completed" : ""}${next ? " story-notice--next" : ""}`}>
       <span aria-hidden="true" className="story-notice__nail" />
+      {next ? <span className="story-notice__next-marker">{tx("Далі")}</span> : null}
       <div className="quest-paper__content">
         <header className="quest-paper__header">
           <span className="quest-paper__icon"><AppIcon name={done ? "card-reward" : action?.icon ?? "tasks"} size={22} /></span>
@@ -136,18 +138,21 @@ function useStoryTrials(onBalanceChange: (player: Pick<PlayerSummary, "gold" | "
 /** Every trial of the location stays pinned in place; claimed ones keep their seal instead of vanishing. */
 function StoryTrialsList({ claim, onNavigate, pendingId, view }: {
   claim: (trialId: string) => Promise<void>;
-  onNavigate: (target: StoryTrialNavigationTarget) => void;
+  onNavigate: (target: StoryTrialNavigationTarget, trialId?: string) => void;
   pendingId: string | null;
   view: StoryTrialsView;
 }) {
+  const campaignTrials = view.trials.filter((trial) => trial.kind === "campaign");
+  const nextId = campaignTrials.find((trial) => trial.state !== "claimed")?.id;
   return (
     <section className="story-trials__list notice-board" aria-label="Випробування">
-      <p className="story-trials__progress notice-board__plaque">{tx(`Прогрес випробувань: ${formatFullUiNumber(view.completedCount)} / ${formatFullUiNumber(view.totalCount)}`)}</p>
-      {view.trials.filter((trial) => trial.kind === "campaign").map((trial) => (
+      <p className="story-trials__progress notice-board__plaque">{tx(`До бою з босом: ${formatFullUiNumber(view.completedCount)} / ${formatFullUiNumber(view.totalCount)} випробувань`)}</p>
+      {campaignTrials.map((trial) => (
         <StoryTrialRow
           key={trial.id}
+          next={trial.id === nextId}
           onClaim={() => void claim(trial.id)}
-          onOpen={() => { if (trial.navigation) onNavigate(trial.navigation); }}
+          onOpen={() => { if (trial.navigation) onNavigate(trial.navigation, trial.id); }}
           pending={pendingId === trial.id}
           trial={trial}
         />
@@ -172,7 +177,7 @@ function StoryTrialsStatus({ load, state }: { load: () => void; state: LoadState
 /** The campaign group of the tasks board: the same server trials as the story screen. */
 export function CampaignTasksBoard({ onBalanceChange, onNavigate }: {
   onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
-  onNavigate: (target: StoryTrialNavigationTarget) => void;
+  onNavigate: (target: StoryTrialNavigationTarget, trialId?: string) => void;
 }) {
   const { claim, claimError, claimNotice, load, pendingId, state } = useStoryTrials(onBalanceChange);
   const view = state.status === "ready" ? state.view : null;
@@ -194,7 +199,7 @@ export function CampaignTasksBoard({ onBalanceChange, onNavigate }: {
 export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenBoss }: {
   onBack: () => void;
   onBalanceChange: (player: Pick<PlayerSummary, "gold" | "silver">) => void;
-  onNavigate: (target: StoryTrialNavigationTarget) => void;
+  onNavigate: (target: StoryTrialNavigationTarget, trialId?: string) => void;
   /** Opens this location's boss; offered right after the last trial reward is claimed. */
   onOpenBoss: (location: number) => void;
 }) {
@@ -207,14 +212,13 @@ export function StoryTrialsScreen({ onBack, onBalanceChange, onNavigate, onOpenB
       {view ? (
         <>
           <CampaignGiver view={view} />
+          {/* The goal ("all trials → boss") lives in the progress plaque above the list; no repeated explainer plates. */}
           {view.totalCount > 0 && view.completedCount >= view.totalCount ? (
             <div className="adventure-plate story-trials__boss-call">
               <p>{tx(`Усі випробування пройдено. Бос пригоди «${tx(view.story.caveName)}» чекає.`)}</p>
               <button className="adventure-button ui-button ui-button--primary" onClick={() => onOpenBoss(view.location.number)} type="button">{tx("Бити боса")}</button>
             </div>
-          ) : (
-            <p className="adventure-plate">{tx(`Щоб пройти пригоду «${tx(view.story.caveName)}», пройди всі випробування.`)}</p>
-          )}
+          ) : null}
           {claimNotice ? <p className="adventure-plate" role="status">{tx(claimNotice)}</p> : null}
           {claimError ? <p className="campaign-claim-error" role="alert">{tx(claimError)}</p> : null}
           <StoryTrialsList claim={claim} onNavigate={onNavigate} pendingId={pendingId} view={view} />

@@ -23,7 +23,8 @@ import {
   findActiveHolidayWindow,
   findNextHolidayWindow,
   holidayWindowKey,
-  type HolidaySpan,
+  toHolidaySpan,
+  type HolidaySpanRow,
   type HolidayWindow,
 } from "./holidayCalendar.js";
 import type { ShopRandomSource } from "./shopChancePolicy.js";
@@ -54,14 +55,10 @@ export class HolidayLimitReachedError extends Error {
   }
 }
 
-interface HolidayRow {
+interface HolidayRow extends HolidaySpanRow {
   description: string;
   display_name: string;
-  end_day: number;
-  end_month: number;
   id: string;
-  start_day: number;
-  start_month: number;
 }
 
 interface HolidayBundleRow {
@@ -102,10 +99,6 @@ interface HolidayShopDependencies {
 }
 
 const rarityRank = new Map<string, number>(CARD_RARITIES.map((rarity, index) => [rarity, index]));
-
-function toSpan(row: Pick<HolidayRow, "end_day" | "end_month" | "start_day" | "start_month">): HolidaySpan {
-  return { startMonth: row.start_month, startDay: row.start_day, endMonth: row.end_month, endDay: row.end_day };
-}
 
 function toCurrency(value: string): ShopCurrency {
   const currency = SHOP_CURRENCIES.find((candidate) => candidate === value);
@@ -184,12 +177,12 @@ export class HolidayShopService {
       const active: Array<{ row: HolidayRow; window: HolidayWindow }> = [];
       let upcoming: { row: HolidayRow; window: HolidayWindow } | null = null;
       for (const row of holidayResult.rows) {
-        const window = findActiveHolidayWindow(toSpan(row), now);
+        const window = findActiveHolidayWindow(toHolidaySpan(row), now);
         if (window) {
           active.push({ row, window });
           continue;
         }
-        const next = findNextHolidayWindow(toSpan(row), now);
+        const next = findNextHolidayWindow(toHolidaySpan(row), now);
         if (!upcoming || next.startsAt < upcoming.window.startsAt) upcoming = { row, window: next };
       }
       const shown = upcoming ? [...active, upcoming] : active;
@@ -280,7 +273,7 @@ export class HolidayShopService {
 
     try {
       await client.query("BEGIN");
-      const bundleResult = await client.query<HolidayBundleRow & Pick<HolidayRow, "end_day" | "end_month" | "start_day" | "start_month">>(
+      const bundleResult = await client.query<HolidayBundleRow & HolidaySpanRow>(
         `
           SELECT ${BUNDLE_COLUMNS},
             holidays.start_month, holidays.start_day, holidays.end_month, holidays.end_day
@@ -293,7 +286,8 @@ export class HolidayShopService {
       );
       const bundle = bundleResult.rows[0];
       if (!bundle) throw new ShopBundleMissingError();
-      const window = findActiveHolidayWindow(toSpan(bundle), this.now());
+      const now = this.now();
+      const window = findActiveHolidayWindow(toHolidaySpan(bundle), now);
       if (!window) throw new HolidayNotActiveError();
       const currency = toCurrency(bundle.currency);
       const rarity = toRarity(bundle.rarity);
@@ -390,7 +384,7 @@ export class HolidayShopService {
         // A full set creates each card at the level range of its own rarity, the other bundles at the bundle rarity.
         const level = selectGeneratedLevelForRarity(bundle.full_set ? row.min_rarity : rarity, this.rng, this.levelPolicy);
         const reward = await createStandardCardInstance(client, playerId, definition, level, this.rng);
-        const discovery = await recordCardDiscovery(client, playerId, definition.id);
+        const discovery = await recordCardDiscovery(client, playerId, definition.id, now);
         rewards.push(reward);
         if (discovery.newDiscovery) newDiscoveryCardIds.push(definition.id);
         if (discovery.collectionCompleted) collectionCompleted = discovery.collectionCompleted;

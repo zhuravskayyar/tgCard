@@ -24,11 +24,16 @@ export function usePlayerSummary() {
     setState((current) => {
       if (current.status !== "ready") return current;
       const bonuses = current.data.collectionBonuses ?? [];
-      if (bonuses.some(({ collectionId }) => collectionId === completion.id)) return current;
+      if (bonuses.some(({ collectionId }) => collectionId === completion.id)) {
+        return completion.winterFestiveUntil
+          ? { status: "ready", data: { ...current.data, winterFestiveUntil: completion.winterFestiveUntil } }
+          : current;
+      }
       return {
         status: "ready",
         data: {
           ...current.data,
+          ...(completion.winterFestiveUntil ? { winterFestiveUntil: completion.winterFestiveUntil } : {}),
           collectionBonuses: [
             ...bonuses,
             {

@@ -1,4 +1,5 @@
-import { getElementMultiplier } from "./duel.js";
+import type { DuelBattleModifiers } from "@cardastika/shared";
+import { getElementMultiplier, getStrikeMultiplier } from "./duel.js";
 
 /**
  * Paid Duels from the reference manual. Once the charges are spent, gold either reopens ten manual
@@ -47,12 +48,23 @@ interface AutoSlotCard {
 export function chooseAutoDuelSlot(
   player: readonly [AutoSlotCard, AutoSlotCard, AutoSlotCard],
   enemy: readonly [AutoSlotCard, AutoSlotCard, AutoSlotCard],
+  playerModifiers?: Pick<DuelBattleModifiers, "strikeMultiplierBonus">,
+  enemyModifiers?: Pick<DuelBattleModifiers, "strikeMultiplierBonus">,
 ): 0 | 1 | 2 {
   let best: 0 | 1 | 2 = 0;
   let bestScore = -Infinity;
   for (const slot of [0, 1, 2] as const) {
-    const own = player[slot].finalPower * getElementMultiplier(player[slot].element, enemy[slot].element);
-    const back = enemy[slot].finalPower * getElementMultiplier(enemy[slot].element, player[slot].element);
+    const own = player[slot].finalPower * getStrikeMultiplier(
+      player[slot].element,
+      enemy[slot].element,
+      playerModifiers?.strikeMultiplierBonus,
+    );
+    const back = enemy[slot].finalPower * getStrikeMultiplier(
+      enemy[slot].element,
+      player[slot].element,
+      enemyModifiers?.strikeMultiplierBonus,
+      true,
+    );
     const score = own - back;
     if (score > bestScore) {
       best = slot;

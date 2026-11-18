@@ -117,3 +117,87 @@ test("daily tasks pay gold, silver and an item, and five arena wins pay an epic-
     await pool.end();
   }
 });
+
+test("VIP grants hunting permits on the active circle, the final card waits for VIP, a second permit pays 100 gold", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const player = await new PlayerRepository(pool).findOrCreateFromTelegram(telegramUser());
+  const battlePass = new BattlePassService(pool);
+  const now = new Date("2026-08-23T12:00:00.000Z");
+  const permits = async () => Number((await pool.query("SELECT hunting_permits FROM player_invasion_items WHERE player_id = $1", [player.id])).rows[0]?.hunting_permits ?? 0);
+  const setDiamonds = (diamonds: number) => pool.query("UPDATE player_battle_pass_state SET diamonds = $3 WHERE player_id = $1 AND season_id = $2", [player.id, "2026-08", diamonds]);
+  try {
+    await battlePass.getPage(player.id, now);
+    await setDiamonds(400);
+    await pool.query("UPDATE players SET gold = 1300 WHERE id = $1", [player.id]);
+
+    const before = await battlePass.getPage(player.id, now);
+    const stop200 = before.battlePass.circles[0]!.milestones.find(({ threshold }) => threshold === 200)!;
+    assert.deepEqual(before.battlePass.vip, { active: false, price: 1250, purchasable: true });
+    assert.equal(before.battlePass.totalCircles, 4);
+    assert.equal(stop200.vip?.claimable, false);
+    await assert.rejects(() => battlePass.claimMilestone(player.id, "circle-1-200-vip", now));
+
+    const bought = await battlePass.purchaseVip(player.id, now);
+    assert.equal(bought.updatedBalance.gold, 50);
+    assert.equal(bought.battlePass.vip.active, true);
+    await assert.rejects(() => battlePass.purchaseVip(player.id, now));
+
+    const permit = await battlePass.claimMilestone(player.id, "circle-1-200-vip", now);
+    assert.equal(permit.reward.kind, "item");
+    assert.equal(permit.convertedToGold, undefined);
+    assert.equal(await permits(), 1);
+    // Locked items (no game system yet) cannot be claimed.
+    await assert.rejects(() => battlePass.claimMilestone(player.id, "circle-1-50-vip", now));
+
+    for (const id of ["circle-1-50", "circle-1-100", "circle-1-150", "circle-1-200", "circle-1-250", "circle-1-300"]) {
+      await battlePass.claimMilestone(player.id, id, now);
+    }
+    // With VIP the card also waits for the VIP equipment on 100.
+    await assert.rejects(() => battlePass.claimMilestone(player.id, "circle-1-400", now));
+    const vipEquipment = await battlePass.claimMilestone(player.id, "circle-1-100-vip", now);
+    assert.ok(vipEquipment.equipmentItemId?.endsWith("_uncommon"));
+    const card = await battlePass.claimMilestone(player.id, "circle-1-400", now);
+    assert.equal(card.battlePass.currentCircle, 2);
+    assert.equal(card.battlePass.circles[0]!.fromDiamonds, 400);
+
+    // Circle 2 boost is ×3 and its duration stacks on the remaining ×2.
+    await setDiamonds(1900);
+    const boost = await battlePass.claimMilestone(player.id, "circle-2-460", now);
+    assert.equal(boost.battlePass.currencyBoost.multiplier, 3);
+    assert.equal(boost.battlePass.currencyBoost.expiresAt, "2026-08-25T12:00:00.000Z");
+    // The magic crystal (guild war) is a real item now, so the circle card waits for it too.
+    for (const id of ["circle-2-460-vip", "circle-2-580", "circle-2-640-vip", "circle-2-700", "circle-2-900", "circle-3-970", "circle-3-1040-vip", "circle-3-1110", "circle-3-1250", "circle-3-1500"]) {
+      await battlePass.claimMilestone(player.id, id, now);
+    }
+    const duplicate = await battlePass.claimMilestone(player.id, "circle-4-1900-vip", now);
+    assert.equal(duplicate.convertedToGold, 100);
+    assert.equal(await permits(), 1);
+  } finally {
+    await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
+    await pool.end();
+  }
+});
+
+test("VIP bought after a finished circle loses that circle's VIP rewards", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const player = await new PlayerRepository(pool).findOrCreateFromTelegram(telegramUser());
+  const battlePass = new BattlePassService(pool);
+  const now = new Date("2026-08-23T12:00:00.000Z");
+  try {
+    await battlePass.getPage(player.id, now);
+    await pool.query("UPDATE player_battle_pass_state SET diamonds = 470 WHERE player_id = $1 AND season_id = $2", [player.id, "2026-08"]);
+    await pool.query("UPDATE players SET gold = 1250 WHERE id = $1", [player.id]);
+    for (const id of ["circle-1-50", "circle-1-100", "circle-1-150", "circle-1-200", "circle-1-250", "circle-1-300", "circle-1-400"]) {
+      await battlePass.claimMilestone(player.id, id, now);
+    }
+    await battlePass.purchaseVip(player.id, now);
+    await assert.rejects(() => battlePass.claimMilestone(player.id, "circle-1-200-vip", now));
+    const rare = await battlePass.claimMilestone(player.id, "circle-2-460-vip", now);
+    assert.ok(rare.equipmentItemId?.endsWith("_rare"));
+  } finally {
+    await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
+    await pool.end();
+  }
+});

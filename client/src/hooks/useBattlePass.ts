@@ -6,6 +6,7 @@ import {
   claimBattlePassMilestone,
   claimDailyBattlePassTask,
   loadBattlePass,
+  purchaseBattlePassVip,
 } from "../telegram/battlePass";
 
 export type BattlePassState =
@@ -56,5 +57,13 @@ export function useBattlePass() {
     return response;
   }, []);
 
-  return { claimDailyTask, claimMilestone, retry, state };
+  const purchaseVip = useCallback(async () => {
+    const initData = getTelegramInitData();
+    if (!initData) throw new Error("Telegram authentication is unavailable");
+    const response = await purchaseBattlePassVip(initData);
+    setState({ status: "ready", data: response });
+    return response;
+  }, []);
+
+  return { claimDailyTask, claimMilestone, purchaseVip, retry, state };
 }

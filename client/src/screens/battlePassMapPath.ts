@@ -46,16 +46,16 @@ export function buildTrail(stops: readonly MapPoint[]): MapPoint[] {
   return trail;
 }
 
-/** The walked part of the trail for a diamond total, ending exactly at the current position. */
-export function walkTrail(trail: readonly MapPoint[], thresholds: readonly number[], diamonds: number): MapPoint[] {
+/** The walked part of the trail for a diamond total, ending exactly at the current position; `from` is where the circle starts. */
+export function walkTrail(trail: readonly MapPoint[], thresholds: readonly number[], diamonds: number, from = 0): MapPoint[] {
   let segment = thresholds.length;
   let fraction = 0;
-  let previous = 0;
+  let previous = from;
   for (let index = 0; index < thresholds.length; index += 1) {
     const threshold = thresholds[index]!;
     if (diamonds < threshold) {
       segment = index;
-      fraction = (diamonds - previous) / (threshold - previous);
+      fraction = Math.max(0, (diamonds - previous) / (threshold - previous));
       break;
     }
     previous = threshold;
@@ -63,10 +63,10 @@ export function walkTrail(trail: readonly MapPoint[], thresholds: readonly numbe
   const position = Math.min(trail.length - 1, segment * SAMPLES_PER_SEGMENT + fraction * SAMPLES_PER_SEGMENT);
   const whole = Math.floor(position);
   const walked = trail.slice(0, whole + 1);
-  const from = trail[whole]!;
+  const currentPoint = trail[whole]!;
   const to = trail[Math.min(trail.length - 1, whole + 1)]!;
   const rest = position - whole;
-  if (rest > 0) walked.push({ x: from.x + (to.x - from.x) * rest, y: from.y + (to.y - from.y) * rest });
+  if (rest > 0) walked.push({ x: currentPoint.x + (to.x - currentPoint.x) * rest, y: currentPoint.y + (to.y - currentPoint.y) * rest });
   return walked;
 }
 

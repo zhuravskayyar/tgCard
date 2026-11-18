@@ -2,7 +2,7 @@
 
 Стан на 2026-11-09. Механіка взята з довідника elem.mobi (`docs/equipment-manual.md`), вигляд — наш: готична таро-ксилографія, чорна туш і кремова заливка на пергаменті.
 
-## Нова схема: 9 предметів + 6 фонів = 15 файлів
+## Схема: 10 предметів + 6 фонів = 16 файлів
 
 Замість 16 речей «під кожну стихію» малюємо **одну річ на тип**. Стихію накладає шейдер: він перефарбовує кремову заливку в колір стихії, а чорна туш лишається. Рідкість показує **окремий намальований фон** під предметом.
 
@@ -18,10 +18,19 @@
 | 8 | `artifacts-v3/amulet.webp` | Амулет жизни → ладанка | Ладанка подиху* |
 | 9 | `artifacts-v3/voodoo.webp` | Кукла Вуду → мотанка | Лиха мотанка |
 | 10–15 | `rarity-v3/{common,uncommon,rare,epic,legendary,mythic}.webp` | Фон рідкості під предметом | — |
+| 16 | `artifacts-v3/halberd.webp` | Алебарда | Алебарда |
 
 \* Назви з варіанта 1. Промпти малюють сам предмет, тож якщо назва зміниться, предмет лишається тим самим.
 
 Артефакти стихії не мають, тож шейдер їх не фарбує: вони лишаються туш + крем.
+
+### Алебарда
+
+Спрайт згенеровано вбудованим ImageGen і збережено як `artifacts-v3/halberd.webp` (512×512 з прозорим фоном).
+
+```text
+Single game inventory sprite of a fantastical medieval artifact halberd, standalone on a truly transparent background. Cardastika equipment style, gothic tarot woodcut rendered in strong pure black ink and warm ivory, engraved tight hatching, restrained muted bronze on two rings, distinct bold silhouette at 48 pixels. One polearm laid diagonally from lower left to upper right; recognizable broad crescent axe blade with central spear spike and small back hook, dark ash handle with wraps. Compact centered composition, the whole head and the lower end visible, generous transparent padding, no character, no hands, no frame, no glow, no lettering, no background. It is only an illustrated fantasy RPG item icon.
+```
 
 ### Вимоги до файлів
 

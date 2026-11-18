@@ -233,6 +233,7 @@ export interface CollectionPackRandomOffer {
 }
 
 export interface CollectionPackView {
+  description: string;
   displayName: string;
   id: string;
   randomOffer: CollectionPackRandomOffer;

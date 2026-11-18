@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
-import { environment, handleRequest, pool } from "./index.js";
+import { environment, guildWars, handleRequest, pool } from "./index.js";
 
 const server = createServer(handleRequest);
+let guildWarCycleTimer: NodeJS.Timeout | null = null;
 
 async function startServer() {
   try {
@@ -13,6 +14,15 @@ async function startServer() {
     return;
   }
 
+  await guildWars.ensureCurrentCycle().catch((error) => {
+    console.error("Guild war cycle initialization failed", error);
+    return false;
+  });
+  guildWarCycleTimer = setInterval(() => {
+    void guildWars.ensureCurrentCycle().catch((error) => console.error("Guild war cycle refresh failed", error));
+  }, 60_000);
+  guildWarCycleTimer.unref();
+
   server.listen(environment.port, "127.0.0.1", () => {
     console.log(`Cardastika server listening on http://127.0.0.1:${environment.port}`);
   });
@@ -21,6 +31,7 @@ async function startServer() {
 void startServer();
 
 async function shutdown() {
+  if (guildWarCycleTimer) clearInterval(guildWarCycleTimer);
   server.close();
   await pool.end();
 }

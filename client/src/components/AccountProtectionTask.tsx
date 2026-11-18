@@ -111,7 +111,7 @@ export function AccountProtectionTask({ onRewardGranted }: { onRewardGranted?: (
         </div>
       </div>
       {!completed ? (
-        <div aria-busy={pending} className="tasks-screen__account-protection-actions">
+        <div aria-busy={pending} className="tasks-screen__account-protection-actions" data-tutorial-target="save-profile-actions">
           {isTelegram
             ? <button className="auth-provider-button" disabled={pending} onClick={linkTelegramMiniApp} type="button">{pending ? "Прив’язуємо…" : "Прив’язати Telegram"}</button>
             : <TelegramLoginButton appearance="landing" disabled={pending} onAuth={(authData) => void link({ provider: "telegram", authData })} />}

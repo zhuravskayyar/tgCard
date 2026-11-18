@@ -12,6 +12,12 @@ export function CollectionPage({ data, onBack, onOpenCard, onOpenShop, settled }
 }) {
   const { cards, collection } = data;
   const isRaid = collection.source === "raid";
+  const bonusStatusText = {
+    active: collection.completed ? "— активний" : "— запрацює після завершення",
+    partial: collection.completed ? "— діє частково" : "— частково діє після завершення",
+    pending: "— ще не діє",
+    unassigned: "",
+  }[collection.bonusStatus];
   return (
     <div className="bestiary-page">
       <button className="collection-return bestiary-page__back" onClick={onBack} type="button">Назад до змісту</button>
@@ -20,11 +26,13 @@ export function CollectionPage({ data, onBack, onOpenCard, onOpenShop, settled }
           <CollectionEmblem code={collection.code} />
           {collection.completed ? <span aria-hidden="true" className="bestiary-seal" /> : null}
         </span>
+        <p className="bestiary-page__prefix">{collection.displayPrefix}</p>
         <h2>{collection.displayName}</h2>
+        <p className="bestiary-page__description">{collection.description}</p>
         <p className="bestiary-page__progress">{collection.discoveredCards} / {collection.totalCards} карт</p>
         <p className="bestiary-page__bonus">
-          {isRaid ? "Рейдова колекція. " : null}Бонус: {collection.bonusLabel}
-          {collection.completed ? " — активний" : null}
+          Бонус: {collection.bonusLabel}
+          {bonusStatusText ? ` ${bonusStatusText}` : ""}
         </p>
       </header>
       <div aria-label={`Карти колекції ${collection.displayName}`} className="bestiary-page__cards">

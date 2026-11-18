@@ -22,6 +22,8 @@ import type {
   ChatMessage,
   ChatView,
   GuildRaidStatusView,
+  GuildWarAction,
+  GuildWarView,
 } from "@cardastika/shared";
 import { getApiEndpoint } from "../api/config";
 import { getTelegramInitData, getPlayerAuthHeader } from "./index";
@@ -65,6 +67,14 @@ export function loadGuildList(query = "") {
 
 export function loadMyGuild() {
   return request<GuildMineResponse>("/api/guilds/mine");
+}
+
+export function loadGuildWar(guildId: string, signal?: AbortSignal) {
+  return request<GuildWarView>(`/api/guilds/${encodeURIComponent(guildId)}/war`, { signal });
+}
+
+export function sendGuildWarAction(guildId: string, weekStartsAt: string, action: GuildWarAction) {
+  return request<GuildWarView>(`/api/guilds/${encodeURIComponent(guildId)}/war/action`, { method: "POST", body: { weekStartsAt, action } });
 }
 
 export function loadGuildProfile(guildId: string) {

@@ -65,8 +65,10 @@ export {
 export {
   COLLECTION_MODIFIER_TYPES,
   COLLECTION_BONUS_SCOPES,
+  COLLECTION_BONUS_STATUSES,
   COLLECTION_SOURCES,
   type CollectionCompletionNotice,
+  type CollectionBonusStatus,
   type CollectionBonusScope,
   type CollectionModifier,
   type CollectionModifierType,
@@ -286,6 +288,10 @@ export type {
 export type {
   BattlePassClaimResponse,
   BattlePassCircleView,
+  BattlePassItemKind,
+  BattlePassVipPurchaseResponse,
+  BattlePassVipRewardView,
+  BattlePassVipStatus,
   CurrencyBoostStatus,
   BattlePassMilestoneView,
   BattlePassPageResponse,
@@ -439,6 +445,23 @@ export type {
   AdminPlayersResponse,
   AdminSessionResponse,
 } from "./admin.js";
+export type {
+  GuildWarAction,
+  GuildWarBattleView,
+  GuildWarCards,
+  GuildWarFighterView,
+  GuildWarHistoryView,
+  GuildWarKeyDayView,
+  GuildWarLocationView,
+  GuildWarMatchView,
+  GuildWarParticipantView,
+  GuildWarPhase,
+  GuildWarPlayerProgress,
+  GuildWarSideView,
+  GuildWarSkill,
+  GuildWarSlot,
+  GuildWarView,
+} from "./guildWar.js";
 export {
   ACHIEVEMENT_STATISTIC_KEYS,
   type AchievementStatisticKey,

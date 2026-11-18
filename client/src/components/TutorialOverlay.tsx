@@ -2,7 +2,8 @@ import { useEffect, useId, useMemo, useState } from "react";
 import type { DuelView, LariskaEmotion } from "@cardastika/shared";
 import { AppIcon } from "./AppIcon";
 import { Lariska } from "./Lariska";
-import { ElementCycle } from "./ElementCycle";
+import { ElementCycle, STRONG_ELEMENT_MULTIPLIER, WEAK_ELEMENT_MULTIPLIER, formatElementMultiplier } from "./ElementCycle";
+import { formatUiNumber, getUiLocale } from "../i18n";
 import type { TutorialStep } from "../hooks/useTutorial";
 
 interface TutorialOverlayProps {
@@ -60,6 +61,15 @@ const STEP_COPY: Record<Exclude<TutorialStep, "complete">, TutorialCopy> = {
   campaign: { action: "ЗАВЕРШИТИ НАВЧАННЯ", text: "Ти готовий. Заверши навчання, а далі виконуй завдання кампанії у своєму темпі.", title: "Твій шлях починається" },
 };
 
+/** "How a duel works": shown one slide at a time before the first tutorial duel. */
+function buildIntroSlides(): readonly string[] {
+  return [
+    "Твої карти внизу, суперника — вгорі. Карти стоять парами навпроти одна одної.",
+    "Обери свою карту — вона вдарить карту навпроти, а та одразу вдарить у відповідь. Шкоду отримують обидві сторони.",
+    `Стихії: сильна б’є ${formatElementMultiplier(STRONG_ELEMENT_MULTIPLIER)}, слабка ${formatElementMultiplier(WEAK_ELEMENT_MULTIPLIER)}. У кого першим закінчиться здоров’я — той програв.`,
+  ];
+}
+
 const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = {
   intro: "neutral",
   "duel-first-card": "neutral",
@@ -72,22 +82,44 @@ const STEP_EMOTION: Record<Exclude<TutorialStep, "complete">, LariskaEmotion> = 
 
 export function TutorialOverlay({ actionPending = false, duel, error = null, onAction, onPause, screenKey, step }: TutorialOverlayProps) {
   const [rects, setRects] = useState<TargetRect[]>([]);
+  const [pairRects, setPairRects] = useState<TargetRect[]>([]);
+  const [introSlide, setIntroSlide] = useState(0);
+  const uiLocale = getUiLocale();
+  const INTRO_SLIDES = useMemo(buildIntroSlides, [uiLocale]);
   const [viewport, setViewport] = useState<ViewportSize>(() => typeof window === "undefined"
     ? { height: 1, width: 1 }
     : { height: window.innerHeight, width: window.innerWidth });
   const [dialogPlacement, setDialogPlacement] = useState<"top" | "bottom">("bottom");
   const [referenceDialogTop, setReferenceDialogTop] = useState<number | null>(null);
   const maskId = "tutorial-overlay-mask-" + useId().replace(/:/g, "");
-  const copy = step && step !== "complete" ? STEP_COPY[step] : null;
+  const lastIntroSlide = INTRO_SLIDES.length - 1;
+  // The explainer always restarts from its first slide when the tutorial enters or leaves the intro step.
+  useEffect(() => { setIntroSlide(0); }, [step]);
+  const copy = useMemo<TutorialCopy | null>(() => {
+    if (!step || step === "complete") return null;
+    const base = STEP_COPY[step];
+    // The explainer is read first, so it has no spotlight yet; the final button starts the battle.
+    return step === "intro"
+      ? { ...base, action: introSlide < lastIntroSlide ? "ДАЛІ" : base.action, interactive: false, target: undefined, text: INTRO_SLIDES[introSlide]!, title: "Як працює дуель" }
+      : base;
+  }, [INTRO_SLIDES, introSlide, lastIntroSlide, step]);
+  // Real numbers from the exchange that just happened; nothing is shown before the first exchange.
+  const lastExchange = duel?.battleLog[0];
+  const exchangeSummary = lastExchange && (step === "duel-advantage" || step === "duel-free-play")
+    ? `Останній обмін: ти завдав ${formatUiNumber(lastExchange.playerDamage)} шкоди, суперник у відповідь — ${formatUiNumber(lastExchange.enemyDamage)}.`
+    : null;
   const referenceDuel = screenKey === "duel" && step !== null && REFERENCE_DUEL_STEPS.includes(step as (typeof REFERENCE_DUEL_STEPS)[number]);
   // The element wheel stays beside Lariska while the duel steps teach the multipliers.
   const showElementCycle = referenceDuel && step !== "duel-result";
   const copyText = copy?.text;
   const targetSelector = useMemo(() => copy?.target ? `[data-tutorial-target~="${copy.target}"]` : null, [copy]);
+  // The enemy card facing the highlighted card carries the same token with a "-pair" suffix.
+  const pairSelector = useMemo(() => copy?.target ? `[data-tutorial-target~="${copy.target}-pair"]` : null, [copy]);
 
   useEffect(() => {
     if (!copy || !targetSelector) {
       setRects([]);
+      setPairRects([]);
       return undefined;
     }
     let cancelled = false;
@@ -101,6 +133,10 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
       // Unchanged values keep the old state, so the overlay does not re-render and cannot feed its own observer.
       setViewport((current) => current.width === window.innerWidth && current.height === window.innerHeight ? current : { height: window.innerHeight, width: window.innerWidth });
       setRects((current) => sameRects(current, nextRects) ? current : nextRects);
+      const nextPairRects = pairSelector
+        ? [...document.querySelectorAll<HTMLElement>(pairSelector)].map((element) => toTargetRect(element.getBoundingClientRect())).filter((rect) => rect.width > 0 && rect.height > 0)
+        : [];
+      setPairRects((current) => sameRects(current, nextPairRects) ? current : nextPairRects);
       const targetRect = nextRects[0];
       setDialogPlacement(referenceDuel ? "bottom" : targetRect && targetRect.top + targetRect.height / 2 > window.innerHeight * .56 ? "top" : "bottom");
       if (referenceDuel) {
@@ -128,7 +164,7 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
       window.removeEventListener("scroll", schedule, true);
       observer.disconnect();
     };
-  }, [copy, referenceDuel, screenKey, targetSelector]);
+  }, [copy, pairSelector, referenceDuel, screenKey, targetSelector]);
 
   if (!copy || !step || step === "complete") return null;
 
@@ -161,7 +197,7 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
         <defs>
           <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={viewport.width} height={viewport.height}>
             <rect fill="white" height={viewport.height} width={viewport.width} x="0" y="0" />
-            {rects.map((rect, index) => (
+            {[...rects, ...pairRects].map((rect, index) => (
               <rect fill="black" height={rect.height} key={index} rx="10" width={rect.width} x={rect.left} y={rect.top} />
             ))}
           </mask>
@@ -170,6 +206,9 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
       </svg>
       {rects.map((rect, index) => (
         <span aria-hidden="true" className="tutorial-overlay__spotlight" key={`spotlight-${index}`} style={{ height: rect.height, left: rect.left, top: rect.top, width: rect.width }} />
+      ))}
+      {pairRects.map((rect, index) => (
+        <span aria-hidden="true" className="tutorial-overlay__spotlight tutorial-overlay__spotlight--pair" key={`pair-${index}`} style={{ height: rect.height, left: rect.left, top: rect.top, width: rect.width }} />
       ))}
       {copy.interactive ? rects.map((rect, index) => (
         <button
@@ -211,8 +250,10 @@ export function TutorialOverlay({ actionPending = false, duel, error = null, onA
         <div className="tutorial-dialog__body">
           {!referenceDuel ? <div className="tutorial-dialog__meta"><span>Лариска · Навчання</span></div> : null}
           {!referenceDuel ? <h2 id="tutorial-dialog-title">{copy.title}</h2> : null}
-          <p>{step === "duel-free-play" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
-          {!referenceDuel ? <button className="tutorial-dialog__primary" disabled={actionPending} onClick={onAction} type="button">{actionPending ? "ЗБЕРІГАЄМО…" : copy.action} <AppIcon name="chevron" size={16} /></button> : null}
+          {step === "intro" ? <p className="tutorial-dialog__step" aria-hidden="true">{introSlide + 1} / {INTRO_SLIDES.length}</p> : null}
+          <p>{exchangeSummary ? <span className="tutorial-dialog__result">{exchangeSummary}</span> : null}{step === "duel-free-play" ? <><span className="tutorial-dialog__rule-icon" aria-hidden="true"><AppIcon name="duel" size={20} /></span>{copyText}</> : copyText}</p>
+          {step === "intro" && introSlide === lastIntroSlide ? <div className="tutorial-dialog__cycle"><ElementCycle showLegend size={96} /></div> : null}
+          {!referenceDuel ? <button className="tutorial-dialog__primary" disabled={actionPending} onClick={step === "intro" && introSlide < lastIntroSlide ? () => setIntroSlide((slide) => slide + 1) : onAction} type="button">{actionPending ? "ЗБЕРІГАЄМО…" : copy.action} <AppIcon name="chevron" size={16} /></button> : null}
           {!referenceDuel && error ? <p className="tutorial-dialog__error" role="alert">{error}</p> : null}
           {!referenceDuel ? <button className="tutorial-dialog__secondary" disabled={actionPending} onClick={onPause} type="button">Пізніше</button> : null}
         </div>

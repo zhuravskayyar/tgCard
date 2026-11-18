@@ -42,6 +42,8 @@ import { completeTutorial } from "./telegram/tutorial";
 import { changePlayerEquipmentElement, forgePlayerEquipment, quickForgePlayerEquipment, savePlayerEquipment } from "./telegram/equipment";
 import type { BottomNavItem } from "./components/BottomNav";
 import { TutorialOverlay } from "./components/TutorialOverlay";
+import { TrialGuideHint } from "./components/TrialGuideHint";
+import { getTrialGuide } from "./onboarding/trialGuide";
 import { DailyLoginModal } from "./components/DailyLoginModal";
 import { ElementAmbientFx } from "./components/ElementAmbientFx";
 import { useMail } from "./hooks/useMail";
@@ -96,6 +98,8 @@ export function App() {
   const tutorialPlayerId = playerSummaryState.status === "ready" ? playerSummaryState.data.id : null;
   const tutorialEligible = INTERACTIVE_TUTORIAL_ENABLED && playerSummaryState.status === "ready" && playerSummaryState.data.tutorialEligible === true;
   const tutorial = useTutorial(tutorialPlayerId, tutorialEligible);
+  // Eligible players are resolved only after useTutorial has read its stored state (status stays null until then).
+  const tutorialResolved = playerSummaryState.status === "ready" && (!tutorialEligible || tutorial.status !== null);
   const campaignTraining = tutorial.step === "campaign";
   const tutorialDuelTraining = tutorial.isActive && isTutorialDuelStep(tutorial.step);
   const tutorialDeckTraining = tutorial.isActive && tutorial.step === "deck";
@@ -137,6 +141,12 @@ export function App() {
   const [tutorialCardId, setTutorialCardId] = useState<string | null>(null);
   // The card the tutorial victory paid out, shown once before the story tasks.
   const [tutorialRewardCard, setTutorialRewardCard] = useState<PlayerCardInstance | null>(null);
+  // The first-adventure trial the player just headed off to; its step-by-step hint lives only on that trial's screens.
+  const [trialGuideId, setTrialGuideId] = useState<string | null>(null);
+  const trialGuide = getTrialGuide(trialGuideId);
+  useEffect(() => {
+    if (trialGuide && !trialGuide.screens.includes(screen)) setTrialGuideId(null);
+  }, [screen, trialGuide]);
   const [playerProfileId, setPlayerProfileId] = useState<string | null>(() => decodeURIComponent(initialPlayerProfile?.[1] ?? "") || null);
   const [equipment, setEquipment] = useState<EquippedEquipment>(EMPTY_EQUIPMENT);
   const [equipmentItemId, setEquipmentItemId] = useState<string | null>(initialEquipmentItemId);
@@ -517,7 +527,8 @@ export function App() {
     updatePath("/trials/save");
   }
 
-  function navigateFromTrials(target: StoryTrialNavigationTarget) {
+  function navigateFromTrials(target: StoryTrialNavigationTarget, trialId?: string) {
+    setTrialGuideId(getTrialGuide(trialId) ? trialId! : null);
     if (target === "deck") openDeck("trials");
     if (target === "duel") openDuel("trials");
     if (target === "shop") openShop("trials");
@@ -730,7 +741,7 @@ export function App() {
       playerSummaryState={playerSummaryState}
       screenKey={screen === "collection" ? "collections" : screen}
       deckPowerOverride={deckPowerOverride}
-      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : null}
+      overlay={tutorial.isActive && tutorial.step !== "duel-result" ? <TutorialOverlay actionPending={tutorialCompletionPending} duel={tutorialDuel} error={tutorial.step === "campaign" ? tutorialCompletionError : null} onAction={handleTutorialAction} onPause={tutorial.pause} screenKey={screen} step={tutorial.step} /> : trialGuide && trialGuideId ? <TrialGuideHint guide={trialGuide} key={trialGuideId} onNavigateTrial={navigateFromTrials} onOpenTrials={openTrials} trialId={trialGuideId} /> : null}
       modal={showDailyLogin && dailyLoginData ? <DailyLoginModal data={dailyLoginData} onClaim={handleDailyLoginClaim} onClose={closeDailyLogin} onOpenTasks={() => { closeDailyLogin(); openTasks(); }} onPlayerSummaryChange={updateBalance} /> : null}
     >
       {screen !== "guild" && !tutorial.isActive ? <RaidStatusBanner onOpen={openGuildRaids} screenKey={screen} /> : null}
@@ -738,6 +749,8 @@ export function App() {
       {screen === "booster-preview" && BoosterPreview ? <Suspense fallback={<p role="status">Готуємо майстерню…</p>}><BoosterPreview onBack={goHome} /></Suspense> : null}
       {screen === "home" ? (
         <HomeScreen
+          onOpenTrials={openTrials}
+          onOpenTrialTarget={navigateFromTrials}
           onOpenCampaign={openCampaign}
           onOpenCollections={() => openCollections("home")}
           onOpenDeck={() => openDeck("home")}
@@ -756,13 +769,14 @@ export function App() {
            onResumeTutorial={resumeTutorial}
           playerLevel={playerSummaryState.status === "ready" ? playerSummaryState.data.level : undefined}
           arenaUnlocked={playerSummaryState.status === "ready" ? isArenaUnlocked(playerSummaryState.data.duelRating, playerSummaryState.data.duelHighestLeagueIndex) : undefined}
+          tutorialResolved={tutorialResolved}
           tutorialStatus={tutorial.status}
         />
       ) : null}
       {screen === "chest-shop" ? <ChestShopScreen onBack={goHome} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "tasks" ? <TasksScreen onBack={goHome} onNavigateTrial={navigateFromTrials} onOpenTask={openTaskTarget} onPlayerSummaryChange={updateBalance} /> : null}
       {screen === "battle-pass" ? <BattlePassScreen onBack={goHome} onEquipmentGranted={playerEquipmentState.retry} onPlayerSummaryChange={updateBalance} /> : null}
-      {screen === "guild" ? <GuildScreen initialTab={guildInitialTab} key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} /> : null}
+      {screen === "guild" ? <GuildScreen initialTab={guildInitialTab} key={guildOpenKey} playerSummaryState={playerSummaryState} onRetryPlayerSummary={retry} onWarPlayerProgress={updateBalance} /> : null}
       {screen === "duel" && isDuelSearchLoopPreview() ? <DuelSearchLoopPreview /> : null}
       {screen === "duel" && tutorialRewardCard ? (
         <ShopRewardReveal

@@ -54,7 +54,7 @@
   width: 19%;
 }
 .eq-doll__column--left { left: 6%; }
-.eq-doll__column--right { right: 6%; }
+.eq-doll__column--right { right: 8.5%; width: 14%; }
 :root[data-game-theme="light"] body .app-shell .app-content .eq-doll__slot {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

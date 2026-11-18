@@ -1,6 +1,6 @@
 import type { CardElement } from "./card.js";
 import { CHAT_MAX_LENGTH, type ChatMessage, type ChatView } from "./chat.js";
-import type { DuelCardSnapshot, DuelExchange, DuelSideSnapshot, ElementMultiplier } from "./duel.js";
+import type { DuelCardSnapshot, DuelExchange, DuelSideSnapshot } from "./duel.js";
 
 /** Keys follow Cardastika's existing league names, not the reference's names. */
 export type TournamentLeague = "conqueror" | "champion" | "master" | "ruler" | "crown";
@@ -107,7 +107,7 @@ export interface TournamentRunMatchView {
   opponent: DuelSideSnapshot & { id: string };
   playerCards: [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
   opponentCards: [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
-  pairMultipliers: [ElementMultiplier, ElementMultiplier, ElementMultiplier];
+  pairMultipliers: [number, number, number];
   playerUsedSlots: [boolean, boolean, boolean];
   cycleEndsAt: number;
   playerHp: number;

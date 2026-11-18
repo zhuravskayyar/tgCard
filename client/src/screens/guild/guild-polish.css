@@ -316,6 +316,153 @@
   .guild-artifact-tile__art img { width: 37px; height: 37px; }
 }
 
+.guild-screen .guild-profile--war .guild-war {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-3);
+}
+.guild-screen .guild-war-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgb(173 130 68 / 42%);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgb(66 42 28 / 78%), rgb(22 27 31 / 84%));
+  box-shadow: inset 0 1px 0 rgb(255 225 162 / 7%);
+}
+.guild-screen .guild-war-banner > img { width: 42px; height: 42px; object-fit: contain; }
+.guild-screen .guild-war-banner > div { min-width: 0; }
+.guild-screen .guild-war-banner h2 { margin: 2px 0 0; color: #f0d195; font: 700 1.1rem/1.15 var(--font-display); }
+.guild-screen .guild-war-phase {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgb(157 113 62 / 45%);
+  border-radius: var(--radius-md);
+  background: rgb(20 26 29 / 76%);
+}
+.guild-screen .guild-war-phase__seal {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #9d7745;
+  border-radius: 50%;
+  color: #f1cd7d;
+  background: radial-gradient(circle at 35% 28%, #57452f, #1d2020 72%);
+  font: 700 1.25rem/1 var(--font-display);
+}
+.guild-screen .guild-war-phase h3 { margin: 2px 0; color: #f0dfc0; font: 700 1rem/1.2 var(--font-display); }
+.guild-screen .guild-war-phase p { margin: 0; color: #bca681; font-size: var(--font-xs); }
+.guild-screen .guild-war-calendar {
+  display: grid;
+  grid-auto-columns: minmax(120px, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 1px 1px 5px;
+  scrollbar-color: #755535 transparent;
+  scrollbar-width: thin;
+}
+.guild-screen .guild-war-calendar__day {
+  display: grid;
+  align-content: center;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid rgb(129 101 66 / 40%);
+  border-radius: var(--radius-sm);
+  color: #cfb98e;
+  background: rgb(24 26 27 / 78%);
+  font-size: var(--font-micro);
+  line-height: 1.2;
+  text-align: center;
+}
+.guild-screen .guild-war-match-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 7px;
+}
+.guild-screen .guild-war-match-facts > div {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid rgb(119 94 62 / 38%);
+  border-radius: var(--radius-sm);
+  background: rgb(20 25 28 / 72%);
+}
+.guild-screen .guild-war-match-facts span { color: #a99573; font-size: var(--font-micro); }
+.guild-screen .guild-war-match-facts strong { color: #e1c68d; font-size: var(--font-xs); font-weight: 600; }
+.guild-screen .guild-war-sides { display: grid; gap: var(--space-3); }
+.guild-screen .guild-war-side {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgb(113 104 83 / 40%);
+  border-radius: var(--radius-md);
+  background: rgb(17 23 26 / 72%);
+}
+.guild-screen .guild-war-side--own { border-color: rgb(183 139 67 / 56%); }
+.guild-screen .guild-war-side__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.guild-screen .guild-war-side__header > div { min-width: 0; }
+.guild-screen .guild-war-side__header h3 { overflow: hidden; margin: 2px 0 0; color: #eee0c4; font: 700 .95rem/1.2 var(--font-display); text-overflow: ellipsis; }
+.guild-screen .guild-war-side__rating { flex: 0 0 auto; color: #cfad6c; font-size: var(--font-micro); text-align: right; }
+.guild-screen .guild-war-side__roster-heading { display: flex; justify-content: space-between; margin: 10px 0 5px; color: #b9a57f; font-size: var(--font-micro); }
+.guild-screen .guild-war-side__roster-heading > span { display: flex; gap: 4px; }
+.guild-screen .guild-war-side__roster-heading small { color: #a99573; font-size: var(--font-micro); }
+.guild-screen .guild-war-side__roster-heading strong { color: #e0bf79; font-variant-numeric: tabular-nums; }
+.guild-screen .guild-war-roster { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.guild-screen .guild-war-roster li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 5px 2px;
+  border-top: 1px solid rgb(119 100 69 / 24%);
+}
+.guild-screen .guild-war-roster__place,
+.guild-screen .guild-war-roster__rating { color: #b49b70; font-size: var(--font-micro); font-variant-numeric: tabular-nums; }
+.guild-screen .guild-war-roster__identity { display: grid; min-width: 0; gap: 1px; }
+.guild-screen .guild-war-roster__identity strong { overflow: hidden; color: #e7dac1; font-size: var(--font-xs); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.guild-screen .guild-war-roster__identity small { color: #9d8d71; font-size: var(--font-micro); }
+.guild-screen .guild-war-lock-copy,
+.guild-screen .guild-war-notice,
+.guild-screen .guild-war-footnote { margin: 0; color: #c1ad89; font-size: var(--font-xs); line-height: 1.4; }
+.guild-screen .guild-war-notice { padding: 9px 10px; border-left: 2px solid #ab8045; background: rgb(75 54 27 / 22%); }
+.guild-screen .guild-war-combat,
+.guild-screen .guild-war-combat__board { display: grid; min-width: 0; gap: var(--space-2); }
+.guild-screen .guild-war-combat__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.guild-screen .guild-war-combat .guild-raid__button {
+  width: auto;
+  min-height: 36px;
+  max-width: 100%;
+  padding-inline: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.guild-screen .guild-war-combat .guild-raid__button[aria-pressed="true"] {
+  outline: 1px solid #f0d195;
+  outline-offset: 1px;
+}
+.guild-screen .guild-war-combat__list { display: grid; margin: 0; padding: 0; list-style: none; }
+.guild-screen .guild-war-combat__list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-top: 1px solid rgb(119 94 62 / 34%);
+  color: #e7dac1;
+  font-size: var(--font-sm);
+}
+.guild-screen .guild-war-combat__list li > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.guild-screen .guild-war-combat small { display: block; color: #bea986; font-size: var(--font-xs); }
+.guild-screen .guild-war-combat__allies { display: block; overflow-wrap: anywhere; }
+.guild-screen .guild-war-footnote { color: #95856b; font-size: var(--font-micro); }
+
 /* Final interaction and asset pass: every visible guild destination has a
    real hit target, while future modes remain honest and discoverable. */
 .guild-screen .guild-mode-tile,

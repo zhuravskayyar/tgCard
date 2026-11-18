@@ -1,4 +1,7 @@
 /* The reminder is one shared menu row on top of the screen content; only spacing lives here. */
-.raid-status-banner { margin: 0 0 8px; }
+.raid-status-banner { flex: 0 0 auto; margin: 0 0 8px; }
+/* The duel search fills the page height; with the banner above it, it takes only what is left instead of overflowing. */
+.app-shell .app-content .app-screen-transition:has(> .raid-status-banner):has(> .duel-search-screen) { display: flex; flex-direction: column; }
+.app-shell .app-content .app-screen-transition:has(> .raid-status-banner) > .duel-page.duel-search-screen { flex: 1 1 auto; height: auto; min-height: 0; }
 .raid-status-banner .menu-row__title--with-subtitle { display: grid; gap: 1px; line-height: 1.1; }
 .raid-status-banner .menu-row__subtitle { overflow: hidden; color: var(--book-ink-muted); font: 600 12.5px/1.15 var(--font-label); text-overflow: ellipsis; white-space: nowrap; }

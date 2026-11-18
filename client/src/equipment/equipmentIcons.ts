@@ -14,6 +14,7 @@ export const EQUIPMENT_SLOT_ICON_SOURCES: Readonly<Record<EquipmentSlot, string>
   amulet: `${SLOT_ICON_BASE}/slot-amulet-v1.webp`,
   relic: `${SLOT_ICON_BASE}/slot-relic-v1.webp`,
   voodoo: `${SLOT_ICON_BASE}/slot-charm-v1.webp`,
+  halberd: "/assets/equipment/artifacts-v3/halberd.webp",
 };
 
 export const EQUIPMENT_UI_ICON_SOURCES = {

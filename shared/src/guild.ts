@@ -1,5 +1,5 @@
 import type { CardElement, CardProgressionView, PlayerCardInstance } from "./card.js";
-import type { DuelCardSnapshot, ElementMultiplier } from "./duel.js";
+import type { DuelCardSnapshot } from "./duel.js";
 import type { PlayerMailCardReward } from "./mail.js";
 
 export type GuildLanguage = "uk" | "ru" | "en" | "de" | "other";
@@ -370,14 +370,14 @@ export interface GuildRaidBattleLogEntry {
   defenderCard?: DuelCardSnapshot;
   id: string;
   kind: GuildRaidBattleLogKind;
-  multiplier?: ElementMultiplier;
+  multiplier?: number;
   playerDamage: number;
   slotIndex?: 0 | 1 | 2;
   targetBossSlot?: 1 | 2;
   text: string;
   turnNumber: number;
   witchDamage: number;
-  witchMultiplier?: ElementMultiplier;
+  witchMultiplier?: number;
 }
 
 export interface GuildRaidBattleView {
@@ -599,6 +599,7 @@ export interface GuildForumSectionView {
 
 export interface GuildForumTopicView {
   authorName: string;
+  winterFestiveUntil?: string;
   id: string;
   lastPostAt: string;
   locked: boolean;
@@ -626,6 +627,7 @@ export interface GuildForumSectionResponse {
 
 export interface GuildForumPostView {
   authorName: string;
+  winterFestiveUntil?: string;
   authorRole: GuildRole | null;
   body: string;
   createdAt: string;

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { CHAT_MAX_LENGTH, type ChatMessage, type ChatView } from "@cardastika/shared";
 import { getTelegramInitData } from "../telegram";
+import { WinterFestiveMark } from "./WinterFestiveMark";
 import "../styles/game-chat.css";
 
 type ChatState = "loading" | "ready" | "error";
@@ -123,7 +124,7 @@ export function GameChat({ inputLabel, load, send, signInNotice, title, unavaila
     </form>
     <div className="game-chat__messages" onScroll={handleScroll} ref={messagesRef} aria-live="polite">
       {messages.map(message => <article className="game-chat__message" key={message.id}>
-        <header><strong>{message.author}</strong><time dateTime={message.createdAt}>{messageTime(message.createdAt)}</time></header>
+        <header><strong><WinterFestiveMark until={message.winterFestiveUntil} />{message.author}</strong><time dateTime={message.createdAt}>{messageTime(message.createdAt)}</time></header>
         <p>{message.body}</p>
       </article>)}
       {!messages.length && state === "loading" ? <p className="game-chat__state">Завантажуємо чат…</p> : null}

@@ -5,6 +5,8 @@ interface ConfirmationDialogProps {
   busyLabel?: string;
   cancelLabel?: string;
   confirmLabel: string;
+  /** Marker for the trial guide's pointer on the confirm button. */
+  confirmTutorialTarget?: string;
   description: ReactNode;
   error?: string | null;
   onCancel: () => void;
@@ -19,6 +21,7 @@ export function ConfirmationDialog({
   busyLabel,
   cancelLabel = "Скасувати",
   confirmLabel,
+  confirmTutorialTarget,
   description,
   error = null,
   onCancel,
@@ -81,6 +84,7 @@ export function ConfirmationDialog({
 
   return (
     <div
+      data-no-drag-scroll
       className="confirmation-backdrop"
       onMouseDown={(event) => {
         if (!busy && event.currentTarget === event.target) onCancel();
@@ -100,7 +104,7 @@ export function ConfirmationDialog({
         {error ? <p className="confirmation-modal__error" id={errorId} role="alert">{error}</p> : null}
         <div className="confirmation-modal__actions">
           <button disabled={busy} onClick={onCancel} ref={cancelRef} type="button">{cancelLabel}</button>
-          <button disabled={busy} onClick={onConfirm} type="button">{busy ? busyLabel ?? "Виконуємо…" : confirmLabel}</button>
+          <button data-tutorial-target={confirmTutorialTarget} disabled={busy} onClick={onConfirm} type="button">{busy ? busyLabel ?? "Виконуємо…" : confirmLabel}</button>
         </div>
       </div>
     </div>

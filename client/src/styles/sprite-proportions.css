@@ -10,6 +10,7 @@
 :root body .notice-board-screen .tasks-screen__account-protection,
 :root body .story-trials-screen .campaign-dialogue,
 :root body .app-shell .tutorial-dialog.tutorial-dialog--reference-duel,
+:root body .trial-guide .trial-guide__bubble,
 :root body .app-shell .app-content .duel-result--tutorial .tutorial-result__dialogue,
 :root body .daily-login-modal .daily-login-modal__dialogue,
 :root body .auth-screen--guest .auth-screen__hero .auth-screen__subtitle {

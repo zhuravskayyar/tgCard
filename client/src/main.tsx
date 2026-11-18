@@ -1,6 +1,8 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { installSoundEffects } from "./audio";
+import { installPhoneFrameUrlSync, mountDesktopPhoneFrame } from "./desktopFrame";
+import { installDragScroll } from "./hooks/useDragScroll";
 import { LanguageProvider } from "./i18n";
 import { installLegendaryCssVariables } from "./cards/legendaryPalette";
 import "./theme";
@@ -42,17 +44,25 @@ if (!rootElement) {
   throw new Error("Root element was not found");
 }
 
-if (!isAdminPath) installSoundEffects();
+// A desktop window shorter than a phone hosts the game in a scaled phone frame instead.
+const hostsPhoneFrame = mountDesktopPhoneFrame(isAdminPath);
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <LanguageProvider>
-      <Suspense fallback={<div aria-busy="true" />}>
-        <RootApplication />
-      </Suspense>
-    </LanguageProvider>
-  </StrictMode>,
-);
+if (!hostsPhoneFrame) {
+  installPhoneFrameUrlSync();
+  if (!isAdminPath) installSoundEffects();
+  if (!isAdminPath) installDragScroll();
+  if (isAdminPath) document.body.setAttribute("data-selectable", "");
+
+  createRoot(rootElement).render(
+    <StrictMode>
+      <LanguageProvider>
+        <Suspense fallback={<div aria-busy="true" />}>
+          <RootApplication />
+        </Suspense>
+      </LanguageProvider>
+    </StrictMode>,
+  );
+}
 
 // The legendary gold palette is defined once in TypeScript; CSS layers read it through custom properties.
 installLegendaryCssVariables();

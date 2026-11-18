@@ -10,6 +10,14 @@ column centred on the world background. Never stretch, scale or zoom the layout
 for wider screens, and never add tablet/desktop layout variants inside the shell
 (`--shell-width` in `tokens.css`, breakpoints in `shell.css`).
 
+Exception (user decision 2026-11-18): a desktop browser (mouse pointer, at ANY window width,
+including narrow side panes) always runs the game inside a 430×880 phone frame
+(`client/src/desktopFrame.ts`), scaled down to a smaller window (height floor 0.6) and
+centred in a larger one, with the world background around it (`body.phone-frame-host`).
+The ≤540 px full-width rule is for touch phones only. Telegram launches, touch tablets,
+`/admin`, automated browsers (e2e) and crawlers render directly.
+Inside the frame the address bar follows the game route.
+
 Keep screens in `client/src/screens`, reusable visual pieces in `components`, and
 screen-independent React behavior in `hooks`. Prefer existing components and
 small CSS modules or focused styles over premature design systems.

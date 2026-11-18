@@ -1,10 +1,18 @@
 import type { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import type { BattlePassClaimResponse, BattlePassPageResponse, DailyLoginClaimResponse, DailyTaskClaimResponse } from "@cardastika/shared";
+import type {
+  BattlePassClaimResponse,
+  BattlePassPageResponse,
+  BattlePassVipPurchaseResponse,
+  DailyLoginClaimResponse,
+  DailyTaskClaimResponse,
+} from "@cardastika/shared";
 import { authenticateRoutePlayer, isAuthFailure, type RouteAuthDependencies } from "./auth/routeAuth.js";
 import { HttpRequestError, readJsonBody, sendJson } from "./http/json.js";
 import {
   BattlePassMilestoneNotClaimableError,
   BattlePassService,
+  BattlePassVipInsufficientGoldError,
+  BattlePassVipUnavailableError,
   DailyTaskNotClaimableError,
 } from "./battlePassService.js";
 import { DailyRewardChoiceRequiredError, DailyRewardNotClaimableError } from "./dailyRewardsService.js";
@@ -14,6 +22,7 @@ interface BattlePassOperations {
   claimDailyLogin(playerId: string, choiceIndex?: number): Promise<DailyLoginClaimResponse>;
   claimMilestone(playerId: string, milestoneId: string): Promise<BattlePassClaimResponse>;
   getPage(playerId: string): Promise<BattlePassPageResponse>;
+  purchaseVip(playerId: string): Promise<BattlePassVipPurchaseResponse>;
 }
 
 interface BattlePassRouteDependencies extends RouteAuthDependencies {
@@ -31,6 +40,7 @@ export async function handleBattlePassRequest(
   const milestoneMatch = url.pathname.match(/^\/api\/player\/battle-pass\/milestones\/([^/]+)\/claim$/);
   const dailyMatch = url.pathname.match(/^\/api\/player\/battle-pass\/daily\/([^/]+)\/claim$/);
   const dailyLoginMatch = url.pathname === "/api/player/battle-pass/daily-login/claim";
+  const vipPurchaseMatch = url.pathname === "/api/player/battle-pass/vip/purchase";
   try {
     const { player } = await authenticateRoutePlayer(request, dependencies);
     if (request.method === "GET" && url.pathname === "/api/player/battle-pass") {
@@ -39,6 +49,10 @@ export async function handleBattlePassRequest(
     }
     if (request.method === "POST" && milestoneMatch) {
       sendJson(response, 200, await dependencies.battlePass.claimMilestone(player.id, decodeURIComponent(milestoneMatch[1]!)), headers);
+      return;
+    }
+    if (request.method === "POST" && vipPurchaseMatch) {
+      sendJson(response, 200, await dependencies.battlePass.purchaseVip(player.id), headers);
       return;
     }
     if (request.method === "POST" && dailyMatch) {
@@ -65,6 +79,14 @@ export async function handleBattlePassRequest(
     }
     if (error instanceof BattlePassMilestoneNotClaimableError || error instanceof DailyTaskNotClaimableError) {
       sendJson(response, 409, { error: { code: "battle_pass_not_claimable", message: error.message } }, headers);
+      return;
+    }
+    if (error instanceof BattlePassVipUnavailableError) {
+      sendJson(response, 409, { error: { code: "battle_pass_vip_unavailable", message: error.message } }, headers);
+      return;
+    }
+    if (error instanceof BattlePassVipInsufficientGoldError) {
+      sendJson(response, 409, { error: { code: "insufficient_gold", message: error.message } }, headers);
       return;
     }
     if (error instanceof DailyRewardChoiceRequiredError) {

@@ -233,6 +233,24 @@ export function getElementMultiplier(
   return ELEMENT_MULTIPLIERS[attackerElement][defenderElement];
 }
 
+/** Apply collection strike bonuses to a standard attack or its return strike. */
+export function getStrikeMultiplier(
+  attackerElement: CardElement,
+  defenderElement: CardElement,
+  bonuses?: DuelBattleModifiers["strikeMultiplierBonus"],
+  counterattack = false,
+) {
+  const base = getElementMultiplier(attackerElement, defenderElement);
+  const bonus = base === 0.5
+    ? bonuses?.weak ?? 0
+    : base === 1.5
+      ? bonuses?.critical ?? 0
+      : counterattack
+        ? bonuses?.counterNormal ?? 0
+        : bonuses?.attackNormal ?? 0;
+  return base + bonus;
+}
+
 export function getEffectiveDeckPower(baseDeckPower: number, deckPowerPct: number) {
   assertPositiveInteger(baseDeckPower, "Base deck power");
   assertPercentage(deckPowerPct, "Deck power percentage");
@@ -358,12 +376,19 @@ export function calculateDuelDamage(input: {
   battleDamagePct: number;
   defenderElement: CardElement;
   attackerElement: CardElement;
+  strikeMultiplierBonus?: DuelBattleModifiers["strikeMultiplierBonus"];
+  counterattack?: boolean;
   attackerEquipment?: DuelBattleModifiers["equipment"];
 }) {
   assertPositiveInteger(input.attackerFinalPower, "Card final power");
   assertPercentage(input.battleDamagePct, "Battle damage percentage");
   assertPercentage(input.attackerElementDamagePct, "Element damage percentage");
-  const multiplier = getElementMultiplier(input.attackerElement, input.defenderElement);
+  const multiplier = getStrikeMultiplier(
+    input.attackerElement,
+    input.defenderElement,
+    input.strikeMultiplierBonus,
+    input.counterattack,
+  );
   const damageModifierPct = input.battleDamagePct
     + input.attackerElementDamagePct
     + (input.attackerEquipment?.outgoingDamagePct ?? 0);
@@ -400,6 +425,7 @@ export function resolveDuelExchange(input: {
     defenderElement: enemyCard.element,
     battleDamagePct: input.playerModifiers.battleDamagePct,
     attackerElementDamagePct: input.playerModifiers.elementDamagePct[playerCard.element],
+    strikeMultiplierBonus: input.playerModifiers.strikeMultiplierBonus,
     attackerEquipment: input.equipmentEnabled ? input.playerModifiers.equipment : undefined,
   });
   const enemyAttack = calculateDuelDamage({
@@ -408,6 +434,8 @@ export function resolveDuelExchange(input: {
     defenderElement: playerCard.element,
     battleDamagePct: input.enemyModifiers.battleDamagePct,
     attackerElementDamagePct: input.enemyModifiers.elementDamagePct[enemyCard.element],
+    strikeMultiplierBonus: input.enemyModifiers.strikeMultiplierBonus,
+    counterattack: true,
     attackerEquipment: input.equipmentEnabled ? input.enemyModifiers.equipment : undefined,
   });
 
@@ -463,11 +491,11 @@ export function resolveDuelExchange(input: {
 }
 
 export function getDuelLogVisualState(
-  playerMultiplier: ElementMultiplier,
-  enemyMultiplier: ElementMultiplier,
+  playerMultiplier: number,
+  enemyMultiplier: number,
 ): DuelLogVisualState {
-  if (playerMultiplier === 1.5 && enemyMultiplier === 0.5) return "player_strong";
-  if (playerMultiplier === 0.5 && enemyMultiplier === 1.5) return "enemy_strong";
+  if (playerMultiplier >= 1.5 && enemyMultiplier < 1) return "player_strong";
+  if (playerMultiplier < 1 && enemyMultiplier >= 1.5) return "enemy_strong";
   return "neutral";
 }
 
@@ -514,12 +542,12 @@ export interface DuelGoldBonuses {
   sharePct?: number;
 }
 
-/** Daily Duel gold limit: account level plus collection bonuses, doubled by the currency boost. */
-export function getDuelGoldDailyLimit(level: number, rewardMultiplier: 1 | 2 = 1, limitBonus = 0) {
+/** Daily Duel gold limit: account level plus collection bonuses, multiplied by the currency boost (×2…×4). */
+export function getDuelGoldDailyLimit(level: number, rewardMultiplier: 1 | 2 | 3 | 4 = 1, limitBonus = 0) {
   assertPositiveInteger(level, "Account level");
   assertNonNegativeInteger(limitBonus, "Duel gold limit bonus");
-  if (rewardMultiplier !== 1 && rewardMultiplier !== 2) {
-    throw new RangeError("Duel gold reward multiplier must be 1 or 2");
+  if (![1, 2, 3, 4].includes(rewardMultiplier)) {
+    throw new RangeError("Duel gold reward multiplier must be 1 to 4");
   }
   return (level + limitBonus) * rewardMultiplier;
 }
@@ -543,7 +571,7 @@ export function getDuelGoldReward(
   earnedDailyGold: number,
   duelsSinceGold: number,
   random: RandomSource = Math.random,
-  rewardMultiplier: 1 | 2 = 1,
+  rewardMultiplier: 1 | 2 | 3 | 4 = 1,
   { limitBonus = 0, sharePct = DUEL_GOLD_BASE_SHARE_PCT }: DuelGoldBonuses = {},
 ) {
   assertNonNegativeInteger(earnedDailyGold, "Earned daily Duel gold");

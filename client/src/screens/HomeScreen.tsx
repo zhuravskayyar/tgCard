@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ARENA_UNLOCK_DUEL_RATING, type ChestShopView, type DuelAvailability } from "@cardastika/shared";
+import { ARENA_UNLOCK_DUEL_RATING, type ChestShopView, type DuelAvailability, type StoryTrialNavigationTarget } from "@cardastika/shared";
 import { MenuRow } from "../components/MenuRow";
 import { ModeTile, type ModeAccent } from "../components/ModeTile";
 import type { AppIconName } from "../components/AppIcon";
 import { GuidedOnboarding } from "../components/GuidedOnboarding";
+import { TrialsNextStep } from "../components/TrialsNextStep";
 import { useBattlePass } from "../hooks/useBattlePass";
 import type { TutorialStatus } from "../hooks/useTutorial";
 import { getTelegramInitData } from "../telegram";
@@ -118,7 +119,12 @@ function useChestShopRowDetail(enabled: boolean) {
 interface HomeScreenProps {
   campaignTitle?: string;
   onOpenCampaign: () => void;
+  /** Opens the story trials; falls back to the campaign screen, which links to them. */
+  onOpenTrials?: () => void;
+  /** Goes straight to the screen of the next trial, with its step-by-step hint. */
+  onOpenTrialTarget?: (target: StoryTrialNavigationTarget, trialId: string) => void;
   onResumeTutorial: () => void;
+  tutorialResolved: boolean;
   tutorialStatus: TutorialStatus;
   onOpenDuel: () => void;
   onOpenTournament: () => void;
@@ -139,7 +145,7 @@ interface HomeScreenProps {
   arenaUnlocked?: boolean;
 }
 
-export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onResumeTutorial, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenGuardianDragon, onOpenInvasion, onOpenLeaderboard, onOpenShop, onOpenChestShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
+export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, onOpenTrials, onOpenTrialTarget, onResumeTutorial, tutorialResolved, tutorialStatus, onOpenCollections, onOpenDeck, onOpenDuel, onOpenTournament, onOpenArena, onOpenDungeon, onOpenTasks, onOpenEquipment, onOpenGuardianDragon, onOpenInvasion, onOpenLeaderboard, onOpenShop, onOpenChestShop, playerLevel, arenaUnlocked }: HomeScreenProps) {
   const chestShopDetail = useChestShopRowDetail(playerLevel !== undefined && playerLevel > 1);
   const { state: battlePassState } = useBattlePass();
   const novice = playerLevel !== undefined && playerLevel <= 1;
@@ -182,6 +188,8 @@ export function HomeScreen({ campaignTitle, onOpenBattlePass, onOpenCampaign, on
           {chestShopDetail ? (
             <MenuRow chevron className="menu-row--gilded" detail={chestShopDetail} icon="shop" iconSrc={CHEST_SHOP_ROW_ICON} metalTexture onClick={onOpenChestShop} title="Лавка скринь" />
           ) : null}
+          {/* Post-tutorial prompt: one more row of this menu while the campaign waits on trials. */}
+          <TrialsNextStep onOpen={onOpenTrials ?? onOpenCampaign} onOpenTarget={onOpenTrialTarget} tutorialResolved={tutorialResolved} tutorialStatus={tutorialStatus} />
         </section>
       </div>
     </div>

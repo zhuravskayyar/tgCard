@@ -556,7 +556,7 @@ function DuelSearchExperience({
                 ) : null}
               </div>
               <div className="duel-search-actions">
-                <button className="duel-search-button duel-search-button--attack" disabled={!revealed} onClick={() => onAttack(search.searchId)} type="button">
+                <button className="duel-search-button duel-search-button--attack" data-tutorial-target="duel-attack" disabled={!revealed} onClick={() => onAttack(search.searchId)} type="button">
                   <DuelSearchSword className="duel-search-button__swords" />
                   НАПАСТИ
                 </button>

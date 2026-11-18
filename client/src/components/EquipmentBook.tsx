@@ -26,6 +26,8 @@ export function getEquipmentBonusText(definition: EquipmentDefinition) {
       ? `-${definition.bonusValue}% урону, ${definition.secondaryBonusValue}% назад`
       : `-${definition.bonusValue}% отриманого урону`;
     case "damage_reflection": return `${definition.bonusValue}% урону назад`;
+    case "anti_damage_reduction": return `−${definition.bonusValue} в. п. поглинання і −${definition.secondaryBonusValue ?? 0} в. п. відбиття`;
+    case "anti_damage_reflection": return `−${definition.bonusValue} в. п. відбиття`;
     case "health_reduction": return `-${definition.bonusValue}% HP вбивці`;
     case "save_once": return `Повстання з ${definition.bonusValue}% HP`;
     case "passive": return `+${definition.bonusValue}`;
@@ -145,7 +147,7 @@ export function EquipmentItemCard({ busy = false, celebrate = false, children, d
 
   const rarity = EQUIPMENT_RARITY_CONFIG[definition.rarity];
   return createPortal(
-    <div className="eq-card-backdrop" onMouseDown={(event) => { if (!busy && event.currentTarget === event.target) onClose(); }}>
+    <div className="eq-card-backdrop" data-no-drag-scroll onMouseDown={(event) => { if (!busy && event.currentTarget === event.target) onClose(); }}>
       <section aria-labelledby="eq-card-title" aria-modal="true" className="eq-card" ref={panelRef} role="dialog" style={rarityStyle(definition.rarity)}>
         <button aria-label="Закрити" className="eq-card__close" disabled={busy} onClick={onClose} ref={closeRef} type="button"><AppIcon name="close" size={16} /></button>
         <div className="eq-card__art">{celebrate ? <><span aria-hidden="true" className="eq-card__glow" /><EquipmentSparks /></> : null}<EquipmentSprite definition={definition} /></div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { GUILD_CONFIG, GUILD_ROLE_LABELS, canKickGuildMember, canManageGuildRole, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildMineResponse, type GuildProfileResponse, type GuildRecruitmentMode, type GuildRole, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
+import { GUILD_CONFIG, GUILD_ROLE_LABELS, canKickGuildMember, canManageGuildRole, type GuildAltarCurrency, type GuildAltarUpgradeResponse, type GuildMineResponse, type GuildProfileResponse, type GuildRecruitmentMode, type GuildRole, type GuildTreasuryCurrency, type GuildWarPlayerProgress, type PlayerCardInstance } from "@cardastika/shared";
 import { AppIcon } from "../../components/AppIcon";
 import { AvatarImage } from "../../components/AvatarImage";
 import { MenuRow } from "../../components/MenuRow";
@@ -12,14 +12,16 @@ import { GuildRaidScreen } from "./GuildRaidScreen";
 import { GuildDragonScreen } from "./GuildDragonScreen";
 import { GuildRaidsHub } from "./GuildRaidsHub";
 import { GuildTreasuryScreen } from "./GuildTreasuryScreen";
+import { GuildWarScreen } from "./GuildWarScreen";
 
-type GuildProfileTab = "overview" | "info" | "members" | "card" | "applications" | "development" | "raids" | "raid" | "dragons" | "treasury" | "journal" | "management";
+type GuildProfileTab = "overview" | "info" | "members" | "card" | "applications" | "development" | "raids" | "raid" | "dragons" | "treasury" | "war" | "journal" | "management";
 
 interface GuildProfileProps {
   profile: GuildProfileResponse;
   mine: GuildMineResponse;
   playerLevel: number;
   onTabChange: (tab: GuildProfileTab) => void;
+  onWarPlayerProgress: (progress: GuildWarPlayerProgress) => void;
   initialTab?: "raids";
   busy: boolean;
   notice: ReactNode;
@@ -47,7 +49,7 @@ interface GuildProfileProps {
   treasuryCardCandidates: AsyncState<PlayerCardInstance[]>;
 }
 
-export function GuildProfile({ initialTab, profile, mine, playerLevel, onTabChange, busy, notice, onApply, onJoin, onWithdraw, onChangeRole, onDecideApplication, onDissolve, onKick, onLeave, onTransfer, onUpdateSettings, onDirectory, onForum, onUpdateAnnouncement, guildCardCandidates, onLoadGuildCardCandidates, onSetGuildCard, onPurchaseAltar, onDonateTreasuryCurrency, onLoadTreasuryCardCandidates, onDonateGuildCardElements, onLevelUpGuildCard, treasuryCardCandidates }: GuildProfileProps) {
+export function GuildProfile({ initialTab, profile, mine, playerLevel, onTabChange, onWarPlayerProgress, busy, notice, onApply, onJoin, onWithdraw, onChangeRole, onDecideApplication, onDissolve, onKick, onLeave, onTransfer, onUpdateSettings, onDirectory, onForum, onUpdateAnnouncement, guildCardCandidates, onLoadGuildCardCandidates, onSetGuildCard, onPurchaseAltar, onDonateTreasuryCurrency, onLoadTreasuryCardCandidates, onDonateGuildCardElements, onLevelUpGuildCard, treasuryCardCandidates }: GuildProfileProps) {
   const { guild, members, viewer, applications } = profile;
   const [tab, setTab] = useState<GuildProfileTab>(initialTab && profile.viewer.member ? initialTab : "overview");
   /** The Guild Card screen opens from the hub or the roster and returns there. */
@@ -72,7 +74,7 @@ export function GuildProfile({ initialTab, profile, mine, playerLevel, onTabChan
     if (tab === "members") document.querySelector<HTMLElement>(".app-content")?.scrollTo({ top: 0, behavior: "auto" });
   }, [tab]);
   useEffect(() => {
-    if (tab !== "raid") return;
+    if (tab !== "raid" && tab !== "war") return;
     document.querySelector<HTMLElement>(".app-content")?.scrollTo({ top: 0, behavior: "auto" });
   }, [tab]);
 
@@ -87,7 +89,7 @@ export function GuildProfile({ initialTab, profile, mine, playerLevel, onTabChan
     else if (playerLevel < guild.minPlayerLevel) entryMessage = `Для вступу потрібен ${guild.minPlayerLevel} рівень. Ваш рівень — ${playerLevel}.`;
   }
 
-  return <section className={`guild-profile${tab === "members" ? " guild-profile--roster" : tab === "card" ? " guild-profile--card" : tab === "journal" ? " guild-profile--journal" : ""}`} data-element={guild.themeElement ?? undefined} aria-label={`Профіль гільдії ${guild.name}`} aria-busy={busy}>
+  return <section className={`guild-profile${tab === "members" ? " guild-profile--roster" : tab === "card" ? " guild-profile--card" : tab === "journal" ? " guild-profile--journal" : tab === "war" ? " guild-profile--war" : ""}`} data-element={guild.themeElement ?? undefined} aria-label={`Профіль гільдії ${guild.name}`} aria-busy={busy}>
     {tab !== "overview" && tab !== "treasury" ? <ScreenHeading backDisabled={busy} backLabel="До гільдії" onBack={() => setTab("overview")} title={guild.name} /> : null}
     {!viewer.member && tab === "overview" ? <div className="guild-entry">
       {entryMessage ? <p className="guild-helper" role="status">{entryMessage}</p> : guild.recruitmentMode === "application" ? <form className="guild-form" onSubmit={(event) => { event.preventDefault(); onApply(applicationMessage); }}>
@@ -98,7 +100,7 @@ export function GuildProfile({ initialTab, profile, mine, playerLevel, onTabChan
     </div> : null}
     {notice}
     <div id="guild-roster-panel" role="region" aria-label={tab === "overview" ? "Огляд гільдії" : "Розділ гільдії"}>
-      {tab === "overview" ? <GuildHub profile={profile} busy={busy} onInfo={() => setTab("info")} onCard={() => { setCardReturnTab("overview"); setTab("card"); }} onMembers={() => setTab("members")} onApplications={() => setTab("applications")} onDevelopment={() => setTab("development")} onRaid={() => setTab("raids")} onDirectory={onDirectory} onForum={onForum} onTreasury={() => setTab("treasury")} onJournal={() => setTab("journal")} onUpdateAnnouncement={onUpdateAnnouncement} /> : tab === "info" ? <GuildInformation profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "card" ? <GuildCardScreen backLabel={cardReturnTab === "overview" ? "До гільдії" : "До складу гільдії"} busy={busy} onCardBack={() => setTab(cardReturnTab)} onForum={onForum} onLoadCardCandidates={onLoadGuildCardCandidates} onLoadTreasuryCardCandidates={onLoadTreasuryCardCandidates} onSetGuildCard={onSetGuildCard} onDonateGuildCardElements={onDonateGuildCardElements} onLevelUpGuildCard={onLevelUpGuildCard} onTreasury={() => setTab("treasury")} profile={profile} guildCardCandidates={guildCardCandidates} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "development" ? <GuildDevelopment busy={busy} onPurchaseAltar={onPurchaseAltar} profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} onRaid={() => setTab("raid")} /> : tab === "raid" ? <GuildRaidScreen profile={profile} onRaids={() => setTab("raids")} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "raids" ? <GuildRaidsHub onDragons={() => setTab("dragons")} onWitches={() => setTab("raid")} profile={profile} /> : tab === "dragons" ? <GuildDragonScreen onBack={() => setTab("raids")} profile={profile} /> : tab === "treasury" ? <GuildTreasuryScreen busy={busy} onBack={() => setTab("overview")} onDonateCardElements={onDonateGuildCardElements} onDonateCurrency={onDonateTreasuryCurrency} onLoadCardCandidates={onLoadTreasuryCardCandidates} profile={profile} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "journal" ? <GuildJournal profile={profile} /> : tab === "management" ? <GuildManagement busy={busy} description={description} guild={guild} mode={mode} onDescriptionChange={setDescription} onModeChange={setMode} onUpdateSettings={onUpdateSettings} /> : <>
+      {tab === "overview" ? <GuildHub profile={profile} busy={busy} onInfo={() => setTab("info")} onCard={() => { setCardReturnTab("overview"); setTab("card"); }} onMembers={() => setTab("members")} onApplications={() => setTab("applications")} onDevelopment={() => setTab("development")} onRaid={() => setTab("raids")} onWar={() => setTab("war")} onDirectory={onDirectory} onForum={onForum} onTreasury={() => setTab("treasury")} onJournal={() => setTab("journal")} onUpdateAnnouncement={onUpdateAnnouncement} /> : tab === "info" ? <GuildInformation profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "card" ? <GuildCardScreen backLabel={cardReturnTab === "overview" ? "До гільдії" : "До складу гільдії"} busy={busy} onCardBack={() => setTab(cardReturnTab)} onForum={onForum} onLoadCardCandidates={onLoadGuildCardCandidates} onLoadTreasuryCardCandidates={onLoadTreasuryCardCandidates} onSetGuildCard={onSetGuildCard} onDonateGuildCardElements={onDonateGuildCardElements} onLevelUpGuildCard={onLevelUpGuildCard} onTreasury={() => setTab("treasury")} profile={profile} guildCardCandidates={guildCardCandidates} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "development" ? <GuildDevelopment busy={busy} onPurchaseAltar={onPurchaseAltar} profile={profile} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} onRaid={() => setTab("raid")} /> : tab === "raid" ? <GuildRaidScreen profile={profile} onRaids={() => setTab("raids")} onMembers={() => setTab("members")} onForum={onForum} onDirectory={onDirectory} /> : tab === "raids" ? <GuildRaidsHub onDragons={() => setTab("dragons")} onWitches={() => setTab("raid")} profile={profile} /> : tab === "dragons" ? <GuildDragonScreen onBack={() => setTab("raids")} profile={profile} /> : tab === "treasury" ? <GuildTreasuryScreen busy={busy} onBack={() => setTab("overview")} onDonateCardElements={onDonateGuildCardElements} onDonateCurrency={onDonateTreasuryCurrency} onLoadCardCandidates={onLoadTreasuryCardCandidates} profile={profile} treasuryCardCandidates={treasuryCardCandidates} /> : tab === "war" ? <GuildWarScreen guildId={guild.id} onPlayerProgress={onWarPlayerProgress} /> : tab === "journal" ? <GuildJournal profile={profile} /> : tab === "management" ? <GuildManagement busy={busy} description={description} guild={guild} mode={mode} onDescriptionChange={setDescription} onModeChange={setMode} onUpdateSettings={onUpdateSettings} /> : <>
         {tab === "members" ? <GuildRoster members={members} treasury={profile.treasury} memberPage={memberPage} memberPages={memberPages} viewer={viewer} permissions={permissions} busy={busy} expandedMember={expandedMember} rankManagementOpen={rankManagementOpen} onToggleRankManagement={() => { setRankManagementOpen((value) => !value); setExpandedMember(null); }} onToggleMember={(id) => setExpandedMember((current) => current === id ? null : id)} onPageChange={(page) => { setMemberPage(page); setExpandedMember(null); }} onChangeRole={onChangeRole} onTransfer={onTransfer} onKick={onKick} onLeave={onLeave} onTreasury={() => setTab("treasury")} onCard={() => { setCardReturnTab("members"); setTab("card"); }} onForum={onForum} /> : applications.length === 0 ? <GuildState>Нових заявок немає. Тут з’являться гравці, які хочуть приєднатися.</GuildState> : <div className="guild-applications-list">{applications.map((item) => <article className="guild-application" key={item.id}>
           <strong>{item.playerName}</strong><small>Рівень {item.playerLevel} · до {formatDate(item.expiresAt)}</small>
           <div><button className="guild-primary-button" disabled={busy || guild.isFull} onClick={() => onDecideApplication(item.id, "accept")} type="button">Прийняти</button><button className="guild-secondary-button" disabled={busy} onClick={() => onDecideApplication(item.id, "reject")} type="button">Відхилити</button></div>

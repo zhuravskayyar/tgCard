@@ -190,6 +190,17 @@
   border-image: var(--sprite-panel-frame) 62 fill / 6px stretch;
 }
 
+.bestiary-entry__prefix {
+  width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--book-ink-muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .bestiary-entry__name {
   width: 100%;
   min-height: 2.1em;
@@ -241,6 +252,23 @@
   font-size: clamp(20px, 6vw, 24px);
   line-height: 1.1;
   color: var(--book-ink);
+}
+
+.bestiary-page__prefix {
+  margin: 0;
+  color: var(--book-ink-muted);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bestiary-page__description {
+  max-width: 40ch;
+  margin: 2px 0 0;
+  color: var(--book-ink-muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
 }
 
 .bestiary-page__progress { margin: 0; font-size: var(--font-md); font-weight: 700; color: var(--book-ink-muted); }

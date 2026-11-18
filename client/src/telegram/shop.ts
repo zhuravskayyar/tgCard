@@ -403,6 +403,7 @@ function isPackView(value: unknown): value is CollectionPackView {
   return (
     typeof pack.id === "string" &&
     typeof pack.displayName === "string" &&
+    typeof pack.description === "string" &&
     isPositiveInteger(pack.returnsInWeeks) &&
     Array.isArray(pack.setOffers) && pack.setOffers.every(isPackSetOffer) &&
     !!random && typeof random === "object" &&

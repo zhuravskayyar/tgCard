@@ -4,7 +4,6 @@ import {
   cycleCardPoolSlot,
   cycleCardPoolSlotWithGuildCard,
   getBasePowerForLevel,
-  getElementMultiplier,
   getRarityForLevel,
   getWitchHealth,
   getWitchTreasureDigMinutes,
@@ -1262,6 +1261,7 @@ export class GuildRaidService {
           attackerFinalPower: playerCard.finalPower,
           battleDamagePct: battle.player_snapshot.modifiers.battleDamagePct,
           defenderElement: witchCard.element,
+          strikeMultiplierBonus: battle.player_snapshot.modifiers.strikeMultiplierBonus,
         });
         const witchAttack = calculateDuelDamage({
           attackerElement: witchCard.element,
@@ -1299,14 +1299,14 @@ export class GuildRaidService {
           defenderCard: witchCard,
           id: randomUUID(),
           kind: "attack",
-          multiplier: getElementMultiplier(playerCard.element, witchCard.element),
+          multiplier: playerAttack.multiplier,
           playerDamage: playerAttack.damage,
           slotIndex: input.slotIndex,
           targetBossSlot: input.bossSlot,
           text: `Удар по відьмі ${input.bossSlot}: −${playerAttack.damage}`,
           turnNumber: nextTurn,
           witchDamage: witchAttack.damage,
-          witchMultiplier: getElementMultiplier(witchCard.element, playerCard.element),
+          witchMultiplier: witchAttack.multiplier,
         });
         for (let bossIndex = 0; bossIndex < health.length; bossIndex += 1) {
           const maxHealth = toSafeInteger(bosses[bossIndex]!.max_health, "witch max HP");

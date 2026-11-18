@@ -297,10 +297,15 @@ export class GuardianDragonService {
       `SELECT collections.code FROM player_collection_completions completions
        INNER JOIN collections ON collections.id = completions.collection_id
        WHERE completions.player_id = $1 AND collections.code = ANY($2::text[])`,
-      [playerId, ["dragon_fans", "magic_1", "dragon_whisperers"]],
+      [playerId, ["dragon_fans", "magic_1", "magic_heal", "dragon_whisperers"]],
     );
     const codes = new Set(collections.rows.map(({ code }) => code));
-    const bonus = { dragonFans: codes.has("dragon_fans") || codes.has("magic_1"), dragonWhisperers: codes.has("dragon_whisperers") };
+    const bonus = {
+      dragonFans: codes.has("dragon_fans"),
+      dragonMagic: codes.has("magic_1"),
+      dragonHealing: codes.has("magic_heal"),
+      dragonWhisperers: codes.has("dragon_whisperers"),
+    };
     const flameLevel = row?.flame_level ?? GUARDIAN_DRAGON_FLAME_START_LEVEL;
     const flameState = flameStateOf(row);
     const gold = Number((await client.query<{ gold: string | number }>("SELECT gold FROM players WHERE id = $1", [playerId])).rows[0]?.gold ?? 0);

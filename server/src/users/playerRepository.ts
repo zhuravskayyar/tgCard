@@ -7,6 +7,7 @@ import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
 import { SAVE_PROFILE_GOLD_REWARD } from "../trials/storyTrialsConfig.js";
 import { getCompletedCollectionBonuses } from "../collections/discoveryService.js";
+import { loadWinterFeastWindow, WINTER_REINFORCEMENT_COLLECTION_ID } from "../collections/winterReinforcement.js";
 import { recalculateAutomaticDeck } from "../decks/automaticDeckService.js";
 import { grantStarterCards, grantTutorialRewardCard } from "../inventory/starterCardGrant.js";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
@@ -200,11 +201,16 @@ export class PlayerRepository {
     const collectionBonuses = await getCompletedCollectionBonuses(client, row.id);
     const collectionModifiers = getPlayerCollectionModifiers(collectionBonuses.map(({ bonus }) => bonus));
     const accountBoost = await getAccountBoostStatus(client, row.id);
-    return toPlayerSummary(
+    const summary = toPlayerSummary(
       row,
       collectionModifiers.experienceRewardPct + (accountBoost.multiplier - 1) * 100,
       collectionBonuses,
     );
+    if (collectionBonuses.some(({ collectionId }) => collectionId === WINTER_REINFORCEMENT_COLLECTION_ID)) {
+      const window = await loadWinterFeastWindow(client);
+      if (window) summary.winterFestiveUntil = window.endsAt.toISOString();
+    }
+    return summary;
   }
 
   private async findIdentityPlayer(client: PoolClient, provider: AuthProvider, providerUserId: string) {

@@ -257,7 +257,7 @@ export function ShopRewardReveal({
       {deckImproved ? (
         <p className="shop-reveal__deck-note">Колода посилилась: {previousDeckPower} → {deckPower}</p>
       ) : null}
-      {collectionCompleted ? <aside className="shop-collection-complete"><span>КОЛЕКЦІЮ ЗІБРАНО</span><strong>{collectionCompleted.name}</strong><p>{collectionCompleted.bonusLabel}</p></aside> : null}
+      {collectionCompleted ? <aside className="shop-collection-complete"><span>{collectionCompleted.completedCollections.length > 1 ? `ЗІБРАНО КОЛЕКЦІЙ: ${collectionCompleted.completedCollections.length}` : "КОЛЕКЦІЮ ЗІБРАНО"}</span><strong>{collectionCompleted.completedCollections.map(({ name }) => name).join(" · ")}</strong><p>{collectionCompleted.completedCollections.map(({ bonusLabel }) => bonusLabel).filter(Boolean).join(" · ")}</p><p>Нагорода: +{collectionCompleted.completionReward.diamonds} 💎 · +{collectionCompleted.completionReward.silver} срібла</p></aside> : null}
       {errorMessage ? <p className="shop-error" role="alert">{errorMessage}</p> : null}
       <div className="shop-reveal__actions">
         {hasNextCard ? <button className="shop-reveal__next" onClick={showNextCard} type="button">Наступна карта · {activeIndex + 2} / {purchases.length}</button> : null}

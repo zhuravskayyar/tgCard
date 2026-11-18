@@ -6,7 +6,9 @@ import type {
   CollectionModifierType,
   PlayerCollectionBonus,
 } from "@cardastika/shared";
+import { getSeasonWindow } from "../battlePassConfig.js";
 import type { Pool, PoolClient } from "pg";
+import { loadWinterFeastWindow, WINTER_REINFORCEMENT_COLLECTION_ID } from "./winterReinforcement.js";
 
 type Queryable = Pick<PoolClient, "query">;
 
@@ -66,6 +68,7 @@ export async function recordCardDiscovery(
   database: Queryable,
   playerId: string,
   cardId: string,
+  now = new Date(),
 ): Promise<{ collectionCompleted?: CollectionCompletionNotice; newDiscovery: boolean }> {
   const discovery = await database.query(
     `
@@ -100,19 +103,51 @@ export async function recordCardDiscovery(
     `,
     [playerId, cardId],
   );
-  const collectionId = completion.rows[0]?.collection_id;
-  if (!collectionId) return { newDiscovery: true };
+  const completionIds = completion.rows.map(({ collection_id }) => collection_id);
+  if (!completionIds.length) return { newDiscovery: true };
+
+  const awarded = await database.query(
+    `UPDATE player_collection_completions
+     SET reward_awarded_at = NOW()
+     WHERE player_id = $1 AND collection_id = ANY($2::text[]) AND reward_awarded_at IS NULL
+     RETURNING collection_id`,
+    [playerId, completionIds],
+  );
+  const rewardCount = awarded.rowCount ?? 0;
+  if (rewardCount > 0) {
+    await database.query(
+      "UPDATE players SET silver = silver + $2, updated_at = NOW() WHERE id = $1",
+      [playerId, rewardCount * 1_000],
+    );
+    await database.query(
+      `INSERT INTO player_battle_pass_state (player_id, season_id, diamonds)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (player_id, season_id)
+       DO UPDATE SET diamonds = player_battle_pass_state.diamonds + EXCLUDED.diamonds, updated_at = NOW()`,
+      [playerId, getSeasonWindow(now).seasonId, rewardCount],
+    );
+  }
 
   const collection = await database.query<CompletionRow>(
     `
       SELECT id, display_name, buff_type, buff_value, buff_element, buff_scope, bonus_label
       FROM collections
-      WHERE id = $1
+      WHERE id = ANY($1::text[])
+      ORDER BY position
     `,
-    [collectionId],
+    [completionIds],
   );
-  const completed = collection.rows[0];
-  if (!completed) throw new Error("Completed collection definition is missing");
+  if (collection.rows.length !== completionIds.length) throw new Error("Completed collection definition is missing");
+  const completedCollections = collection.rows.map((row) => ({
+    bonus: toModifier(row),
+    bonusLabel: row.bonus_label,
+    id: row.id,
+    name: row.display_name,
+  }));
+  const completed = collection.rows[0]!;
+  const winterWindow = completionIds.includes(WINTER_REINFORCEMENT_COLLECTION_ID)
+    ? await loadWinterFeastWindow(database, now)
+    : null;
   return {
     newDiscovery: true,
     collectionCompleted: {
@@ -120,6 +155,9 @@ export async function recordCardDiscovery(
       name: completed.display_name,
       bonus: toModifier(completed),
       bonusLabel: completed.bonus_label,
+      completedCollections,
+      completionReward: { diamonds: rewardCount, silver: rewardCount * 1_000 },
+      ...(winterWindow ? { winterFestiveUntil: winterWindow.endsAt.toISOString() } : {}),
     },
   };
 }

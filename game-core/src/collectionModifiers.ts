@@ -1,8 +1,9 @@
-import type {
-  CardElement,
-  CollectionBonusScope,
-  CollectionModifier,
-  CollectionModifierType,
+import {
+  CARD_ELEMENTS,
+  type CardElement,
+  type CollectionBonusScope,
+  type CollectionModifier,
+  type CollectionModifierType,
 } from "@cardastika/shared";
 
 export interface PlayerCollectionModifiers {
@@ -95,4 +96,24 @@ export function applyGuildXpCollectionBonus(baseXp: number, completedCollections
     pct += GUILD_XP_COLLECTION_BONUS_PCT[code] ?? 0;
   }
   return Math.round(baseXp * (100 + pct) / 100);
+}
+
+export function getZodiacCollectionElementPct(completedCodes: readonly string[]): Record<CardElement, number> {
+  const completed = new Set(completedCodes);
+  const elements = CARD_ELEMENTS.filter(element => completed.has(`zodiac_${element}`));
+  const pct = [0, 5, 7.5, 10, 10][elements.length]!;
+  const bonuses = { fire: 0, water: 0, air: 0, earth: 0 };
+  for (const element of elements) bonuses[element] = pct;
+  return bonuses;
+}
+
+/** Collection completion currently represents the first and only supported collection level. */
+export function getCollectionStrikeMultiplierBonus(completedCodes: readonly string[]) {
+  const completed = new Set(completedCodes);
+  return {
+    weak: completed.has("breath_of_storm") ? 0.1 : 0,
+    critical: completed.has("legion_of_flame") ? 0.1 : 0,
+    attackNormal: completed.has("deep_engines") ? 0.1 : 0,
+    counterNormal: completed.has("titans_of_forge") ? 0.1 : 0,
+  };
 }

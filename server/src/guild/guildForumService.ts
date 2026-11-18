@@ -8,6 +8,7 @@ import type {
   GuildRole,
 } from "@cardastika/shared";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
+import { loadWinterFestivePlayers } from "../collections/winterReinforcement.js";
 import { GuildDomainError } from "./guildService.js";
 import { randomUUID } from "node:crypto";
 
@@ -24,6 +25,7 @@ interface SectionRow extends QueryResultRow {
 }
 
 interface TopicRow extends QueryResultRow {
+  author_id: string;
   author_name: string;
   id: string;
   last_post_at: string | Date;
@@ -36,6 +38,7 @@ interface TopicRow extends QueryResultRow {
 }
 
 interface PostRow extends QueryResultRow {
+  author_id: string;
   author_name: string;
   author_role: GuildRole | null;
   body: string;
@@ -67,7 +70,7 @@ function sectionView(row: SectionRow): GuildForumSectionView {
   };
 }
 
-function topicView(row: TopicRow): GuildForumTopicView {
+function topicView(row: TopicRow, winterFestiveUntil?: string): GuildForumTopicView {
   return {
     authorName: row.author_name,
     id: row.id,
@@ -78,6 +81,7 @@ function topicView(row: TopicRow): GuildForumTopicView {
     sectionId: row.section_id,
     title: row.title,
     unread: Boolean(row.unread),
+    ...(winterFestiveUntil ? { winterFestiveUntil } : {}),
   };
 }
 
@@ -129,7 +133,7 @@ export class GuildForumService {
       const totalResult = await client.query<{ total: string }>("SELECT COUNT(*)::int AS total FROM guild_forum_topics WHERE section_id = $1", [sectionId]);
       const totalTopics = toInt(totalResult.rows[0]?.total ?? 0);
       const result = await client.query<TopicRow>(
-        `SELECT t.id, t.section_id, t.title, t.pinned, t.locked, t.last_post_at,
+        `SELECT t.id, t.section_id, t.author_id, t.title, t.pinned, t.locked, t.last_post_at,
           COALESCE(p.nickname, NULLIF(p.username, ''), p.first_name) AS author_name,
           GREATEST(COUNT(fp.id)::int - 1, 0) AS reply_count,
           NOT EXISTS (
@@ -145,11 +149,12 @@ export class GuildForumService {
          LIMIT $3 OFFSET $4`,
         [sectionId, viewerId, FORUM_PAGE_SIZE, (page - 1) * FORUM_PAGE_SIZE],
       );
+      const festive = await loadWinterFestivePlayers(client, result.rows.map((row) => row.author_id));
       return {
         page,
         pageSize: FORUM_PAGE_SIZE,
         section: this.withViewerSection(section, role),
-        topics: result.rows.map(topicView),
+        topics: result.rows.map((row) => topicView(row, festive?.playerIds.has(row.author_id) ? festive.endsAt : undefined)),
         totalPages: Math.max(1, Math.ceil(totalTopics / FORUM_PAGE_SIZE)),
         totalTopics,
         viewer: { canPost: Boolean(role) },
@@ -164,7 +169,7 @@ export class GuildForumService {
     try {
       const role = await this.memberRole(client, viewerId, guildId);
       const topicResult = await client.query<TopicRow & { section_visibility: "public" | "private" }>(
-        `SELECT t.id, t.section_id, t.title, t.pinned, t.locked, t.last_post_at,
+        `SELECT t.id, t.section_id, t.author_id, t.title, t.pinned, t.locked, t.last_post_at,
           s.visibility AS section_visibility,
           COALESCE(p.nickname, NULLIF(p.username, ''), p.first_name) AS author_name,
           GREATEST((SELECT COUNT(*)::int FROM guild_forum_posts fp WHERE fp.topic_id = t.id) - 1, 0) AS reply_count,
@@ -186,7 +191,7 @@ export class GuildForumService {
       const totalResult = await client.query<{ total: string }>("SELECT COUNT(*)::int AS total FROM guild_forum_posts WHERE topic_id = $1", [topicId]);
       const totalPosts = toInt(totalResult.rows[0]?.total ?? 0);
       const postsResult = await client.query<PostRow>(
-        `SELECT fp.id, fp.body, fp.created_at, fp.edited_at,
+        `SELECT fp.id, fp.author_id, fp.body, fp.created_at, fp.edited_at,
           COALESCE(p.nickname, NULLIF(p.username, ''), p.first_name) AS author_name,
           gm.role AS author_role
          FROM guild_forum_posts fp
@@ -198,6 +203,8 @@ export class GuildForumService {
          LIMIT $3 OFFSET $4`,
         [guildId, topicId, FORUM_PAGE_SIZE, (page - 1) * FORUM_PAGE_SIZE],
       );
+      const authorIds = [topic.author_id, ...postsResult.rows.map((row) => row.author_id)];
+      const festive = await loadWinterFestivePlayers(client, authorIds);
       return {
         page,
         pageSize: FORUM_PAGE_SIZE,
@@ -208,9 +215,10 @@ export class GuildForumService {
           createdAt: toIso(row.created_at),
           editedAt: row.edited_at ? toIso(row.edited_at) : null,
           id: row.id,
+          ...(festive?.playerIds.has(row.author_id) ? { winterFestiveUntil: festive.endsAt } : {}),
         })),
         title: topic.title,
-        topic: topicView(topic),
+        topic: topicView(topic, festive?.playerIds.has(topic.author_id) ? festive.endsAt : undefined),
         totalPages: Math.max(1, Math.ceil(totalPosts / FORUM_PAGE_SIZE)),
         totalPosts,
         viewer: { canModerate: role === "leader" || role === "officer", canReply: Boolean(role) && !topic.locked },

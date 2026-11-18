@@ -6,6 +6,7 @@ export interface ChatMessage {
   author: string;
   body: string;
   createdAt: string;
+  winterFestiveUntil?: string;
 }
 
 export interface ChatView {

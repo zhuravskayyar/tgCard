@@ -28,6 +28,7 @@ export function ShopCategoryBanner({ category, onSelect }: ShopCategoryBannerPro
     <button
       aria-label={`${category.title}: ${category.subtitle}`}
       className={`shop-category-banner shop-category-banner--${category.theme}`}
+      data-tutorial-target={category.id === "magical-cards" ? "shop-cards-category" : undefined}
       onClick={() => onSelect(category)}
       style={style}
       type="button"

@@ -419,6 +419,7 @@ export function ShopScreen({ onBack, onEquipmentInventoryChange, onBalanceChange
             isReadyBundlesCategory ? (
               <section className="shop-bundle-section" aria-label="Готові набори">
                 <ShopSectionHeading>Готові набори</ShopSectionHeading>
+                <p className="shop-single-card-hint">У готовому наборі кілька карт однієї пропозиції; склад і кількість показані на пакунку.</p>
                 <div className="shop-bundle-list">
                   {SHOP_BUNDLES.length ? SHOP_BUNDLES.map((bundle) => (
                     catalogState.catalog.bundles.find((offer) => offer.id === bundle.id) ? (

@@ -8,6 +8,7 @@ import { ElementSymbol } from "../components/ElementSymbol";
 import { EquipmentDoll } from "../components/EquipmentBook";
 import { LeagueBadge } from "../components/LeagueBadge";
 import { MenuRow } from "../components/MenuRow";
+import { WinterFestiveMark } from "../components/WinterFestiveMark";
 import { EQUIPMENT_ELEMENT_ORDER } from "../equipment/equipmentIcons";
 import { EMPTY_EQUIPMENT } from "../equipment/equipmentState";
 import { usePlayerProfile } from "../hooks/usePlayerProfile";
@@ -61,6 +62,7 @@ export function PlayerProfileScreen({ onBack, playerId }: PlayerProfileScreenPro
           <section aria-label={`Профіль гравця ${profile.displayName}`} className="eq-plate pf-identity pf-identity--public">
             <span className="eq-frame pf-portrait">
               <AvatarImage alt={`Аватар ${profile.displayName}`} name={profile.displayName} photoUrl={profile.photoUrl} seed={playerId} />
+              <WinterFestiveMark until={profile.winterFestiveUntil} />
             </span>
             <div className="pf-identity__copy">
               <strong className="pf-identity__name">{profile.displayName}</strong>

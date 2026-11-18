@@ -73,8 +73,15 @@ export function CampaignScreen({ onBack, onOpenBoss, onOpenTrials }: {
         <article className="adventure-plate">
           <h2>{tx(location.name)}</h2>
           {location.state === "trials" ? <>
-            <p>{tx(`Пройди випробування! ${formatFullUiNumber(location.trialsClaimed)} / ${formatFullUiNumber(location.trialsTotal)}`)}</p>
-            <button className="adventure-button ui-button ui-button--primary" onClick={onOpenTrials} type="button">{tx(location.claimableTrials > 0 ? "Нагорода!" : "Випробування")}</button>
+            <div className="adventure-trials-card">
+              <strong className="adventure-trials-card__title">{tx("Спершу — випробування")}</strong>
+              <p>{tx(`Пройди ${formatFullUiNumber(location.trialsTotal)} коротких випробувань, щоб відкрити бій з босом цієї локації.`)}</p>
+              <div className="adventure-trials-card__progress">
+                <span aria-label={tx("Прогрес випробувань")} aria-valuemax={location.trialsTotal} aria-valuemin={0} aria-valuenow={location.trialsClaimed} className="adventure-trials-card__bar" role="progressbar"><i style={{ width: `${location.trialsTotal > 0 ? Math.min(100, Math.round(location.trialsClaimed / location.trialsTotal * 100)) : 0}%` }} /></span>
+                <b>{formatFullUiNumber(location.trialsClaimed)} / {formatFullUiNumber(location.trialsTotal)}</b>
+              </div>
+            </div>
+            <button className="adventure-button ui-button ui-button--primary" onClick={onOpenTrials} type="button">{tx(location.claimableTrials > 0 ? "Нагорода!" : "До випробувань")}</button>
           </> : resume || location.boss.canFight ? <button className="adventure-button ui-button ui-button--primary" onClick={() => onOpenBoss(location.number)} type="button">{tx(resume ? "Продовжити бій" : "Бити боса")}</button>
             : location.boss.availableAt ? <p>{tx("Битися знову через")} <time dateTime={location.boss.availableAt}>{countdown(location.boss.availableAt, now)}</time></p>
             : <p>{tx(location.state === "passed" ? "Пригоду пройдено" : "Бос готується до бою")}</p>}

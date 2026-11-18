@@ -1,6 +1,7 @@
 import { getCardPower, getDominantDeckElement, getRarityForLevel, isMagicSourceCode } from "@cardastika/game-core";
 import { ARENA_LEAGUE_CONFIG, ARENA_START_RATING, getLeagueByRating, getPlayerDisplayName, LEADERBOARD_REQUIRED_DUEL_WINS, type LeaderboardEntry, type LeaderboardKind, type PublicPlayerProfile } from "@cardastika/shared";
 import type { Pool } from "pg";
+import { loadWinterFeastWindow, WINTER_REINFORCEMENT_COLLECTION_ID } from "../collections/winterReinforcement.js";
 import { toPublicPlayerEquipment } from "../equipment/equipmentState.js";
 
 export const LEADERBOARD_PAGE_SIZE = 10;
@@ -191,8 +192,12 @@ export class LeaderboardRepository {
       const mageElement = getDominantDeckElement(
         result.rows.flatMap(({ card_element }) => card_element ? [{ element: card_element }] : []),
       ) ?? "fire";
+      const completedCollectionIds = completions.rows.map(({ collection_id }) => collection_id);
+      const winterWindow = completedCollectionIds.includes(WINTER_REINFORCEMENT_COLLECTION_ID)
+        ? await loadWinterFeastWindow(this.pool)
+        : null;
       return {
-        completedCollectionIds: completions.rows.map(({ collection_id }) => collection_id),
+        completedCollectionIds,
         deckPower,
         displayName: getDisplayName(first.nickname, first.username, first.first_name),
         duelHighestLeagueIndex: toSafeInteger(first.duel_highest_league_index, "duel highest league index"),
@@ -204,6 +209,7 @@ export class LeaderboardRepository {
         mageElement,
         photoUrl: first.photo_url,
         strongestCards,
+        ...(winterWindow ? { winterFestiveUntil: winterWindow.endsAt.toISOString() } : {}),
       };
     } catch (error) {
       throw new LeaderboardPersistenceError({ cause: error });

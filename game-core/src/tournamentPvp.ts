@@ -10,7 +10,9 @@ import {
   type TournamentMatchResult,
   type TournamentSeed,
 } from "@cardastika/shared";
-import { calculateDuelDamage, shuffleCards, type RandomSource } from "./duel.js";
+import { calculateArenaDamage } from "./arena.js";
+import { getZodiacCollectionElementPct } from "./collectionModifiers.js";
+import { shuffleCards, type RandomSource } from "./duel.js";
 import {
   TOURNAMENT_RULES,
   advanceTournamentCardCycle,
@@ -221,7 +223,7 @@ export interface TournamentCollectionBonuses {
 }
 
 export function getTournamentCollectionBonuses(completedCodes: readonly string[]): TournamentCollectionBonuses {
-  const result: TournamentCollectionBonuses = { elementPowerPct: { fire: 0, water: 0, air: 0, earth: 0 }, hpPct: 0, buffPercent: TOURNAMENT_RULES.buffPercent };
+  const result: TournamentCollectionBonuses = { elementPowerPct: getZodiacCollectionElementPct(completedCodes), hpPct: 0, buffPercent: TOURNAMENT_RULES.buffPercent };
   for (const code of new Set(completedCodes)) {
     const effect = TOURNAMENT_COLLECTION_EFFECTS[code];
     if (!effect) continue;
@@ -405,44 +407,45 @@ export function strikeTournamentDuel(state: TournamentDuelState, sideIndex: 0 | 
   attacker.view = { ...view, used: viewUsed };
 
   const attackerPower = getTournamentCardPower(attackerCard, attacker);
-  const hit = calculateDuelDamage({
-    attackerFinalPower: attackerPower,
-    attackerElement: attackerCard.element,
-    defenderElement: defenderCard.element,
-    battleDamagePct: attacker.modifiers.battleDamagePct,
-    attackerElementDamagePct: attacker.modifiers.elementDamagePct[attackerCard.element],
-    attackerEquipment: attacker.modifiers.equipment,
+  const defenderPower = getTournamentCardPower(defenderCard, defender);
+  const attackCard = { ...attackerCard, finalPower: attackerPower };
+  const counterCard = { ...defenderCard, finalPower: defenderPower };
+  const hit = calculateArenaDamage({
+    attacker: attackCard,
+    attackerModifiers: attacker.modifiers,
+    defender: counterCard,
+    defenderModifiers: defender.modifiers,
   });
-  const damage = Math.round(hit.damage * Math.max(0, 1 - (defender.modifiers.equipment?.incomingDamageReductionPct ?? 0) / 100));
+  const damage = hit.damage;
   defender.hp = Math.max(0, defender.hp - damage);
-  attacker.hp = Math.max(0, attacker.hp - Math.round(attackerPower * (defender.modifiers.equipment?.damageReflectionPct ?? 0) / 100));
+  attacker.hp = Math.max(0, attacker.hp - hit.reflectedDamage);
   applyDeathArtifacts(defender, attacker);
   applyDeathArtifacts(attacker, defender);
   // The answer ignores artifacts, as in the arena.
-  const counter = attacker.hp > 0 ? calculateDuelDamage({
-    attackerFinalPower: getTournamentCardPower(defenderCard, defender),
-    attackerElement: defenderCard.element,
-    defenderElement: attackerCard.element,
-    battleDamagePct: defender.modifiers.battleDamagePct,
-    attackerElementDamagePct: defender.modifiers.elementDamagePct[defenderCard.element],
-  }) : { damage: 0, multiplier: 1 };
-  attacker.hp = Math.max(0, attacker.hp - counter.damage);
+  const counter = calculateArenaDamage({
+    attacker: counterCard,
+    attackerModifiers: defender.modifiers,
+    defender: attackCard,
+    counterattack: true,
+  });
+  const counterDamage = attacker.hp > 0 ? counter.damage : 0;
+  attacker.hp = Math.max(0, attacker.hp - counterDamage);
   applyDeathArtifacts(attacker, defender);
   applyDeathArtifacts(defender, attacker);
   attacker.damage += damage;
-  defender.damage += counter.damage;
+  defender.damage += counterDamage;
   attacker.strikes += 1;
 
   const exchange: TournamentDuelExchange = {
     turn: (state.log[0]?.turn ?? 0) + 1,
     attacker: sideIndex,
     slot,
-    attackerCard: { ...attackerCard, finalPower: attackerPower },
-    defenderCard: { ...defenderCard, finalPower: getTournamentCardPower(defenderCard, defender) },
+    attackerCard: attackCard,
+    defenderCard: counterCard,
     attackerMultiplier: hit.multiplier,
     defenderMultiplier: counter.multiplier,
     attackerDamage: damage,
-    defenderDamage: counter.damage,
+    defenderDamage: counterDamage,
     at: now,
   };
   const next: TournamentDuelState = { ...state, sides, log: [exchange, ...state.log].slice(0, TOURNAMENT_PVP_RULES.logLimit) };

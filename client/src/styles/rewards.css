@@ -29,7 +29,7 @@
 .tasks-screen__daily-progress > strong { color: var(--text-primary); font-size: var(--font-sm); }
 .tasks-screen__daily-progress > small { color: var(--text-muted); font-size: var(--font-micro); }
 .tasks-screen__daily-progress-track { display: block; height: 7px; overflow: hidden; background: var(--bg-inset); border: 1px solid var(--border-subtle); border-radius: var(--radius-round); }
-.tasks-screen__daily-progress-track > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); border-radius: inherit; transition: width .25s ease; }
+.tasks-screen__daily-progress-track > span { display: block; height: 100%; background: linear-gradient(90deg, var(--progress-fill-start), var(--progress-fill-end)); border-radius: inherit; transition: width .25s ease; }
 .tasks-screen__daily-reward { display: grid; grid-template-columns: 22px auto; align-items: center; column-gap: 3px; color: var(--accent-gold); }
 .tasks-screen__daily-reward img { width: 22px; height: 22px; }
 .tasks-screen__daily-reward strong { font-family: var(--font-number); font-size: var(--font-lg); line-height: 1; }
@@ -54,7 +54,7 @@
 .quest-paper__progress-head strong { color: var(--text-secondary); font-family: var(--font-number); font-size: var(--font-xs); }
 .quest-paper__meta, .quest-paper__footer { flex-wrap: wrap; }
 .quest-paper__track { width: 100%; height: 6px; border: 0; background: var(--bg-inset); }
-.quest-paper__track > span { background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); box-shadow: none; }
+.quest-paper__track > span { background: linear-gradient(90deg, var(--progress-fill-start), var(--progress-fill-end)); box-shadow: none; }
 .quest-paper--completed { border-color: color-mix(in srgb, var(--accent-gold) 50%, var(--border-default)); }
 .quest-paper--claimed { opacity: .8; }
 .quest-paper__done { color: var(--state-success); border-color: var(--state-success); }
@@ -62,7 +62,7 @@
 .battle-pass-hero { padding: 16px; }
 .battle-pass-hero__summary { gap: 12px; flex-wrap: wrap; }
 .battle-pass-hero__season-meta time, .battle-pass-hero p, .battle-pass-hero__next { color: var(--text-secondary); font-size: var(--font-xs); }
-.battle-pass-hero__track span, .battle-pass-circle__progress span { background: linear-gradient(90deg, var(--accent-bronze), var(--accent-gold)); animation: none; }
+.battle-pass-hero__track span, .battle-pass-circle__progress span { background: linear-gradient(90deg, var(--progress-fill-start), var(--progress-fill-end)); animation: none; }
 .battle-pass-screen .battle-pass-milestone__reward { min-height: 76px; padding: 10px; gap: 8px; animation: none; }
 .battle-pass-milestone__reward-copy strong { white-space: normal; overflow: visible; font-size: var(--font-sm); line-height: 1.35; }
 .battle-pass-milestone__reward-copy small { color: var(--text-muted); font-size: .75rem; letter-spacing: .02em; }
@@ -121,7 +121,7 @@
 .battle-pass-hero__progress-meta { margin-top: 2px; color: var(--text-secondary); }
 .battle-pass-hero__progress-meta strong { color: var(--text-primary); font-size: var(--font-xs); }
 .battle-pass-hero__track { height: 8px; border-color: var(--border-subtle); }
-.battle-pass-hero__track span { box-shadow: 0 0 10px rgb(77 203 255 / 38%); }
+.battle-pass-hero__track span { box-shadow: 0 0 10px var(--progress-fill-glow); }
 .battle-pass-hero__next { align-items: center; padding: 7px 9px; color: var(--text-secondary); background: color-mix(in srgb, var(--accent-gold) 8%, var(--bg-inset)); border: 1px solid color-mix(in srgb, var(--accent-gold) 28%, var(--border-default)); border-radius: var(--radius-md); }
 .battle-pass-hero__next strong { font-size: var(--font-xs); }
 .battle-pass-circle { gap: 8px; padding: 9px 0 2px; }
@@ -348,8 +348,11 @@
   min-width: 178px;
   min-height: 40px;
   padding: 4px 22px;
-  color: #f6e7c8;
+  color: #f4f8ea;
   background-image: url("/assets/ui/trials/button-leather-v1.webp");
+  /* Claim-ready reads as success: rotate the brown leather frame to green (cream text stays > 4.5:1 on it). */
+  filter: hue-rotate(80deg) saturate(1.15) brightness(.92);
+  text-shadow: 0 1px 2px rgb(8 20 6 / 85%);
 }
 :root .app-shell .app-content .notice-board-screen .quest-paper__button::before,
 :root .app-shell .app-content .notice-board-screen .quest-paper__button::after { content: none; }

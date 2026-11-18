@@ -12,6 +12,22 @@ export interface HolidayWindow {
   startsAt: Date;
 }
 
+export interface HolidaySpanRow {
+  end_day: number;
+  end_month: number;
+  start_day: number;
+  start_month: number;
+}
+
+export function toHolidaySpan(row: HolidaySpanRow): HolidaySpan {
+  return {
+    startMonth: row.start_month,
+    startDay: row.start_day,
+    endMonth: row.end_month,
+    endDay: row.end_day,
+  };
+}
+
 const DAY_MS = 86_400_000;
 
 function windowStartingIn(span: HolidaySpan, year: number): HolidayWindow {

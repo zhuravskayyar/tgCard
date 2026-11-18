@@ -3,6 +3,7 @@ import {
   GUILD_CONFIG,
   type CreateGuildRequest,
   type GuildRaidActionRequest,
+  type GuildWarAction,
   type GuildLanguage,
   type GuildRecruitmentMode,
   type GuildRole,
@@ -18,6 +19,7 @@ import { GuildRaidDomainError, GuildRaidPersistenceError, GuildRaidService } fro
 import { GuildDragonRaidDomainError, GuildDragonRaidPersistenceError, GuildDragonRaidService } from "./dragonRaidService.js";
 import { GuildRaidChats } from "./raidChat.js";
 import { GuildRaidStatusService } from "./raidStatus.js";
+import { GuildWarDomainError, GuildWarPersistenceError, GuildWarService } from "./guildWarService.js";
 import { ChatError } from "../chat/chatChannel.js";
 
 interface GuildRouteDependencies extends RouteAuthDependencies {
@@ -27,6 +29,7 @@ interface GuildRouteDependencies extends RouteAuthDependencies {
   dragons: GuildDragonRaidService;
   raidChats: GuildRaidChats;
   raidStatus: GuildRaidStatusService;
+  wars: GuildWarService;
   responseHeaders?: OutgoingHttpHeaders;
 }
 
@@ -36,6 +39,25 @@ const GUILD_ROLES = new Set<GuildRole>(["leader", "officer", "veteran", "member"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isGuildWarAction(value: unknown): value is GuildWarAction {
+  if (!isRecord(value)) return false;
+  const isUuid = (id: unknown) => typeof id === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id);
+  const isVersion = (version: unknown) => typeof version === "number" && Number.isSafeInteger(version) && version >= 0;
+  const isSlot = value.slot === 0 || value.slot === 1 || value.slot === 2;
+  const isBattle = typeof value.number === "number" && Number.isInteger(value.number) && value.number >= 1 && value.number <= 8;
+  switch (value.type) {
+    case "start_duel": return isUuid(value.targetId);
+    case "duel_strike": return isUuid(value.duelId) && isVersion(value.version) && isSlot;
+    case "claim_key": return typeof value.expectedKeys === "number" && Number.isInteger(value.expectedKeys)
+      && value.expectedKeys >= 0 && value.expectedKeys <= 2;
+    case "join_battle": return isBattle && typeof value.acceptLateFee === "boolean"
+      && typeof value.locationId === "number" && Number.isInteger(value.locationId) && value.locationId >= 0 && value.locationId <= 5;
+    case "battle_strike": return isBattle && isUuid(value.targetId) && isVersion(value.version) && isSlot
+      && (value.skill === "normal" || value.skill === "berserk" || value.skill === "ancient" || value.skill === "ancient_crystal");
+    default: return false;
+  }
 }
 
 function isCreateRequest(value: unknown): value is CreateGuildRequest {
@@ -133,6 +155,15 @@ function sendGuildError(response: ServerResponse, error: unknown, headers: Outgo
     sendJson(response, error.status, { error: { code: error.code, message: error.message, ...(error.retryAt ? { retryAt: error.retryAt } : {}) } }, headers);
     return true;
   }
+  if (error instanceof GuildWarDomainError) {
+    sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
+    return true;
+  }
+  if (error instanceof GuildWarPersistenceError) {
+    console.error("Database unavailable during guild war request", error);
+    sendJson(response, 503, { error: { code: "database_unavailable", message: "Guild war service is unavailable" } }, headers);
+    return true;
+  }
   if (error instanceof GuildAltarDomainError) {
     sendJson(response, error.status, { error: { code: error.code, message: error.message } }, headers);
     return true;
@@ -226,6 +257,18 @@ export async function handleGuildRequest(
     }
     const guildId = parts[0];
     if (!guildId) throw new HttpRequestError(404, "guild_not_found", "Guild does not exist");
+    if (parts.length === 2 && parts[1] === "war" && request.method === "GET") {
+      sendJson(response, 200, await dependencies.wars.getWar(player.id, guildId), headers);
+      return;
+    }
+    if (parts.length === 3 && parts[1] === "war" && parts[2] === "action" && request.method === "POST") {
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.weekStartsAt !== "string" || !isGuildWarAction(body.action)) {
+        throw new HttpRequestError(400, "invalid_war_action", "Guild war action is invalid");
+      }
+      sendJson(response, 200, await dependencies.wars.getWar(player.id, guildId, new Date(), { weekStartsAt: body.weekStartsAt, action: body.action }), headers);
+      return;
+    }
     if (parts.length === 2 && parts[1] === "forum" && request.method === "GET") {
       sendJson(response, 200, await dependencies.forum.index(player.id, guildId), headers);
       return;

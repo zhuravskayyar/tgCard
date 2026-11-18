@@ -63,6 +63,9 @@
   --equipment-text-primary: var(--text-primary);
   --equipment-text-secondary: var(--text-secondary);
   --state-success: #a9c88f;
+  --progress-fill-start: #3e612f;
+  --progress-fill-end: #7fae5a;
+  --progress-fill-glow: rgb(127 174 90 / 35%);
   --accent-green: var(--state-success);
   --equipment-accent-gold: var(--accent-gold);
   --radius-lg: 8px;

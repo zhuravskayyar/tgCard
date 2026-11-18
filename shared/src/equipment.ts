@@ -10,6 +10,7 @@ export const EQUIPMENT_SLOTS = [
   "amulet",
   "relic",
   "voodoo",
+  "halberd",
 ] as const;
 
 export type EquipmentSlot = (typeof EQUIPMENT_SLOTS)[number];
@@ -20,6 +21,8 @@ export type EquipmentBonusType =
   | "outgoing_damage"
   | "incoming_damage_reduction"
   | "damage_reflection"
+  | "anti_damage_reduction"
+  | "anti_damage_reflection"
   | "health_reduction"
   | "save_once"
   | "passive";
@@ -117,6 +120,8 @@ export interface EquipmentChestOpenResponse {
 }
 
 export interface EquipmentBattleModifiers {
+  antiDamageReductionPct?: number;
+  antiDamageReflectionPct?: number;
   damageReflectionPct: number;
   incomingDamageReductionPct: number;
   outgoingDamagePct: number;

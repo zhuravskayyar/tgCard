@@ -23,7 +23,7 @@ const COLLECTIONS = [
 ["ugenerals","Шулікові ватажки","Гра додає 20% до вашого внеску золота й срібла в скарбницю","Навала Шуліки","a/heaven_mistress,e/shadow_heritress,f/black_widow,w/captain_daughter"],
 ["mechanists","Механічний двір","+5% картам і здоров'ю проти босів Навали","Магазин","a/icarus_disciple,e/studded_wheel,f/goblin_grinder,w/aquatank"],
 ["sorceresses","Чотири чаклунки","Посилення вівтаря за золото на 2 рівні вище","Рейди на чаклунок","a/sorceress_air,e/sorceress_earth,f/sorceress_fire,w/sorceress_water"],
-["winter_reinforcement","Зимова рать","Усю зиму: святковий профіль, подарунки вдвічі дешевші, святкове оформлення в чаті й на форумі, сила карти зимового посилення +20%","Зимова акція","a/air_deer,a/air_frost,e/earth_quarrel,e/earth_tree,f/fire_sledge,w/water_snegurka,w/water_snowman"],
+["winter_reinforcement","Зимова рать","Усю зиму: святковий профіль, святкове оформлення в чаті й на форумі, сила карти зимового посилення +20%","Зимова акція","a/air_deer,a/air_frost,e/earth_quarrel,e/earth_tree,f/fire_sledge,w/water_snegurka,w/water_snowman"],
 ["dwarves_peace","Гноми на відпочинку","Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах","Святковий магазин","a/dwarf_p_air,e/dwarf_p_earth,f/dwarf_p_fire,w/dwarf_p_water"],
 ["dwarves_war","Гноми на війні","+10% сили бойової колоди й здоров'я у битвах із чаклунками","Святковий магазин","a/dwarf_w_air,e/dwarf_w_earth,f/dwarf_w_fire,w/dwarf_w_water"],
 ["berserks","Скажена четвірка","Уміння «Сказ» у війнах гільдій: якщо три карти готові до атаки, усі карти на столі б'ють із силою ×2, відповідний удар не змінюється; раз за бій","Святковий магазин","a/berserk_air,e/berserk_earth,f/berserk_fire,w/berserk_water"],
@@ -32,29 +32,29 @@ const COLLECTIONS = [
 ["dragon_fans","Друзі дракона","Майстерність дракона +10","Святковий магазин","a/hinotori,e/cherepanda,f/goblin_bombist,w/vodyanka"],
 ["ancient_order","Старий заклик","У війні гільдій можна покликати Давню істоту замість трьох карт: вона б'є будь-яку карту критом, а у відповідь отримує половину шкоди; із Кристалом магії двічі за бій","Святковий магазин","a/ancient_order_air_f,a/ancient_order_air_m,f/ancient_order_fire_f,f/ancient_order_fire_m,w/ancient_order_water_f,w/ancient_order_water_m"],
 ["diamond_brotherhood","Алмазна артіль","Менше алмазів для 4-го кола Алмазних нагород, відкриває 5-те коло","Святковий магазин","a/diamond_brotherhood_air,e/diamond_brotherhood_earth,f/diamond_brotherhood_fire,w/diamond_brotherhood_water"],
-["zodiac_air","Сузір'я вітру","На турнірі й у війні гільдій: 1 колекція сузір'їв +5% картам своєї стихії; 2 колекції +7,5%; 3 колекції +10%; усі 4 +10% картам усіх стихій і три артефакти на арені, турнірі та війні","Святковий магазин","a/zodiac_air_gemini,a/zodiac_air_libra,a/zodiac_air_aquarius"],
-["zodiac_earth","Сузір'я ріллі","Як у «Сузір'я вітру», для Землі","Святковий магазин","e/zodiac_earth_taurus,e/zodiac_earth_virgo,e/zodiac_earth_capricorn"],
-["zodiac_fire","Сузір'я вогнища","Як у «Сузір'я вітру», для Вогню","Святковий магазин","f/zodiac_fire_aries,f/zodiac_fire_leo,f/zodiac_fire_sagittarius"],
-["zodiac_water","Сузір'я криниці","Як у «Сузір'я вітру», для Води","Святковий магазин","w/zodiac_water_cancer,w/zodiac_water_scorpio,w/zodiac_water_pisces"],
-["voodoo_cult","Культ мотанки","Подвоює ефект артефакту «Лялька-мотанка»","Святковий магазин","a/lord_of_the_winds,e/shamans_daughter,f/don_juan,w/great_rivers_sorcerer"],
-["sacred_shores","Золоті береги","Артефакт «Спис закляття» сильніший на 33%","Святковий магазин","a/nile_a_hor_ur,e/nile_e_scarab,f/nile_f_nadjem,w/nile_w_taweret"],
-["great_path","Шовковий шлях","Артефакт «Щит-оберіг» сильніший на 33%","Святковий магазин","a/dao_a_white_tiger,e/dao_e_headless_giant,f/dao_f_werefox,w/dao_w_sea_doubletail"],
-["thirtieth","За сімома горами","Артефакт «Чарівне люстро» сильніший на 33%","Святковий магазин","a/thirtieth_a_nightingale,e/thirtieth_e_baiyun,f/thirtieth_f_3headdragon,w/thirtieth_w_merman"],
-["western_wastes","Дикі прерії","Артефакт «Лялька-мотанка» сильніший на 33%","Святковий магазин","a/west_a_thunderbird,e/west_e_sasquatch,f/west_f_fire_cow,w/west_w_underwater_panther"],
-["gorgeous_cats","Розкішні коти","Артефакт «Оберіг життя» сильніший на 33%","Святковий магазин","a/dao_a_white_tiger,e/thirtieth_e_baiyun,f/nile_f_nadjem,w/west_w_underwater_panther"],
+["zodiac_air","Сузір'я вітру","Кожна завершена колекція сузір'я підсилює карти своєї стихії на турнірі й у війні гільдій: 1/2/3/4 сузір'я дають +5%/+7,5%/+10%/+10%; усі 4 охоплюють карти всіх стихій","Святковий магазин","a/zodiac_air_gemini,a/zodiac_air_libra,a/zodiac_air_aquarius"],
+["zodiac_earth","Сузір'я ріллі","Кожна завершена колекція сузір'я підсилює карти своєї стихії на турнірі й у війні гільдій: 1/2/3/4 сузір'я дають +5%/+7,5%/+10%/+10%; усі 4 охоплюють карти всіх стихій","Святковий магазин","e/zodiac_earth_taurus,e/zodiac_earth_virgo,e/zodiac_earth_capricorn"],
+["zodiac_fire","Сузір'я вогнища","Кожна завершена колекція сузір'я підсилює карти своєї стихії на турнірі й у війні гільдій: 1/2/3/4 сузір'я дають +5%/+7,5%/+10%/+10%; усі 4 охоплюють карти всіх стихій","Святковий магазин","f/zodiac_fire_aries,f/zodiac_fire_leo,f/zodiac_fire_sagittarius"],
+["zodiac_water","Сузір'я криниці","Кожна завершена колекція сузір'я підсилює карти своєї стихії на турнірі й у війні гільдій: 1/2/3/4 сузір'я дають +5%/+7,5%/+10%/+10%; усі 4 охоплюють карти всіх стихій","Святковий магазин","w/zodiac_water_cancer,w/zodiac_water_scorpio,w/zodiac_water_pisces"],
+["voodoo_cult","Культ мотанки","Подвоює ефект артефакту «Лиха мотанка»","Святковий магазин","a/lord_of_the_winds,e/shamans_daughter,f/don_juan,w/great_rivers_sorcerer"],
+["sacred_shores","Золоті береги","Артефакт «Жало заклинателя» сильніший на 33%","Святковий магазин","a/nile_a_hor_ur,e/nile_e_scarab,f/nile_f_nadjem,w/nile_w_taweret"],
+["great_path","Шовковий шлях","Артефакт «Заслін обітниці» сильніший на 33%","Святковий магазин","a/dao_a_white_tiger,e/dao_e_headless_giant,f/dao_f_werefox,w/dao_w_sea_doubletail"],
+["thirtieth","За сімома горами","Артефакт «Відлунне скло» сильніше на 33%","Святковий магазин","a/thirtieth_a_nightingale,e/thirtieth_e_baiyun,f/thirtieth_f_3headdragon,w/thirtieth_w_merman"],
+["western_wastes","Дикі прерії","Артефакт «Лиха мотанка» сильніший на 33%","Святковий магазин","a/west_a_thunderbird,e/west_e_sasquatch,f/west_f_fire_cow,w/west_w_underwater_panther"],
+["gorgeous_cats","Розкішні коти","Артефакт «Оберіг другого подиху» сильніший на 33%","Святковий магазин","a/dao_a_white_tiger,e/thirtieth_e_baiyun,f/nile_f_nadjem,w/west_w_underwater_panther"],
 ["choiceof_air","Вибір Вітру","Спорядження Повітря сильніше на 25%","Святковий магазин","a/nile_a_hor_ur,a/dao_a_white_tiger,a/thirtieth_a_nightingale,a/west_a_thunderbird"],
 ["choiceof_earth","Вибір Каменю","Спорядження Землі сильніше на 25%","Святковий магазин","e/nile_e_scarab,e/dao_e_headless_giant,e/thirtieth_e_baiyun,e/west_e_sasquatch"],
 ["choiceof_fire","Вибір Полум'я","Спорядження Вогню сильніше на 25%","Святковий магазин","f/nile_f_nadjem,f/dao_f_werefox,f/thirtieth_f_3headdragon,f/west_f_fire_cow"],
 ["choiceof_water","Вибір Течії","Спорядження Води сильніше на 25%","Святковий магазин","w/nile_w_taweret,w/dao_w_sea_doubletail,w/thirtieth_w_merman,w/west_w_underwater_panther"],
-["legion_of_flame","Гарячий цех","Множники атакувального й відповідного критичного удару +0,1 за рівень колекції","Святковий магазин","f/incendium,w/maridel,e/geobot,a/vortex"],
-["breath_of_storm","Штормовий цех","Множники атакувального й відповідного слабкого удару +0,1 за рівень колекції","Святковий магазин","f/incendium,w/tideflow,e/terraxis,a/stratos"],
-["deep_engines","Глибинний цех","Множник атакувального звичайного удару +0,1 за рівень колекції","Святковий магазин","f/fleuro,w/maridel,e/stalaktion,a/aerum"],
-["titans_of_forge","Ковальський цех","Множник відповідного звичайного удару +0,1 за рівень колекції","Святковий магазин","f/basaltor,w/dripstone,e/terraxis,a/aerum"],
+["legion_of_flame","Гарячий цех","Множники критичного удару в атаці й відповіді +0,1","Святковий магазин","f/incendium,w/maridel,e/geobot,a/vortex"],
+["breath_of_storm","Штормовий цех","Множники слабкого удару в атаці й відповіді +0,1","Святковий магазин","f/incendium,w/tideflow,e/terraxis,a/stratos"],
+["deep_engines","Глибинний цех","Множник звичайного удару в атаці +0,1","Святковий магазин","f/fleuro,w/maridel,e/stalaktion,a/aerum"],
+["titans_of_forge","Ковальський цех","Множник звичайного удару у відповідь +0,1","Святковий магазин","f/basaltor,w/dripstone,e/terraxis,a/aerum"],
 ["breach_wedge","Виламана брама","Артефакт «Алебарда» сильніший на 33%","Святковий магазин","a/wedge_storm_knight,e/wedge_strelets,f/wedge_brodex_valk,w/wedge_yarl"],
 ["mirror_fragments","Розбите люстро","Артефакт «Алебарда» сильніший на 33%","Святковий магазин","a/mirror_scaldmaer,e/mirror_teuton,f/mirror_inquisitor,w/mirror_tide_witch"],
 ["magic_1","Перші зміїні чари","Майстерність дракона +10","Святковий магазин","a/drmagic_air,e/drmagic_earth,f/drmagic_fire,w/drmagic_water"],
 ["magic_heal","Цілющі зміїні чари","Майстерність дракона +10","Святковий магазин","a/drmagic_heal_air,e/drmagic_heal_earth,f/drmagic_heal_fire,w/drmagic_heal_water"],
-["twitch_legends","Легенди Twitch","Бонус колекції визначимо після її розширення","Магазин","e/kostakod"],
+["twitch_legends","Легенди Twitch","Не призначений","Магазин","e/kostakod"],
 ];
 const UNCOLLECTED = "a/giant_dragonfly,f/salamander,w/crabman,a/black_raven,a/the_bat,e/wild_boar,f/goblin_mechanic,f/beholder,w/impetuous_lizard,w/bearded_toad,a/bronze_bird,a/mountain_eagle,w/bloodthirsty_piranha,a/battle_gryphon,f/fire_servant,a/winged_hound,a/el_air,e/el_earth,f/el_fire,w/el_water";
 
@@ -64,6 +64,8 @@ const REF_SIZES = {sea_masters:9,horde:9,sky_heroes:9,forest_dwellers:9,elementa
 const C = require("./catalog-cards.js");
 const POOLS = require("./shop-pools.js");
 const PROMPTS = require("./catalog-prompts.js");
+const COLLECTION_COPY = require("./collection-copy.js");
+const catalogOnly = process.argv.includes("--catalog-only");
 const HAND_ANATOMY = "Anatomy priority for every human or humanoid: each hand has exactly five digits total, including one thumb and four fingers. A closed grip uses four naturally curled fingers and one opposing thumb. Preserve the expressive working pose and naturally connected shoulders, elbows, wrists, palms and fingers; do not add, omit, fuse or duplicate digits.";
 const HAND_ANATOMY_BY_CARD = { kostakod: "This anthropomorphic raccoon's each front paw has exactly four digits total: one thumb-like digit and three fingers. Preserve natural grips and connected wrists, with no extra, missing, fused or duplicated digits." };
 const STYLE = "Style: dark gothic tarot woodcut, like an old hand-carved medieval block print. Pure black ink only: heavy solid black shapes next to clean empty light areas, rough hand-cut contour lines, bold parallel hatching and crude cross-hatching, slightly grotesque character, large simple forms with few small details, no grey tones, no gradients, no airbrush. Light areas inside the subject are filled with flat warm cream paper colour, so the subject is opaque. Isolated subject on a fully transparent background, PNG with alpha, clean outer silhouette recognisable at 100 pixels, no card frame, no landscape unless named, no letters, no numbers, no text, no logo, no signature, no watermark. All human and humanoid characters are clearly adults. Every human or humanoid hand has exactly five digits in total: one thumb and four fingers, on both hands, including gloves and hands gripping objects. A visible closed grip has four curled fingers and one opposing thumb. Hands follow the character's action through natural grips, fists or meaningful gestures; preserve the expressive pose with natural five-digit anatomy. Use natural five-digit anatomy consistently while keeping shoulders, elbows, wrists and palms naturally connected, with no extra, missing, fused or duplicated limbs or digits. Women may be glamorous and alluring in bold fantasy outfits with bare shoulders, midriff and legs, without nudity.";
@@ -89,6 +91,10 @@ for (const [key, rarity] of Object.entries(shopMin)) C[key][1] = SHORT[rarity];
 
 // Checks: exact sizes, every card has text, no duplicates in our names, element per reference.
 const errors = [];
+const missingCollectionCopy = COLLECTIONS
+  .map(([code]) => code)
+  .filter((code) => !Array.isArray(COLLECTION_COPY[code]) || COLLECTION_COPY[code].length !== 4 || COLLECTION_COPY[code].some((text) => typeof text !== "string" || !text.trim()));
+if (missingCollectionCopy.length) errors.push("missing collection copy: " + missingCollectionCopy.join(", "));
 const useCount = {};
 const cardEl = {};
 for (const [code, , , , list] of COLLECTIONS) {
@@ -170,7 +176,7 @@ for (const [offer, pool] of Object.entries(POOLS)) {
   md += `\n### ${BANNERS[offer]}\n\n`;
   for (const [rarity, list] of Object.entries(pool)) md += `- **${rarity}:** ${list.split(" ").map(nameOf).join(", ")}\n`;
 }
-fs.writeFileSync(repo + "/docs/card-catalog-v2.md", md, "utf8");
+if (!catalogOnly) fs.writeFileSync(repo + "/docs/card-catalog-v2.md", md, "utf8");
 let promptsMd = `# Промпти артів карт
 
 Готові промпти для генерації, по одному на карту. Файл збирає \`tools/card-catalog/build-catalog.js\`.
@@ -188,13 +194,10 @@ let promptsMd = `# Промпти артів карт
 
 `;
 for (const key of Object.keys(C).sort()) promptsMd += `## ${C[key][0]} (\`${key}\`)\n\n\`\`\`text\n${promptOf(key)}\n\`\`\`\n\n`;
-fs.writeFileSync(repo + "/docs/card-art-prompts.md", promptsMd, "utf8");
+if (!catalogOnly) fs.writeFileSync(repo + "/docs/card-art-prompts.md", promptsMd, "utf8");
 
 // Game data. Bonuses that existing systems can apply are real; the rest wait for their mechanic and do nothing yet.
 const CODE = { boobs: "spring_bloom", power: "old_soldiers" };
-/** Bonuses applied directly by their mode (e.g. the invasion reads «Механічний двір» itself), not via modifiers. */
-const LIVE_WITHOUT_MODIFIER = new Set(["mechanists"]);
-
 const WORKING = {
   elementals: { type: "silver_reward_pct", value: 10, scope: "duel" },
   highelem: { type: "duel_cooldown_minutes", value: 30, scope: "duel" },
@@ -205,26 +208,47 @@ const WORKING = {
   sorceresses: { type: "altar_gold_levels", value: 2, scope: "altar" },
   dwarves_war: { type: "battle_damage_pct", value: 10, scope: "guild_raid" },
 };
-// Special labels for bonuses implemented elsewhere or still awaiting collection expansion.
+// Special labels for bonuses implemented outside the generic modifier system.
 const TOURNAMENT_LABELS = {
   sea_masters: true, horde: true, sky_heroes: true, forest_dwellers: true, ugiants: true,
-  wizards: "+5% здоров'я на турнірі; у війнах гільдій — коли з’явиться ця механіка",
-  twitch_legends: "Бонус колекції визначимо після її розширення",
+  wizards: "+5% здоров'я на турнірі й у війнах гільдій",
+  twitch_legends: "Не призначений",
   dragons2: "+10 щоденного золота в дуелях; ліміт внеску золота в скарбницю 5 → 10 на день",
   // Implemented by catalog code: equipment (game-core equipment.ts), guild XP (collectionModifiers.ts), witch curse (guildRaidService.ts),
   // free daily shop card (shopService.ts), treasury top-up (treasuryService.ts).
   choiceof_fire: true, choiceof_water: true, choiceof_earth: true, choiceof_air: true,
   boobs: true, power: true, usoldiers: true, ugenerals: true,
-  dwarves_peace: "Удвічі менша шкода від «Прокляття чаклунок»; удвічі швидше копання скарбу в Печерах — коли з’явиться ця механіка",
+  dwarves_peace: "Удвічі менша шкода від «Прокляття чаклунок»",
+};
+// This is explicit implementation metadata. `none` is also used by bonuses that are already live.
+const COLLECTION_BONUS_STATUS = {
+  sea_masters: "active", horde: "active", sky_heroes: "active", forest_dwellers: "active",
+  elementals: "active", highelem: "active", spring_bloom: "active", old_soldiers: "active",
+  dragons: "active", dragons2: "active", mythic: "active", umutants: "active",
+  wizards: "active", ugiants: "active", ufavorites: "active", usoldiers: "active", ugenerals: "active",
+  diamond_brotherhood: "active", berserks: "active", ancient_order: "active",
+  mechanists: "active", sorceresses: "active", dwarves_peace: "partial", dwarves_war: "active",
+  treasure_hunters: "active", dragon_whisperers: "active", dragon_fans: "active",
+  magic_1: "active", magic_heal: "active",
+  choiceof_fire: "active", choiceof_water: "active", choiceof_earth: "active", choiceof_air: "active",
+  twitch_legends: "unassigned",
+  winter_reinforcement: "partial",
+  zodiac_air: "partial", zodiac_earth: "partial", zodiac_fire: "partial", zodiac_water: "partial",
+  voodoo_cult: "active", sacred_shores: "active", great_path: "active", thirtieth: "active",
+  western_wastes: "active", gorgeous_cats: "active", breach_wedge: "active", mirror_fragments: "active",
+  legion_of_flame: "active", breath_of_storm: "active", deep_engines: "active", titans_of_forge: "active",
 };
 const elementCode = { f: "fire", w: "water", a: "air", e: "earth" };
 const toCard = (key) => ({ id: key, displayName: C[key][0], description: C[key][2], element: elementCode[cardEl[key]], minRarity: RAR[C[key][1]], shopEligible: Boolean(shopMin[key]) });
 const data = {
-  collections: COLLECTIONS.map(([code, name, bonus, , list]) => ({
+  collections: COLLECTIONS.map(([code, name, bonus, source, list]) => ({
     code: CODE[code] ?? code,
+    bonusStatus: COLLECTION_BONUS_STATUS[CODE[code] ?? code] ?? "pending",
     displayName: name,
+    displayPrefix: source,
+    description: COLLECTION_COPY[code][0],
     bonus: WORKING[code] ?? { type: "none", value: 1 },
-    bonusLabel: typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : WORKING[code] || TOURNAMENT_LABELS[code] === true || LIVE_WITHOUT_MODIFIER.has(code) ? bonus : bonus + " (запрацює разом із цією механікою)",
+    bonusLabel: typeof TOURNAMENT_LABELS[code] === "string" ? TOURNAMENT_LABELS[code] : bonus,
     cardIds: list.split(",").map((entry) => entry.split("/")[1]),
   })),
   uncollectedCardIds: UNCOLLECTED.split(",").map((entry) => entry.split("/")[1]),
@@ -232,7 +256,7 @@ const data = {
   shopPools: Object.fromEntries(Object.entries(POOLS).map(([offer, pool]) => [offer, Object.fromEntries(Object.entries(pool).map(([rarity, list]) => [rarity, list.split(" ")]))])),
 };
 fs.writeFileSync(repo + "/server/src/collections/catalogData.generated.ts", `// Generated by tools/card-catalog/build-catalog.js; edit the sources there.
-import type { CardElement, CardRarity, CollectionModifier } from "@cardastika/shared";
+import type { CardElement, CardRarity, CollectionBonusStatus, CollectionModifier } from "@cardastika/shared";
 
 export interface CatalogCardData {
   description: string;
@@ -245,10 +269,13 @@ export interface CatalogCardData {
 
 export interface CatalogCollectionData {
   bonus: CollectionModifier;
+  bonusStatus: CollectionBonusStatus;
   bonusLabel: string;
   cardIds: readonly string[];
   code: string;
+  description: string;
   displayName: string;
+  displayPrefix: string;
 }
 
 export const CATALOG_DATA: {
@@ -258,4 +285,6 @@ export const CATALOG_DATA: {
   uncollectedCardIds: readonly string[];
 } = ${JSON.stringify(data, null, 1)};
 `, "utf8");
+const collectionTranslations = Object.values(COLLECTION_COPY);
+fs.writeFileSync(repo + "/client/src/locales/collectionTranslations.generated.ts", `// Generated by tools/card-catalog/build-catalog.js from collection-copy.js.\nexport const COLLECTION_TRANSLATIONS: ReadonlyArray<readonly [string, string, string, string]> = ${JSON.stringify(collectionTranslations, null, 1)};\n`, "utf8");
 console.log("ok", { collections: COLLECTIONS.length, unique, shared, uncollected: UNCOLLECTED.split(",").length, total: names.length, rarityCount });

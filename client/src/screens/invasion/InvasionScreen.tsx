@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DuelExchange,
-  ElementMultiplier,
   InvasionAttackResultView,
   InvasionBattleView,
   InvasionBossDefeatView,
@@ -70,9 +69,9 @@ function formatCountdown(ms: number) {
 }
 
 function toInvasionExchange(entry: InvasionLogEntry): DuelExchange {
-  // The animation only knows the elemental multipliers; a super strike plays as a strong hit.
-  const playerMultiplier = (entry.superStrike ? 1.5 : entry.playerMultiplier) as ElementMultiplier;
-  const enemyMultiplier = entry.bossMultiplier as ElementMultiplier;
+  // A super strike plays as a strong hit; ordinary strikes retain collection-adjusted multipliers.
+  const playerMultiplier = entry.superStrike ? 1.5 : entry.playerMultiplier;
+  const enemyMultiplier = entry.bossMultiplier;
   return {
     enemyCard: entry.bossCard,
     enemyDamage: entry.bossDamage,

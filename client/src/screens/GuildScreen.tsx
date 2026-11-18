@@ -1,6 +1,6 @@
 import { ScreenHeading } from "../components/ScreenHeading";
 import { useEffect, useRef, useState } from "react";
-import { GUILD_CONFIG, type GuildAltarCurrency, type GuildMineResponse, type GuildProfileResponse, type GuildTreasuryCurrency, type PlayerCardInstance } from "@cardastika/shared";
+import { GUILD_CONFIG, type GuildAltarCurrency, type GuildMineResponse, type GuildProfileResponse, type GuildTreasuryCurrency, type GuildWarPlayerProgress, type PlayerCardInstance } from "@cardastika/shared";
 import { setSessionToken } from "../auth/session";
 import { getUiLocale, translateUi } from "../i18n";
 import { AppIcon } from "../components/AppIcon";
@@ -20,6 +20,7 @@ interface GuildScreenProps {
   initialTab?: "raids" | null;
   playerSummaryState: PlayerSummaryState;
   onRetryPlayerSummary: () => void;
+  onWarPlayerProgress: (progress: GuildWarPlayerProgress) => void;
 }
 type GuildView = { kind: "mine" | "directory" | "create" } | { kind: "profile" | "forum"; id: string };
 type GuildMutation = GuildProfileResponse | { left: boolean } | { dissolved: boolean } | { withdrawn: boolean };
@@ -29,7 +30,7 @@ function confirmUi(text: string) {
   return window.confirm(translateUi(text, getUiLocale()));
 }
 
-export function GuildScreen({ initialTab = null, playerSummaryState, onRetryPlayerSummary }: GuildScreenProps) {
+export function GuildScreen({ initialTab = null, playerSummaryState, onRetryPlayerSummary, onWarPlayerProgress }: GuildScreenProps) {
   const [mineState, setMineState] = useState<AsyncState<GuildMineResponse>>({ status: "loading" });
   const [profileState, setProfileState] = useState<AsyncState<GuildProfileResponse>>({ status: "loading" });
   const [guildCardCandidatesState, setGuildCardCandidatesState] = useState<AsyncState<PlayerCardInstance[]>>({ status: "ready", data: [] });
@@ -148,6 +149,7 @@ export function GuildScreen({ initialTab = null, playerSummaryState, onRetryPlay
     {isSubScreen ? null : <ScreenHeading backDisabled={busy} backLabel={view.kind === "profile" ? "До каталогу гільдій" : "До моєї гільдії"} onBack={view.kind !== "mine" ? () => navigate({ kind: view.kind === "profile" ? "directory" : "mine" }) : undefined} ref={heading} title={title} action={isGuildHeading ? undefined : <button className="guild-text-button" disabled={busy || mineState.status === "loading"} onClick={retry} type="button">Оновити</button>} />}
     {playerSummaryState.status === "loading" ? <GuildState>Завантаження гравця…</GuildState> : !player ? <GuildState error onRetry={onRetryPlayerSummary}>Не вдалося завантажити гравця. Увійдіть або повторіть спробу.</GuildState> : mineState.status === "loading" ? <GuildState>Завантаження гільдії…</GuildState> : mineState.status === "error" ? <GuildState error onRetry={retry}>{mineState.message}</GuildState> : mine ? <>
       {profile ? <GuildProfile initialTab={initialTab ?? undefined} key={profile.guild.id} profile={profile} mine={mine} playerLevel={player.level} busy={busy} notice={noticeContent}
+        onWarPlayerProgress={onWarPlayerProgress}
         onTabChange={setProfileTab}
         onApply={(message) => { void run(() => applyToGuild(profile.guild.id, message), "Заявку подано. Очікуйте рішення гільдії."); }}
         onJoin={() => { void run(() => joinGuild(profile.guild.id), "Ви приєдналися до гільдії."); }}

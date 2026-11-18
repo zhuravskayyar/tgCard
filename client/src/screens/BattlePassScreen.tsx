@@ -1,6 +1,8 @@
 import { ScreenHeading } from "../components/ScreenHeading";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { BattlePassCircleView, BattlePassMilestoneView, PlayerCardInstance } from "@cardastika/shared";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { BattlePassCircleView, BattlePassMilestoneView, BattlePassVipRewardView, PlayerCardInstance } from "@cardastika/shared";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
+import { BattlePassApiError } from "../telegram/battlePass";
 import { STARTER_EQUIPMENT_DEFINITIONS } from "@cardastika/game-core";
 import { CardFxWrapper } from "../components/CardFxWrapper";
 import { EquipmentItemCard } from "../components/EquipmentBook";
@@ -58,7 +60,7 @@ function Particles({ className, count }: { className: string; count: number }) {
   );
 }
 
-function chestSprite(milestone: BattlePassMilestoneView, isFinal: boolean) {
+function chestSprite(milestone: Pick<BattlePassMilestoneView, "claimed" | "claimable">, isFinal: boolean) {
   if (milestone.claimed) return `${MAP_ASSETS}/chest-open-v1.webp`;
   if (isFinal) return `${MAP_ASSETS}/chest-final-v1.webp`;
   return `${MAP_ASSETS}/chest-${milestone.claimable ? "ready" : "locked"}-v1.webp`;
@@ -111,20 +113,59 @@ function MapStop({ burst, index, isFinal, milestone, onClaim, pending, point, si
   );
 }
 
-function TreasureMap({ burstId, circle, diamonds, onClaim, pendingId }: {
+/** The VIP chest beside a stop, on the side away from the free reward's tag. */
+function VipStop({ index, pending, point, onClaim, reward, side, threshold, vipActive }: {
+  index: number;
+  onClaim: (id: string) => void;
+  pending: boolean;
+  point: MapPoint;
+  reward: BattlePassVipRewardView;
+  side: "left" | "right";
+  threshold: number;
+  vipActive: boolean;
+}) {
+  const position = { left: `${point.x}%`, top: `${point.y / MAP_HEIGHT * 100}%`, "--stop-index": index } as CSSProperties;
+  const locked = reward.reward.kind === "item" && !reward.reward.available;
+  const state = reward.claimed ? "claimed" : reward.claimable ? "ready" : "locked";
+  const label = reward.reward.label;
+  const note = reward.claimed ? "Отримано" : reward.claimable ? "Натисни на скриню" : locked ? "Скоро в грі" : vipActive ? `${threshold} діамантів` : "Потрібен VIP";
+  return (
+    <div className={`treasure-map__vip treasure-map__vip--${side} treasure-map__stop--${state}${pending ? " treasure-map__stop--opening" : ""}`} style={position}>
+      <button
+        aria-label={`VIP: ${label}, ${note}`}
+        className="treasure-map__chest"
+        disabled={!reward.claimable || pending}
+        onClick={() => onClaim(reward.id)}
+        type="button"
+      >
+        <img alt="" aria-hidden="true" src={chestSprite(reward, false)} />
+        {reward.claimed ? <img alt="" aria-hidden="true" className="treasure-map__seal" src="/assets/ui/trials/board/seal-v1.webp" /> : null}
+      </button>
+      <span className="treasure-map__tag treasure-map__vip-tag">
+        <strong>{label}</strong>
+        <small>{vipActive && !reward.claimable && !locked && !reward.claimed
+          ? <>{threshold} <img alt="" aria-hidden="true" src={DIAMOND_ASSET} /></>
+          : note}</small>
+      </span>
+    </div>
+  );
+}
+
+function TreasureMap({ burstId, circle, diamonds, onClaim, pendingId, vipActive }: {
   burstId: string | null;
   circle: BattlePassCircleView;
   diamonds: number;
   onClaim: (id: string) => void;
   pendingId: string | null;
+  vipActive: boolean;
 }) {
-  const { milestones } = circle;
+  const { fromDiamonds, milestones } = circle;
   const { pin, stops, trail, walked } = useMemo(() => {
     const mapStops = getMapStops(milestones.length);
     const fullTrail = buildTrail(mapStops);
-    const walkedTrail = walkTrail(fullTrail, milestones.map(({ threshold }) => threshold), diamonds);
+    const walkedTrail = walkTrail(fullTrail, milestones.map(({ threshold }) => threshold), diamonds, fromDiamonds);
     return { pin: walkedTrail[walkedTrail.length - 1]!, stops: mapStops, trail: fullTrail, walked: walkedTrail };
-  }, [diamonds, milestones]);
+  }, [diamonds, fromDiamonds, milestones]);
 
   return (
     <section className="treasure-map" aria-label="Скарбова мапа нагород">
@@ -141,17 +182,28 @@ function TreasureMap({ burstId, circle, diamonds, onClaim, pendingId }: {
         <polyline className="treasure-map__trail-walked" points={toSvgPoints(walked)} />
       </svg>
       {milestones.map((milestone, index) => (
-        <MapStop
-          burst={burstId === milestone.id}
-          index={index}
-          isFinal={index === milestones.length - 1}
-          key={milestone.id}
-          milestone={milestone}
-          onClaim={onClaim}
-          pending={pendingId === milestone.id}
-          point={stops[index]!}
-          side={stops[index]!.x >= 52 ? "left" : "right"}
-        />
+        <Fragment key={milestone.id}>
+          <MapStop
+            burst={burstId === milestone.id}
+            index={index}
+            isFinal={index === milestones.length - 1}
+            milestone={milestone}
+            onClaim={onClaim}
+            pending={pendingId === milestone.id}
+            point={stops[index]!}
+            side={stops[index]!.x >= 52 ? "left" : "right"}
+          />
+          {milestone.vip ? <VipStop
+            index={index}
+            onClaim={onClaim}
+            pending={pendingId === milestone.vip.id}
+            point={stops[index]!}
+            reward={milestone.vip}
+            side={stops[index]!.x >= 52 ? "right" : "left"}
+            threshold={milestone.threshold}
+            vipActive={vipActive}
+          /> : null}
+        </Fragment>
       ))}
       <img alt="" aria-hidden="true" className="treasure-map__pin" src={`${MAP_ASSETS}/pin-v1.webp`} style={{ left: `${pin.x}%`, top: `${pin.y / MAP_HEIGHT * 100}%` }} />
     </section>
@@ -178,7 +230,7 @@ function CardRewardReveal({ card, onClose }: { card: PlayerCardInstance; onClose
 }
 
 export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryChange }: { onBack: () => void; onEquipmentGranted: () => void; onPlayerSummaryChange: (balance: { gold: number; silver: number }) => void }) {
-  const { claimMilestone, retry, state } = useBattlePass();
+  const { claimMilestone, purchaseVip, retry, state } = useBattlePass();
   const [claimedItemId, setClaimedItemId] = useState<string | null>(null);
   const claimedItem = claimedItemId ? STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === claimedItemId) : undefined;
   const walkingDiamonds = useWalkingDiamonds(state.status === "ready" ? state.data.battlePass.diamonds : 0);
@@ -186,6 +238,10 @@ export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryCh
   const [feedback, setFeedback] = useState<string | null>(null);
   const [claimedCard, setClaimedCard] = useState<PlayerCardInstance | null>(null);
   const [burstId, setBurstId] = useState<string | null>(null);
+  const [vipConfirmationOpen, setVipConfirmationOpen] = useState(false);
+  const [vipPurchasePending, setVipPurchasePending] = useState(false);
+  const [vipPurchaseError, setVipPurchaseError] = useState<string | null>(null);
+  const vipPurchaseButtonRef = useRef<HTMLButtonElement>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -215,6 +271,25 @@ export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryCh
     }
   }
 
+  async function handleVipPurchase() {
+    setVipPurchasePending(true);
+    setVipPurchaseError(null);
+    try {
+      const response = await purchaseVip();
+      onPlayerSummaryChange(response.updatedBalance);
+      setVipConfirmationOpen(false);
+      setFeedback("VIP активовано на цей сезон.");
+    } catch (error) {
+      setVipPurchaseError(error instanceof BattlePassApiError
+        ? error.code === "insufficient_gold" ? "Недостатньо золота для VIP"
+          : error.code === "battle_pass_vip_unavailable" ? "VIP уже придбано або він недоступний"
+            : "Не вдалося придбати VIP. Спробуй ще раз."
+        : "Не вдалося придбати VIP. Спробуй ще раз.");
+    } finally {
+      setVipPurchasePending(false);
+    }
+  }
+
   return (
     <div className="battle-pass-screen treasure-screen">
       <ScreenHeading onBack={onBack} title="Алмазні нагороди" titleFirst />
@@ -233,12 +308,32 @@ export function BattlePassScreen({ onBack, onEquipmentGranted, onPlayerSummaryCh
           {state.data.battlePass.currencyBoost.active ? (
             <div className="treasure-screen__boost"><CurrencyIcon kind="silver" size={17} /><CurrencyIcon kind="gold" size={17} /><strong>×2 срібла та золота</strong><time>ще {formatRemaining(state.data.battlePass.currencyBoost.expiresAt!, now)}</time></div>
           ) : null}
+          {state.data.battlePass.vip.purchasable ? <button
+            className="eq-button treasure-screen__vip-buy"
+            onClick={() => { setVipPurchaseError(null); setVipConfirmationOpen(true); }}
+            ref={vipPurchaseButtonRef}
+            type="button"
+          >
+            <span className="treasure-screen__vip-buy-content"><span>Купити VIP</span><span><CurrencyIcon kind="gold" size={17} />{state.data.battlePass.vip.price}</span></span>
+          </button> : state.data.battlePass.vip.active ? <p className="treasure-screen__vip-active">VIP-колія активна цього сезону.</p> : null}
           {feedback ? <p className="treasure-screen__feedback" role="status">{feedback}</p> : null}
           {state.data.battlePass.circles.map((circle) => (
-            <TreasureMap burstId={burstId} circle={circle} diamonds={walkingDiamonds} key={circle.circle} onClaim={handleMilestoneClaim} pendingId={pendingId} />
+            <TreasureMap burstId={burstId} circle={circle} diamonds={walkingDiamonds} key={circle.circle} onClaim={handleMilestoneClaim} pendingId={pendingId} vipActive={state.data.battlePass.vip.active} />
           ))}
           {claimedCard ? <CardRewardReveal card={claimedCard} onClose={() => setClaimedCard(null)} /> : null}
           {claimedItem ? <EquipmentItemCard celebrate definition={claimedItem} eyebrow="Зі скрині" onClose={() => setClaimedItemId(null)}><button className="eq-button eq-button--leather" onClick={() => setClaimedItemId(null)} type="button">Забрати</button></EquipmentItemCard> : null}
+          {vipConfirmationOpen && state.data.battlePass.vip.purchasable ? <ConfirmationDialog
+            busy={vipPurchasePending}
+            busyLabel="Купуємо…"
+            confirmLabel={`Купити за ${state.data.battlePass.vip.price} золота`}
+            description={<p>VIP відкриває додаткові скрині цього сезону. Вартість — {state.data.battlePass.vip.price} золота.</p>}
+            error={vipPurchaseError}
+            onCancel={() => { setVipConfirmationOpen(false); setVipPurchaseError(null); }}
+            onConfirm={() => void handleVipPurchase()}
+            restoreFocusTargetRef={vipPurchaseButtonRef}
+            title="Придбати VIP на сезон?"
+            variant="primary"
+          /> : null}
         </>
       ) : null}
     </div>

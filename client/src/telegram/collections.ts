@@ -2,6 +2,7 @@ import {
   CARD_ELEMENTS,
   CARD_RARITIES,
   COLLECTION_BONUS_SCOPES,
+  COLLECTION_BONUS_STATUSES,
   COLLECTION_MODIFIER_TYPES,
   type PlayerCollectionCard,
   type PlayerCollectionCardResponse,
@@ -18,6 +19,8 @@ export function isSummary(value: unknown): value is PlayerCollectionSummary {
   const item = value as Partial<PlayerCollectionSummary>;
   return typeof item.id === "string"
     && typeof item.displayName === "string"
+    && typeof item.displayPrefix === "string"
+    && typeof item.description === "string"
     && typeof item.code === "string"
     && typeof item.completed === "boolean"
     && (item.completedAt === null || typeof item.completedAt === "string")
@@ -27,6 +30,7 @@ export function isSummary(value: unknown): value is PlayerCollectionSummary {
     && Number.isSafeInteger(item.totalCards)
     && Number(item.totalCards) >= Number(item.discoveredCards)
     && typeof item.bonusLabel === "string"
+    && COLLECTION_BONUS_STATUSES.some((status) => status === item.bonusStatus)
     && !!item.bonus && typeof item.bonus === "object"
     && COLLECTION_MODIFIER_TYPES.some((type) => type === item.bonus?.type)
     && typeof item.bonus.value === "number" && Number.isFinite(item.bonus.value)

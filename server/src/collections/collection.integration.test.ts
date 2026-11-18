@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { getPlayerCollectionModifiers } from "@cardastika/game-core";
+import { getSeasonWindow } from "../battlePassConfig.js";
 import { Pool } from "pg";
 import type { ValidatedTelegramUser } from "../auth/telegramInitData.js";
 import { PlayerRepository } from "../users/playerRepository.js";
@@ -208,6 +209,78 @@ test("a four-card collection completes after its fourth discovery", {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
     await pool.query("DELETE FROM cards WHERE collection_id = $1", [elementalSpirits.id]);
     await pool.query("DELETE FROM collections WHERE id = $1", [elementalSpirits.id]);
+    await pool.end();
+  }
+});
+
+test("each newly completed collection grants one silver and diamond reward exactly once", {
+  skip: !databaseUrl,
+}, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const telegramId = String(BigInt(Date.now()) * 10_000n + BigInt(process.pid) + 2n);
+  const user: ValidatedTelegramUser = {
+    id: telegramId,
+    username: null,
+    firstName: "Collection reward test",
+    lastName: null,
+    photoUrl: null,
+  };
+  const suffix = `${Date.now()}_${process.pid}`;
+  const firstCollectionId = `collection_reward_a_${suffix}`;
+  const secondCollectionId = `collection_reward_b_${suffix}`;
+  const cardIds = [`reward_a_${suffix}`, `reward_b_${suffix}`, `reward_shared_${suffix}`];
+  const seasonId = getSeasonWindow(new Date()).seasonId;
+
+  try {
+    await pool.query(
+      `INSERT INTO collections (id, code, display_name, buff_type, buff_value, buff_scope, bonus_label, position)
+       VALUES ($1, $2, 'Reward A', 'none', 0, 'all_battles', '', 999),
+              ($3, $4, 'Reward B', 'none', 0, 'all_battles', '', 1000)`,
+      [firstCollectionId, firstCollectionId.replace("collection_", ""), secondCollectionId, secondCollectionId.replace("collection_", "")],
+    );
+    for (const cardId of cardIds) {
+      await pool.query(
+        "INSERT INTO cards (id, code, display_name, element, collection_id) VALUES ($1, $1, 'Reward card', 'fire', $2)",
+        [cardId, firstCollectionId],
+      );
+    }
+    await pool.query(
+      `INSERT INTO collection_cards (collection_id, card_id, position)
+       VALUES ($1, $2, 1), ($1, $3, 2), ($4, $5, 1), ($4, $3, 2)`,
+      [firstCollectionId, cardIds[0], cardIds[2], secondCollectionId, cardIds[1]],
+    );
+
+    const player = await new PlayerRepository(pool).findOrCreateFromTelegram(user);
+    const initial = await pool.query<{ silver: string | number }>("SELECT silver FROM players WHERE id = $1", [player.id]);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await recordCardDiscovery(client, player.id, cardIds[0]!);
+      await recordCardDiscovery(client, player.id, cardIds[1]!);
+      const completed = await recordCardDiscovery(client, player.id, cardIds[2]!);
+      assert.deepEqual(completed.collectionCompleted?.completionReward, { diamonds: 2, silver: 2_000 });
+      assert.deepEqual(completed.collectionCompleted?.completedCollections.map(({ name }) => name), ["Reward A", "Reward B"]);
+      assert.deepEqual(await recordCardDiscovery(client, player.id, cardIds[2]!), { newDiscovery: false });
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    const balance = await pool.query<{ silver: string | number }>("SELECT silver FROM players WHERE id = $1", [player.id]);
+    const state = await pool.query<{ diamonds: string | number }>(
+      "SELECT diamonds FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2",
+      [player.id, seasonId],
+    );
+    assert.equal(Number(balance.rows[0]?.silver), Number(initial.rows[0]?.silver) + 2_000);
+    assert.equal(Number(state.rows[0]?.diamonds), 2);
+  } finally {
+    await pool.query("DELETE FROM players WHERE telegram_user_id = $1", [telegramId]);
+    await pool.query("DELETE FROM cards WHERE id = ANY($1::text[])", [cardIds]);
+    await pool.query("DELETE FROM collections WHERE id = ANY($1::text[])", [[firstCollectionId, secondCollectionId]]);
     await pool.end();
   }
 });

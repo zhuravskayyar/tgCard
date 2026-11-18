@@ -140,7 +140,7 @@ export function BoosterOpening({ autoFinishOnReveal = false, card, doneLabel, fo
 
   const active = phase !== "sealed" && phase !== "revealed";
   return (
-    <section className={`booster-preview booster-preview--${phase} booster-preview--rarity-${card.rarity}`} aria-label="Відкриття пакунка">
+    <section data-no-drag-scroll className={`booster-preview booster-preview--${phase} booster-preview--rarity-${card.rarity}`} aria-label="Відкриття пакунка">
       {toolbar}
       <div className="booster-preview__stage" aria-busy={!ready && !error}>
         <div className="booster-preview__halo" aria-hidden="true" />

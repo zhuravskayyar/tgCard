@@ -320,6 +320,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     : 0;
   const canBulkAbsorb = bulkPreview !== null && bulkPreview.selectedCards > 0;
   const levelAlreadyFilled = bulkPreview !== null && bulkPreview.beforeElements >= bulkPreview.requiredElements;
+  // The trial guide points at a single weak card only once the preview is in and the bulk button can't help.
+  const singleAbsorbHint = bulkPreview !== null && !canBulkAbsorb && !levelAlreadyFilled;
   const bulkAbsorbHint = bulkPreview === null ? "Поглинути слабкі: рахуємо прогрес…"
     : canBulkAbsorb ? `Поглинути слабкі: прогрес рівня +${formatGainPercent(bulkGainPercent)}`
       : levelAlreadyFilled ? "Рівень заповнено — підніміть його."
@@ -368,10 +370,10 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
         <div className="progression-panel__content" id="card-progression-content">
         {progressionHint ? <p className="progression-panel__external-hint">{progressionHint}</p> : null}
         <div className="card-level-flask" role="progressbar" aria-label="Прогрес рівня" aria-valuemax={100} aria-valuemin={0} aria-valuenow={progression.percent}><ExperienceFlask key={card.instanceId} level={card.level} progress={progression.percent / 100} tone="verdant" /></div>
-        <div className={`progression-panel__upgrade-row${hasAbsorptionAction ? " progression-panel__upgrade-row--pair" : ""}`}><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
+        <div className={`progression-panel__upgrade-row${hasAbsorptionAction ? " progression-panel__upgrade-row--pair" : ""}`}><button className={`level-up-button${progression.requiredGold === 0 ? " level-up-button--free" : ""}`} data-tutorial-target={progression.requiredGold === 0 ? "card-level-up-free" : "card-level-up"} disabled={progression.availability !== "ready" || pendingAction !== null} onClick={requestLevelUp} type="button">
           <span>{pendingAction === "level" ? "Підвищення…" : progression.requiredGold === 0 ? "Покращити безкоштовно" : "Підняти рівень"}</span>
         </button>
-        {hasAbsorptionAction ? <button aria-label={bulkAbsorbHint} className="level-up-button absorb-weak-button" disabled={!canBulkAbsorb || pendingAction !== null} onClick={requestBulkAbsorption} title={bulkAbsorbHint} type="button">
+        {hasAbsorptionAction ? <button aria-label={bulkAbsorbHint} className="level-up-button absorb-weak-button" data-tutorial-target="card-absorb" disabled={!canBulkAbsorb || pendingAction !== null} onClick={requestBulkAbsorption} title={bulkAbsorbHint} type="button">
           <span>{pendingAction === "absorb" && bulkConfirmationOpen ? "Поглинання…" : "Поглинути"}</span>
           {canBulkAbsorb && bulkPreview !== null ? <strong>+{formatGainPercent(bulkGainPercent)}</strong> : null}
         </button> : null}</div>
@@ -394,9 +396,9 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
     {hasAbsorptionAction && candidates.status === "ready" ? (
       <section aria-label="Слабкі карти для поглинання: торкніться карти, щоб поглинути її" className="absorption-panel absorption-panel--strip" ref={absorptionPanelRef} tabIndex={-1}>
         <div className="absorption-grid absorption-grid--inline">
-          {candidates.data.cards.map((candidate) => (
+          {candidates.data.cards.map((candidate, candidateIndex) => (
             <div className="absorption-card-slot" data-absorption-candidate={candidate.instanceId} key={candidate.instanceId} ref={(element) => { if (element) absorptionCardRefs.current.set(candidate.instanceId, element); else absorptionCardRefs.current.delete(candidate.instanceId); }}>
-              <DeckCard card={candidate} disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} />
+              <DeckCard card={candidate} dataTutorialTarget={candidateIndex === 0 && singleAbsorbHint ? "card-absorb-one" : undefined} disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} />
               <button aria-label={`Поглинути: ${candidateGains[candidate.instanceId] === undefined ? "…" : `+${formatGainPercent(candidateGains[candidate.instanceId]!.percent)}`}`} className="absorption-card-slot__action" disabled={pendingAction !== null} onClick={() => requestAbsorption(candidate)} type="button">
                 <strong>{candidateGains[candidate.instanceId] === undefined ? "…" : `+${formatGainPercent(candidateGains[candidate.instanceId]!.percent)}`}</strong>
               </button>
@@ -409,8 +411,8 @@ export function CardDetailScreen({ cardInstanceId, onBack, onDeckPowerChange, on
 
     <nav className="card-detail-actions" aria-label="Дії з картою"><MenuRow chevron icon="deck" iconSrc={homeSprite("mode-deck")} illustrationSrc={homeSprite("row-deck")} onClick={onOpenDeck} title="Колода" /><MenuRow chevron icon="weak-cards" attention={hasAbsorptionAction} iconSrc={homeSprite("row-icon-weak-cards")} illustrationSrc={homeSprite("row-weak-cards")} onClick={onOpenWeakCards} title="Слабкі карти" /><MenuRow chevron icon="shop" iconSrc={homeSprite("row-icon-shop")} illustrationSrc={homeSprite("row-shop")} onClick={onOpenShop} title="Магазин" /></nav>
 
-    {bulkConfirmation ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути" description={<><p>{`Буде знищено слабких карт: ${bulkConfirmation.selectedCards}.`}</p><p>Прогрес рівня: <strong>+{formatGainPercent(gainPercentOf(bulkConfirmation))}</strong></p></>} error={actionError} onCancel={() => setBulkConfirmation(null)} onConfirm={() => void performAbsorption("weak")} restoreFocusTargetRef={absorptionPanelRef} title="Поглинути слабкі карти?" variant="primary" /> : null}
+    {bulkConfirmation ? <ConfirmationDialog busy={pendingAction === "absorb"} busyLabel="Поглинання…" confirmLabel="Поглинути" confirmTutorialTarget="confirm-absorb" description={<><p>{`Буде знищено слабких карт: ${bulkConfirmation.selectedCards}.`}</p><p>Прогрес рівня: <strong>+{formatGainPercent(gainPercentOf(bulkConfirmation))}</strong></p></>} error={actionError} onCancel={() => setBulkConfirmation(null)} onConfirm={() => void performAbsorption("weak")} restoreFocusTargetRef={absorptionPanelRef} title="Поглинути слабкі карти?" variant="primary" /> : null}
 
-    {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
+    {levelConfirmationOpen && progression.requiredGold !== null ? <ConfirmationDialog busy={pendingAction === "level"} busyLabel="Підвищення…" confirmLabel="Підняти рівень" confirmTutorialTarget="confirm-level-up" description={<p>Підняття рівня коштує <strong><CurrencyIcon kind="gold" size={16} />{progression.requiredGold}</strong> золота.</p>} error={actionError} onCancel={() => setLevelConfirmationOpen(false)} onConfirm={() => void performLevelUp()} restoreFocusTargetRef={absorptionPanelRef} title="Підняти рівень?" variant="primary" /> : null}
   </section>;
 }

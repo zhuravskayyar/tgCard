@@ -44,6 +44,10 @@
 .treasure-screen__diamonds { display: flex; align-items: center; gap: 6px; font-family: var(--font-number); font-size: 26px; line-height: 1; }
 .treasure-screen__diamonds img { width: 26px; height: 26px; }
 .treasure-screen__copy time { font-size: 13px; font-weight: 800; }
+.treasure-screen__vip-buy { margin: 0 auto; }
+.treasure-screen__vip-buy-content,
+.treasure-screen__vip-buy-content > span:last-child { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.treasure-screen__vip-active { margin: 0; color: #24140a; font-size: 13px; font-weight: 800; text-align: center; }
 .treasure-screen__boost,
 .treasure-screen__feedback {
   display: flex;
@@ -80,6 +84,9 @@
 .treasure-map__pin { position: absolute; transform: translate(-50%, -50%); }
 .treasure-map__stop { z-index: 2; width: 78px; }
 .treasure-map__stop--final { z-index: 2; width: 116px; }
+.treasure-map__vip { position: absolute; z-index: 2; width: 42px; transform: translate(-50%, -50%); }
+.treasure-map__vip--right { transform: translate(39px, -50%); }
+.treasure-map__vip--left { transform: translate(calc(-100% - 39px), -50%); }
 .treasure-map__chest {
   position: relative;
   display: block;
@@ -116,6 +123,9 @@
 .treasure-map__stop--right .treasure-map__tag { left: calc(100% - 2px); }
 .treasure-map__stop--left .treasure-map__tag { right: calc(100% - 2px); }
 .treasure-map__stop--final .treasure-map__tag { top: auto; bottom: 100%; left: 50%; transform: translateX(-50%); width: 170px; }
+.treasure-map__vip-tag { top: auto; bottom: calc(100% - 8px); left: 50%; right: auto; width: 138px; min-height: 38px; padding: 4px 6px; transform: translateX(-50%); }
+.treasure-map__vip-tag strong { font-size: 11px; }
+.treasure-map__vip-tag small { font-size: 10px; }
 .treasure-map__tag strong { font-size: 13px; font-weight: 800; line-height: 1.12; }
 .treasure-map__tag small { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: 12px; font-weight: 800; }
 .treasure-map__tag small img { width: 13px; height: 13px; }
@@ -178,6 +188,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .treasure-map__stop--ready .treasure-map__chest,
+  .treasure-map__vip .treasure-map__chest,
   .treasure-map__pin,
   .treasure-card-reveal__letter { animation: none; }
 }
@@ -209,6 +220,7 @@
 
 /* Chests and nails land one after another from the bottom of the trail. */
 .treasure-map__stop,
+.treasure-map__vip,
 .treasure-map__checkpoint { animation: treasure-stop-in 460ms cubic-bezier(.2, 1.5, .4, 1) both; animation-delay: calc(350ms + var(--stop-index, 0) * 130ms); }
 
 .treasure-map__pin { animation: treasure-pin-bob 1.8s ease-in-out infinite, treasure-pin-in 500ms cubic-bezier(.2, 1.5, .4, 1) 300ms both; }
@@ -352,6 +364,7 @@
   .treasure-screen__header,
   .treasure-screen__diamonds img,
   .treasure-map__stop,
+  .treasure-map__vip,
   .treasure-map__checkpoint,
   .treasure-map__pin,
   .treasure-map__trail-walked,

@@ -155,6 +155,26 @@ test("guardian dragon: gate, feeding, hikes, cancel and monthly rebirth", { skip
     // Outside the top 100 (no rating) the dragon starts again at 45.
     time.set("2031-05-01T00:00:00Z");
     assert.equal((await service.getDragon(player.id)).mastery, 45);
+
+    await pool.query(
+      `INSERT INTO player_collection_completions (player_id, collection_id)
+       SELECT $1, id FROM collections WHERE code = ANY($2::text[])`,
+      [player.id, ["dragon_fans", "magic_1", "magic_heal"]],
+    );
+    const allMasteryCollections = (await service.getDragon(player.id)).flame;
+    assert.deepEqual(
+      [allMasteryCollections.dragonFans, allMasteryCollections.dragonMagic, allMasteryCollections.dragonHealing, allMasteryCollections.dragonWhisperers],
+      [true, true, true, false],
+    );
+    assert.equal(allMasteryCollections.power, 4_695); // level 90 × 75 mastery
+    await pool.query(
+      `INSERT INTO player_collection_completions (player_id, collection_id)
+       SELECT $1, id FROM collections WHERE code = 'dragon_whisperers'`,
+      [player.id],
+    );
+    const allFlameCollections = (await service.getDragon(player.id)).flame;
+    assert.equal(allFlameCollections.dragonWhisperers, true);
+    assert.equal(allFlameCollections.power, 9_390); // ×2 applies after all three +10 bonuses
   } finally {
     await pool.query("DELETE FROM players WHERE telegram_user_id = $1::bigint", [user.id]);
     await pool.end();

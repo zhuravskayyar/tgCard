@@ -13,6 +13,7 @@ import type {
   ShopCardInfoResponse,
 } from "@cardastika/shared";
 import type { Pool } from "pg";
+import { getCollectionBonusStatus, getCollectionPresentation } from "./collectionCatalog.js";
 
 interface SummaryRow {
   bonus_label: string;
@@ -67,10 +68,14 @@ export class CollectionPersistenceError extends Error {
 }
 
 function mapSummary(row: SummaryRow): PlayerCollectionSummary {
+  const presentation = getCollectionPresentation(row.code, row.source);
   return {
     id: row.id,
     code: row.code,
     displayName: row.display_name,
+    displayPrefix: presentation.displayPrefix,
+    description: presentation.description,
+    bonusStatus: getCollectionBonusStatus(row.code),
     coverArtKey: row.cover_art_key,
     bonus: {
       type: row.buff_type,

@@ -10,12 +10,13 @@ export const EMPTY_EQUIPMENT: EquippedEquipment = {
   shield: null,
   weapon: null,
   voodoo: null,
+  halberd: null,
 };
 
 export type EquipmentInventoryStatus = "loading" | "ready" | "unavailable" | "error";
 
 export function isEmptyEquipment(equipped: EquippedEquipment) {
-  return EQUIPMENT_SLOTS.every((slot) => equipped[slot] === null);
+  return EQUIPMENT_SLOTS.every((slot) => equipped[slot] == null);
 }
 
 export function reconcileEquipment(equipped: EquippedEquipment, inventory: readonly PlayerEquipmentInventory[]): EquippedEquipment {

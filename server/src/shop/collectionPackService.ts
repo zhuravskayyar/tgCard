@@ -180,6 +180,7 @@ export class CollectionPackService {
           return {
             id: pack.id,
             displayName: pack.displayName,
+            description: pack.description,
             returnsInWeeks: schedule.returnsInWeeks[pack.id] ?? COLLECTION_PACKS_CYCLE_WEEKS,
             setOffers: pack.collectionCodes.map((code) => {
               const members = rows.filter((row) => row.collection_code === code);

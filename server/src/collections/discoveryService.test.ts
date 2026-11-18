@@ -7,6 +7,9 @@ test("first discovery completes the final missing collection card exactly once",
   const responses = [
     { rowCount: 1, rows: [{ card_id: "predators_06" }] },
     { rowCount: 1, rows: [{ collection_id: "collection_predators" }] },
+    { rowCount: 1, rows: [{ collection_id: "collection_predators" }] },
+    { rowCount: 1, rows: [] },
+    { rowCount: 1, rows: [] },
     { rowCount: 1, rows: [{ id: "collection_predators", display_name: "Хижаки", buff_type: "battle_damage_pct", buff_value: 3, buff_element: null, bonus_label: "+3% шкоди" }] },
   ];
   const database = { query: async () => responses.shift()! } as unknown as PoolClient;
@@ -14,6 +17,8 @@ test("first discovery completes the final missing collection card exactly once",
   assert.equal(result.newDiscovery, true);
   assert.equal(result.collectionCompleted?.name, "Хижаки");
   assert.deepEqual(result.collectionCompleted?.bonus, { type: "battle_damage_pct", value: 3 });
+  assert.deepEqual(result.collectionCompleted?.completedCollections.map(({ name }) => name), ["Хижаки"]);
+  assert.deepEqual(result.collectionCompleted?.completionReward, { diamonds: 1, silver: 1_000 });
 });
 test("duplicate acquisition is idempotent and does not repeat completion", async () => {
   let queries = 0;

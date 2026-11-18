@@ -71,8 +71,11 @@ test("paid sends follow the reference ladder and total 5250 for 30", () => {
 test("dragon flame matches the reference example", () => {
   assert.equal(getGuardianDragonFlameDamage(10_000, 56), 5600);
   assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonFans: true }), 6600);
+  assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonMagic: true }), 6600);
+  assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonHealing: true }), 6600);
+  assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonFans: true, dragonMagic: true, dragonHealing: true }), 8600);
   assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonWhisperers: true }), 11_200);
-  assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonFans: true, dragonWhisperers: true }), 13_200);
+  assert.equal(getGuardianDragonFlameDamage(10_000, 56, { dragonFans: true, dragonMagic: true, dragonHealing: true, dragonWhisperers: true }), 17_200);
 });
 
 test("the dragon is an egg without health", () => {
@@ -124,8 +127,10 @@ test("the flame levels up like a card: 90 to 91 costs 3400 and adds +45 power at
   const half = getGuardianDragonFlameUpgrade({ ...start, levelProgressElements: upgrade.requiredElements / 2 }, 0, 50);
   assert.ok(half.requiredGold! < 3400 && half.requiredGold! >= 1500);
   assert.equal(half.percent, 50);
-  // Fans add 10 mastery, whisperers double the gain.
+  // Each mastery collection adds 10; whisperers independently double the damage.
   assert.equal(getGuardianDragonFlameUpgrade(start, 0, 50, { dragonFans: true, dragonWhisperers: true }).powerGain, 108);
+  assert.equal(getGuardianDragonFlameUpgrade(start, 0, 50, { dragonFans: true, dragonMagic: true, dragonHealing: true }).powerGain, 72);
+  assert.equal(getGuardianDragonFlameUpgrade(start, 0, 50, { dragonFans: true, dragonMagic: true, dragonHealing: true, dragonWhisperers: true }).powerGain, 144);
 });
 
 test("the flame stops at the maximum card level", () => {

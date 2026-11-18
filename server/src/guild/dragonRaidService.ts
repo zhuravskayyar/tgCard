@@ -17,7 +17,6 @@ import {
   getDragonLairUpgradeCost,
   getDragonRespawnHours,
   getDueDragonBreaths,
-  getElementMultiplier,
   getRarityForLevel,
   initializeCyclicCardPool,
   RAID_CARD_SWAP_GOLD,
@@ -775,6 +774,7 @@ export class GuildDragonRaidService {
         attackerFinalPower: playerCard.finalPower,
         battleDamagePct: battle.player_snapshot.modifiers.battleDamagePct,
         defenderElement: dragonCard.element,
+        strikeMultiplierBonus: battle.player_snapshot.modifiers.strikeMultiplierBonus,
       });
       const counter = calculateDuelDamage({
         attackerElement: dragonCard.element,
@@ -795,13 +795,13 @@ export class GuildDragonRaidService {
         defenderCard: dragonCard,
         id: randomUUID(),
         kind: "attack",
-        multiplier: getElementMultiplier(playerCard.element, dragonCard.element),
+        multiplier: strike.multiplier,
         playerDamage: strike.damage,
         slotIndex: input.slotIndex,
         text: `Удар по змію: −${strike.damage}`,
         turnNumber: turn,
         witchDamage: counter.damage,
-        witchMultiplier: getElementMultiplier(dragonCard.element, playerCard.element),
+        witchMultiplier: counter.multiplier,
       });
       const won = health === 0;
       const fell = !won && playerHp === 0;

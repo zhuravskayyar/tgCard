@@ -202,7 +202,12 @@ export function GuardianDragonMagic({ dragon, onDragon, onGoldChange, onRefresh,
       </div>
     </>}
     {flameNotice ? <p className={flameNotice.error ? "deck-note deck-note--error weak-cards-intro" : "deck-note weak-cards-intro"} role="status">{flameNotice.text}</p> : null}
-    {flame.dragonFans || flame.dragonWhisperers ? <p className="deck-note deck-note--info weak-cards-intro">{[flame.dragonFans ? "«Любителі драконів»: майстерність +10" : null, flame.dragonWhisperers ? "«Приборкувачки драконів»: шкода ×2" : null].filter(Boolean).join(" · ")}</p> : null}
+    {flame.dragonFans || flame.dragonMagic || flame.dragonHealing || flame.dragonWhisperers ? <p className="deck-note deck-note--info weak-cards-intro">{[
+      flame.dragonFans ? "«Друзі дракона»: майстерність +10" : null,
+      flame.dragonMagic ? "«Перші зміїні чари»: майстерність +10" : null,
+      flame.dragonHealing ? "«Цілющі зміїні чари»: майстерність +10" : null,
+      flame.dragonWhisperers ? "«Приборкувачки змія»: шкода ×2" : null,
+    ].filter(Boolean).join(" · ")}</p> : null}
 
     <RibbonTitle>Магія дракона</RibbonTitle>
     <div aria-label="Стихія магії дракона" className="guardian-dragon__elements">

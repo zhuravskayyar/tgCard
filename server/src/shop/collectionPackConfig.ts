@@ -10,6 +10,7 @@ import { COLLECTION_CARD_GOLD_PRICE } from "@cardastika/game-core";
 export interface CollectionPackConfig {
   /** Collections of the pack; each gets its own «Повна колекція» offer. */
   collectionCodes: readonly string[];
+  description: string;
   displayName: string;
   /** A `COLLECTION_PACK_IDS` entry (checked by the config test). */
   id: string;
@@ -26,13 +27,14 @@ export const COLLECTION_PACK_SET_LIMIT = 1;
 export const COLLECTION_PACK_CARD_PRICE = COLLECTION_CARD_GOLD_PRICE;
 
 export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
-  { id: "umutants", displayName: "Шулікові виродки", collectionCodes: ["umutants"], setPrices: { umutants: 60 }, randomPrice: 20 },
-  { id: "ugiants", displayName: "Шулікові велетні", collectionCodes: ["ugiants"], setPrices: { ugiants: 230 }, randomPrice: 60 },
-  { id: "usoldiers", displayName: "Шулікова зграя", collectionCodes: ["usoldiers"], setPrices: { usoldiers: 120 }, randomPrice: 20 },
-  { id: "diamond_brotherhood", displayName: "Алмазна артіль", collectionCodes: ["diamond_brotherhood"], setPrices: { diamond_brotherhood: 150 }, randomPrice: 50 },
+  { id: "umutants", displayName: "Шулікові виродки", description: "Чотири химерні створіння Шуліки: мавпа, носоріг, пацюк і крокодил.", collectionCodes: ["umutants"], setPrices: { umutants: 60 }, randomPrice: 20 },
+  { id: "ugiants", displayName: "Шулікові велетні", description: "Чотири велетенські істоти — від небесного змія до вічного фенікса.", collectionCodes: ["ugiants"], setPrices: { ugiants: 230 }, randomPrice: 60 },
+  { id: "usoldiers", displayName: "Шулікова зграя", description: "Вісім строкатих бійців Навали, від дикого вовка до нічної фурії.", collectionCodes: ["usoldiers"], setPrices: { usoldiers: 120 }, randomPrice: 20 },
+  { id: "diamond_brotherhood", displayName: "Алмазна артіль", description: "Четверо майстрів-огранювачів працюють довкола одного великого діаманта.", collectionCodes: ["diamond_brotherhood"], setPrices: { diamond_brotherhood: 150 }, randomPrice: 50 },
   {
     id: "zodiac",
     displayName: "Зодіак",
+    description: "Чотири мініколекції знаків зодіаку — по одній для кожної стихії.",
     collectionCodes: ["zodiac_air", "zodiac_earth", "zodiac_fire", "zodiac_water"],
     setPrices: { zodiac_air: 110, zodiac_earth: 110, zodiac_fire: 110, zodiac_water: 110 },
     randomPrice: 50,
@@ -40,6 +42,7 @@ export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
   {
     id: "shores_path",
     displayName: "Береги й Шлях",
+    description: "Боги Нілу та духи Шовкового шляху зібрані в одній подорожі.",
     collectionCodes: ["sacred_shores", "great_path"],
     setPrices: { sacred_shores: 150, great_path: 150 },
     randomPrice: 50,
@@ -47,6 +50,7 @@ export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
   {
     id: "thirtieth_west",
     displayName: "За горами й Прерії",
+    description: "Казкові мешканці далеких гір і загадкові істоти диких прерій.",
     collectionCodes: ["thirtieth", "western_wastes"],
     setPrices: { thirtieth: 150, western_wastes: 150 },
     randomPrice: 50,
@@ -54,6 +58,7 @@ export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
   {
     id: "flame_storm",
     displayName: "Жар і Шторм",
+    description: "Дві четвірки механічних титанів: вогняна кузня та сила бурі.",
     collectionCodes: ["legion_of_flame", "breath_of_storm"],
     setPrices: { legion_of_flame: 150, breath_of_storm: 150 },
     randomPrice: 50,
@@ -61,6 +66,7 @@ export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
   {
     id: "engines_forge",
     displayName: "Глибини й Ковадло",
+    description: "Механічні істоти морських глибин і титани великої кузні.",
     collectionCodes: ["deep_engines", "titans_of_forge"],
     setPrices: { deep_engines: 150, titans_of_forge: 150 },
     randomPrice: 50,
@@ -68,6 +74,7 @@ export const COLLECTION_PACKS: readonly CollectionPackConfig[] = [
   {
     id: "breach_mirror",
     displayName: "Брама й Люстро",
+    description: "Дві історії про штурм брами та воїнів із уламків дзеркала.",
     collectionCodes: ["breach_wedge", "mirror_fragments"],
     setPrices: { breach_wedge: 100, mirror_fragments: 100 },
     randomPrice: 30,

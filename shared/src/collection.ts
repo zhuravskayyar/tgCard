@@ -38,6 +38,10 @@ export const COLLECTION_SOURCES = ["standard", "raid"] as const;
 
 export type CollectionSource = (typeof COLLECTION_SOURCES)[number];
 
+export const COLLECTION_BONUS_STATUSES = ["active", "partial", "pending", "unassigned"] as const;
+
+export type CollectionBonusStatus = (typeof COLLECTION_BONUS_STATUSES)[number];
+
 export interface CollectionModifier {
   element?: CardElement;
   scope?: CollectionBonusScope;
@@ -48,8 +52,11 @@ export interface CollectionModifier {
 export interface CollectionCompletionNotice {
   bonus: CollectionModifier;
   bonusLabel: string;
+  completionReward: { diamonds: number; silver: number };
+  completedCollections: Array<{ bonus: CollectionModifier; bonusLabel: string; id: string; name: string }>;
   id: string;
   name: string;
+  winterFestiveUntil?: string;
 }
 
 export interface PlayerCollectionBonus {
@@ -61,13 +68,16 @@ export interface PlayerCollectionBonus {
 
 export interface PlayerCollectionSummary {
   bonus: CollectionModifier;
+  bonusStatus: CollectionBonusStatus;
   bonusLabel: string;
   code: string;
   completed: boolean;
   completedAt: string | null;
   coverArtKey: string | null;
+  description: string;
   discoveredCards: number;
   displayName: string;
+  displayPrefix: string;
   id: string;
   totalCards: number;
   source: CollectionSource;

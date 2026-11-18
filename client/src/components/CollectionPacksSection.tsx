@@ -144,7 +144,10 @@ export function CollectionPacksSection({ balance, onPurchased, onSelectPack, sel
         <h2>Колекції тижня</h2>
         <span aria-hidden="true" />
       </div>
-      <p className="shop-holiday__note">{`Оновлення через ${formatRemaining(state.data.endsAt, now)}`}</p>
+      <p className="shop-holiday__note shop-collection-intro">
+        <span>Щотижня — дві пачки: повний набір видає всі невідкриті карти, випадкова карта спершу обирає нові.</span>
+        <span>{` · Оновлення через ${formatRemaining(state.data.endsAt, now)}`}</span>
+      </p>
       {state.data.nextWeekPackNames.length ? (
         <p className="shop-holiday__note shop-holiday__schedule">Наступного тижня: {state.data.nextWeekPackNames.map((name, index) => <span key={name}>{index ? " · " : ""}<b>{name}</b></span>)}</p>
       ) : null}
@@ -159,7 +162,9 @@ export function CollectionPacksSection({ balance, onPurchased, onSelectPack, sel
       </div> : null}
       <div aria-label={selectedPack.displayName} className="shop-sections shop-collection-offers" key={selectedPack.id}>
             {!many ? <h3 className="shop-holiday__note">{selectedPack.displayName}</h3> : null}
-            <p className="shop-holiday__note shop-holiday__schedule">{returnsLabel(selectedPack.returnsInWeeks)}</p>
+            <p className="shop-holiday__note shop-collection-pack-description">
+              {selectedPack.description}<span>{` · ${returnsLabel(selectedPack.returnsInWeeks)}`}</span>
+            </p>
             {selectedPack.setOffers.map((offer) => {
               const discovered = offer.cards.filter((card) => card.discovered).length;
               const partial = offer.missingCount > 0 && offer.missingCount < offer.cards.length;

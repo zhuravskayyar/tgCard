@@ -39,6 +39,23 @@ test("Arena uses the Duel elemental damage multipliers", () => {
   assert.equal(calculateArenaDamage({ attacker: card("fire", 100), attackerModifiers: modifiers, defender: card("water", 100) }).damage, 50);
 });
 
+test("Arena applies workshop attack and counter multipliers separately from artifact effects", () => {
+  const attacker = card("fire", 100);
+  const defender = card("fire", 100);
+  const baseEquipment = { damageReflectionPct: 0, incomingDamageReductionPct: 0, outgoingDamagePct: 0, reviveHpPct: 0, voodooHpReductionPct: 0 };
+  const attackerModifiers = {
+    ...modifiers,
+    equipment: { ...baseEquipment, outgoingDamagePct: 12, antiDamageReductionPct: 11, antiDamageReflectionPct: 6 },
+    strikeMultiplierBonus: { weak: 0, critical: 0, attackNormal: 0.1, counterNormal: 0 },
+  };
+  const defenderModifiers = {
+    ...modifiers,
+    equipment: { ...baseEquipment, incomingDamageReductionPct: 17, damageReflectionPct: 6 },
+  };
+  assert.deepEqual(calculateArenaDamage({ attacker, attackerModifiers, defender, defenderModifiers }), { damage: 116, multiplier: 1.1, reflectedDamage: 0 });
+  assert.deepEqual(calculateArenaDamage({ attacker, attackerModifiers, defender, defenderModifiers, counterattack: true }), { damage: 100, multiplier: 1, reflectedDamage: 0 });
+});
+
 test("Arena card change costs are free three times, then progressive", () => {
   assert.deepEqual([1, 2, 3, 10].map(getArenaCardChangeCost), [0, 5, 5, 5]);
 });

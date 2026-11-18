@@ -4,6 +4,12 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run check:i18n && npm run build --workspace shared && npm run build --workspace game-core && npm run build --workspace server && npm run build --workspace client",
   "outputDirectory": "client/dist",
+  "crons": [
+    {
+      "path": "/api/internal/guild-wars/tick",
+      "schedule": "0 0 * * 1,6"
+    }
+  ],
   "redirects": [
     { "source": "/about.html", "destination": "/", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true }

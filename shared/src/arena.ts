@@ -1,4 +1,4 @@
-import type { DuelBattleModifiers, DuelCardSnapshot, ElementMultiplier } from "./duel.js";
+import type { DuelBattleModifiers, DuelCardSnapshot } from "./duel.js";
 import type { LeagueDefinition } from "./leagues.js";
 import type { PlayerSummary } from "./player.js";
 
@@ -53,9 +53,10 @@ export interface ArenaBattleLogEntry {
   attackerName: string;
   attackerPhotoUrl: string | null;
   counterDamage?: number;
+  counterMultiplier?: number;
   damage: number;
   id: string;
-  multiplier: ElementMultiplier;
+  multiplier: number;
   slotIndex: 0 | 1 | 2;
   targetCard?: DuelCardSnapshot;
   targetDefeated: boolean;
@@ -107,6 +108,7 @@ export interface ArenaView {
   changeCardsCost: number;
   matchId: string;
   participants: ArenaParticipantView[];
+  pairMultipliers?: [number | null, number | null, number | null];
   winnerIds: string[];
   playerGold: number;
   playerId: string;

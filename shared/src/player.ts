@@ -72,6 +72,8 @@ export interface PlayerSummary {
   rating?: number;
   silver: number;
   username: string | null;
+  /** Exclusive UTC end of the earned winter festival appearance, when active. */
+  winterFestiveUntil?: string;
 }
 
 export interface PublicPlayerCard {
@@ -99,6 +101,7 @@ export interface PublicPlayerProfile {
   mageElement: CardElement;
   photoUrl: string | null;
   strongestCards: PublicPlayerCard[];
+  winterFestiveUntil?: string;
 }
 
 export interface TelegramAuthRequest {

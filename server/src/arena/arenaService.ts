@@ -12,7 +12,7 @@ import {
   cycleCardPoolSlotWithGuildCard,
   getArenaCardChangeCost,
   getArenaQueueDurationMs,
-  getElementMultiplier,
+  getStrikeMultiplier,
   addFlatBattleHp,
   getStartingHp,
   initializeCyclicCardPool,
@@ -490,11 +490,6 @@ function advanceCooldowns(state: ArenaState, now: number, random: RandomSource) 
   return changed;
 }
 
-function withoutArtifacts(modifiers: ArenaBattleParticipantSnapshot["modifiers"]): ArenaBattleParticipantSnapshot["modifiers"] {
-  const { equipment: _equipment, ...rest } = modifiers;
-  return rest;
-}
-
 /** At zero HP the amulet revives first; on the next death the doll curses the killer. Each works once. */
 function applyDeathArtifacts(fallen: ArenaBattleParticipantSnapshot, killer: ArenaBattleParticipantSnapshot): ArenaLogArtifact | null {
   const equipment = fallen.modifiers.equipment;
@@ -536,21 +531,21 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     defenderModifiers: target.modifiers,
   });
   target.hp = Math.max(0, target.hp - result.damage);
-  const reflectedDamage = Math.round(attackerCard.finalPower * (target.modifiers.equipment?.damageReflectionPct ?? 0) / 100);
-  attacker.hp = Math.max(0, attacker.hp - reflectedDamage);
+  attacker.hp = Math.max(0, attacker.hp - result.reflectedDamage);
   const artifacts = settleDeathArtifacts(target, attacker);
   // A strike is an exchange, as in a duel: the opposing card answers in the same lane.
   // The answer ignores artifacts: the spear does not raise it and the shield does not soften it.
   const attackerHpBeforeCounter = attacker.hp;
-  const counter = attackerHpBeforeCounter > 0 ? calculateArenaDamage({
+  const counter = calculateArenaDamage({
     attacker: targetCard,
-    attackerModifiers: withoutArtifacts(target.modifiers),
+    attackerModifiers: target.modifiers,
     defender: attackerCard,
-    defenderModifiers: withoutArtifacts(attacker.modifiers),
-  }).damage : 0;
-  attacker.hp = Math.max(0, attacker.hp - counter);
+    counterattack: true,
+  });
+  const counterDamage = attackerHpBeforeCounter > 0 ? counter.damage : 0;
+  attacker.hp = Math.max(0, attacker.hp - counterDamage);
   artifacts.push(...settleDeathArtifacts(attacker, target));
-  target.totalDamageDealt += counter;
+  target.totalDamageDealt += counterDamage;
   attacker.totalDamageDealt += result.damage;
   attacker.moves = (attacker.moves ?? 0) + 1;
   if (!attacker.isBot) state.lastPlayerActionAt = new Date(now).toISOString();
@@ -571,7 +566,8 @@ function attack(state: ArenaState, attacker: ArenaBattleParticipantSnapshot, slo
     attackerId: attacker.id,
     attackerName: attacker.name,
     attackerPhotoUrl: attacker.photoUrl,
-    counterDamage: counter,
+    counterDamage,
+    counterMultiplier: counter.multiplier,
     damage: result.damage,
     id: randomUUID(),
     multiplier: result.multiplier,
@@ -593,13 +589,12 @@ function selectBotSlot(state: ArenaState, bot: ArenaBattleParticipantSnapshot, n
     .filter((slotIndex) => readyAt(bot.cooldownUntil[slotIndex], now))
     .map((slotIndex) => ({
       slotIndex,
-      damage: calculateArenaDamage({
+      ...calculateArenaDamage({
         attacker: pair.attackerActiveSlots[slotIndex],
         attackerModifiers: bot.modifiers,
         defender: pair.targetActiveSlots[slotIndex],
         defenderModifiers: target.modifiers,
-      }).damage,
-      multiplier: getElementMultiplier(pair.attackerActiveSlots[slotIndex].element, pair.targetActiveSlots[slotIndex].element),
+      }),
     }))
     .sort((left, right) => right.damage - left.damage || right.multiplier - left.multiplier);
   return candidates[0]?.slotIndex ?? null;
@@ -848,11 +843,15 @@ function toView(row: ArenaRow, playerId: string, playerGold: number): ArenaView 
     card: cooldownUntil === null ? card : null,
     cooldownUntil,
   });
+  const pairMultipliers = pair ? ([0, 1, 2] as const).map(slot => player.cooldownUntil[slot] === null
+    ? getStrikeMultiplier(pair.attackerActiveSlots[slot].element, pair.targetActiveSlots[slot].element, player.modifiers.strikeMultiplierBonus)
+    : null) as ArenaView["pairMultipliers"] : undefined;
   return {
     actionVersion: currentActionVersion(row.state, playerId),
     battleLog: playerBattleLog(row.state, player),
     changeCardsCost: getArenaCardChangeCost(currentRerollCount(row.state, playerId) + 1),
     matchId: row.id,
+    ...(pairMultipliers ? { pairMultipliers } : {}),
     participants: row.state.participants.map((participant) => ({
       alive: participant.hp > 0,
       cooldownUntil: participant.cooldownUntil,

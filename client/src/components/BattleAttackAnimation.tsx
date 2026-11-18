@@ -55,7 +55,7 @@ const RIBBON_FADE_FRAMES = 10;
 const FLIGHT_RINGS = [0.3, 0.65];
 const FX_GUTTER = 64;
 
-const tierOf = (multiplier: number): Tier => multiplier < 1 ? "weak" : multiplier > 1 ? "strong" : "even";
+const tierOf = (multiplier: number): Tier => multiplier < 1 ? "weak" : multiplier >= 1.5 ? "strong" : "even";
 const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)]!;
 const rgba = (hex: string, alpha: number) => {

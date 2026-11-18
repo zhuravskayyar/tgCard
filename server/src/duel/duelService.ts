@@ -12,6 +12,7 @@ import {
   getDeckPower,
   getEffectiveDeckPower,
   getElementMultiplier,
+  getCollectionStrikeMultiplierBonus,
   getEquipmentBattleModifiers,
   getEquippedDefinitions,
   getRequiredAccountXp,
@@ -54,6 +55,7 @@ import type { Pool, PoolClient } from "pg";
 import { getAccountBoostStatus } from "../boosts/accountBoost.js";
 import { getCurrencyBoostStatus } from "../boosts/currencyBoost.js";
 import { getCompletedCollectionModifiers } from "../collections/discoveryService.js";
+import { applyWinterCardPower, isWinterReinforcementCard, loadWinterBattleBonus } from "../collections/winterReinforcement.js";
 import { parseStoredEquipment } from "../equipment/equipmentState.js";
 import type { CampaignService } from "../campaign/campaignService.js";
 import { loadGuildCardForMember, type GuildActivityRecorder } from "../guild/guildService.js";
@@ -267,6 +269,7 @@ function toBattleModifiers(
   modifiers: readonly CollectionModifier[],
   equipmentSummary?: ReturnType<typeof calculateEquipmentSummary>,
   scope: CollectionBonusScope = "duel",
+  completedCollectionCodes: readonly string[] = [],
 ): DuelBattleModifiers {
   const aggregated = getPlayerCollectionModifiers(modifiers, scope);
   return {
@@ -276,8 +279,9 @@ function toBattleModifiers(
     elementDamagePct: { ...aggregated.elementDamagePct },
     experienceRewardPct: aggregated.experienceRewardPct,
     silverRewardPct: aggregated.silverRewardPct,
+    strikeMultiplierBonus: getCollectionStrikeMultiplierBonus(completedCollectionCodes),
     ...(equipmentSummary ? {
-      equipment: getEquipmentBattleModifiers(equipmentSummary),
+      equipment: getEquipmentBattleModifiers(equipmentSummary, completedCollectionCodes),
       equipmentState: { reviveUsed: false, voodooUsed: false },
     } : {}),
   };
@@ -513,15 +517,24 @@ export async function loadDuelParticipant(
     ...(row.buff_element ? { element: row.buff_element } : {}),
     scope: row.buff_scope,
   }));
-  const modifiers = toBattleModifiers(collectionModifiers, equipmentSummary, scope);
+  const completedCollectionCodes = modifiersResult.rows.map(({ code }) => code);
+  const modifiers = toBattleModifiers(collectionModifiers, equipmentSummary, scope, completedCollectionCodes);
   const duelCooldownMinutes = getPlayerCollectionModifiers(collectionModifiers, "duel").duelCooldownMinutes;
-  const cards = rawCards.map((card) => ({
-    ...card,
-    finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element],
-  }));
+  const winterBonus = completedCollectionCodes.includes("winter_reinforcement")
+    ? await loadWinterBattleBonus(client, [player.id], options.now ?? new Date())
+    : null;
+  const winterCards = completedCollectionCodes.includes("winter_reinforcement")
+    ? rawCards.map((card) => applyWinterCardPower(card, player.id, winterBonus))
+    : rawCards;
+  const equipmentCards = rawCards.map((card) => isWinterReinforcementCard(card.cardId, player.id, winterBonus)
+    ? card
+    : { ...card, finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element] });
+  const cards = winterCards.map((card) => isWinterReinforcementCard(card.cardId, player.id, winterBonus)
+    ? card
+    : { ...card, finalPower: card.finalPower + equipmentSummary.elementBonuses[card.element] });
   const deckPower = getDeckPower(rawCards);
-  const equippedDeckPower = getDeckPower(cards);
-  const effectiveDeckPower = getEffectiveDeckPower(equippedDeckPower, modifiers.deckPowerPct);
+  const equippedDeckPower = getDeckPower(equipmentCards);
+  const effectiveDeckPower = getEffectiveDeckPower(getDeckPower(cards), modifiers.deckPowerPct);
   const guildCard = await loadGuildCardForMember(client, playerId);
   const dragonHpBonus = options.dragonHp ? await loadGuardianDragonBattleHealth(client, playerId, options.now ?? new Date()) : 0;
   return {
@@ -858,9 +871,10 @@ export class DuelService {
       const previousPlayerDamage = toSafeInteger(duel.player_damage_total, "Player damage total");
       const playerDamageTotal = previousPlayerDamage + resolved.exchange.playerDamage;
       if (!Number.isSafeInteger(playerDamageTotal)) throw new Error("Player damage total exceeds safe integer limits");
-      if (resolved.exchange.playerMultiplier === 1.5) {
+      const baseStrikeMultiplier = getElementMultiplier(resolved.exchange.playerCard.element, resolved.exchange.enemyCard.element);
+      if (baseStrikeMultiplier === 1.5) {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_STRONG_HIT", { duelId }, actionNow);
-      } else if (resolved.exchange.playerMultiplier === 1) {
+      } else if (baseStrikeMultiplier === 1) {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_NEUTRAL_HIT", { duelId }, actionNow);
       }
       let result: DuelResult | null = null;
@@ -1159,12 +1173,15 @@ export class DuelService {
         slotIndex: chooseAutoDuelSlot(
           toActiveCards(playerPool.activeCards, "player active slots"),
           toActiveCards(enemyPool.activeCards, "enemy active slots"),
+          player.modifiers,
+          enemy.modifiers,
         ),
         turnNumber,
       });
-      if (resolved.exchange.playerMultiplier === 1.5) {
+      const baseMultiplier = getElementMultiplier(resolved.exchange.playerCard.element, resolved.exchange.enemyCard.element);
+      if (baseMultiplier === 1.5) {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_STRONG_HIT", { duelId }, now);
-      } else if (resolved.exchange.playerMultiplier === 1) {
+      } else if (baseMultiplier === 1) {
         await this.campaign?.recordEvent(client, challengerId, "DUEL_NEUTRAL_HIT", { duelId }, now);
       }
       exchanges.push(resolved.exchange);
@@ -1350,7 +1367,7 @@ export class DuelService {
       winStreak: stats.duelWinStreak,
       player: toPlayerSummary(updatedPlayerResult.rows[0]!),
     };
-    let neutralHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1).length;
+    let neutralHits = battleLog.filter(({ playerCard, enemyCard }) => getElementMultiplier(playerCard.element, enemyCard.element) === 1).length;
     if (this.campaign) {
       const neutralHitResult = await client.query<{ count: string }>(
         `
@@ -1363,7 +1380,7 @@ export class DuelService {
       );
       neutralHits = Number(neutralHitResult.rows[0]?.count ?? 0);
     }
-    const strongHits = battleLog.filter(({ playerMultiplier }) => playerMultiplier === 1.5).length;
+    const strongHits = battleLog.filter(({ playerCard, enemyCard }) => getElementMultiplier(playerCard.element, enemyCard.element) === 1.5).length;
     await this.campaign?.recordEvent(client, challengerId, "DUEL_FINISHED", {
       duelId,
       outcome,

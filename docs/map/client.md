@@ -3,6 +3,7 @@
 React UI. Назад: [[index]]. Дані бере з [[server]] через `client/src/telegram/*`, типи з [[shared]].
 
 - `App.tsx`, `main.tsx` — вхід, оболонка `TopHud` + `BottomNav` (див. `AGENTS.md`).
+- `desktopFrame.ts` — низьке десктоп-вікно: гра в рамці-телефоні 430×880, зменшеній до висоти (`docs/ui.md`).
 - `screens/` — екрани, по одному на фічу (`DuelScreen`, `ArenaScreen`, `guild/`, `tournament/`…).
 - `screens/invasion/InvasionScreen.tsx` + `telegram/invasion.ts` — «Навала Шуліки» (глобальний бос, [[game-rules]] / `docs/reference-elem-invasion.md`): лобі, реальний бій по циклах 9 с, підсумки; зовнішній вигляд — класи гільдійних рейдів (`guild-raid*`), вхід — плитка «Навала» на головній.
 - `components/` — спільні компоненти (`MenuRow`, `BattleAttackAnimation`…). Перевикористовувати, а не дублювати.

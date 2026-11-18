@@ -3,7 +3,7 @@
  * (docs/reference-elem-invasion.md). Only names are our own; numbers follow the manual.
  * Everything here is pure: time is passed in, randomness is injected.
  */
-import type { CardElement, DuelCardSnapshot } from "@cardastika/shared";
+import type { CardElement, DuelBattleModifiers, DuelCardSnapshot } from "@cardastika/shared";
 import { calculateDuelDamage, getElementMultiplier, type RandomSource } from "./duel.js";
 
 export type InvasionCollectionCode = "umutants" | "usoldiers" | "ugiants" | "ufavorites" | "ugenerals";
@@ -211,6 +211,7 @@ export interface InvasionModifiers {
   /** Added to every outgoing hit, % (collections, titles). */
   battleDamagePct: number;
   elementDamagePct: Readonly<Partial<Record<CardElement, number>>>;
+  strikeMultiplierBonus?: DuelBattleModifiers["strikeMultiplierBonus"];
 }
 
 export interface InvasionStrike {

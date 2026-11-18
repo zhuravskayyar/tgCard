@@ -57,6 +57,27 @@ export {
   type OwnedDeckCard,
 } from "./automaticDeck.js";
 export {
+  canUseGuildWarSkill,
+  createGuildWarFighter,
+  GUILD_WAR_GUILD_UNLOCK_LEVEL,
+  GUILD_WAR_LATE_JOIN_GOLD,
+  GUILD_WAR_MAX_KEYS,
+  getGuildWarAttemptsLeft,
+  getGuildWarBattleSchedule,
+  getGuildWarBonuses,
+  getGuildWarFighterView,
+  getGuildWarSchedule,
+  getGuildWarWeekStart,
+  getGuildWarWinner,
+  pairGuildWars,
+  strikeGuildWarFighter,
+  type GuildWarFighter,
+  type GuildWarGuildSeed,
+  type GuildWarPairing,
+  type GuildWarPhase,
+  type GuildWarSchedule,
+} from "./guildWar.js";
+export {
   BOT_PROFILE_JITTER_PCT,
   distributeDeckPowerByProfile,
   getDeckPowerProfile,
@@ -119,7 +140,9 @@ export {
 export {
   applyAbsorptionEfficiency,
   applyGuildXpCollectionBonus,
+  getCollectionStrikeMultiplierBonus,
   getPlayerCollectionModifiers,
+  getZodiacCollectionElementPct,
   GUILD_XP_COLLECTION_BONUS_PCT,
   type PlayerCollectionModifiers,
 } from "./collectionModifiers.js";
@@ -149,6 +172,7 @@ export {
   getDuelLogVisualState,
   getEffectiveDeckPower,
   getElementMultiplier,
+  getStrikeMultiplier,
   getMatchmakingRange,
   getRequiredAccountXp,
   getStartingHp,

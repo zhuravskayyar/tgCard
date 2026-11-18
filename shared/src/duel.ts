@@ -15,6 +15,13 @@ export interface DuelBattleModifiers {
   elementDamagePct: Record<CardElement, number>;
   experienceRewardPct: number;
   silverRewardPct: number;
+  /** Collection bonuses added to the elemental strike multiplier. */
+  strikeMultiplierBonus?: {
+    weak?: number;
+    critical?: number;
+    attackNormal?: number;
+    counterNormal?: number;
+  };
   equipment?: EquipmentBattleModifiers;
   equipmentState?: EquipmentBattleState;
 }
@@ -86,10 +93,10 @@ export interface DuelActionRequest {
 export interface DuelExchange {
   enemyCard: DuelCardSnapshot;
   enemyDamage: number;
-  enemyMultiplier: ElementMultiplier;
+  enemyMultiplier: number;
   playerCard: DuelCardSnapshot;
   playerDamage: number;
-  playerMultiplier: ElementMultiplier;
+  playerMultiplier: number;
   slotIndex: 0 | 1 | 2;
   turnNumber: number;
   visualState: DuelLogVisualState;
@@ -122,7 +129,8 @@ export interface DuelView {
   enemyHp: number;
   enemyMaxHp: number;
   opponent: DuelSideSnapshot;
-  pairMultipliers: [ElementMultiplier, ElementMultiplier, ElementMultiplier];
+  /** Actual matchup multipliers; collection bonuses can add 0.1. */
+  pairMultipliers: [number, number, number];
   player: DuelSideSnapshot;
   playerActiveCards: [DuelCardSnapshot, DuelCardSnapshot, DuelCardSnapshot];
   playerHp: number;

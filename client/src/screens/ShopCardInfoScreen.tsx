@@ -52,7 +52,9 @@ export function ShopCardInfoScreen({ cardId, rarity, onBack, onOpenDeck, onOpenS
       {state.data.collections.length ? <section className="shop-card-info__collections" aria-label="Колекції карти">
         <RibbonTitle>Входить до колекцій</RibbonTitle>
         {state.data.collections.map((collection) => <article className="shop-text-plate" key={collection.id}>
+          <p className="shop-card-info__collection-prefix">{collection.displayPrefix}</p>
           <h3>{collection.displayName}</h3>
+          <p className="shop-card-info__collection-description">{collection.description}</p>
           <p>Бонус зібраної колекції: {collection.bonusLabel}</p>
         </article>)}
       </section> : null}

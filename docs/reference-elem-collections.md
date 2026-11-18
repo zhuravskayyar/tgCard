@@ -1,7 +1,7 @@
 # elem.mobi: collection bonus rules
 
 Our own summary of the reference manual page «Мануал: коллекции»
-(`https://elem.mobi/forum/3/222653/`, needs a signed-in account), read on 2026-11-12.
+(`https://elem.mobi/forum/3/222653/`), checked again on 2026-11-17.
 Mechanics only: names, art and copy in Cardastika stay our own. Our codes are in brackets.
 
 ## General
@@ -9,7 +9,8 @@ Mechanics only: names, art and copy in Cardastika stay our own. Our codes are in
 - A completed collection gives a permanent (sometimes one-time) bonus.
 - Cards count once they have been in the weak cards or the battle deck, even if they are gone later.
 - One card may be in several collections; some cards are in none.
-- Completing a collection also pays a small one-time reward; achievements at 10 and 15 collections.
+- Completing a collection also pays 1 diamond and 1,000 silver once; achievements
+  «Знаток» and «Собиратель» are awarded at 10 and 15 collections.
 
 ## Bonuses and their details
 
@@ -36,6 +37,26 @@ Mechanics only: names, art and copy in Cardastika stay our own. Our codes are in
 | Яростные берсерки | `berserks` | «Берсерк» skill in guild war battles | All three cards must be ready; once per battle; counter-hit unchanged |
 | Охотники за сокровищами | `treasure_hunters` | Double daily diamond quota in the Invasion | |
 | Укротительницы драконов | `dragon_whisperers` | Double «Dragon flame» damage | |
-| Любители драконов / Основы магии драконов | `dragon_fans`, `magic_1` | Dragon mastery +10 | |
+| Любители драконов / Основы магии драконов / Исцеляющая магия драконов | `dragon_fans`, `magic_1`, `magic_heal` | Dragon mastery +10 from each collection | The bonuses stack; see https://elem.mobi/about/pet_dragon_more/ |
 | Древний Орден | `ancient_order` | Summon an Ancient creature in guild wars | Replaces three cards, crits any card, takes half damage back; twice with a Magic crystal |
 | Алмазное братство | `diamond_brotherhood` | Cheaper 4th diamond-reward circle, adds a 5th | |
+
+## Cardastika implementation notes
+
+- The four Zodiac collections apply +5% to each completed collection's element
+  in tournaments and guild wars. With two, three, or four collections the bonus
+  becomes +7.5%, +10%, or +10%; completing all four applies +10% to every
+  element. The additional three-artifact reward remains unimplemented because
+  the game already has six artifact slots and the reward's behavior is unclear.
+- The artifact collections strengthen the matching equipped artifact by 33%:
+  `sacred_shores` (Spellcaster's Sting), `great_path` (Oath Ward),
+  `thirtieth` (Echo Glass), `western_wastes` (Unlucky Motanka),
+  `gorgeous_cats` (Second Breath Charm), and both `breach_wedge` and
+  `mirror_fragments` (Halberd). `voodoo_cult` doubles the Motanka's effect.
+- The four workshop collections add +0.1 to their matching strike multipliers:
+  critical attack and counter, weak attack and counter, normal attack, and normal
+  counter. This is a one-time completion bonus because Cardastika has no
+  collection-level progression.
+- The winter card bonus, festive profile mark, chat styling, and forum styling
+  work during the configured winter window. Gift discounts remain unavailable
+  because there is no player-to-player gift shop.

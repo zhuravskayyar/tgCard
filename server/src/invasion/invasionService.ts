@@ -355,6 +355,7 @@ export class InvasionService {
       modifiers: {
         battleDamagePct: modifiers.battleDamagePct,
         elementDamagePct: modifiers.elementDamagePct,
+        strikeMultiplierBonus: modifiers.strikeMultiplierBonus,
         experienceRewardPct: modifiers.experienceRewardPct,
         silverRewardPct: modifiers.silverRewardPct,
       },

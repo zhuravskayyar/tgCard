@@ -5,6 +5,7 @@ import {
   type CardElement,
   type CardRarity,
   type EquipmentBonusType,
+  type EquipmentBattleModifiers,
   type EquipmentDefinition,
   type EquipmentSlot,
   type PlayerEquipment,
@@ -14,7 +15,7 @@ import {
 export const EQUIPMENT_THING_SLOTS = ["head", "cloak", "gloves", "boots"] as const;
 export type EquipmentThingSlot = (typeof EQUIPMENT_THING_SLOTS)[number];
 
-export const EQUIPMENT_ARTIFACT_SLOTS = ["weapon", "shield", "relic", "amulet", "voodoo"] as const;
+export const EQUIPMENT_ARTIFACT_SLOTS = ["weapon", "shield", "relic", "amulet", "voodoo", "halberd"] as const;
 export type EquipmentArtifactSlot = (typeof EQUIPMENT_ARTIFACT_SLOTS)[number];
 
 /** Source manual: bonus of a thing by rarity. */
@@ -49,6 +50,7 @@ export const EQUIPMENT_SLOT_LABELS: Readonly<Record<EquipmentSlot, string>> = {
   amulet: "Оберіг другого подиху",
   relic: "Відлунне скло",
   voodoo: "Лиха мотанка",
+  halberd: "Алебарда",
 };
 
 export const EQUIPMENT_SLOT_SHORT_LABELS: Readonly<Record<EquipmentSlot, string>> = {
@@ -61,6 +63,7 @@ export const EQUIPMENT_SLOT_SHORT_LABELS: Readonly<Record<EquipmentSlot, string>
   amulet: "Оберіг",
   relic: "Скло",
   voodoo: "Мотанка",
+  halberd: "Алебарда",
 };
 
 export const EQUIPMENT_ELEMENT_LABELS: Readonly<Record<CardElement, string>> = {
@@ -107,6 +110,7 @@ export interface EquipmentArtifactBonus {
   secondaryLabel?: string;
   secondaryType?: EquipmentBonusType;
   secondaryValue?: number;
+  slot: EquipmentSlot;
   type: EquipmentBonusType;
   value: number;
 }
@@ -121,13 +125,7 @@ export interface EquipmentSummary {
   itemBonusTotal: number;
 }
 
-export interface EquipmentBattleModifiers {
-  damageReflectionPct: number;
-  incomingDamageReductionPct: number;
-  outgoingDamagePct: number;
-  reviveHpPct: number;
-  voodooHpReductionPct: number;
-}
+export type { EquipmentBattleModifiers } from "@cardastika/shared";
 
 /** Storage limit per category (things, artifacts); equipped copies are not counted. */
 export const EQUIPMENT_STORAGE_LIMIT = 888;
@@ -189,6 +187,8 @@ function getArtifactBonusLabel(type: EquipmentBonusType) {
     case "outgoing_damage": return "Вихідний урон";
     case "incoming_damage_reduction": return "Зменшення вхідного урону";
     case "damage_reflection": return "Відбиття урону";
+    case "anti_damage_reduction": return "Пробиття захисту";
+    case "anti_damage_reflection": return "Пробиття відбиття";
     case "health_reduction": return "Прокляття мотанки";
     case "save_once": return "Відродження один раз за бій";
     case "passive": return "Пасивний ефект";
@@ -225,6 +225,7 @@ export function calculateEquipmentSummary(
         label: getArtifactBonusLabel(definition.bonusType),
         ...(definition.secondaryBonusType ? { secondaryLabel: getArtifactBonusLabel(definition.secondaryBonusType), secondaryType: definition.secondaryBonusType } : {}),
         ...(definition.secondaryBonusValue === undefined ? {} : { secondaryValue: definition.secondaryBonusValue }),
+        slot: definition.slot,
         type: definition.bonusType,
         value: definition.bonusValue,
       });
@@ -292,7 +293,16 @@ export function calculateEquipmentSummary(
   };
 }
 
-export function getEquipmentBattleModifiers(summary: EquipmentSummary): EquipmentBattleModifiers {
+const ARTIFACT_BOOST_COLLECTIONS: Readonly<Partial<Record<EquipmentSlot, readonly string[]>>> = {
+  weapon: ["sacred_shores"],
+  shield: ["great_path"],
+  relic: ["thirtieth"],
+  amulet: ["gorgeous_cats"],
+  voodoo: ["western_wastes"],
+  halberd: ["breach_wedge", "mirror_fragments"],
+};
+
+export function getEquipmentBattleModifiers(summary: EquipmentSummary, completedCodes: readonly string[] = []): EquipmentBattleModifiers {
   const modifiers: EquipmentBattleModifiers = {
     damageReflectionPct: 0,
     incomingDamageReductionPct: 0,
@@ -301,13 +311,20 @@ export function getEquipmentBattleModifiers(summary: EquipmentSummary): Equipmen
     voodooHpReductionPct: 0,
   };
 
+  const completed = new Set(completedCodes.map(code => code.replace(/^collection_/, "")));
   for (const bonus of summary.artifactBonuses) {
-    if (bonus.type === "outgoing_damage") modifiers.outgoingDamagePct += bonus.value;
-    if (bonus.type === "incoming_damage_reduction") modifiers.incomingDamageReductionPct += bonus.value;
-    if (bonus.type === "save_once") modifiers.reviveHpPct += bonus.value;
-    if (bonus.type === "health_reduction") modifiers.voodooHpReductionPct += bonus.value;
-    if (bonus.secondaryType === "damage_reflection") modifiers.damageReflectionPct += bonus.secondaryValue ?? 0;
-    if (bonus.type === "damage_reflection") modifiers.damageReflectionPct += bonus.value;
+    const boosts = ARTIFACT_BOOST_COLLECTIONS[bonus.slot]?.filter(code => completed.has(code)).length ?? 0;
+    const doubledVoodoo = bonus.slot === "voodoo" && completed.has("voodoo_cult");
+    const multiplier = (100 + boosts * 33) / 100 * (doubledVoodoo ? 2 : 1);
+    const value = bonus.value * multiplier;
+    if (bonus.type === "outgoing_damage") modifiers.outgoingDamagePct += value;
+    if (bonus.type === "incoming_damage_reduction") modifiers.incomingDamageReductionPct += value;
+    if (bonus.type === "save_once") modifiers.reviveHpPct += value;
+    if (bonus.type === "health_reduction") modifiers.voodooHpReductionPct += value;
+    if (bonus.secondaryType === "damage_reflection") modifiers.damageReflectionPct += (bonus.secondaryValue ?? 0) * multiplier;
+    if (bonus.type === "damage_reflection") modifiers.damageReflectionPct += value;
+    if (bonus.type === "anti_damage_reduction") modifiers.antiDamageReductionPct = value;
+    if (bonus.secondaryType === "anti_damage_reflection") modifiers.antiDamageReflectionPct = (bonus.secondaryValue ?? 0) * multiplier;
   }
 
   return modifiers;
@@ -525,6 +542,15 @@ const ARTIFACT_PROFILES: Readonly<Record<EquipmentArtifactSlot, {
     name: "Лиха мотанка",
     values: [1, 2, 4, 6, 9, 12],
   },
+  halberd: {
+    bonusType: "anti_damage_reduction",
+    description: (value, secondaryValue) => `Зменшує поглинання урону ворогом на ${value} відсоткових пунктів, а відбиття — на ${secondaryValue}.`,
+    flavorText: "Вістря розбиває захисні чари, залишаючи щити цілими.",
+    name: "Алебарда",
+    secondaryBonusType: "anti_damage_reflection",
+    values: [3, 4, 7, 11, 18, 24],
+    secondaryValues: [1, 2, 4, 6, 9, 12],
+  },
 };
 
 function buildEquipmentCatalog(): readonly EquipmentDefinition[] {
@@ -578,7 +604,7 @@ function buildEquipmentCatalog(): readonly EquipmentDefinition[] {
   return Object.freeze(definitions);
 }
 
-/** Complete source-compatible catalog: 96 things and 30 artifacts. */
+/** Catalog: 96 things and 36 artifacts. */
 export const STARTER_EQUIPMENT_DEFINITIONS: readonly EquipmentDefinition[] = buildEquipmentCatalog();
 
 export const STARTER_PLAYER_EQUIPMENT: PlayerEquipment = {
@@ -593,6 +619,7 @@ export const STARTER_PLAYER_EQUIPMENT: PlayerEquipment = {
     shield: null,
     weapon: null,
     voodoo: null,
+    halberd: null,
   },
 };
 

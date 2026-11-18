@@ -51,8 +51,8 @@ async function createFixture(pool: Pool) {
   await insertCard(bCards[0]!, "b", 0, "epic");
 
   const packs: CollectionPackConfig[] = [
-    { id: `pack_a_${suffix}`, displayName: "Пакет А", collectionCodes: [codes.a], setPrices: { [codes.a]: 60 }, randomPrice: 20 },
-    { id: `pack_b_${suffix}`, displayName: "Пакет Б", collectionCodes: [codes.b], setPrices: { [codes.b]: 40 }, randomPrice: 50 },
+    { id: `pack_a_${suffix}`, displayName: "Пакет А", description: "Тестовий опис пакета А", collectionCodes: [codes.a], setPrices: { [codes.a]: 60 }, randomPrice: 20 },
+    { id: `pack_b_${suffix}`, displayName: "Пакет Б", description: "Тестовий опис пакета Б", collectionCodes: [codes.b], setPrices: { [codes.b]: 40 }, randomPrice: 50 },
   ];
   const week = (weekKey: string, packIds: string[]) => () => ({ packIds, weekKey, endsAt: new Date("2031-07-14T00:00:00Z") });
   const allCards = [...aCards, ...bCards];

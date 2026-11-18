@@ -21,7 +21,7 @@ import type { EquipmentInventoryStatus } from "../equipment/equipmentState";
 import { usePlayerDeck } from "../hooks/usePlayerDeck";
 
 interface EquipmentScreenProps {
-  /** Completed collections of the viewer; «Вибір …» collections strengthen things of one element. */
+  /** Completed collections of the viewer that strengthen things and artifacts. */
   completedCollectionIds: readonly string[];
   equipped: EquippedEquipment;
   inventory: readonly PlayerEquipmentInventory[];
@@ -54,15 +54,18 @@ export function EquipmentScreen({ completedCollectionIds, equipped, inventory, i
     () => calculateEquipmentSummary(equippedDefinitions, getEquipmentCollectionElementPct(completedCollectionIds)),
     [completedCollectionIds, equippedDefinitions],
   );
-  const modifiers = getEquipmentBattleModifiers(summary);
+  const modifiers = getEquipmentBattleModifiers(summary, completedCollectionIds);
+  const formatEffect = (value: number) => value.toLocaleString("uk-UA", { maximumFractionDigits: 2 });
   const activeSetIds = new Set(summary.activeSets.map((set) => set.id));
   const hasThings = equippedDefinitions.some((definition) => definition.category === "things");
   const effects = [
-    modifiers.outgoingDamagePct ? `+${modifiers.outgoingDamagePct}% урону` : null,
-    modifiers.incomingDamageReductionPct ? `-${modifiers.incomingDamageReductionPct}% отриманого` : null,
-    modifiers.damageReflectionPct ? `${modifiers.damageReflectionPct}% назад` : null,
-    modifiers.reviveHpPct ? `повстання ${modifiers.reviveHpPct}%` : null,
-    modifiers.voodooHpReductionPct ? `прокляття ${modifiers.voodooHpReductionPct}%` : null,
+    modifiers.outgoingDamagePct ? `+${formatEffect(modifiers.outgoingDamagePct)}% урону` : null,
+    modifiers.incomingDamageReductionPct ? `-${formatEffect(modifiers.incomingDamageReductionPct)}% отриманого` : null,
+    modifiers.damageReflectionPct ? `${formatEffect(modifiers.damageReflectionPct)}% назад` : null,
+    modifiers.reviveHpPct ? `повстання ${formatEffect(modifiers.reviveHpPct)}%` : null,
+    modifiers.voodooHpReductionPct ? `прокляття ${formatEffect(modifiers.voodooHpReductionPct)}%` : null,
+    modifiers.antiDamageReductionPct ? `−${formatEffect(modifiers.antiDamageReductionPct)} в. п. поглинання ворога` : null,
+    modifiers.antiDamageReflectionPct ? `−${formatEffect(modifiers.antiDamageReflectionPct)} в. п. відбиття ворога` : null,
   ].filter(Boolean);
 
   const entries = useMemo<RackEntry[]>(() => STARTER_EQUIPMENT_DEFINITIONS

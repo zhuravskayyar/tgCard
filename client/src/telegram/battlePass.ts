@@ -1,6 +1,7 @@
 import type {
   BattlePassClaimResponse,
   BattlePassPageResponse,
+  BattlePassVipPurchaseResponse,
   DailyLoginClaimResponse,
   DailyTaskClaimResponse,
 } from "@cardastika/shared";
@@ -52,6 +53,10 @@ export function claimBattlePassMilestone(initData: string, milestoneId: string) 
     `/api/player/battle-pass/milestones/${encodeURIComponent(milestoneId)}/claim`,
     { method: "POST" },
   );
+}
+
+export function purchaseBattlePassVip(initData: string) {
+  return request<BattlePassVipPurchaseResponse>(initData, "/api/player/battle-pass/vip/purchase", { method: "POST" });
 }
 
 export function claimDailyBattlePassTask(initData: string, taskId: string) {

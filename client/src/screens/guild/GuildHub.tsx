@@ -20,6 +20,7 @@ interface GuildHubProps {
   onApplications: () => void;
   onDevelopment: () => void;
   onRaid: () => void;
+  onWar: () => void;
   onDirectory: () => void;
   onForum: () => void;
   onTreasury: () => void;
@@ -177,7 +178,7 @@ function CountSeal({ count }: { count: number }) {
   return <span className="guild-count-seal">{count > 99 ? "99+" : count}</span>;
 }
 
-export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplications, onDevelopment, onRaid, onDirectory, onForum, onTreasury, onJournal, onUpdateAnnouncement }: GuildHubProps) {
+export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplications, onDevelopment, onRaid, onWar, onDirectory, onForum, onTreasury, onJournal, onUpdateAnnouncement }: GuildHubProps) {
   const { guild, dashboard } = profile;
   const managesApplications = profile.viewer.permissions.includes("manage_applications");
   const managesAnnouncement = profile.viewer.permissions.includes("manage_announcements");
@@ -213,6 +214,7 @@ export function GuildHub({ profile, busy, onInfo, onCard, onMembers, onApplicati
       <div className="guild-menu-list">
         <MenuRow compact actionContent={<RowStatus attention={treasuryWait === 0} />} icon="inventory" subtitle={treasuryHint} iconSrc={GUILD_ROW_ART.treasury} metalTexture disabled={busy} onClick={onTreasury} title="Казна" />
         <MenuRow compact icon="campaign" subtitle="Битви з відьмами і зміями" iconSrc={GUILD_ROW_ART.raid} metalTexture disabled={busy} onClick={onRaid} title="Рейди гільдії" />
+        <MenuRow compact icon="tournament" subtitle={guild.level < 35 ? "З 35 рівня гільдії" : "Суперник і склад на тиждень"} iconSrc="/assets/guild/guild-war.svg" locked={guild.level < 35} metalTexture disabled={busy || guild.level < 35} onClick={onWar} title="Війна гільдій" />
         <MenuRow compact detail={`Рів. ${formatNumber(profile.altar.currentLevel)}`} icon="guild" iconSrc={GUILD_ROW_ART.altar} locked={!profile.altar.unlocked} subtitle={!profile.altar.unlocked ? `З ${profile.altar.unlockLevel} рівня гільдії` : profile.altar.active ? `Сьогодні +${formatNumber(profile.altar.active.hpPct)}% HP` : profile.altar.upgrades.some((item) => item.canAfford) ? "Настої на сьогодні" : "Настої з рейду на відьом"} metalTexture disabled={busy} onClick={onDevelopment} title="Алтар гільдії" />
       </div>
     </section>

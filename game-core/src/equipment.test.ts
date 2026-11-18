@@ -21,7 +21,7 @@ function definitions(...ids: string[]) {
 }
 
 test("contains the full source-compatible equipment catalog", () => {
-  assert.equal(STARTER_EQUIPMENT_DEFINITIONS.length, 126);
+  assert.equal(STARTER_EQUIPMENT_DEFINITIONS.length, 132);
   assert.deepEqual(EQUIPMENT_BONUS_BY_RARITY, {
     common: 25,
     uncommon: 50,
@@ -31,7 +31,7 @@ test("contains the full source-compatible equipment catalog", () => {
     mythic: 1_000,
   });
   assert.equal(STARTER_EQUIPMENT_DEFINITIONS.filter(({ category }) => category === "things").length, 96);
-  assert.equal(STARTER_EQUIPMENT_DEFINITIONS.filter(({ category }) => category === "artifacts").length, 30);
+  assert.equal(STARTER_EQUIPMENT_DEFINITIONS.filter(({ category }) => category === "artifacts").length, 36);
 });
 
 test("reuses one base sprite key across rarity records", () => {
@@ -42,7 +42,7 @@ test("reuses one base sprite key across rarity records", () => {
     STARTER_EQUIPMENT_DEFINITIONS.filter(({ category }) => category === "artifacts").map(({ assetKey }) => assetKey),
   );
   assert.equal(thingAssetKeys.size, 16);
-  assert.deepEqual([...artifactAssetKeys].sort(), ["amulet", "relic", "shield", "voodoo", "weapon"]);
+  assert.deepEqual([...artifactAssetKeys].sort(), ["amulet", "halberd", "relic", "shield", "voodoo", "weapon"]);
 
   const commonBoots = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === "equipment_boots_fire_common");
   const mythicBoots = STARTER_EQUIPMENT_DEFINITIONS.find(({ id }) => id === "equipment_boots_fire_mythic");
@@ -117,6 +117,22 @@ test("models all five artifact effects, including the mirror pair", () => {
     voodooHpReductionPct: 9,
   });
   assert.equal(summary.equipmentRating, 34);
+});
+
+test("completed artifact collections boost each equipped artifact and both parts of dual effects", () => {
+  const summary = calculateEquipmentSummary(definitions(
+    "equipment_relic_epic",
+    "equipment_voodoo_epic",
+    "equipment_halberd_epic",
+  ));
+  const modifiers = getEquipmentBattleModifiers(summary, [
+    "thirtieth", "voodoo_cult", "western_wastes", "breach_wedge", "mirror_fragments", "breach_wedge",
+  ]);
+  assert.equal(modifiers.incomingDamageReductionPct, 6 * 1.33);
+  assert.equal(modifiers.damageReflectionPct, 6 * 1.33);
+  assert.equal(modifiers.voodooHpReductionPct, 6 * 1.33 * 2);
+  assert.equal(modifiers.antiDamageReductionPct, 11 * 1.66);
+  assert.equal(modifiers.antiDamageReflectionPct, 6 * 1.66);
 });
 
 test("resolves exact and mixed forge results using the source recipes", () => {

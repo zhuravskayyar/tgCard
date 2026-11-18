@@ -1,13 +1,16 @@
-import type { CardDefinition, CardElement, CollectionModifier, CollectionSource } from "@cardastika/shared";
+import type { CardDefinition, CardElement, CollectionBonusStatus, CollectionModifier, CollectionSource } from "@cardastika/shared";
 import { CATALOG_DATA } from "./catalogData.generated.js";
 
 export interface CollectionDefinition {
   bonus: CollectionModifier;
+  bonusStatus: CollectionBonusStatus;
   bonusLabel: string;
   cards: readonly CardDefinition[];
   code: string;
   coverArtKey: string | null;
+  description: string;
   displayName: string;
+  displayPrefix: string;
   id: string;
   source: CollectionSource;
 }
@@ -41,14 +44,33 @@ export const COLLECTIONS: readonly CollectionDefinition[] = Object.freeze(CATALO
   displayName: collection.displayName,
   source: "standard" as const,
   coverArtKey: null,
+  description: collection.description,
   bonus: Object.freeze(collection.bonus),
+  bonusStatus: collection.bonusStatus,
   bonusLabel: collection.bonusLabel,
+  displayPrefix: collection.displayPrefix,
   cards: Object.freeze(collection.cardIds.map((cardId) => {
     const card = cardsById.get(cardId);
     if (!card) throw new Error(`Collection ${collection.code} references unknown card ${cardId}`);
     return card;
   })),
 })));
+
+const collectionBonusStatusByCode = new Map(COLLECTIONS.map(({ bonusStatus, code }) => [code, bonusStatus]));
+const collectionPresentationByCode = new Map(COLLECTIONS.map(({ code, description, displayPrefix }) => [code, { description, displayPrefix }]));
+
+/** Collections added outside the canonical catalog stay inactive until their mechanic is declared live. */
+export function getCollectionBonusStatus(code: string): CollectionBonusStatus {
+  return collectionBonusStatusByCode.get(code) ?? "pending";
+}
+
+export function getCollectionPresentation(code: string, source?: CollectionSource) {
+  const presentation = collectionPresentationByCode.get(code);
+  if (presentation) return presentation;
+  return source === "raid"
+    ? { displayPrefix: "Рейдова колекція", description: "Колекцію можна зібрати лише в рейдах." }
+    : { displayPrefix: "Колекція", description: "Тематична добірка карт із різних джерел." };
+}
 
 export function validateCollectionCatalog() {
   const elementCounts: Record<CardElement, number> = { fire: 0, water: 0, air: 0, earth: 0 };

@@ -153,15 +153,24 @@ export function getGuardianDragonPaidSendPrice(sendsThisCooldown: number) {
 }
 
 /**
- * «Dragon flame»: card base power × mastery / 100. «Dragon fans» add 10 mastery first, then
- * «Dragon whisperers» double the damage (manual example). `cardBasePower` is the base power of the flame
+ * «Dragon flame»: card base power × mastery / 100. «Dragon fans», «Dragon magic basics» and
+ * «Healing dragon magic» each add 10 mastery first, then «Dragon whisperers» double the damage.
+ * `cardBasePower` is the base power of the flame
  * card's level (the flame is its own card outside the elements, not the 9th deck card): level 90, 3130 at
  * mastery 50 = base power of level 90 × 50 / 100.
  */
-export function getGuardianDragonFlameDamage(cardBasePower: number, mastery: number, collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {}) {
+export interface GuardianDragonFlameCollections {
+  dragonFans?: boolean;
+  dragonMagic?: boolean;
+  dragonHealing?: boolean;
+  dragonWhisperers?: boolean;
+}
+
+export function getGuardianDragonFlameDamage(cardBasePower: number, mastery: number, collections: GuardianDragonFlameCollections = {}) {
   assertWhole(cardBasePower, "Card power");
   assertWhole(mastery, "Mastery");
-  const effectiveMastery = mastery + (collections.dragonFans ? 10 : 0);
+  const masteryBonus = [collections.dragonFans, collections.dragonMagic, collections.dragonHealing].filter(Boolean).length * 10;
+  const effectiveMastery = mastery + masteryBonus;
   const damage = Math.floor(cardBasePower * effectiveMastery / 100);
   return collections.dragonWhisperers ? damage * 2 : damage;
 }
@@ -170,7 +179,7 @@ export function getGuardianDragonFlameDamage(cardBasePower: number, mastery: num
 export const GUARDIAN_DRAGON_FLAME_START_LEVEL = 90;
 
 /** The flame card's power at its level: the base power of an ordinary card of that level × mastery / 100. */
-export function getGuardianDragonFlamePower(level: number, mastery: number, collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {}) {
+export function getGuardianDragonFlamePower(level: number, mastery: number, collections: GuardianDragonFlameCollections = {}) {
   return getGuardianDragonFlameDamage(getBasePowerForLevel(level), mastery, collections);
 }
 
@@ -193,7 +202,7 @@ export function getGuardianDragonFlameUpgrade(
   state: CardProgressionState,
   availableGold: number,
   mastery: number,
-  collections: { dragonFans?: boolean; dragonWhisperers?: boolean } = {},
+  collections: GuardianDragonFlameCollections = {},
 ): GuardianDragonFlameUpgrade {
   const progress = getUpgradeProgress(state.levelProgressElements, state.level);
   const { availability, requiredGold } = canLevelUp(state, availableGold);

@@ -1206,6 +1206,8 @@
 .shop-card-info__collections,
 .shop-card-info__actions { display: grid; gap: 10px; }
 .shop-card-info__collections p { margin: 5px 0 0; color: var(--text-secondary); text-align: center; font-size: var(--font-sm); }
+.shop-card-info__collections .shop-card-info__collection-prefix { margin: 0 0 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.shop-card-info__collections .shop-card-info__collection-description { max-width: 42ch; margin-inline: auto; line-height: 1.4; }
 
 /* Cosmetics pack: painted plate instead of a rounded CSS card. */
 :root[data-game-theme="light"] body .app-shell .app-content .nickname-pack-card {

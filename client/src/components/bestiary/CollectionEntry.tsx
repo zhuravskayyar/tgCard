@@ -16,7 +16,7 @@ export function CollectionEntry({ collection, onOpen }: { collection: PlayerColl
 
   return (
     <button
-      aria-label={`${collection.displayName}, ${collection.discoveredCards} із ${collection.totalCards}${collection.completed ? ", зібрано" : ""}`}
+      aria-label={`${collection.displayPrefix}: ${collection.displayName}, ${collection.discoveredCards} із ${collection.totalCards}${collection.completed ? ", зібрано" : ""}`}
       className={`bestiary-entry${collection.completed ? " bestiary-entry--completed" : ""}`}
       onClick={onOpen}
       type="button"
@@ -28,6 +28,7 @@ export function CollectionEntry({ collection, onOpen }: { collection: PlayerColl
         {collection.completed ? <span aria-hidden="true" className="bestiary-seal" /> : null}
       </span>
       <span className="bestiary-entry__caption">
+        <span className="bestiary-entry__prefix">{collection.displayPrefix}</span>
         <strong className="bestiary-entry__name">{collection.displayName}</strong>
         <span className="bestiary-entry__progress">{collection.discoveredCards} / {collection.totalCards}</span>
       </span>

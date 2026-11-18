@@ -1,14 +1,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BATTLE_PASS_CIRCLES, BATTLE_PASS_MILESTONES, DAILY_TASKS } from "./battlePassConfig.js";
+import {
+  BATTLE_PASS_CIRCLES,
+  BATTLE_PASS_MILESTONES,
+  DAILY_TASKS,
+  getBattlePassMilestone,
+  getMilestoneThreshold,
+  getPlayerCircles,
+  isGrantableReward,
+} from "./battlePassConfig.js";
 
-test("battle pass thresholds fit the monthly diamond income", () => {
-  assert.deepEqual(BATTLE_PASS_CIRCLES.map(({ thresholds }) => thresholds), [[50, 100, 150, 200, 250, 300, 400]]);
-  assert.equal(BATTLE_PASS_CIRCLES.at(-1)?.thresholds.at(-1), 400);
+test("battle pass circles copy the reference thresholds", () => {
+  assert.deepEqual(BATTLE_PASS_CIRCLES.map(({ thresholds }) => thresholds), [
+    [50, 100, 150, 200, 250, 300, 400],
+    [460, 520, 580, 640, 700, 760, 900],
+    [970, 1040, 1110, 1180, 1250, 1320, 1500],
+    [1600, 1700, 1800, 1900, 2000, 2100, 2500],
+    [2300, 2400, 2500, 2600, 2700, 2800, 3200],
+  ]);
+  assert.deepEqual(getPlayerCircles(false).map(({ circle }) => circle), [1, 2, 3, 4]);
+  assert.deepEqual(getPlayerCircles(true).map(({ circle }) => circle), [1, 2, 3, 4, 5]);
+  const circle4 = BATTLE_PASS_MILESTONES.filter(({ circle }) => circle === 4);
+  assert.deepEqual(circle4.map((milestone) => getMilestoneThreshold(milestone, true)), [1580, 1660, 1740, 1820, 1900, 1980, 2200]);
+});
+
+test("VIP hunting permits sit at 200, 1900 and 2400; locked items cannot be granted", () => {
+  const permits = BATTLE_PASS_MILESTONES.filter(({ vip }) => vip?.reward.kind === "item" && vip.reward.item === "hunting_permit");
+  assert.deepEqual(permits.map(({ threshold }) => threshold), [200, 1900, 2400]);
+  assert.ok(permits.every(({ vip }) => isGrantableReward(vip?.reward)));
+  assert.equal(isGrantableReward(getBattlePassMilestone("circle-2-520-vip")?.milestone.vip?.reward), false);
+  assert.equal(getBattlePassMilestone("circle-1-200-vip")?.vip, true);
+  assert.equal(getBattlePassMilestone("circle-1-200")?.vip, false);
+  assert.ok(BATTLE_PASS_CIRCLES.every(({ circle }) => BATTLE_PASS_MILESTONES.filter((milestone) => milestone.circle === circle).at(-1)?.vip === null));
 });
 
 test("reference reward nodes use a currency boost, silver, gold, and a lowest-deck-level card", () => {
-  assert.deepEqual(BATTLE_PASS_MILESTONES.map(({ reward }) => reward?.kind ?? null), ["boost", "equipment", "silver", "equipment", "gold", "equipment", "card"]);
+  assert.deepEqual(BATTLE_PASS_MILESTONES.filter(({ circle }) => circle === 1).map(({ reward }) => reward?.kind ?? null), ["boost", "equipment", "silver", "equipment", "gold", "equipment", "card"]);
   assert.deepEqual(BATTLE_PASS_MILESTONES[0]?.reward, {
     durationHours: 24,
     kind: "boost",

@@ -40,6 +40,21 @@ Do not repeatedly open or check the application or website between edits. Inspec
   - when you add a feature, module folder, or doc, add a line to `docs/map/index.md`
     or the matching layer note (`client.md`, `server.md`, `game-core.md`, `shared.md`).
 
+## Agent orchestration and token economy
+
+- The main agent is the conductor: it plans, splits work, reviews results, and
+  owns critical changes (architecture, DB migrations, auth, battle logic,
+  final review before push).
+- Delegate light and medium tasks to sub-agents on smaller models:
+  - Haiku: code/graph search, reading files, summarizing logs and docs.
+  - Sonnet: routine edits, i18n strings, targeted tests, small UI fixes.
+- Give each sub-agent a narrow, self-contained brief and ask for a short result
+  (findings, file paths, diff summary), not file dumps.
+- Always verify sub-agent output before reporting it or building on it.
+- Save tokens: graph/map and MCP tools first (graphify, Vercel, Neon, GitHub),
+  read only needed file ranges, never dump raw logs or scan the whole repo.
+- Replies to the user: as short as possible but clear; no long essays.
+
 ## Working rules
 
 - Read only files relevant to the current task.

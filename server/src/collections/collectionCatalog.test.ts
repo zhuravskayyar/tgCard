@@ -25,6 +25,15 @@ test("every card has a unique identity and a description; starters come from the
   assert.ok(STARTER_CARDS.every((starter) => cards.includes(starter)));
 });
 
+test("collection bonus status is explicit even when the modifier type is none", () => {
+  const find = (code: string) => COLLECTIONS.find((collection) => collection.code === code)!;
+  assert.equal(find("sea_masters").bonus.type, "none");
+  assert.equal(find("sea_masters").bonusStatus, "active");
+  assert.equal(find("wizards").bonusStatus, "active");
+  assert.equal(find("ufavorites").bonusStatus, "active");
+  assert.equal(find("twitch_legends").bonusStatus, "unassigned");
+});
+
 test("banner pools sell only eligible cards at or above their minimum rarity", () => {
   const order = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
   const byId = new Map(COLLECTION_CARDS.map((card) => [card.id, card]));

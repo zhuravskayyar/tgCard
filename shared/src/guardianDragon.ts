@@ -48,8 +48,11 @@ export interface GuardianDragonFlameView {
   power: number;
   maxLevel: number;
   powerAtMaxLevel: number;
-  /** Completed «Dragon fans» (+10 mastery) and «Dragon whisperers» (×2) collections. */
+  /** Completed dragon mastery collections; each adds +10. */
   dragonFans: boolean;
+  dragonMagic: boolean;
+  dragonHealing: boolean;
+  /** Completed «Dragon whisperers» collection (×2 flame damage). */
   dragonWhisperers: boolean;
   /** Share (0…100) of the current level's elemental progress; weak cards fill it, gold covers the rest. */
   progressPercent: number;

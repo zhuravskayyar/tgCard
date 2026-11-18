@@ -1494,11 +1494,85 @@
 /* The element wheel beside Lariska during the tutorial duel: painted card medallions and ink arrows. */
 .app-shell .tutorial-dialog.tutorial-dialog--reference-duel.tutorial-dialog--with-cycle { grid-template-columns: 70px minmax(0, 1fr) var(--element-cycle-size, 92px); }
 .element-cycle {
-  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
   width: var(--element-cycle-size, 92px);
-  height: var(--element-cycle-size, 92px);
   margin: 0;
 }
+.element-cycle__wheel {
+  position: relative;
+  display: block;
+  width: var(--element-cycle-size, 92px);
+  height: var(--element-cycle-size, 92px);
+}
+.element-cycle--legend { width: auto; max-width: 100%; }
+.element-cycle__legend { max-width: 30em; color: inherit; font-size: 12px; font-weight: 700; line-height: 1.35; text-align: center; text-wrap: balance; }
+.element-cycle__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Tutorial explainer: slide counter, exchange summary, locked cards and the mirrored enemy card. */
+.app-shell .tutorial-dialog__step { margin: 0 0 2px; font-size: 11px; font-weight: 800; letter-spacing: .08em; opacity: .7; }
+.app-shell .tutorial-dialog__result { display: block; margin-bottom: 4px; font-weight: 800; }
+.app-shell .tutorial-dialog__cycle { display: grid; justify-items: center; margin-top: 8px; }
+.app-shell .tutorial-overlay__spotlight--pair {
+  border: 3px dashed #ff8f6b;
+  box-shadow: 0 0 0 3px rgb(255 143 107 / 35%), 0 0 22px 4px rgb(255 100 60 / 60%);
+}
+.app-shell .duel-card.duel-card--tutorial-locked { opacity: .45; filter: saturate(.5); cursor: not-allowed; }
+.app-shell .duel-card.duel-card--tutorial-pair { outline: 2px dashed #ff8f6b; outline-offset: 2px; }
+.duel-locked-hint {
+  position: fixed;
+  left: 50%;
+  top: 22%;
+  z-index: 60; /* above .tutorial-dialog (55), at the top so it never covers the dialog */
+  max-width: min(86vw, 320px);
+  margin: 0;
+  padding: 8px 14px;
+  color: #fbeed0;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  background: rgb(36 20 10 / 92%);
+  border: 1px solid #d0b476;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 45%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.duel-outcome__reason { margin: 0; color: var(--home-ink); font-weight: 800; text-align: center; }
+
+/* "?" next to the action hint opens the element rules in normal duels. */
+.duel-hint-row { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.duel-hint-row .duel-action-hint { margin: 0; }
+.duel-hint-row__help {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #fbeed0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  background: rgb(36 20 10 / 80%);
+  border: 1px solid #d0b476;
+  border-radius: 50%;
+}
+.duel-element-help {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 6px auto 0;
+  padding: 12px;
+  max-width: 340px;
+  color: #24140a;
+  text-align: center;
+  background: #f1e2bd;
+  border: 2px solid #8a6a38;
+  border-radius: 12px;
+}
+.duel-element-help h3 { margin: 0; font-size: 14px; }
+.duel-element-help p { margin: 0; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.app-shell:has(.tutorial-dialog--reference-duel) :is(.duel-hint-row, .duel-element-help) { display: none; }
 .element-cycle__arrows { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .element-cycle__arrows path { fill: none; stroke: #5a3614; stroke-width: 2.4; stroke-linecap: round; }
 .element-cycle__arrows marker path { fill: #5a3614; stroke: none; }

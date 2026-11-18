@@ -14,6 +14,7 @@ import type {
   BattlePassPageResponse,
   BattlePassReward,
   BattlePassView,
+  BattlePassVipPurchaseResponse,
   DailyTaskClaimResponse,
   DailyTaskReward,
   PlayerBalance,
@@ -23,23 +24,30 @@ import { isArenaUnlocked } from "@cardastika/shared";
 import type { Pool, PoolClient } from "pg";
 import { CURRENCY_BOOST_DURATION_MS, getCurrencyBoostStatus } from "./boosts/currencyBoost.js";
 import {
-  BATTLE_PASS_CIRCLES,
+  BATTLE_PASS_BROTHERHOOD_COLLECTION,
+  BATTLE_PASS_DUPLICATE_ITEM_GOLD,
   BATTLE_PASS_MILESTONES,
+  BATTLE_PASS_VIP_PRICE_GOLD,
   DAILY_TASK_EQUIPMENT_RARITY,
   DAILY_TASK_SILVER_PER_DIAMOND,
   DAILY_TASKS,
   getBattlePassMilestone,
   getDailyTask,
   getDayWindow,
+  getMilestoneThreshold,
+  getPlayerCircles,
   getSeasonWindow,
+  isGrantableReward,
   type BattlePassMilestoneConfig,
 } from "./battlePassConfig.js";
 import { LariskaDailyRewardService } from "./dailyRewardsService.js";
+import { grantGuildWarMagicCrystal } from "./guild/guildWarCrystal.js";
 
 type Database = Pick<Pool | PoolClient, "query">;
 
 interface BattlePassStateRow {
   diamonds: number | string;
+  vip_purchased_at: Date | string | null;
 }
 
 interface EventProgressRow {
@@ -76,6 +84,20 @@ export class BattlePassMilestoneNotClaimableError extends Error {
   }
 }
 
+export class BattlePassVipUnavailableError extends Error {
+  constructor() {
+    super("Battle pass VIP is already bought or the season is finished");
+    this.name = "BattlePassVipUnavailableError";
+  }
+}
+
+export class BattlePassVipInsufficientGoldError extends Error {
+  constructor() {
+    super("Not enough gold for battle pass VIP");
+    this.name = "BattlePassVipInsufficientGoldError";
+  }
+}
+
 export class DailyTaskNotClaimableError extends Error {
   constructor() {
     super("Daily task is not claimable");
@@ -108,19 +130,40 @@ function multiplierForCompletedTasks(completedCount: number): 1 | 2 | 3 {
   return 1;
 }
 
-function milestoneNeedsPreviousClaims(milestone: BattlePassMilestoneConfig) {
-  const circle = BATTLE_PASS_CIRCLES.find(({ circle }) => circle === milestone.circle);
-  return circle?.thresholds.at(-1) === milestone.threshold;
+function circleMilestones(circle: number) {
+  return BATTLE_PASS_MILESTONES.filter((milestone) => milestone.circle === circle);
 }
 
+/** The final stop (the card) closes the circle, so it waits for every other reward on the way. */
+function isFinalMilestone(milestone: BattlePassMilestoneConfig) {
+  return circleMilestones(milestone.circle).at(-1)?.id === milestone.id;
+}
+
+/** Reward ids the final card waits for: grantable free ones, plus grantable VIP ones when VIP is bought. */
+function rewardsBeforeFinal(milestone: BattlePassMilestoneConfig, vip: boolean) {
+  return circleMilestones(milestone.circle).flatMap((candidate) => [
+    ...(candidate.id !== milestone.id && isGrantableReward(candidate.reward) ? [candidate.id] : []),
+    ...(vip && candidate.vip && isGrantableReward(candidate.vip.reward) ? [candidate.vip.id] : []),
+  ]);
+}
+
+/** Only free rewards decide completion, so a player without VIP can always finish a circle. */
 function isCircleComplete(circle: number, claimedIds: Set<string>) {
-  return BATTLE_PASS_MILESTONES
-    .filter((milestone) => milestone.circle === circle)
-    .every((milestone) => milestone.reward === null || claimedIds.has(milestone.id));
+  return circleMilestones(circle).every((milestone) => !isGrantableReward(milestone.reward) || claimedIds.has(milestone.id));
 }
 
-function getActiveCircle(claimedIds: Set<string>) {
-  return BATTLE_PASS_CIRCLES.find(({ circle }) => !isCircleComplete(circle, claimedIds))?.circle ?? null;
+function getActiveCircle(claimedIds: Set<string>, hasBrotherhood: boolean) {
+  return getPlayerCircles(hasBrotherhood).find(({ circle }) => !isCircleComplete(circle, claimedIds))?.circle ?? null;
+}
+
+async function loadHasBrotherhood(database: Database, playerId: string) {
+  const result = await database.query(
+    `SELECT 1 FROM player_collection_completions completions
+       INNER JOIN collections ON collections.id = completions.collection_id
+       WHERE completions.player_id = $1 AND collections.code = $2 LIMIT 1`,
+    [playerId, BATTLE_PASS_BROTHERHOOD_COLLECTION],
+  );
+  return result.rows.length > 0;
 }
 
 async function ensureState(database: Database, playerId: string, seasonId: string) {
@@ -136,12 +179,12 @@ async function ensureState(database: Database, playerId: string, seasonId: strin
 
 async function loadState(database: Database, playerId: string, seasonId: string) {
   const result = await database.query<BattlePassStateRow>(
-    "SELECT diamonds FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2",
+    "SELECT diamonds, vip_purchased_at FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2",
     [playerId, seasonId],
   );
   const state = result.rows[0];
   if (!state) throw new Error("Battle pass state is missing");
-  return { diamonds: toInteger(state.diamonds) };
+  return { diamonds: toInteger(state.diamonds), vip: state.vip_purchased_at !== null };
 }
 
 async function loadEventProgress(database: Database, playerId: string, startsAt: Date, endsAt: Date) {
@@ -287,21 +330,53 @@ async function grantReward(
   database: PoolClient,
   playerId: string,
   reward: BattlePassReward,
+  rewardId: string,
   seasonId: string,
   now: Date,
-): Promise<{ balance: PlayerBalance; card?: PlayerCardInstance; equipmentItemId?: string }> {
+): Promise<{ balance: PlayerBalance; card?: PlayerCardInstance; convertedToGold?: number; equipmentItemId?: string }> {
   let card: PlayerCardInstance | undefined;
   if (reward.kind === "boost") {
-    const startsAt = now;
-    const expiresAt = new Date(startsAt.getTime() + CURRENCY_BOOST_DURATION_MS);
+    // Reference: durations stack, multipliers do not. The new boost lasts until the current one ends plus 24 hours.
+    const active = await database.query<{ expires_at: Date | string | null }>(
+      `SELECT MAX(expires_at) AS expires_at FROM player_boosts
+         WHERE player_id = $1 AND boost_type LIKE 'currency_x%' AND starts_at <= $2 AND expires_at > $2`,
+      [playerId, now],
+    );
+    const activeUntil = active.rows[0]?.expires_at ? new Date(active.rows[0].expires_at).getTime() : now.getTime();
+    const expiresAt = new Date(Math.max(now.getTime(), activeUntil) + CURRENCY_BOOST_DURATION_MS);
     await database.query(
       `
         INSERT INTO player_boosts (id, player_id, boost_type, starts_at, expires_at, source)
-        VALUES ($1, $2, 'currency_x2', $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `,
-      [randomUUID(), playerId, startsAt, expiresAt, `battle_pass:${seasonId}`],
+      [randomUUID(), playerId, `currency_x${reward.multiplier}`, now, expiresAt, `battle_pass:${seasonId}:${rewardId}`],
     );
     return { balance: await loadBalance(database, playerId) };
+  }
+  if (reward.kind === "item") {
+    if (!reward.available) throw new BattlePassMilestoneNotClaimableError();
+    let granted = false;
+    if (reward.item === "hunting_permit") {
+      // Max one item of each kind: a second permit turns into gold.
+      const result = await database.query(
+        `INSERT INTO player_invasion_items (player_id, hunting_permits) VALUES ($1, 1)
+           ON CONFLICT (player_id) DO UPDATE SET hunting_permits = 1 WHERE player_invasion_items.hunting_permits = 0`,
+        [playerId],
+      );
+      granted = result.rowCount === 1;
+    } else if (reward.item === "magic_crystal") {
+      granted = await grantGuildWarMagicCrystal(database, playerId);
+    } else {
+      throw new BattlePassMilestoneNotClaimableError();
+    }
+    if (granted) return { balance: await loadBalance(database, playerId) };
+    const result = await database.query<BalanceRow>(
+      "UPDATE players SET gold = gold + $2, updated_at = NOW() WHERE id = $1 RETURNING gold, silver",
+      [playerId, BATTLE_PASS_DUPLICATE_ITEM_GOLD],
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error("Battle pass player is missing");
+    return { balance: toBalance(row), convertedToGold: BATTLE_PASS_DUPLICATE_ITEM_GOLD };
   }
   if (reward.kind === "silver" || reward.kind === "gold") {
     const result = await database.query<BalanceRow>(
@@ -336,6 +411,7 @@ export class BattlePassService {
     const season = getSeasonWindow(now);
     await ensureState(database, playerId, season.seasonId);
     const state = await loadState(database, playerId, season.seasonId);
+    const hasBrotherhood = await loadHasBrotherhood(database, playerId);
     const currencyBoost = await getCurrencyBoostStatus(database, playerId, now);
     const milestoneClaims = await loadMilestoneClaims(database, playerId, season.seasonId);
     const day = getDayWindow(now);
@@ -346,28 +422,42 @@ export class BattlePassService {
     const completedCount = availableTasks.filter((task) => (progress.get(task.id) ?? 0) >= task.target).length;
     const currentRewardMultiplier = multiplierForCompletedTasks(await loadCompletedTaskCount(database, playerId, now));
     const arenaLeagueIndex = await loadArenaLeagueIndex(database, playerId);
-    const allThresholds = BATTLE_PASS_CIRCLES.flatMap(({ thresholds }) => thresholds);
-    const allCircleViews = BATTLE_PASS_CIRCLES.map(({ circle, thresholds }) => {
-      const milestones = thresholds.map((threshold) => {
-        const config = BATTLE_PASS_MILESTONES.find((milestone) => milestone.circle === circle && milestone.threshold === threshold);
-        if (!config) throw new Error("Battle pass milestone configuration is incomplete");
+    const circles = getPlayerCircles(hasBrotherhood);
+    const activeCircle = getActiveCircle(milestoneClaims, hasBrotherhood);
+    const allThresholds: number[] = [];
+    const allCircleViews = circles.map(({ circle }, circleIndex) => {
+      const previous = circles[circleIndex - 1];
+      const fromDiamonds = previous ? getMilestoneThreshold(circleMilestones(previous.circle).at(-1)!, hasBrotherhood) : 0;
+      const isActive = activeCircle === circle;
+      const milestones = circleMilestones(circle).map((config) => {
+        const threshold = getMilestoneThreshold(config, hasBrotherhood);
+        allThresholds.push(threshold);
+        const reached = state.diamonds >= threshold;
         const claimed = milestoneClaims.has(config.id);
-        const previousRewardsPending = milestoneNeedsPreviousClaims(config)
-          && BATTLE_PASS_MILESTONES.some((candidate) => candidate.circle === circle && candidate.reward !== null && candidate.id !== config.id && !milestoneClaims.has(candidate.id));
+        const previousRewardsPending = isFinalMilestone(config)
+          && rewardsBeforeFinal(config, state.vip).some((id) => !milestoneClaims.has(id));
+        const vipClaimed = config.vip ? milestoneClaims.has(config.vip.id) : false;
         return {
-          claimable: config.reward !== null && !claimed && state.diamonds >= threshold && !previousRewardsPending,
+          claimable: isActive && isGrantableReward(config.reward) && !claimed && reached && !previousRewardsPending,
           claimed,
           circle,
           id: config.id,
           reward: config.reward,
           threshold,
+          vip: config.vip ? {
+            claimable: isActive && state.vip && isGrantableReward(config.vip.reward) && !vipClaimed && reached,
+            claimed: vipClaimed,
+            id: config.vip.id,
+            reward: config.vip.reward,
+          } : null,
         };
       });
       return {
-        completed: isBattlePassCircleComplete(milestones),
+        completed: isCircleComplete(circle, milestoneClaims),
         circle,
+        fromDiamonds,
         milestones,
-        threshold: thresholds.at(-1)!,
+        threshold: milestones.at(-1)!.threshold,
       };
     });
     const activeCircleIndex = allCircleViews.findIndex(({ completed }) => !completed);
@@ -386,6 +476,8 @@ export class BattlePassService {
       }))),
       seasonId: season.seasonId,
       startsAt: season.startsAt.toISOString(),
+      totalCircles: circles.length,
+      vip: { active: state.vip, price: BATTLE_PASS_VIP_PRICE_GOLD, purchasable: !state.vip && activeCircle !== null },
     };
     return {
       battlePass,
@@ -416,31 +508,31 @@ export class BattlePassService {
     return this.buildPage(this.pool, playerId, now);
   }
 
-  async claimMilestone(playerId: string, milestoneId: string, now: Date = new Date()): Promise<BattlePassClaimResponse> {
-    const milestone = getBattlePassMilestone(milestoneId);
-    if (!milestone?.reward) throw new BattlePassMilestoneNotClaimableError();
+  async claimMilestone(playerId: string, rewardId: string, now: Date = new Date()): Promise<BattlePassClaimResponse> {
+    const found = getBattlePassMilestone(rewardId);
+    if (!found) throw new BattlePassMilestoneNotClaimableError();
+    const { milestone, vip } = found;
+    const reward = vip ? milestone.vip?.reward : milestone.reward;
+    if (!isGrantableReward(reward)) throw new BattlePassMilestoneNotClaimableError();
     const season = getSeasonWindow(now);
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       await ensureState(client, playerId, season.seasonId);
       const stateResult = await client.query<BattlePassStateRow>(
-        "SELECT diamonds FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2 FOR UPDATE",
+        "SELECT diamonds, vip_purchased_at FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2 FOR UPDATE",
         [playerId, season.seasonId],
       );
       const state = stateResult.rows[0];
-      if (!state || toInteger(state.diamonds) < milestone.threshold) throw new BattlePassMilestoneNotClaimableError();
-      const claimsResult = await client.query<{ milestone_id: string }>(
-        "SELECT milestone_id FROM player_battle_pass_claims WHERE player_id = $1 AND season_id = $2",
-        [playerId, season.seasonId],
-      );
-      const claimedIds = new Set(claimsResult.rows.map(({ milestone_id }) => milestone_id));
-      if (getActiveCircle(claimedIds) !== milestone.circle) throw new BattlePassMilestoneNotClaimableError();
-      if (milestoneNeedsPreviousClaims(milestone)) {
-        const requiredIds = BATTLE_PASS_MILESTONES
-          .filter((candidate) => candidate.circle === milestone.circle && candidate.reward !== null && candidate.id !== milestone.id)
-          .map((candidate) => candidate.id);
-        if (requiredIds.some((id) => !claimedIds.has(id))) throw new BattlePassMilestoneNotClaimableError();
+      const hasBrotherhood = await loadHasBrotherhood(client, playerId);
+      if (!state || toInteger(state.diamonds) < getMilestoneThreshold(milestone, hasBrotherhood)) throw new BattlePassMilestoneNotClaimableError();
+      const hasVip = state.vip_purchased_at !== null;
+      if (vip && !hasVip) throw new BattlePassMilestoneNotClaimableError();
+      const claimedIds = await loadMilestoneClaims(client, playerId, season.seasonId);
+      // VIP rewards of a finished circle are lost, as in the reference: only the active circle pays.
+      if (getActiveCircle(claimedIds, hasBrotherhood) !== milestone.circle) throw new BattlePassMilestoneNotClaimableError();
+      if (!vip && isFinalMilestone(milestone) && rewardsBeforeFinal(milestone, hasVip).some((id) => !claimedIds.has(id))) {
+        throw new BattlePassMilestoneNotClaimableError();
       }
       const claim = await client.query(
         `
@@ -448,18 +540,53 @@ export class BattlePassService {
           VALUES ($1, $2, $3)
           ON CONFLICT (player_id, season_id, milestone_id) DO NOTHING
         `,
-        [playerId, season.seasonId, milestone.id],
+        [playerId, season.seasonId, rewardId],
       );
       if (claim.rowCount !== 1) throw new BattlePassMilestoneNotClaimableError();
-      const granted = await grantReward(client, playerId, milestone.reward, season.seasonId, now);
+      const granted = await grantReward(client, playerId, reward, rewardId, season.seasonId, now);
       await client.query("COMMIT");
       return {
         ...(await this.getPage(playerId, now)),
         ...(granted.card ? { card: granted.card } : {}),
+        ...(granted.convertedToGold ? { convertedToGold: granted.convertedToGold } : {}),
         ...(granted.equipmentItemId ? { equipmentItemId: granted.equipmentItemId } : {}),
-        reward: milestone.reward,
+        reward,
         updatedBalance: granted.balance,
       };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /** VIP for the current season; rewards of the active circle already reached become claimable at once. */
+  async purchaseVip(playerId: string, now: Date = new Date()): Promise<BattlePassVipPurchaseResponse> {
+    const season = getSeasonWindow(now);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await ensureState(client, playerId, season.seasonId);
+      const stateResult = await client.query<BattlePassStateRow>(
+        "SELECT diamonds, vip_purchased_at FROM player_battle_pass_state WHERE player_id = $1 AND season_id = $2 FOR UPDATE",
+        [playerId, season.seasonId],
+      );
+      if (!stateResult.rows[0] || stateResult.rows[0].vip_purchased_at !== null) throw new BattlePassVipUnavailableError();
+      const claimedIds = await loadMilestoneClaims(client, playerId, season.seasonId);
+      if (getActiveCircle(claimedIds, await loadHasBrotherhood(client, playerId)) === null) throw new BattlePassVipUnavailableError();
+      const paid = await client.query<BalanceRow>(
+        "UPDATE players SET gold = gold - $2, updated_at = NOW() WHERE id = $1 AND gold >= $2 RETURNING gold, silver",
+        [playerId, BATTLE_PASS_VIP_PRICE_GOLD],
+      );
+      const row = paid.rows[0];
+      if (!row) throw new BattlePassVipInsufficientGoldError();
+      await client.query(
+        "UPDATE player_battle_pass_state SET vip_purchased_at = $3, updated_at = NOW() WHERE player_id = $1 AND season_id = $2",
+        [playerId, season.seasonId, now],
+      );
+      await client.query("COMMIT");
+      return { ...(await this.getPage(playerId, now)), updatedBalance: toBalance(row) };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;

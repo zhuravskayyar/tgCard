@@ -41,6 +41,7 @@ import {
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { mapCardInstanceRow, type CardInstanceProjectionRow } from "../cards/cardInstanceMapper.js";
 import { GuildAltarService } from "./altarService.js";
+import { GuildWarService } from "./guildWarService.js";
 import { canLevelUpGuildCard, GuildTreasuryService } from "./treasuryService.js";
 import { toProgressionView } from "../cards/cardProgressionService.js";
 
@@ -256,6 +257,16 @@ function toJournalEntryView(row: JournalRow): GuildJournalEntryView {
 async function assertNotDiggingTreasure(client: TransactionClient, playerId: string) {
   const digging = await client.query("SELECT 1 FROM guild_witch_treasures WHERE player_id = $1 AND status = 'digging' AND dig_ends_at > NOW()", [playerId]);
   if (digging.rows.length) throw new GuildDomainError("treasure_digging", "Player is digging the witch treasure");
+}
+
+/** The Monday war roster stays together through Saturday results. */
+async function assertNotLockedInGuildWar(client: TransactionClient, playerId: string, weekStart: string | null) {
+  if (!weekStart) return;
+  const rostered = await client.query(
+    "SELECT 1 FROM guild_war_participants WHERE week_start = $1::date AND player_id = $2",
+    [weekStart, playerId],
+  );
+  if (rostered.rows.length) throw new GuildDomainError("guild_war_roster_locked", "War participants cannot leave or be removed before the weekly war ends");
 }
 
 export class GuildDomainError extends Error {
@@ -800,6 +811,7 @@ export class GuildService implements GuildActivityRecorder {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      await GuildWarService.prepareRosterForMembershipChange(client);
       const player = await this.lockPlayer(client, playerId);
       if (player.level < GUILD_CONFIG.unlockLevel) throw new GuildDomainError("guild_unlock_level", "Guilds unlock at level 10");
       if (await this.playerGuildId(client, playerId)) throw new GuildDomainError("already_in_guild", "Player is already in a guild");
@@ -885,6 +897,7 @@ export class GuildService implements GuildActivityRecorder {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      await GuildWarService.prepareRosterForMembershipChange(client);
       const actor = await this.lockMember(client, playerId, guildId);
       if (!actor || !hasGuildPermission(actor.role, "manage_applications")) throw new GuildDomainError("guild_permission_denied", "You cannot manage applications", 403);
       const applicationResult = await client.query<GuildApplicationRow & { message: string }>(
@@ -959,9 +972,11 @@ export class GuildService implements GuildActivityRecorder {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const lockedWarWeek = await GuildWarService.prepareRosterForMembershipChange(client);
       const actor = await this.lockMember(client, playerId, guildId);
       const target = await this.lockMember(client, targetPlayerId, guildId);
       if (!actor || !target || !canKickGuildMember(actor.role, target.role)) throw new GuildDomainError("guild_permission_denied", "You cannot remove this member", 403);
+      await assertNotLockedInGuildWar(client, targetPlayerId, lockedWarWeek);
       await assertNotDiggingTreasure(client, targetPlayerId);
       await clearDragonRaidMembership(client, guildId, targetPlayerId);
       await client.query("DELETE FROM guild_members WHERE guild_id = $1 AND player_id = $2", [guildId, targetPlayerId]);
@@ -982,6 +997,7 @@ export class GuildService implements GuildActivityRecorder {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const lockedWarWeek = await GuildWarService.prepareRosterForMembershipChange(client);
       const member = await this.lockMember(client, playerId, guildId);
       if (!member) throw new GuildDomainError("not_guild_member", "Player is not in this guild", 404);
       if (member.role === "leader") {
@@ -989,6 +1005,7 @@ export class GuildService implements GuildActivityRecorder {
         if (Number(count.rows[0]?.count ?? 0) > 1) throw new GuildDomainError("leader_transfer_required", "Leader must transfer leadership before leaving");
         throw new GuildDomainError("leader_must_dissolve", "The sole leader must dissolve the guild instead");
       }
+      await assertNotLockedInGuildWar(client, playerId, lockedWarWeek);
       await assertNotDiggingTreasure(client, playerId);
       await clearDragonRaidMembership(client, guildId, playerId);
       await client.query("DELETE FROM guild_members WHERE guild_id = $1 AND player_id = $2", [guildId, playerId]);
@@ -1032,10 +1049,12 @@ export class GuildService implements GuildActivityRecorder {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const lockedWarWeek = await GuildWarService.prepareRosterForMembershipChange(client);
       const member = await this.lockMember(client, playerId, guildId);
       if (!member || member.role !== "leader") throw new GuildDomainError("guild_permission_denied", "Only the leader can dissolve a guild", 403);
       const count = await client.query<{ count: string }>("SELECT COUNT(*) AS count FROM guild_members WHERE guild_id = $1", [guildId]);
       if (Number(count.rows[0]?.count ?? 0) !== 1) throw new GuildDomainError("guild_not_empty", "Only a guild with its sole leader can be dissolved");
+      await assertNotLockedInGuildWar(client, playerId, lockedWarWeek);
       await client.query("DELETE FROM guilds WHERE id = $1", [guildId]);
       await client.query("COMMIT");
       return { dissolved: true };

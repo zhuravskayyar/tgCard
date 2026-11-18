@@ -56,6 +56,10 @@ export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onO
     : null;
   const hasUpgrade = state.status === "ready"
     && state.deck.cards.some((card) => (card.upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements)) !== undefined);
+  // The first card with a free (green arrow) upgrade; the trial guide points there before any paid one.
+  const firstFreeUpgrade = state.status === "ready"
+    ? state.deck.cards.findIndex((card) => (card.upgradeIndicator ?? getCardUpgradeIndicator(card.level, card.levelProgressElements)) === "element")
+    : -1;
   const deckTask = battlePassState.status === "ready"
     ? DECK_TASK_IDS.map((id) => battlePassState.data.daily.tasks.find((task) => task.id === id)).find((task) => task && !task.completed) ?? null
     : null;
@@ -90,7 +94,7 @@ export function DeckScreen({ onBack, onOpenCampaign, onOpenCard, onOpenDuel, onO
           {hasUpgrade ? <RibbonTitle as="div" className="deck-upgrade-ribbon" size="wide">Покращуй позначені карти</RibbonTitle> : null}
           <div className="deck-grid" aria-label="Дев’ять карт автоматичної бойової колоди">
             {state.deck.cards.map((card, index) => (
-              <DeckCard card={card} dataTutorialTarget={index === 0 ? "deck-card" : undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} />
+              <DeckCard card={card} dataTutorialTarget={[index === 0 ? "deck-card" : null, index === firstFreeUpgrade ? "deck-card-free" : null].filter(Boolean).join(" ") || undefined} key={card.slot} onClick={() => onOpenCard(card.instanceId)} />
             ))}
           </div>
           {showTutorialRule ? null : (

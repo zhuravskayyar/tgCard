@@ -20,6 +20,7 @@ import type {
   PlayerSummary,
 } from "@cardastika/shared";
 import { AppIcon } from "../components/AppIcon";
+import { ElementCycle, STRONG_ELEMENT_MULTIPLIER, WEAK_ELEMENT_MULTIPLIER, formatElementMultiplier } from "../components/ElementCycle";
 import { CardArtwork } from "../components/CardArtwork";
 import { CardHud } from "../components/CardHud";
 import { CardFxWrapper, type CardFxArtworkLayers } from "../components/CardFxWrapper";
@@ -50,8 +51,8 @@ const DUEL_SEARCH_MIN_DISPLAY_MS = 620;
 export type DuelEffectLevel = "weak" | "normal" | "strong";
 
 export function getEffectLevel(multiplier: DuelExchange["playerMultiplier"]): DuelEffectLevel {
-  if (multiplier === 0.5) return "weak";
-  if (multiplier === 1.5) return "strong";
+  if (multiplier < 1) return "weak";
+  if (multiplier >= 1.5) return "strong";
   return "normal";
 }
 
@@ -185,7 +186,7 @@ export function HpPanel({ currentHp, detail, maximumHp, side, tone, hit = false,
   );
 }
 
-export function BattleCard({ card, clashLevel, clashing = false, depthAssets, disabled, enemy = false, introActive = false, onClick, selected = false, tutorialTarget }: {
+export function BattleCard({ card, clashLevel, clashing = false, depthAssets, disabled, enemy = false, introActive = false, locked = false, onClick, selected = false, tutorialPair = false, tutorialTarget }: {
   card: DuelCardSnapshot;
   clashLevel?: DuelEffectLevel;
   clashing?: boolean;
@@ -193,8 +194,12 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
   depthAssets?: CardFxArtworkLayers;
   enemy?: boolean;
   introActive?: boolean;
+  /** Tutorial: not the highlighted card. Stays clickable so the click can explain why nothing happens. */
+  locked?: boolean;
   onClick?: () => void;
   selected?: boolean;
+  /** Tutorial: the enemy card in the slot of the highlighted player card. */
+  tutorialPair?: boolean;
   tutorialTarget?: string;
 }) {
   const className = [
@@ -205,6 +210,8 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
     clashing ? `duel-card--clash-${enemy ? "enemy" : "player"}` : "",
     clashing && clashLevel ? `duel-card--clash-${enemy ? "enemy" : "player"}-${clashLevel}` : "",
     selected ? "duel-card--selected" : "",
+    locked ? "duel-card--tutorial-locked" : "",
+    tutorialPair ? "duel-card--tutorial-pair" : "",
     card.source === "guild" ? "duel-card--guild" : "",
   ].filter(Boolean).join(" ");
   const contents = (
@@ -212,9 +219,10 @@ export function BattleCard({ card, clashLevel, clashing = false, depthAssets, di
       <CardHud element={card.element} power={card.finalPower} rarity={card.rarity} />
     </CardFxWrapper>
   );
-  if (enemy) return <div className={className}>{contents}</div>;
+  if (enemy) return <div className={className} data-tutorial-target={tutorialTarget}>{contents}</div>;
   return (
     <button
+      aria-disabled={locked || undefined}
       aria-label={`${card.source === "guild" ? "Карта гільдії. " : ""}Атакувати картою ${card.displayName ?? card.code}`}
       className={className}
       data-tutorial-target={tutorialTarget}
@@ -239,7 +247,8 @@ export function DuelIntroOverlay() {
 }
 
 function BattleLogSeal({ multiplier }: { multiplier: number }) {
-  return <span className={`battle-log-seal battle-log-seal--${String(multiplier).replace(".", "-")}`}>×{multiplier}</span>;
+  const seal = multiplier < 1 ? "0-5" : multiplier >= 1.5 ? "1-5" : "1";
+  return <span className={`battle-log-seal battle-log-seal--${seal}`}>×{Number(multiplier.toFixed(1))}</span>;
 }
 
 interface BattleLogPortrait { name: string; photoUrl: string | null }
@@ -285,7 +294,7 @@ function BattleLogRow({ exchange, latest = false }: { exchange: BattleLogExchang
   );
 }
 
-export function BattleLog({ entries, animateLatest = false, emptyMessage = "Оберіть одну зі своїх карт, щоб розпочати обмін.", headerAction }: {
+export function BattleLog({ entries, animateLatest = false, emptyMessage = "Тут з’явиться результат кожного обміну ударами.", headerAction }: {
   entries: BattleLogExchange[];
   animateLatest?: boolean;
   emptyMessage?: string;
@@ -323,6 +332,9 @@ function useSettledMultipliers(multipliers: readonly number[], latestTurn: numbe
   return settled.current;
 }
 
+/** Tutorial overlay tokens for the enemy card facing each player card (slot 2 is the first card shown to the player). */
+const TUTORIAL_PAIR_TARGETS = ["duel-card-third-pair duel-card-pair", "duel-card-second-pair duel-card-pair", "duel-card-first-pair duel-card-pair"] as const;
+
 export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionHint, actionNotice, animateExchange, disableCards = false, disabledSlots, tutorialAllowedSlot = null, tutorialMode }: {
   duel: DuelView;
   /** Live PvP logs also hold the opponent's strikes; only this exchange flies from the player's slot. */
@@ -338,6 +350,17 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
   tutorialMode?: boolean;
 }) {
   const [introActive, setIntroActive] = useState(() => duel.battleLog.length === 0);
+  const [lockedHint, setLockedHint] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const lockedHintTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (lockedHintTimer.current !== null) window.clearTimeout(lockedHintTimer.current);
+  }, []);
+  const showLockedHint = () => {
+    setLockedHint(true);
+    if (lockedHintTimer.current !== null) window.clearTimeout(lockedHintTimer.current);
+    lockedHintTimer.current = window.setTimeout(() => setLockedHint(false), 2_000);
+  };
   const clash = useBattleExchange(animateExchange === undefined ? duel.battleLog[0] ?? null : animateExchange);
   const shownMultipliers = useSettledMultipliers(duel.pairMultipliers, (animateExchange === undefined ? duel.battleLog[0] : animateExchange)?.turnNumber, clash);
 
@@ -384,6 +407,8 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
               clashing={clashSlot === index}
               enemy
               key={card.instanceId}
+              tutorialPair={tutorialMode && tutorialAllowedSlot === index}
+              tutorialTarget={tutorialMode ? TUTORIAL_PAIR_TARGETS[index] : undefined}
             />
           ))}
         </div>
@@ -406,10 +431,15 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
               card={card}
               clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined}
               clashing={clashSlot === index}
-              disabled={disableCards || clash !== null || pendingSlot !== null || disabledSlots?.[index] === true || (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index)}
+              disabled={disableCards || clash !== null || pendingSlot !== null || disabledSlots?.[index] === true}
               introActive={introActive}
               key={card.instanceId}
-              onClick={() => onAction(index as 0 | 1 | 2)}
+              locked={tutorialAllowedSlot !== null && tutorialAllowedSlot !== index}
+              onClick={() => {
+                // The server rejects off-script tutorial moves anyway; here the click only explains why.
+                if (tutorialAllowedSlot !== null && tutorialAllowedSlot !== index) showLockedHint();
+                else onAction(index as 0 | 1 | 2);
+              }}
               selected={pendingSlot === index}
               tutorialTarget={tutorialMode
                 ? index === 2
@@ -432,7 +462,18 @@ export function DuelBattle({ duel, pendingSlot, onAction, actionButtons, actionH
         hit={clash !== null}
         tutorialTarget={tutorialMode ? "player-hp" : undefined}
       />
-      <p className="duel-action-hint">{actionHint ?? (pendingSlot === null ? "Оберіть свою карту" : "Обмін ударами…")}</p>
+      <div className="duel-hint-row">
+        <p className="duel-action-hint">{actionHint ?? (pendingSlot === null ? "Обери свою карту — вона вдарить карту навпроти, а та вдарить у відповідь." : "Обмін ударами…")}</p>
+        <button aria-expanded={helpOpen} aria-label="Як працюють стихії" className="duel-hint-row__help" onClick={() => setHelpOpen((open) => !open)} title="Як працюють стихії" type="button">?</button>
+      </div>
+      {helpOpen ? (
+        <div className="duel-element-help" role="note">
+          <h3>Як працюють стихії</h3>
+          <ElementCycle showLegend size={96} />
+          <p>{`Сильна стихія б’є ${formatElementMultiplier(STRONG_ELEMENT_MULTIPLIER)}, слабка — ${formatElementMultiplier(WEAK_ELEMENT_MULTIPLIER)}. Шкоду отримують обидві карти.`}</p>
+        </div>
+      ) : null}
+      {lockedHint ? <p className="duel-locked-hint" role="status">Спочатку — підсвічена карта</p> : null}
       {actionButtons}
       {actionNotice}
       <section data-tutorial-target={tutorialMode ? "duel-log" : undefined}>
@@ -556,7 +597,8 @@ function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutor
   if (tutorialMode) {
     return (
       <section className="duel-page duel-result duel-result--tutorial" data-tutorial-target="duel-result">
-        <BattleOutcomeHeader won />
+        <BattleOutcomeHeader won={result.outcome === "win"} />
+        <p className="duel-outcome__reason">{result.outcome === "win" ? "Здоров’я суперника впало до нуля — перемога!" : "Твоє здоров’я впало до нуля — поразка. Спробуй ще раз!"}</p>
         <p className="duel-outcome__received">Ти отримав:</p>
         <div aria-label="Нагороди за перемогу" className="duel-outcome__loot">
           <span aria-label={`Срібло: ${result.silver}`} className="duel-outcome__reward" data-reward-source="silver"><CurrencyIcon kind="silver" size={20} /><CountUpValue value={result.silver} /></span>
@@ -592,7 +634,7 @@ function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutor
   const won = result.outcome === "win";
   const silverReward = result.totalSilverEarned ?? result.silver;
   return (
-    <section className={`duel-page duel-result duel-outcome duel-outcome--${won ? "win" : "loss"}`}>
+    <section className={`duel-page duel-result duel-outcome duel-outcome--${won ? "win" : "loss"}`} data-tutorial-target={won ? undefined : "duel-lost"}>
       <BattleOutcomeHeader won={won} />
       <p className="duel-outcome__received">Ти отримав:</p>
       <div aria-label="Нагороди за дуель" className="duel-outcome__loot">
@@ -607,7 +649,7 @@ function DuelResultView({ duel, availability, onAutoRemaining, onReturn, onTutor
       </section>
       {latestLevel ? <p className="duel-outcome__note">Новий рівень: <strong>{latestLevel}</strong></p> : null}
       {result.accountBoostMultiplier === 2 ? <p className="duel-outcome__note">Буст ×2 активний</p> : null}
-      <button className="duel-search-button duel-search-button--attack duel-outcome__next" disabled={paidPending} onClick={onReturn} type="button">{availability && availability.remaining > 0 ? "Ще дуель" : "До дуелей"}</button>
+      <button className="duel-search-button duel-search-button--attack duel-outcome__next" data-tutorial-target={availability && availability.remaining > 0 ? "duel-again" : undefined} disabled={paidPending} onClick={onReturn} type="button">{availability && availability.remaining > 0 ? "Ще дуель" : "До дуелей"}</button>
       {/* Reference: after a won Duel with charges left, the rest can be played automatically for 1 gold each. */}
       {won && onAutoRemaining && availability && availability.remaining > 0 && availability.autoRemainingPrice > 0 ? (
         <>

@@ -96,6 +96,8 @@ import { GuildRaidService } from "./guild/guildRaidService.js";
 import { GuildDragonRaidService } from "./guild/dragonRaidService.js";
 import { GuildRaidChats } from "./guild/raidChat.js";
 import { GuildRaidStatusService } from "./guild/raidStatus.js";
+import { GuildWarService } from "./guild/guildWarService.js";
+import { handleGuildWarTick } from "./guild/guildWarTickRoute.js";
 import { AdminAuthService } from "./admin/adminAuth.js";
 import { handleAdminRequest } from "./admin/adminRoute.js";
 import { AdminService } from "./admin/adminService.js";
@@ -114,6 +116,7 @@ const guildRaids = new GuildRaidService(pool);
 const guildDragons = new GuildDragonRaidService(pool, Math.random, Date.now, guilds);
 const guildRaidChats = new GuildRaidChats(pool);
 const guildRaidStatus = new GuildRaidStatusService(pool);
+export const guildWars = new GuildWarService(pool);
 const inventory = new InventoryRepository(pool);
 const decks = new DeckRepository(pool);
 const campaign = new CampaignService(pool);
@@ -563,6 +566,7 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
       dragons: guildDragons,
       raidChats: guildRaidChats,
       raidStatus: guildRaidStatus,
+      wars: guildWars,
       players,
       responseHeaders: cors.headers,
     });
@@ -813,6 +817,11 @@ async function handleRequestInternal(request: IncomingMessage, response: ServerR
 
   if (url.pathname === "/api/internal/notifications/sweep") {
     await handleNotificationSweep(request, response, { notifications, secret: process.env.CRON_SECRET?.trim() });
+    return;
+  }
+
+  if (url.pathname === "/api/internal/guild-wars/tick") {
+    await handleGuildWarTick(request, response, { wars: guildWars, secret: process.env.CRON_SECRET?.trim() });
     return;
   }
 

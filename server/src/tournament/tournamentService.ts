@@ -9,7 +9,7 @@ import {
   chooseTournamentBuff,
   createTournamentDuel,
   getDominantDeckElement,
-  getElementMultiplier,
+  getStrikeMultiplier,
   getInitialTournamentRating,
   getNextTournamentSchedule,
   getTournamentBattleXp,
@@ -47,7 +47,6 @@ import {
   type DuelCardSnapshot,
   type DuelExchange,
   type DuelSideSnapshot,
-  type ElementMultiplier,
   type TournamentChatMessage,
   type TournamentChatView,
   type TournamentEventStatus,
@@ -170,8 +169,8 @@ function sparringStrike(duel: TournamentDuelState, sparringId: string, now: numb
 
 function toExchange(entry: TournamentDuelState["log"][number], perspective: 0 | 1): DuelExchange & { ownStrike: boolean } {
   const own = entry.attacker === perspective;
-  const playerMultiplier = (own ? entry.attackerMultiplier : entry.defenderMultiplier) as DuelExchange["playerMultiplier"];
-  const enemyMultiplier = (own ? entry.defenderMultiplier : entry.attackerMultiplier) as DuelExchange["enemyMultiplier"];
+  const playerMultiplier = own ? entry.attackerMultiplier : entry.defenderMultiplier;
+  const enemyMultiplier = own ? entry.defenderMultiplier : entry.attackerMultiplier;
   return {
     slotIndex: entry.slot,
     turnNumber: entry.turn,
@@ -181,7 +180,7 @@ function toExchange(entry: TournamentDuelState["log"][number], perspective: 0 | 
     enemyMultiplier,
     playerDamage: own ? entry.attackerDamage : entry.defenderDamage,
     enemyDamage: own ? entry.defenderDamage : entry.attackerDamage,
-    visualState: playerMultiplier > enemyMultiplier ? "player_strong" : enemyMultiplier > playerMultiplier ? "enemy_strong" : "neutral",
+    visualState: playerMultiplier >= 1.5 ? "player_strong" : enemyMultiplier >= 1.5 ? "enemy_strong" : "neutral",
     ownStrike: own,
   };
 }
@@ -880,7 +879,7 @@ export class TournamentService {
       opponent: { ...opponentSnapshot.snapshot.side, id: them.playerId, name: opponentName },
       playerCards: ownCards,
       opponentCards: viewCards,
-      pairMultipliers: [0, 1, 2].map(slot => getElementMultiplier(ownCards[slot]!.element, viewCards[slot]!.element)) as [ElementMultiplier, ElementMultiplier, ElementMultiplier],
+      pairMultipliers: [0, 1, 2].map(slot => getStrikeMultiplier(ownCards[slot]!.element, viewCards[slot]!.element, me.modifiers.strikeMultiplierBonus)) as [number, number, number],
       playerUsedSlots: [...synced.own.used],
       cycleEndsAt: now.getTime() < duel.battleStartsAt ? duel.battleStartsAt : duel.battleStartsAt + (synced.own.cycle + 1) * TOURNAMENT_RULES.cycleMs,
       playerHp: me.hp,

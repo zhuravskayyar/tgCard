@@ -201,8 +201,9 @@ function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, tu
   const targetSide = { badges: arenaLogBadges(target, entry.targetDefeated, entry.artifacts), portrait: { name: entry.targetName, photoUrl: target?.photoUrl ?? null } };
   const playerSide = playerHit ? targetSide : attackerSide;
   const enemySide = playerHit ? attackerSide : targetSide;
-  const playerMultiplier = playerAttack ? entry.multiplier : 0.5;
-  const enemyMultiplier = playerHit ? entry.multiplier : 0.5;
+  const counterMultiplier = entry.counterMultiplier ?? getElementMultiplier(entry.targetCard.element, entry.attackerCard.element);
+  const playerMultiplier = playerHit ? counterMultiplier : entry.multiplier;
+  const enemyMultiplier = playerHit ? entry.multiplier : counterMultiplier;
   return {
     enemyBadges: enemySide.badges,
     enemyPortrait: enemySide.portrait,
@@ -213,14 +214,12 @@ function arenaLogToDuelExchange(entry: ArenaBattleLogEntry, playerId: string, tu
     enemyMultiplier,
     playerCard: playerAttack || botExchange ? entry.attackerCard : entry.targetCard,
     playerDamage: playerAttack || botExchange ? entry.damage : entry.counterDamage ?? 0,
-    playerMultiplier: botExchange ? entry.multiplier : playerMultiplier,
+    playerMultiplier,
     slotIndex: entry.slotIndex,
     // Other participants' strikes on the player's target are dimmed, as in the reference log.
     muted: botExchange,
     turnNumber,
-    visualState: (playerAttack || botExchange) && entry.multiplier === 1.5
-      ? "player_strong"
-      : playerHit && entry.multiplier === 1.5 ? "enemy_strong" : "neutral",
+    visualState: playerMultiplier >= 1.5 ? "player_strong" : enemyMultiplier >= 1.5 ? "enemy_strong" : "neutral",
   };
 }
 
@@ -332,7 +331,9 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
   const aliveEnemies = match.participants.filter((participant) => participant.id !== match.playerId && participant.alive).length;
   const multipliers = match.playerSlots.map((slot, index) => {
     const enemyCard = match.targetSlots?.[index]?.card;
-    return slot.card && enemyCard ? getElementMultiplier(slot.card.element, enemyCard.element) : null;
+    if (!slot.card || !enemyCard) return null;
+    const base = getElementMultiplier(slot.card.element, enemyCard.element);
+    return { base, value: match.pairMultipliers?.[index] ?? base };
   });
   return (
     <div className={`duel-page duel-battle arena-battle${clash ? " duel-battle--clash" : ""}`}>
@@ -342,7 +343,7 @@ function ArenaBattle({ match, pending, onAction, onTarget, onCards }: {
         {clash ? <BattleAttackAnimation key={clash.turnNumber} exchange={clash} /> : null}
           <div className="duel-card-row duel-card-row--enemy">{match.targetSlots ? match.targetSlots.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.enemyMultiplier) : undefined} clashing={clashSlot === index} enemy key={index} lane={index} slot={slot} />) : clash ? [0, 1, 2].map(index => index === clash.slotIndex ? <BattleCard card={clash.enemyCard} enemy key={index} /> : <div aria-hidden="true" key={index} />) : null}</div>
           <div className="duel-multiplier-row" aria-label="Множники удару">
-            {multipliers.map((multiplier, index) => <span className={multiplier === null ? "duel-multiplier arena-multiplier--none" : `duel-multiplier duel-multiplier--${String(multiplier).replace(".", "-")}`} key={index}>{multiplier === null ? " " : `×${multiplier}`}</span>)}
+            {multipliers.map((multiplier, index) => <span className={multiplier === null ? "duel-multiplier arena-multiplier--none" : `duel-multiplier duel-multiplier--${String(multiplier.base).replace(".", "-")}`} key={index}>{multiplier === null ? " " : `×${multiplier.value}`}</span>)}
           </div>
           <div className="duel-card-row duel-card-row--player">{match.playerSlots.map((slot, index) => <ArenaSlot clashLevel={clashSlot === index && clash ? getEffectLevel(clash.playerMultiplier) : undefined} clashing={clashSlot === index} defeated={playerDefeated} key={index} lane={index} slot={slot} disabled={clash !== null || match.status !== "active" || pending !== null} onClick={() => onAction(index as 0 | 1 | 2)} />)}</div>
       </section>

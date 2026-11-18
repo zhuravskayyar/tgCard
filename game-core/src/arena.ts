@@ -68,6 +68,7 @@ export function calculateArenaDamage(input: {
   attackerModifiers: DuelBattleModifiers;
   defender: DuelCardSnapshot;
   defenderModifiers?: DuelBattleModifiers;
+  counterattack?: boolean;
 }) {
   const attack = calculateDuelDamage({
     attackerFinalPower: input.attacker.finalPower,
@@ -75,11 +76,18 @@ export function calculateArenaDamage(input: {
     defenderElement: input.defender.element,
     battleDamagePct: input.attackerModifiers.battleDamagePct,
     attackerElementDamagePct: input.attackerModifiers.elementDamagePct[input.attacker.element],
-    attackerEquipment: input.attackerModifiers.equipment,
+    strikeMultiplierBonus: input.attackerModifiers.strikeMultiplierBonus,
+    counterattack: input.counterattack,
   });
+  const weapon = input.counterattack ? undefined : input.attackerModifiers.equipment;
+  const armor = input.counterattack ? undefined : input.defenderModifiers?.equipment;
+  const reductionPct = Math.max(0, (armor?.incomingDamageReductionPct ?? 0) - (weapon?.antiDamageReductionPct ?? 0));
+  const reflectionPct = Math.max(0, (armor?.damageReflectionPct ?? 0) - (weapon?.antiDamageReflectionPct ?? 0));
+  const artifactAdjustmentPct = (weapon?.outgoingDamagePct ?? 0) - reductionPct;
   return {
     ...attack,
-    damage: Math.round(attack.damage * Math.max(0, 1 - (input.defenderModifiers?.equipment?.incomingDamageReductionPct ?? 0) / 100)),
+    damage: Math.max(0, Math.round(attack.damage + input.attacker.finalPower * artifactAdjustmentPct / 100)),
+    reflectedDamage: Math.round(input.attacker.finalPower * reflectionPct / 100),
   };
 }
 
