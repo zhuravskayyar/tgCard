@@ -3,7 +3,7 @@
    background-size: cover, centred). Every effect is anchored to a place in the painting:
    embers over the burning ruins, spray at the waterfalls, mist in the valley, light from
    the World Tree, wisps rising along its trunk and leaves falling from the branches.
-   Skipped on narrow screens, with reduced motion, and paused while the tab is hidden. */
+   Skipped on narrow landing pages (portrait art), with reduced motion, and paused while the tab is hidden. */
 (function () {
   "use strict";
   if (window.__cardastikaWorldAmbient) return;
@@ -47,7 +47,9 @@
     scale = Math.max(W / ART_W, H / ART_H);
     offX = (W - ART_W * scale) / 2;
     offY = (H - ART_H * scale) / 2;
-    var shouldRun = W >= MIN_WIDTH;
+    // The game's phone-frame host always paints the wide art, at any window width;
+    // the landings switch to the portrait art below MIN_WIDTH, where these anchors do not fit.
+    var shouldRun = W >= MIN_WIDTH || document.body.classList.contains("phone-frame-host");
     if (shouldRun !== active) {
       active = shouldRun;
       canvas.style.display = active ? "block" : "none";
