@@ -1,57 +1,71 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import type { AdminCardDefinitionItem, AdminCurrency, AdminPlayerDetailResponse } from "@cardastika/shared";
+import type { AdminAuditResponse, AdminCardDefinitionItem, AdminCurrency, AdminPlayerDetailResponse } from "@cardastika/shared";
 import { CurrencyIcon } from "../../components/CurrencyDisplay";
 import {
   AdminApiError,
   changeAdminPlayerCurrency,
   changeAdminPlayerLevel,
   grantAdminPlayerCards,
+  loadAdminAudit,
   loadAdminCards,
   loadAdminPlayer,
   removeAdminPlayerCard,
 } from "../adminApi";
-import { elementLabels, formatDate, formatLastSeen, formatNumber, playerName, rarityLabels } from "../adminFormat";
+import { AdminAuditDiff } from "../AdminAuditDiff";
+import {
+  elementLabels,
+  formatAction,
+  formatDate,
+  formatLastSeen,
+  formatNumber,
+  formatPercent,
+  guildRoleLabels,
+  initials,
+  playerName,
+  providerLabels,
+  rarityLabels,
+} from "../adminFormat";
+import { useAdminFeedback } from "../AdminFeedback";
 import { AdminPagination } from "../AdminPagination";
 import { AdminEmpty, AdminError, AdminLoading } from "../AdminStates";
 
-interface CurrencyEditorProps {
+type Tab = "overview" | "deck" | "cards" | "history";
+
+const CURRENCY_PRESETS: Record<AdminCurrency, number[]> = {
+  gold: [10, 50, 100, 500],
+  silver: [100, 1_000, 10_000, 100_000],
+};
+
+function CurrencyEditor({ currency, current, disabled, onChange }: {
   currency: AdminCurrency;
   current: number;
   disabled: boolean;
   onChange: (currency: AdminCurrency, delta: number) => void;
-}
-
-function CurrencyEditor({ currency, current, disabled, onChange }: CurrencyEditorProps) {
-  const [amount, setAmount] = useState("100");
+}) {
+  const [amount, setAmount] = useState("");
   const label = currency === "silver" ? "Срібло" : "Золото";
-  const submit = (sign: 1 | -1) => {
-    const parsed = Number(amount);
-    if (!Number.isSafeInteger(parsed) || parsed <= 0) return;
-    onChange(currency, parsed * sign);
-  };
+  const parsed = Number(amount);
+  const valid = amount !== "" && Number.isSafeInteger(parsed) && parsed > 0;
+  const submit = (sign: 1 | -1) => { if (valid) { onChange(currency, parsed * sign); setAmount(""); } };
   return (
-    <article className={`admin-balance-editor admin-balance-editor--${currency}`}>
-      <div className="admin-balance-editor__summary">
-        <span className="admin-balance-editor__icon"><CurrencyIcon kind={currency} size={34} /></span>
-        <span><small>Поточний баланс</small><strong>{formatNumber(current)}</strong><span>{label}</span></span>
+    <article className="admin-balance">
+      <div className="admin-balance__top">
+        <CurrencyIcon kind={currency} size={34} />
+        <div><small>{label}</small><strong>{formatNumber(current)}</strong></div>
       </div>
-      <div className="admin-balance-editor__controls">
-        <label className="admin-field"><span>Сума зміни</span><input aria-label={`Сума зміни: ${label}`} disabled={disabled} min="1" onChange={(event) => setAmount(event.target.value)} type="number" value={amount} /></label>
-        <div className="admin-balance-editor__actions">
-          <button className="admin-button admin-button--positive" disabled={disabled} onClick={() => submit(1)} type="button">+ Додати</button>
-          <button className="admin-button admin-button--danger-soft" disabled={disabled} onClick={() => submit(-1)} type="button">− Зняти</button>
-        </div>
+      <div className="admin-presets" aria-label={`Швидкі суми: ${label}`}>
+        {CURRENCY_PRESETS[currency].map((preset) => <button disabled={disabled} key={preset} onClick={() => setAmount(String(preset))} type="button">{formatNumber(preset)}</button>)}
+      </div>
+      <div className="admin-balance__row">
+        <input aria-label={`Сума зміни: ${label}`} className="admin-input" disabled={disabled} inputMode="numeric" min="1" onChange={(event) => setAmount(event.target.value)} placeholder="Сума" type="number" value={amount} />
+        <button className="admin-button admin-button--good" disabled={disabled || !valid} onClick={() => submit(1)} type="button">+ Додати</button>
+        <button className="admin-button admin-button--danger-soft" disabled={disabled || !valid || parsed > current} onClick={() => submit(-1)} title={parsed > current ? "Не можна зняти більше, ніж є" : undefined} type="button">− Зняти</button>
       </div>
     </article>
   );
 }
 
-interface GrantFormProps {
-  disabled: boolean;
-  onGrant: (cardId: string, quantity: number, level: number, cardName: string) => void;
-}
-
-function GrantCardForm({ disabled, onGrant }: GrantFormProps) {
+function GrantCardForm({ disabled, onGrant }: { disabled: boolean; onGrant: (card: AdminCardDefinitionItem, quantity: number, level: number) => void }) {
   const [search, setSearch] = useState("");
   const [cards, setCards] = useState<AdminCardDefinitionItem[]>([]);
   const [cardId, setCardId] = useState("");
@@ -60,7 +74,7 @@ function GrantCardForm({ disabled, onGrant }: GrantFormProps) {
   useEffect(() => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
-      void loadAdminCards({ search, page: 1, limit: 30, sort: "name", direction: "asc" }, controller.signal)
+      void loadAdminCards({ search, page: 1, limit: 50, sort: "name", direction: "asc" }, controller.signal)
         .then((result) => {
           setCards(result.cards);
           setCardId((current) => result.cards.some(({ id }) => id === current) ? current : result.cards[0]?.id ?? "");
@@ -69,26 +83,66 @@ function GrantCardForm({ disabled, onGrant }: GrantFormProps) {
     }, 250);
     return () => { window.clearTimeout(timeoutId); controller.abort(); };
   }, [search]);
-  const selectedCard = cards.find(({ id }) => id === cardId);
+  const selected = cards.find(({ id }) => id === cardId);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const parsedQuantity = Number(quantity);
     const parsedLevel = Number(level);
-    if (!selectedCard || !Number.isSafeInteger(parsedQuantity) || !Number.isSafeInteger(parsedLevel)) return;
-    onGrant(selectedCard.id, parsedQuantity, parsedLevel, selectedCard.displayName ?? selectedCard.code);
+    if (!selected || !Number.isSafeInteger(parsedQuantity) || !Number.isSafeInteger(parsedLevel) || parsedQuantity < 1 || parsedLevel < 1) return;
+    onGrant(selected, parsedQuantity, parsedLevel);
   };
   return (
-    <form className="admin-grant-form" onSubmit={submit}>
-      <label className="admin-field"><span>Знайти карту</span><input disabled={disabled} onChange={(event) => setSearch(event.target.value)} placeholder="Назва або код" type="search" value={search} /></label>
-      <label className="admin-field admin-field--wide"><span>Карта</span><select disabled={disabled || cards.length === 0} onChange={(event) => setCardId(event.target.value)} value={cardId}>{cards.map((card) => <option key={card.id} value={card.id}>{card.displayName ?? card.code} · {elementLabels[card.element]}</option>)}</select></label>
-      <label className="admin-field"><span>Кількість</span><input disabled={disabled} max="20" min="1" onChange={(event) => setQuantity(event.target.value)} type="number" value={quantity} /></label>
-      <label className="admin-field"><span>Рівень карти</span><input disabled={disabled} max="50" min="1" onChange={(event) => setLevel(event.target.value)} type="number" value={level} /></label>
-      <button className="admin-button" disabled={disabled || !cardId} type="submit">Додати карту</button>
+    <form className="admin-grant" onSubmit={submit}>
+      <label className="admin-field"><span>Пошук карти</span><input disabled={disabled} onChange={(event) => setSearch(event.target.value)} placeholder="Назва або код" type="search" value={search} /></label>
+      <label className="admin-field"><span>Карта {cards.length ? <span className="admin-muted">({cards.length})</span> : null}</span><select disabled={disabled || cards.length === 0} onChange={(event) => setCardId(event.target.value)} value={cardId}>{cards.map((card) => <option key={card.id} value={card.id}>{card.displayName ?? card.code} · {elementLabels[card.element]}</option>)}</select></label>
+      <label className="admin-field"><span>Кількість</span><input disabled={disabled} inputMode="numeric" max="20" min="1" onChange={(event) => setQuantity(event.target.value)} type="number" value={quantity} /></label>
+      <label className="admin-field"><span>Рівень</span><input disabled={disabled} inputMode="numeric" max="50" min="1" onChange={(event) => setLevel(event.target.value)} type="number" value={level} /></label>
+      <button className="admin-button" disabled={disabled || !cardId} type="submit">+ Видати</button>
     </form>
   );
 }
 
+function PlayerHistory({ playerId, refreshKey }: { playerId: string; refreshKey: number }) {
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<AdminAuditResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    setError(null);
+    void loadAdminAudit({ entityId: playerId, page, limit: 20 }, controller.signal)
+      .then(setData)
+      .catch((requestError: unknown) => {
+        if (requestError instanceof Error && requestError.name === "AbortError") return;
+        setError(requestError instanceof Error ? requestError.message : "Невідома помилка");
+      });
+    return () => controller.abort();
+  }, [page, playerId, refreshKey]);
+  if (error) return <AdminError message={error} />;
+  if (!data) return <AdminLoading />;
+  if (data.logs.length === 0) return <AdminEmpty message="Адміністратори ще не змінювали цей акаунт." title="Історія порожня" />;
+  return (
+    <>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead><tr><th>Час</th><th>Дія</th><th>Зміни</th><th>Адмін</th></tr></thead>
+          <tbody>{data.logs.map((log) => (
+            <tr className="admin-audit-row" key={log.id}>
+              <td className="admin-td-title"><span className="admin-muted">{formatDate(log.createdAt)}</span></td>
+              <td data-label="Дія"><span className="admin-badge admin-badge--accent">{formatAction(log.action)}</span></td>
+              <td data-label="Зміни"><AdminAuditDiff log={log} /></td>
+              <td data-label="Адмін"><span className="admin-muted">{log.adminTelegramUserId}</span></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <AdminPagination onPageChange={setPage} page={data.page} total={data.total} totalPages={data.totalPages} />
+    </>
+  );
+}
+
 export function AdminPlayerScreen({ onNavigate, playerId }: { onNavigate: (path: string) => void; playerId: string }) {
+  const { confirm, toast } = useAdminFeedback();
+  const [tab, setTab] = useState<Tab>("overview");
   const [cardPage, setCardPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
   const [data, setData] = useState<AdminPlayerDetailResponse | null>(null);
@@ -96,7 +150,7 @@ export function AdminPlayerScreen({ onNavigate, playerId }: { onNavigate: (path:
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [levelDraft, setLevelDraft] = useState("1");
-  const [notice, setNotice] = useState<{ kind: "error" | "success"; text: string } | null>(null);
+  const [cardFilter, setCardFilter] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -117,103 +171,200 @@ export function AdminPlayerScreen({ onNavigate, playerId }: { onNavigate: (path:
 
   const runMutation = useCallback(async (operation: () => Promise<{ message: string }>) => {
     setPending(true);
-    setNotice(null);
     try {
       const result = await operation();
-      setNotice({ kind: "success", text: result.message });
+      toast("success", result.message);
       setRefreshKey((key) => key + 1);
     } catch (mutationError) {
-      setNotice({ kind: "error", text: mutationError instanceof Error ? mutationError.message : "Операцію не виконано" });
+      toast("error", mutationError instanceof Error ? mutationError.message : "Операцію не виконано");
     } finally {
       setPending(false);
     }
-  }, []);
+  }, [toast]);
 
-  const handleCurrency = (currency: AdminCurrency, delta: number) => {
+  const name = data ? playerName(data.player) : "";
+
+  const handleCurrency = async (currency: AdminCurrency, delta: number) => {
     const currencyName = currency === "silver" ? "срібла" : "золота";
-    if (!window.confirm(`${delta > 0 ? "Додати" : "Зняти"} ${formatNumber(Math.abs(delta))} ${currencyName}?`)) return;
-    void runMutation(() => changeAdminPlayerCurrency(playerId, currency, delta));
+    const ok = await confirm({
+      title: delta > 0 ? `Додати ${currencyName}?` : `Зняти ${currencyName}?`,
+      message: `${name}: ${delta > 0 ? "+" : "−"}${formatNumber(Math.abs(delta))} ${currencyName}. Дію буде записано в журнал.`,
+      confirmLabel: delta > 0 ? "Додати" : "Зняти",
+      danger: delta < 0,
+    });
+    if (ok) void runMutation(() => changeAdminPlayerCurrency(playerId, currency, delta));
   };
-  const handleLevel = () => {
+  const handleLevel = async () => {
     const level = Number(levelDraft);
-    if (!Number.isSafeInteger(level) || level < 1 || level > 120 || !window.confirm(`Змінити рівень гравця на ${level}?`)) return;
-    void runMutation(() => changeAdminPlayerLevel(playerId, level));
+    if (!Number.isSafeInteger(level) || level < 1 || level > 120) { toast("error", "Рівень має бути від 1 до 120."); return; }
+    if (await confirm({ title: "Змінити рівень?", message: `${name}: рівень ${data?.player.level} → ${level}.`, confirmLabel: "Зберегти" })) {
+      void runMutation(() => changeAdminPlayerLevel(playerId, level));
+    }
   };
-  const handleGrant = (cardId: string, quantity: number, level: number, cardName: string) => {
-    if (!window.confirm(`Додати «${cardName}» × ${quantity}, рівень ${level}?`)) return;
-    void runMutation(() => grantAdminPlayerCards(playerId, cardId, quantity, level));
+  const handleGrant = async (card: AdminCardDefinitionItem, quantity: number, level: number) => {
+    if (await confirm({ title: "Видати карту?", message: `«${card.displayName ?? card.code}» × ${quantity}, рівень ${level} → ${name}.`, confirmLabel: "Видати" })) {
+      void runMutation(() => grantAdminPlayerCards(playerId, card.id, quantity, level));
+    }
   };
-  const handleRemove = (instanceId: string, cardName: string, inDeck: boolean) => {
-    const deckWarning = inDeck ? " Активну колоду буде автоматично перебудовано; якщо це неможливо, сервер скасує операцію." : "";
-    if (!window.confirm(`Видалити «${cardName}» з інвентарю?${deckWarning}`)) return;
-    void runMutation(() => removeAdminPlayerCard(playerId, instanceId));
+  const handleRemove = async (instanceId: string, cardName: string, inDeck: boolean) => {
+    const ok = await confirm({
+      title: "Видалити карту?",
+      message: `«${cardName}» буде видалено з інвентарю.${inDeck ? " Карта в колоді — колоду перебудує сервер; якщо це неможливо, операцію буде скасовано." : ""}`,
+      confirmLabel: "Видалити",
+      danger: true,
+    });
+    if (ok) void runMutation(() => removeAdminPlayerCard(playerId, instanceId));
   };
-  const copyPlayerId = async () => {
+  const copy = async (value: string, label: string) => {
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
-      await navigator.clipboard.writeText(playerId);
-      setNotice({ kind: "success", text: "ID гравця скопійовано." });
+      await navigator.clipboard.writeText(value);
+      toast("success", `${label} скопійовано.`);
     } catch {
-      setNotice({ kind: "error", text: "Не вдалося скопіювати ID. Скопіюйте його вручну." });
+      toast("error", "Не вдалося скопіювати. Виділіть текст вручну.");
     }
   };
 
   const deckPower = useMemo(() => data?.deck.reduce((sum, card) => sum + card.finalPower, 0) ?? 0, [data?.deck]);
+  const visibleCards = useMemo(() => {
+    const query = cardFilter.trim().toLowerCase();
+    if (!data || !query) return data?.cards ?? [];
+    return data.cards.filter((card) => `${card.displayName ?? ""} ${card.code} ${elementLabels[card.element]} ${rarityLabels[card.rarity]}`.toLowerCase().includes(query));
+  }, [cardFilter, data]);
 
   if (loading && !data) return <AdminLoading label="Завантажуємо профіль гравця…" />;
-  if (error && !data) return <AdminError message={error} onRetry={() => setRefreshKey((key) => key + 1)} />;
+  if (error && !data) return <div className="admin-page"><button className="admin-back" onClick={() => onNavigate("/admin/players")} type="button">← Гравці</button><AdminError message={error} onRetry={() => setRefreshKey((key) => key + 1)} /></div>;
   if (!data) return null;
 
-  const { player } = data;
+  const { player, stats } = data;
+  const duels = stats.duelsWon + stats.duelsLost;
+  const tabs: Array<{ count?: number; id: Tab; label: string }> = [
+    { id: "overview", label: "Огляд" },
+    { count: data.deck.length, id: "deck", label: "Колода" },
+    { count: data.cardsPagination.total, id: "cards", label: "Карти" },
+    { id: "history", label: "Історія змін" },
+  ];
+
   return (
     <div className="admin-page">
-      <button className="admin-back" onClick={() => onNavigate("/admin/players")} type="button">← До списку гравців</button>
-      <div className="admin-player-head">
-        <div className="admin-player-head__avatar">{playerName(player).slice(0, 2).toUpperCase()}</div>
-        <div><p className="admin-eyebrow">ПРОФІЛЬ ГРАВЦЯ</p><h1>{playerName(player)}</h1><p>{player.username ? `@${player.username} · ` : ""}{player.telegramUserId ? `Telegram ${player.telegramUserId}` : "Без Telegram-ідентичності"}</p></div>
-        <div className="admin-player-head__meta">
-          <span>Створено {formatDate(player.createdAt)}</span>
-          <span className={`admin-player-presence admin-player-presence--${player.isOnline ? "online" : "offline"}`}><i />{player.isOnline ? "Онлайн зараз" : `Офлайн · ${formatLastSeen(player.lastSeenAt)}`}</span>
-          <small className="admin-player-last-seen">{player.lastSeenAt ? `Останній захід: ${formatDate(player.lastSeenAt)}` : "Історію входів почнемо зберігати після оновлення"}</small>
-          <div className="admin-player-head__id"><code title={player.id}>{player.id}</code><button aria-label="Скопіювати ID гравця" className="admin-copy-id" onClick={() => { void copyPlayerId(); }} type="button"><span aria-hidden="true">▢</span><span>Копіювати ID</span></button></div>
-          <button className="admin-button admin-button--secondary admin-button--compact" disabled={loading} onClick={() => setRefreshKey((key) => key + 1)} type="button"><span aria-hidden="true" className="admin-button__icon">↻</span>{loading ? "Оновлюємо…" : "Оновити профіль"}</button>
+      <button className="admin-back" onClick={() => onNavigate("/admin/players")} type="button">← Гравці</button>
+
+      <header className="admin-profile">
+        <span className="admin-avatar admin-avatar--lg">{initials(name)}</span>
+        <div className="admin-profile__name">
+          <h1>{name}</h1>
+          <p>
+            {player.isOnline ? <span className="admin-badge admin-badge--good"><i className="admin-dot admin-dot--online" />Онлайн</span> : <span className="admin-badge">Був(ла) {formatLastSeen(player.lastSeenAt)}</span>}
+            {player.username ? <span>@{player.username}</span> : null}
+            {player.telegramUserId ? <button className="admin-link" onClick={() => { void copy(player.telegramUserId!, "Telegram ID"); }} title="Скопіювати Telegram ID" type="button">TG {player.telegramUserId}</button> : null}
+            <span className="admin-id"><code title={player.id}>{player.id}</code><button onClick={() => { void copy(player.id, "ID гравця"); }} type="button">Копіювати</button></span>
+          </p>
         </div>
-      </div>
-      {notice ? <div className={`admin-toast admin-toast--${notice.kind}`} role="status">{notice.text}<button aria-label="Закрити" onClick={() => setNotice(null)} type="button">×</button></div> : null}
+        <button className="admin-button admin-button--secondary" disabled={loading} onClick={() => setRefreshKey((key) => key + 1)} type="button">{loading ? <span className="admin-spinner" /> : "↻"} Оновити</button>
+      </header>
 
-      <div className="admin-player-grid">
-        <section className="admin-panel">
-          <div className="admin-panel__heading"><div><h2>Баланс</h2><p>Кожна зміна потребує підтвердження й потрапляє в audit log.</p></div></div>
-          <div className="admin-balance-grid">
-            <CurrencyEditor currency="silver" current={player.silver} disabled={pending} onChange={handleCurrency} />
-            <CurrencyEditor currency="gold" current={player.gold} disabled={pending} onChange={handleCurrency} />
+      <section aria-label="Показники гравця" className="admin-kpis admin-kpis--compact">
+        <article className="admin-kpi"><span className="admin-kpi__label">Рівень</span><strong className="admin-kpi__value">{player.level}</strong></article>
+        <article className="admin-kpi"><span className="admin-kpi__label">Срібло</span><strong className="admin-kpi__value">{formatNumber(player.silver)}</strong></article>
+        <article className="admin-kpi"><span className="admin-kpi__label">Золото</span><strong className="admin-kpi__value">{formatNumber(player.gold)}</strong></article>
+        <article className="admin-kpi"><span className="admin-kpi__label">Карт</span><strong className="admin-kpi__value">{formatNumber(data.cardsPagination.total)}</strong><span className="admin-kpi__hint">сила колоди {formatNumber(deckPower)}</span></article>
+        <article className="admin-kpi"><span className="admin-kpi__label">Дуелі</span><strong className="admin-kpi__value">{formatNumber(duels)}</strong><span className="admin-kpi__hint">{duels ? `${formatNumber(stats.duelsWon)} перемог · ${formatPercent(stats.duelsWon, duels)}` : "ще не грав(ла)"}</span></article>
+      </section>
+
+      <div aria-label="Розділи профілю" className="admin-tabs" role="tablist">
+        {tabs.map((item) => <button aria-selected={tab === item.id} key={item.id} onClick={() => setTab(item.id)} role="tab" type="button">{item.label}{item.count !== undefined ? <small>{formatNumber(item.count)}</small> : null}</button>)}
+      </div>
+
+      {tab === "overview" ? (
+        <div className="admin-grid admin-grid--wide-left">
+          <section className="admin-panel">
+            <div className="admin-panel__head"><div><h2>Баланс</h2><p>Кожна зміна потребує підтвердження та потрапляє в журнал.</p></div></div>
+            <div className="admin-grid admin-grid--2">
+              <CurrencyEditor currency="silver" current={player.silver} disabled={pending} onChange={(currency, delta) => { void handleCurrency(currency, delta); }} />
+              <CurrencyEditor currency="gold" current={player.gold} disabled={pending} onChange={(currency, delta) => { void handleCurrency(currency, delta); }} />
+            </div>
+          </section>
+          <div className="admin-grid">
+            <section className="admin-panel">
+              <div className="admin-panel__head"><div><h2>Рівень акаунта</h2><p>Від 1 до 120. Досвід зберігається в межах нового рівня.</p></div></div>
+              <div className="admin-stepper">
+                <button aria-label="Мінус рівень" className="admin-button admin-button--secondary admin-button--icon" disabled={pending} onClick={() => setLevelDraft((value) => String(Math.max(1, Number(value) - 1)))} type="button">−</button>
+                <input aria-label="Новий рівень" className="admin-input" disabled={pending} inputMode="numeric" max="120" min="1" onChange={(event) => setLevelDraft(event.target.value)} type="number" value={levelDraft} />
+                <button aria-label="Плюс рівень" className="admin-button admin-button--secondary admin-button--icon" disabled={pending} onClick={() => setLevelDraft((value) => String(Math.min(120, Number(value) + 1)))} type="button">+</button>
+                <button className="admin-button" disabled={pending || Number(levelDraft) === player.level} onClick={() => { void handleLevel(); }} type="button">Зберегти</button>
+              </div>
+            </section>
+            <section className="admin-panel">
+              <div className="admin-panel__head"><div><h2>Акаунт</h2></div></div>
+              <dl className="admin-facts">
+                <div><dt>Гільдія</dt><dd>{stats.guild ? stats.guild.name : "—"}{stats.guild ? <small>{guildRoleLabels[stats.guild.role] ?? stats.guild.role}</small> : <small>не в гільдії</small>}</dd></div>
+                <div><dt>Вхід через</dt><dd>{stats.authProviders.length ? stats.authProviders.map((provider) => providerLabels[provider] ?? provider).join(", ") : "—"}</dd></div>
+                <div><dt>Реєстрація</dt><dd>{formatDate(player.createdAt)}</dd></div>
+                <div><dt>Остання дуель</dt><dd>{stats.lastDuelAt ? formatLastSeen(stats.lastDuelAt) : "—"}</dd></div>
+              </dl>
+            </section>
           </div>
-        </section>
+        </div>
+      ) : null}
+
+      {tab === "deck" ? (
         <section className="admin-panel">
-          <div className="admin-panel__heading"><div><h2>Прогрес</h2><p>Допустимий рівень акаунта: 1–120.</p></div></div>
-          <div className="admin-level-editor"><span className="admin-level-badge admin-level-badge--large">{player.level}</span><label className="admin-field"><span>Новий рівень</span><input disabled={pending} max="120" min="1" onChange={(event) => setLevelDraft(event.target.value)} type="number" value={levelDraft} /></label><button className="admin-button" disabled={pending || Number(levelDraft) === player.level} onClick={handleLevel} type="button">Зберегти рівень</button></div>
+          <div className="admin-panel__head"><div><h2>Активна колода</h2><p>{data.deck.length}/9 карт · сила {formatNumber(deckPower)} · колоду автоматично перебудовує сервер</p></div></div>
+          {data.deck.length === 0 ? <AdminEmpty message="Колода ще не сформована." title="Колода порожня" /> : (
+            <div className="admin-deck">{data.deck.map((card) => (
+              <article className="admin-deck__card" key={card.instanceId}>
+                <span className="admin-deck__slot">{card.slot}</span>
+                <div><strong>{card.displayName ?? card.code}</strong><small><span className={`admin-rarity admin-rarity--${card.rarity}`}>{rarityLabels[card.rarity]}</span> · {elementLabels[card.element]} · рів. {card.level}</small></div>
+                <b>{formatNumber(card.finalPower)}</b>
+              </article>
+            ))}</div>
+          )}
         </section>
-      </div>
+      ) : null}
 
-      <section className="admin-panel">
-        <div className="admin-panel__heading"><div><h2>Активна колода</h2><p>{data.deck.length}/9 карт · сила {formatNumber(deckPower)} · перебудову контролює сервер</p></div></div>
-        <div className="admin-deck-grid">{data.deck.map((card) => <article key={card.instanceId}><span>{card.slot}</span><div><strong>{card.displayName ?? card.code}</strong><small>{elementLabels[card.element]} · {rarityLabels[card.rarity]}</small></div><b>{formatNumber(card.finalPower)}</b></article>)}</div>
-      </section>
+      {tab === "cards" ? (
+        <>
+          <section className="admin-panel">
+            <div className="admin-panel__head"><div><h2>Видати карту</h2><p>Рідкість визначає сервер за рівнем карти, як і в грі.</p></div></div>
+            <GrantCardForm disabled={pending} onGrant={(card, quantity, level) => { void handleGrant(card, quantity, level); }} />
+          </section>
+          <section className="admin-panel admin-panel--flush">
+            <div className="admin-panel__head">
+              <div><h2>Інвентар</h2><p>{formatNumber(data.cardsPagination.total)} екземплярів · спочатку карти з колоди</p></div>
+              <input aria-label="Фільтр карт на сторінці" className="admin-input" onChange={(event) => setCardFilter(event.target.value)} placeholder="Фільтр на сторінці…" style={{ maxWidth: 240 }} type="search" value={cardFilter} />
+            </div>
+            {data.cards.length === 0 ? <AdminEmpty message="У цього гравця немає карт." title="Інвентар порожній" /> : (
+              <>
+                <div className={`admin-table-wrap${loading ? " admin-table-wrap--updating" : ""}`}>
+                  <table className="admin-table">
+                    <thead><tr><th>Карта</th><th>Рідкість</th><th>Стихія</th><th className="is-num">Рівень</th><th className="is-num">Сила</th><th>Стан</th><th><span className="admin-sr-only">Дія</span></th></tr></thead>
+                    <tbody>{visibleCards.map((card) => (
+                      <tr key={card.instanceId}>
+                        <td className="admin-td-title"><span className="admin-cell-main"><strong>{card.displayName ?? card.code}</strong><small>{card.code}</small></span></td>
+                        <td data-label="Рідкість"><span className={`admin-rarity admin-rarity--${card.rarity}`}>{rarityLabels[card.rarity]}</span></td>
+                        <td data-label="Стихія"><span className="admin-element"><i className={`admin-fill--${card.element}`} />{elementLabels[card.element]}</span></td>
+                        <td className="is-num" data-label="Рівень">{card.level}</td>
+                        <td className="is-num" data-label="Сила"><strong>{formatNumber(card.finalPower)}</strong>{card.bonusPower ? <span className="admin-muted"> (+{formatNumber(card.bonusPower)})</span> : null}</td>
+                        <td data-label="Стан">{card.inDeck ? <span className="admin-badge admin-badge--accent">Колода · слот {card.slot}</span> : <span className="admin-muted">Інвентар</span>}</td>
+                        <td className="admin-td-actions"><button className="admin-button admin-button--danger-soft admin-button--sm" disabled={pending} onClick={() => { void handleRemove(card.instanceId, card.displayName ?? card.code, card.inDeck); }} type="button">Видалити</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                {visibleCards.length === 0 ? <AdminEmpty message="На цій сторінці немає карт, що відповідають фільтру." /> : null}
+                <AdminPagination onPageChange={setCardPage} page={data.cardsPagination.page} total={data.cardsPagination.total} totalPages={data.cardsPagination.totalPages} />
+              </>
+            )}
+          </section>
+        </>
+      ) : null}
 
-      <section className="admin-panel">
-        <div className="admin-panel__heading"><div><h2>Додати карту</h2><p>Рідкість визначається сервером із рівня карти, як і в основній грі.</p></div></div>
-        <GrantCardForm disabled={pending} onGrant={handleGrant} />
-      </section>
-
-      <section className="admin-panel admin-table-panel">
-        <div className="admin-panel__heading"><div><h2>Інвентар карт</h2><p>{formatNumber(data.cardsPagination.total)} екземплярів</p></div></div>
-        {data.cards.length === 0 ? <AdminEmpty message="У цього гравця немає карт." /> : (
-          <>
-            <div className={`admin-table-wrap${loading ? " admin-table-wrap--updating" : ""}`}><table className="admin-table"><thead><tr><th>Карта</th><th>Стихія</th><th>Рідкість</th><th>Рівень</th><th>Сила</th><th>Стан</th><th><span className="admin-sr-only">Дія</span></th></tr></thead><tbody>{data.cards.map((card) => <tr key={card.instanceId}><td data-label="Карта"><strong>{card.displayName ?? card.code}</strong><small>{card.code}</small></td><td data-label="Стихія">{elementLabels[card.element]}</td><td data-label="Рідкість"><span className={`admin-rarity admin-rarity--${card.rarity}`}>{rarityLabels[card.rarity]}</span></td><td data-label="Рівень">{card.level}</td><td data-label="Сила">{formatNumber(card.finalPower)}</td><td data-label="Стан">{card.inDeck ? <span className="admin-status admin-status--active">У колоді · слот {card.slot}</span> : <span className="admin-status">Інвентар</span>}</td><td><button className="admin-icon-button admin-icon-button--danger" disabled={pending} onClick={() => handleRemove(card.instanceId, card.displayName ?? card.code, card.inDeck)} title={card.inDeck ? "Колоду буде перебудовано транзакційно" : "Видалити карту"} type="button">×</button></td></tr>)}</tbody></table></div>
-            <AdminPagination onPageChange={setCardPage} page={data.cardsPagination.page} total={data.cardsPagination.total} totalPages={data.cardsPagination.totalPages} />
-          </>
-        )}
-      </section>
+      {tab === "history" ? (
+        <section className="admin-panel admin-panel--flush">
+          <div className="admin-panel__head"><div><h2>Історія змін</h2><p>Усі дії адміністраторів щодо цього гравця</p></div></div>
+          <PlayerHistory playerId={playerId} refreshKey={refreshKey} />
+        </section>
+      ) : null}
     </div>
   );
 }

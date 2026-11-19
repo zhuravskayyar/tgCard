@@ -1,4 +1,5 @@
 import {
+  CARD_ELEMENTS,
   CARD_RARITIES,
   type AdminAuditLogItem,
   type AdminAuditResponse,
@@ -13,6 +14,7 @@ import {
   type AdminPlayerDetailResponse,
   type AdminPlayerListItem,
   type AdminPlayerMutationResponse,
+  type AdminPlayerStats,
   type AdminPlayersResponse,
   type CardDefinition,
   type CardElement,
@@ -61,6 +63,7 @@ export interface AdminPlayerListOptions {
   levelMax?: number;
   levelMin?: number;
   limit: number;
+  onlineOnly?: boolean;
   page: number;
   search?: string;
   silverMin?: number;
@@ -266,6 +269,40 @@ async function loadPlayer(database: Queryable, playerId: string, lock = false) {
   return row;
 }
 
+async function loadPlayerStats(database: Queryable, playerId: string): Promise<AdminPlayerStats> {
+  const [duels, guild, providers] = await Promise.all([
+    database.query<{ last_duel_at: Date | string | null; lost: string; won: string }>(
+      `SELECT
+        COUNT(*) FILTER (WHERE status = 'won') AS won,
+        COUNT(*) FILTER (WHERE status = 'lost') AS lost,
+        MAX(created_at) AS last_duel_at
+       FROM duels
+       WHERE challenger_id = $1`,
+      [playerId],
+    ),
+    database.query<{ id: string; name: string; role: string }>(
+      `SELECT guilds.id, guilds.name, guild_members.role
+       FROM guild_members
+       INNER JOIN guilds ON guilds.id = guild_members.guild_id
+       WHERE guild_members.player_id = $1`,
+      [playerId],
+    ),
+    database.query<{ provider: string }>(
+      "SELECT DISTINCT provider FROM auth_identities WHERE player_id = $1 ORDER BY provider",
+      [playerId],
+    ),
+  ]);
+  const duelRow = duels.rows[0];
+  const guildRow = guild.rows[0];
+  return {
+    duelsWon: toNonNegativeInteger(duelRow?.won ?? 0, "player duel wins"),
+    duelsLost: toNonNegativeInteger(duelRow?.lost ?? 0, "player duel losses"),
+    lastDuelAt: duelRow?.last_duel_at ? toIso(duelRow.last_duel_at) : null,
+    guild: guildRow ? { id: guildRow.id, name: guildRow.name, role: guildRow.role } : null,
+    authProviders: providers.rows.map((row) => row.provider),
+  };
+}
+
 export class AdminService {
   private readonly cardRng = new CryptoCardRandomSource();
 
@@ -308,14 +345,52 @@ export class AdminService {
            ORDER BY COUNT(instances.id) DESC, cards.code
            LIMIT 1`,
         ),
-        this.pool.query<{ duel_losses: string; duel_wins: string; duels: string; redemptions: string }>(
+        this.pool.query<{ duel_losses: string; duel_wins: string; duels: string; duels_last_24_hours: string; redemptions: string }>(
           `SELECT
             (SELECT COUNT(*) FROM duels) AS duels,
             (SELECT COUNT(*) FROM duels WHERE status = 'won') AS duel_wins,
             (SELECT COUNT(*) FROM duels WHERE status = 'lost') AS duel_losses,
+            (SELECT COUNT(*) FROM duels WHERE created_at >= NOW() - INTERVAL '24 hours') AS duels_last_24_hours,
             (SELECT COUNT(*) FROM player_limited_card_redemptions) AS redemptions`,
         ),
       ]);
+      const [elementRows, signupRows, guildStats, topPlayerRows] = await Promise.all([
+        this.pool.query<{ element: string; total: string }>(
+          `SELECT cards.element, COUNT(*) AS total
+           FROM player_card_instances instances
+           INNER JOIN cards ON cards.id = instances.card_id
+           GROUP BY cards.element`,
+        ),
+        this.pool.query<{ day: string; total: string }>(
+          `SELECT to_char(days.day, 'YYYY-MM-DD') AS day, COUNT(players.id) AS total
+           FROM generate_series(CURRENT_DATE - INTERVAL '13 days', CURRENT_DATE, INTERVAL '1 day') AS days(day)
+           LEFT JOIN players
+             ON players.created_at >= days.day AND players.created_at < days.day + INTERVAL '1 day'
+           GROUP BY days.day
+           ORDER BY days.day`,
+        ),
+        this.pool.query<{ members: string; total: string }>(
+          `SELECT (SELECT COUNT(*) FROM guilds) AS total, (SELECT COUNT(*) FROM guild_members) AS members`,
+        ),
+        this.pool.query<PlayerRow>(
+          `SELECT ${playerProjection(activityTracking)}
+           FROM players
+           LEFT JOIN LATERAL (
+             SELECT provider_user_id FROM auth_identities
+             WHERE player_id = players.id AND provider = 'telegram'
+             ORDER BY created_at LIMIT 1
+           ) identity ON TRUE
+           ORDER BY players.level DESC, players.silver DESC, players.id
+           LIMIT 5`,
+        ),
+      ]);
+      const elementCounts = Object.fromEntries(CARD_ELEMENTS.map((element) => [element, 0])) as Record<CardElement, number>;
+      for (const row of elementRows.rows) {
+        if ((CARD_ELEMENTS as readonly string[]).includes(row.element)) {
+          elementCounts[row.element as CardElement] = toNonNegativeInteger(row.total, "element count");
+        }
+      }
+      const guildRow = guildStats.rows[0];
       const rarityCounts = Object.fromEntries(CARD_RARITIES.map((rarity) => [rarity, 0])) as Record<CardRarity, number>;
       for (const row of rarityLevels.rows) {
         const level = toNonNegativeInteger(row.level, "card level");
@@ -344,6 +419,7 @@ export class AdminService {
         cards: {
           definitions: toNonNegativeInteger(cards.definitions, "card definitions"),
           ownedInstances: toNonNegativeInteger(cards.owned_instances, "owned instances"),
+          elementCounts,
           rarityCounts,
           mostPopular: popular ? {
             cardId: popular.card_id,
@@ -355,9 +431,27 @@ export class AdminService {
           duels: toNonNegativeInteger(games.duels, "duels"),
           duelWins: toNonNegativeInteger(games.duel_wins, "duel wins"),
           duelLosses: toNonNegativeInteger(games.duel_losses, "duel losses"),
+          duelsLast24Hours: toNonNegativeInteger(games.duels_last_24_hours, "duels last 24 hours"),
           limitedPromoRedemptions: toNonNegativeInteger(games.redemptions, "limited redemptions"),
           shopActivityConnected: false,
         },
+        guilds: {
+          total: toNonNegativeInteger(guildRow?.total ?? 0, "guild total"),
+          members: toNonNegativeInteger(guildRow?.members ?? 0, "guild members"),
+        },
+        signupsByDay: signupRows.rows.map((row) => ({
+          date: row.day,
+          count: toNonNegativeInteger(row.total, "daily signups"),
+        })),
+        topPlayers: topPlayerRows.rows.map((row) => {
+          const player = mapPlayer(row);
+          return {
+            id: player.id,
+            level: player.level,
+            name: player.nickname || [player.firstName, player.lastName].filter(Boolean).join(" ") || (player.username ? `@${player.username}` : player.id),
+            silver: player.silver,
+          };
+        }),
       };
     } catch (error) {
       throw new AdminPersistenceError({ cause: error });
@@ -389,6 +483,10 @@ export class AdminService {
       if (options.goldMin !== undefined) filters.push(`players.gold >= ${add(options.goldMin)}`);
       if (options.createdFrom) filters.push(`players.created_at >= ${add(options.createdFrom)}::timestamptz`);
       if (options.createdTo) filters.push(`players.created_at < (${add(options.createdTo)}::date + INTERVAL '1 day')`);
+      const activityTracking = await hasPlayerActivityColumn(this.pool);
+      if (options.onlineOnly) {
+        filters.push(activityTracking ? "players.last_seen_at >= NOW() - INTERVAL '5 minutes'" : "FALSE");
+      }
       const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
       const sortColumns = {
         createdAt: "players.created_at",
@@ -399,7 +497,6 @@ export class AdminService {
       } as const;
       const order = `${sortColumns[options.sort]} ${options.direction.toUpperCase()}, players.id ASC`;
       const countValues = [...values];
-      const activityTracking = await hasPlayerActivityColumn(this.pool);
       const projection = playerProjection(activityTracking);
       const limitParameter = add(options.limit);
       const offsetParameter = add((options.page - 1) * options.limit);
@@ -437,7 +534,7 @@ export class AdminService {
           ON deck_slots.deck_id = player_decks.id AND deck_slots.card_instance_id = instances.id
         WHERE instances.player_id = $1
       `;
-      const [playerRow, cardsResult, cardsCount, deckResult] = await Promise.all([
+      const [playerRow, cardsResult, cardsCount, deckResult, stats] = await Promise.all([
         playerPromise,
         this.pool.query<OwnedCardRow>(
           `SELECT ${OWNED_CARD_PROJECTION} ${cardsFrom}
@@ -455,6 +552,7 @@ export class AdminService {
            ORDER BY deck_slots.slot`,
           [playerId],
         ),
+        loadPlayerStats(this.pool, playerId),
       ]);
       const total = toNonNegativeInteger(cardsCount.rows[0]?.total ?? 0, "owned card total");
       return {
@@ -462,6 +560,7 @@ export class AdminService {
         cards: cardsResult.rows.map(mapOwnedCard),
         cardsPagination: pagination(cardPage, cardLimit, total),
         deck: deckResult.rows.map(mapOwnedCard),
+        stats,
       };
     } catch (error) {
       if (error instanceof AdminDomainError) throw error;

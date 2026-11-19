@@ -79,6 +79,7 @@ function readPlayerListOptions(searchParams: URLSearchParams): AdminPlayerListOp
     goldMin: readOptionalInteger(searchParams.get("goldMin"), "goldMin", 0, Number.MAX_SAFE_INTEGER),
     createdFrom: readDate(searchParams.get("createdFrom"), "createdFrom"),
     createdTo: readDate(searchParams.get("createdTo"), "createdTo"),
+    onlineOnly: searchParams.get("online") === "true",
     sort: sort as AdminPlayerListOptions["sort"],
     direction,
   };

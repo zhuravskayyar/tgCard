@@ -49,3 +49,68 @@ export function formatAction(action: string) {
     PLAYER_REMOVE_CARD: "Видалено карту",
   } as Record<string, string>)[action] ?? action;
 }
+
+export function initials(name: string) {
+  const parts = name.replace(/^@/, "").trim().split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? `${parts[0]![0]}${parts[1]![0]}` : (parts[0] ?? "").slice(0, 2);
+  return letters.toUpperCase() || "??";
+}
+
+export function formatDayLabel(isoDate: string) {
+  const [, month, day] = isoDate.split("-");
+  return `${Number(day)}.${month}`;
+}
+
+export function formatTime(value: Date) {
+  return new Intl.DateTimeFormat("uk-UA", { hour: "2-digit", minute: "2-digit" }).format(value);
+}
+
+export function formatPercent(part: number, total: number) {
+  if (total <= 0) return "0%";
+  const value = part / total * 100;
+  return `${value < 10 && value > 0 ? value.toFixed(1) : Math.round(value)}%`;
+}
+
+export const providerLabels: Record<string, string> = {
+  google: "Google",
+  guest: "Гість",
+  telegram: "Telegram",
+};
+
+export const guildRoleLabels: Record<string, string> = {
+  leader: "Лідер",
+  member: "Учасник",
+  newbie: "Новачок",
+  officer: "Офіцер",
+  veteran: "Ветеран",
+};
+
+export const auditFieldLabels: Record<string, string> = {
+  accountXp: "Досвід",
+  cardCode: "Код карти",
+  cardId: "Карта",
+  currency: "Валюта",
+  delta: "Зміна",
+  instanceId: "Екземпляр",
+  instanceIds: "Екземпляри",
+  removedInstanceId: "Видалений екземпляр",
+  gold: "Золото",
+  level: "Рівень",
+  quantity: "Кількість",
+  silver: "Срібло",
+};
+
+/** Builds a CSV file (UTF-8 BOM so Excel opens Cyrillic correctly) and downloads it. */
+export function downloadCsv(fileName: string, header: string[], rows: Array<Array<string | number | null>>) {
+  const escape = (value: string | number | null) => {
+    const text = value === null ? "" : String(value);
+    return /[",;\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

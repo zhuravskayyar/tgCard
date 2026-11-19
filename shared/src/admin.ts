@@ -30,6 +30,7 @@ export interface AdminDashboardResponse {
       ownedCopies: number;
     };
     ownedInstances: number;
+    elementCounts: Record<CardElement, number>;
     rarityCounts: Record<CardRarity, number>;
   };
   economy: {
@@ -42,8 +43,13 @@ export interface AdminDashboardResponse {
     duelLosses: number;
     duelWins: number;
     duels: number;
+    duelsLast24Hours: number;
     limitedPromoRedemptions: number;
     shopActivityConnected: false;
+  };
+  guilds: {
+    members: number;
+    total: number;
   };
   players: {
     activeLast24Hours: number;
@@ -52,6 +58,21 @@ export interface AdminDashboardResponse {
     onlineNow: number;
     total: number;
   };
+  /** Daily new registrations for the last 14 UTC days, oldest first. */
+  signupsByDay: AdminDailyCount[];
+  topPlayers: AdminTopPlayer[];
+}
+
+export interface AdminDailyCount {
+  count: number;
+  date: string;
+}
+
+export interface AdminTopPlayer {
+  id: string;
+  level: number;
+  name: string;
+  silver: number;
 }
 
 export interface AdminPagination {
@@ -97,11 +118,24 @@ export interface AdminOwnedCard {
   slot: number | null;
 }
 
+export interface AdminPlayerStats {
+  authProviders: string[];
+  duelsLost: number;
+  duelsWon: number;
+  guild: null | {
+    id: string;
+    name: string;
+    role: string;
+  };
+  lastDuelAt: string | null;
+}
+
 export interface AdminPlayerDetailResponse {
   cards: AdminOwnedCard[];
   cardsPagination: AdminPagination;
   deck: AdminOwnedCard[];
   player: AdminPlayerListItem;
+  stats: AdminPlayerStats;
 }
 
 export interface AdminCardDefinitionItem {

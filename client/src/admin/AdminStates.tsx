@@ -12,6 +12,6 @@ export function AdminError({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
-export function AdminEmpty({ message }: { message: string }) {
-  return <div className="admin-state"><strong>Поки порожньо</strong><span>{message}</span></div>;
+export function AdminEmpty({ message, title = "Нічого не знайдено" }: { message: string; title?: string }) {
+  return <div className="admin-state"><strong>{title}</strong><span>{message}</span></div>;
 }

@@ -11,6 +11,7 @@ React UI. Назад: [[index]]. Дані бере з [[server]] через `cli
 - `telegram/` — API-адаптери по фічах + `authenticatePlayer.ts`.
 - `styles/` — CSS по екранах; лише світла пергаментна тема.
 - `locales/`, `i18n.tsx` — переклади.
+- `admin/` — окрема адмін-панель `/admin` (не ігрова оболонка): `AdminLayout` (сайдбар, глобальний пошук `/`, нижня навігація на мобільному, світла/темна тема), `AdminFeedback` (тости + діалог підтвердження), `AdminAuditDiff` (людське «було → стало»), екрани в `admin/screens/`, стилі лише в `admin.css` (токени `--a-*`). API — `server/src/admin/`.
 - `api/`, `auth/`, `audio/`, `booster/`, `cards/`, `equipment/`, `records/`, `shop/`, `admin/` — допоміжні модулі фіч.
 
 Правила UI: [[ui-system]], [[ui]].

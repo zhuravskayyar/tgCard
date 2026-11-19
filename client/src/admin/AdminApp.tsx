@@ -7,7 +7,8 @@ import { usePlayerSummary } from "../hooks/usePlayerSummary";
 import { initializeTelegram } from "../telegram";
 import { authenticateGooglePlayer, authenticateTelegramWebPlayer, logoutPlayer } from "../telegram/authenticatePlayer";
 import { AdminApiError, loadAdminSession } from "./adminApi";
-import { AdminLayout, type AdminSection } from "./AdminLayout";
+import { AdminFeedbackProvider } from "./AdminFeedback";
+import { AdminLayout, type AdminSection, type AdminTheme } from "./AdminLayout";
 import { AdminAuditScreen } from "./screens/AdminAuditScreen";
 import { AdminCardsScreen } from "./screens/AdminCardsScreen";
 import { AdminDashboardScreen } from "./screens/AdminDashboardScreen";
@@ -18,7 +19,7 @@ import "./admin.css";
 
 type AdminRoute =
   | { section: "dashboard" }
-  | { section: "players" }
+  | { section: "players"; search: string }
   | { section: "player"; playerId: string }
   | { section: "cards" | "audit" | "shop" | "promos" | "events" | "settings" };
 
@@ -28,10 +29,22 @@ type SessionState =
   | { status: "denied" }
   | { status: "error"; message: string };
 
-function readRoute(pathname: string): AdminRoute {
+const THEME_KEY = "cardastika-admin-theme";
+
+function readInitialTheme(): AdminTheme {
+  try {
+    const stored = window.localStorage.getItem(THEME_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch { /* storage unavailable */ }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function readRoute(pathname: string, search = ""): AdminRoute {
   const playerMatch = pathname.match(/^\/admin\/players\/([0-9a-f-]+)\/?$/i);
   if (playerMatch?.[1]) return { section: "player", playerId: playerMatch[1] };
-  if (pathname === "/admin/players" || pathname === "/admin/players/") return { section: "players" };
+  if (pathname === "/admin/players" || pathname === "/admin/players/") {
+    return { section: "players", search: new URLSearchParams(search).get("search") ?? "" };
+  }
   if (pathname === "/admin/cards" || pathname === "/admin/cards/") return { section: "cards" };
   if (pathname === "/admin/audit" || pathname === "/admin/audit/") return { section: "audit" };
   if (pathname === "/admin/shop" || pathname === "/admin/shop/") return { section: "shop" };
@@ -72,10 +85,9 @@ function AdminLogin({ error, loading, onGoogle, onTelegram }: {
   return (
     <main className="admin-gate">
       <section className="admin-gate__card">
-        <span className="admin-brand__mark admin-gate__mark">C</span>
-        <p className="admin-eyebrow">CARDASTIKA CONTROL CENTER</p>
-        <h1>Вхід для адміністратора</h1>
-        <p>Увійдіть через прив’язаний Telegram-акаунт. Доступ перевіряє серверний whitelist — приховати кнопку в інтерфейсі недостатньо.</p>
+        <span className="admin-brand__mark">C</span>
+        <h1>Адмін-панель Cardastika</h1>
+        <p>Увійдіть через Telegram або Google-акаунт, прив’язаний до адміністратора. Доступ перевіряє сервер.</p>
         <div className="admin-gate__providers" aria-busy={loading}>
           <TelegramLoginButton disabled={loading} onAuth={onTelegram} />
           <GoogleSignInButton disabled={loading} onCredential={onGoogle} />
@@ -93,8 +105,7 @@ function AdminFailure({ message, onRetry }: { message: string; onRetry: () => vo
   return (
     <main className="admin-gate">
       <section className="admin-gate__card admin-gate__card--denied">
-        <span className="admin-gate__lock">!</span>
-        <p className="admin-eyebrow">ТИМЧАСОВА ПОМИЛКА</p>
+        <span className="admin-gate__icon">!</span>
         <h1>Адмін-панель недоступна</h1>
         <p>{message}</p>
         <button className="admin-button" onClick={onRetry} type="button">Спробувати ще</button>
@@ -106,7 +117,8 @@ function AdminFailure({ message, onRetry }: { message: string; onRetry: () => vo
 
 export default function AdminApp() {
   const { retry, state: playerState } = usePlayerSummary();
-  const [route, setRoute] = useState<AdminRoute>(() => readRoute(window.location.pathname));
+  const [route, setRoute] = useState<AdminRoute>(() => readRoute(window.location.pathname, window.location.search));
+  const [theme, setTheme] = useState<AdminTheme>(readInitialTheme);
   const [session, setSession] = useState<SessionState>({ status: "idle" });
   const [loginPending, setLoginPending] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -119,7 +131,13 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    const handlePopState = () => setRoute(readRoute(window.location.pathname));
+    document.documentElement.dataset.adminTheme = theme;
+    try { window.localStorage.setItem(THEME_KEY, theme); } catch { /* storage unavailable */ }
+    return () => { delete document.documentElement.dataset.adminTheme; };
+  }, [theme]);
+
+  useEffect(() => {
+    const handlePopState = () => setRoute(readRoute(window.location.pathname, window.location.search));
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -143,9 +161,9 @@ export default function AdminApp() {
 
   const navigate = useCallback((path: string) => {
     window.history.pushState({}, "", path);
-    setRoute(readRoute(path));
+    setRoute(readRoute(window.location.pathname, window.location.search));
     setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0 });
   }, []);
 
   const handleLogin = useCallback(async (authenticate: () => Promise<unknown>) => {
@@ -186,7 +204,7 @@ export default function AdminApp() {
     return (
       <main className="admin-gate">
         <section className="admin-gate__card admin-gate__card--denied">
-          <span className="admin-gate__lock">⌁</span><p className="admin-eyebrow">ДОСТУП ОБМЕЖЕНО</p>
+          <span className="admin-gate__icon">⌁</span>
           <h1>Цей акаунт не є адміністратором</h1>
           <p>Сервер не знайшов прив’язаний Telegram ID у змінній <code>ADMIN_TELEGRAM_USER_IDS</code>.</p>
           <button className="admin-button" onClick={handleLogout} type="button">Увійти іншим акаунтом</button>
@@ -203,14 +221,15 @@ export default function AdminApp() {
   let screen;
   switch (route.section) {
     case "dashboard": screen = <AdminDashboardScreen onNavigate={navigate} />; break;
-    case "players": screen = <AdminPlayersScreen onNavigate={navigate} />; break;
+    case "players": screen = <AdminPlayersScreen initialSearch={route.search} key={route.search} onNavigate={navigate} />; break;
     case "player": screen = <AdminPlayerScreen onNavigate={navigate} playerId={route.playerId} />; break;
     case "cards": screen = <AdminCardsScreen />; break;
-    case "audit": screen = <AdminAuditScreen />; break;
+    case "audit": screen = <AdminAuditScreen onNavigate={navigate} />; break;
     default: screen = <AdminPlaceholderScreen section={route.section} />;
   }
 
   return (
+    <AdminFeedbackProvider>
     <AdminLayout
       admin={session.admin}
       currentSection={route.section as AdminSection}
@@ -218,8 +237,11 @@ export default function AdminApp() {
       onLogout={handleLogout}
       onMenuToggle={() => setMobileMenuOpen((open) => !open)}
       onNavigate={navigate}
+      onThemeToggle={() => setTheme((value) => value === "dark" ? "light" : "dark")}
+      theme={theme}
     >
       {screen}
     </AdminLayout>
+    </AdminFeedbackProvider>
   );
 }

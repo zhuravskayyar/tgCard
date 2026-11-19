@@ -9,8 +9,11 @@ export function AdminPlaceholderScreen({ section }: { section: string }) {
   const content = copy[section] ?? { title: "Розділ", description: "Цей модуль запланований на наступний етап." };
   return (
     <div className="admin-page">
-      <div className="admin-page__heading"><div><p className="admin-eyebrow">НАСТУПНИЙ ЕТАП</p><h1>{content.title}</h1><p>{content.description}</p></div></div>
-      <section className="admin-state admin-state--placeholder"><span>◇</span><strong>Основа вже готова</strong><p>Навігація, авторизація та журнал аудиту працюють. Цей екран навмисно не імітує дані, яких сервер поки не зберігає.</p></section>
+      <div className="admin-page__head"><div><h1>{content.title}</h1><p>Розділ у розробці</p></div></div>
+      <section className="admin-panel admin-state admin-state--boxed">
+        <strong>Скоро тут з’явиться редактор</strong>
+        <span>{content.description}</span>
+      </section>
     </div>
   );
 }

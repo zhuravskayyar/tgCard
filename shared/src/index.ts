@@ -439,6 +439,7 @@ export type {
   AdminCardRemoveResponse,
   AdminCardsResponse,
   AdminCurrency,
+  AdminDailyCount,
   AdminDashboardResponse,
   AdminIdentity,
   AdminOwnedCard,
@@ -446,8 +447,10 @@ export type {
   AdminPlayerDetailResponse,
   AdminPlayerListItem,
   AdminPlayerMutationResponse,
+  AdminPlayerStats,
   AdminPlayersResponse,
   AdminSessionResponse,
+  AdminTopPlayer,
 } from "./admin.js";
 export type {
   GuildWarAction,
