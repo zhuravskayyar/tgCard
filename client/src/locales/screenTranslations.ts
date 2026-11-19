@@ -1272,6 +1272,7 @@ export const SCREEN_TRANSLATIONS: ReadonlyArray<readonly [string, string, string
   ["Наступна карта ·","Next card ·","Nächste Karte ·","Следующая карта ·"],
   ["Гаманець магазину","Shop wallet","Laden-Geldbörse","Кошелёк магазина"],
   ["Продовжити через Telegram","Continue with Telegram","Weiter mit Telegram","Продолжить через Telegram"],
+  ["Увійти через Telegram","Sign in with Telegram","Mit Telegram anmelden","Войти через Telegram"],
   ["Завантаження Telegram…","Loading Telegram…","Telegram wird geladen…","Загрузка Telegram…"],
   ["Telegram-вхід не налаштовано","Telegram sign-in is not set up","Telegram-Anmeldung ist nicht eingerichtet","Вход через Telegram не настроен"],
   ["Повторити Telegram-вхід","Retry Telegram sign-in","Telegram-Anmeldung wiederholen","Повторить вход через Telegram"],
