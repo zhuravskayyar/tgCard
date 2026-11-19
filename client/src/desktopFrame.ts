@@ -7,6 +7,11 @@ const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 880;
 const MIN_SCALE = 0.6;
 
+/** Search crawlers and tools (Search Console live test included) see the game directly, never a redirect or a frame. */
+export function isCrawlerAgent() {
+  return navigator.webdriver || /bot|crawl|spider|slurp|lighthouse|google|bing|yandex|baidu|headless|preview|inspection/i.test(navigator.userAgent);
+}
+
 function isTelegramLaunch() {
   const webApp = (window as Window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp;
   return Boolean(webApp?.initData?.trim() || new URLSearchParams(window.location.hash.replace(/^#/, "")).get("tgWebAppData"));
@@ -23,7 +28,7 @@ export function mountDesktopPhoneFrame(isAdminPath: boolean) {
   if (!window.matchMedia("(pointer: fine)").matches) return false;
   // Crawlers index the first-paint page, not an iframe.
   // Google-InspectionTool / GoogleOther (Search Console live test) carry no "bot" in their UA.
-  if (navigator.webdriver || /bot|crawl|spider|slurp|lighthouse|google|bing|yandex|baidu|headless|preview|inspection/i.test(navigator.userAgent)) return false;
+  if (isCrawlerAgent()) return false;
   // Any mouse-driven window, however narrow, gets the exact 430 px phone: a narrow desktop
   // window must not stretch the game to its own width the way a large-text phone does.
   if (window.innerHeight / DESIGN_HEIGHT < MIN_SCALE) return false;

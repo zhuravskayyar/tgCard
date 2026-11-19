@@ -152,13 +152,13 @@ export function SettingsScreen({ onBack, onLogout, onReplayTutorial, playerSumma
                   }} type="button">{pendingProvider === "telegram" ? "Прив’язуємо…" : "Прив’язати Telegram"}</button>
                 : isLocalBrowser
                   ? <span className="settings-provider__hint">Відкрий гру в Telegram, щоб прив’язати акаунт.</span>
-                  : <TelegramLoginButton disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
+                  : <TelegramLoginButton appearance="landing" disabled={state !== "ready" || pendingProvider !== null} onAuth={(authData) => void link({ provider: "telegram", authData })} />}
           </div>
           <div className="settings-provider">
             <span>Google</span>
             {isLinked(identities, "google")
               ? <strong>✓ Прив'язано</strong>
-              : <GoogleSignInButton disabled={state !== "ready" || pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
+              : <GoogleSignInButton appearance="landing" disabled={state !== "ready" || pendingProvider !== null} onCredential={(credential) => void link({ provider: "google", credential })} />}
           </div>
         </div>
         {state === "loading" ? <p className="settings-hint">Завантаження способів входу…</p> : null}

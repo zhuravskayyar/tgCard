@@ -28,6 +28,7 @@ function buttonClass(appearance: "default" | "landing") {
 
 export function TelegramLoginButton({ appearance = "default", botUsername: configuredBotUsername, disabled, onAuth }: TelegramLoginButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const onAuthRef = useRef(onAuth);
   const [attempt, setAttempt] = useState(0);
   const [providerState, setProviderState] = useState<ProviderState>("loading");
@@ -81,6 +82,32 @@ export function TelegramLoginButton({ appearance = "default", botUsername: confi
     };
   }, [attempt, botUsername, disabled]);
 
+  // Telegram's widget is a fixed-size blue button in an iframe. Our own button is what players see;
+  // the real widget sits on top of it, invisible, scaled to cover the whole plate so any click signs in.
+  useEffect(() => {
+    if (appearance !== "landing" || providerState !== "ready") return;
+    const shell = shellRef.current;
+    const container = containerRef.current;
+    if (!shell || !container) return;
+    const fit = () => {
+      const iframe = container.querySelector<HTMLIFrameElement>("iframe");
+      if (!iframe) return;
+      const width = iframe.offsetWidth || 238;
+      const height = iframe.offsetHeight || 40;
+      iframe.style.setProperty("transform-origin", "0 0");
+      iframe.style.setProperty("transform", `scale(${container.clientWidth / width}, ${container.clientHeight / height})`);
+    };
+    fit();
+    const resizeObserver = new ResizeObserver(fit);
+    resizeObserver.observe(shell);
+    const mutationObserver = new MutationObserver(fit);
+    mutationObserver.observe(container, { attributes: true, childList: true, subtree: true });
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [appearance, providerState]);
+
   if (disabled) {
     return <button className={buttonClass(appearance)} disabled type="button">Вхід виконується…</button>;
   }
@@ -106,10 +133,10 @@ export function TelegramLoginButton({ appearance = "default", botUsername: confi
   }
   if (appearance === "landing") {
     return (
-      <div aria-busy={providerState !== "ready"} className="auth-provider-shell auth-provider-shell--telegram">
+      <div aria-busy={providerState !== "ready"} className="auth-provider-shell auth-provider-shell--telegram" ref={shellRef}>
         <span className="auth-provider-visual">
           <AuthProviderIcon provider="telegram" />
-          <span>{providerState === "ready" ? "Продовжити через Telegram" : "Завантаження Telegram…"}</span>
+          <span>{providerState === "ready" ? "Увійти через Telegram" : "Завантаження Telegram…"}</span>
         </span>
         <div className="telegram-login telegram-login--landing" ref={containerRef} />
       </div>

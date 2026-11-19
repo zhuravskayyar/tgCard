@@ -61,22 +61,6 @@ function buttonClass(appearance: "default" | "landing") {
   return `auth-provider-button${appearance === "landing" ? " auth-provider-button--landing auth-provider-button--google" : ""}`;
 }
 
-function fitLandingWidgetFrame(element: HTMLElement) {
-  const iframe = element.querySelector<HTMLIFrameElement>("iframe");
-  if (!iframe) return;
-
-  const availableWidth = Math.round(element.getBoundingClientRect().width);
-  const availableHeight = Math.round(element.getBoundingClientRect().height);
-  const widgetHeight = Math.max(44, availableHeight || 44);
-  const frameWrapper = iframe.parentElement;
-  frameWrapper?.style.setProperty("width", `${availableWidth}px`, "important");
-  frameWrapper?.style.setProperty("height", `${widgetHeight}px`, "important");
-  iframe.style.setProperty("display", "block", "important");
-  iframe.style.setProperty("width", `${availableWidth}px`, "important");
-  iframe.style.setProperty("max-width", "none", "important");
-  iframe.style.setProperty("height", `${widgetHeight}px`, "important");
-}
-
 export function GoogleSignInButton({ appearance = "default", clientId: configuredClientId, disabled, onCredential }: GoogleSignInButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onCredentialRef = useRef(onCredential);
@@ -92,8 +76,6 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
   useEffect(() => {
     if (!clientId || disabled) return;
     let active = true;
-    let frameId: number | null = null;
-    let widgetObserver: MutationObserver | null = null;
     let resizeObserver: ResizeObserver | null = null;
     setProviderState("loading");
     void loadGoogleScript().then((loaded) => {
@@ -114,7 +96,9 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
         const container = containerRef.current;
         let renderedWidth = 0;
         const renderButton = () => {
-          const width = appearance === "landing" ? 320 : Math.min(320, Math.floor(container.clientWidth));
+          // Google draws its own button inside an iframe: render it at the real container width
+          // (Google allows 200–400 px) so it is never stretched or cropped.
+          const width = Math.max(200, Math.min(400, Math.floor(container.clientWidth)));
           if (width <= 0 || width === renderedWidth) return;
           renderedWidth = width;
           container.replaceChildren();
@@ -127,19 +111,8 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
           });
         };
         renderButton();
-        if (appearance === "landing") {
-          fitLandingWidgetFrame(containerRef.current);
-          frameId = window.requestAnimationFrame(() => {
-            if (containerRef.current) fitLandingWidgetFrame(containerRef.current);
-          });
-          widgetObserver = new MutationObserver(() => {
-            if (containerRef.current) fitLandingWidgetFrame(containerRef.current);
-          });
-          widgetObserver.observe(containerRef.current, { childList: true, subtree: true });
-        } else {
-          resizeObserver = new ResizeObserver(renderButton);
-          resizeObserver.observe(container);
-        }
+        resizeObserver = new ResizeObserver(renderButton);
+        resizeObserver.observe(container);
         setProviderState("ready");
       } catch {
         setProviderState("error");
@@ -147,8 +120,6 @@ export function GoogleSignInButton({ appearance = "default", clientId: configure
     });
     return () => {
       active = false;
-      if (frameId !== null) window.cancelAnimationFrame(frameId);
-      widgetObserver?.disconnect();
       resizeObserver?.disconnect();
     };
   }, [appearance, attempt, clientId, disabled]);

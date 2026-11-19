@@ -256,3 +256,66 @@ html.in-phone-frame .auth-screen--guest .element-fx { display: none; }
 }
 :root .auth-screen--guest .auth-screen__guide-link:hover,
 :root .auth-screen--guest .auth-screen__guide-link:focus-visible { border-bottom-color: #2d1b0e; }
+
+/* Arriving from the landing's "Start game": only the crest and the progress line while the
+   new journey is created; the start buttons return if that fails. */
+.auth-screen--auto-start .auth-screen__login-panel > :not(.auth-screen__status),
+.auth-screen--auto-start .auth-screen__about,
+.auth-screen--auto-start .auth-screen__guide-link,
+.auth-screen--auto-start .auth-screen__languages { display: none; }
+
+/* Sign-in buttons (login dialog and Settings): one matching pair in the game's style — dark
+   plates in a bronze frame. Google's own button is drawn by Google at the exact width
+   (its dark "filled_black" theme); Telegram gets the same dark plate, with Telegram's real
+   widget invisible on top so the whole plate signs in. */
+:root .auth-provider-shell,
+:root .auth-screen__account-dialog .auth-provider-shell {
+  width: min(100%, 400px);
+  min-height: 46px;
+  height: 46px;
+  justify-self: center;
+  padding: 3px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #d8b46a, #8a5a22 55%, #c79a4e);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 0 rgb(60 30 8 / 45%), 0 4px 10px rgb(40 20 5 / 35%);
+}
+:root .auth-provider-shell > .google-sign-in--landing,
+:root .auth-provider-shell > .telegram-login--landing,
+:root .auth-screen__account-dialog .auth-provider-shell > .google-sign-in--landing,
+:root .auth-screen__account-dialog .auth-provider-shell > .telegram-login--landing {
+  inset: 3px;
+  min-height: 40px;
+  height: 40px;
+  border-radius: 5px;
+}
+:root .auth-provider-shell .auth-provider-visual,
+:root .auth-screen__account-dialog .auth-provider-shell--telegram .auth-provider-visual,
+:root .auth-screen__account-dialog .auth-provider-shell--google .auth-provider-visual {
+  inset: 3px;
+  gap: 10px;
+  padding: 0 14px;
+  color: #f3e6c8;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .01em;
+  background: #131314;
+  border: 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgb(255 230 180 / 10%);
+}
+:root .auth-provider-shell .auth-provider-visual > span { font-family: Roboto, "Segoe UI", Arial, sans-serif !important; font-weight: 500; }
+:root .auth-provider-shell .auth-provider-icon--telegram { color: #2aabee; }
+:root .auth-provider-shell:hover { filter: brightness(1.08); }
+/* Telegram: our plate stays visible; the real widget is a transparent click layer. */
+:root .auth-provider-shell--telegram[aria-busy="false"] .auth-provider-visual { visibility: visible; opacity: 1; }
+:root .auth-provider-shell--telegram[aria-busy="false"] > .telegram-login--landing { opacity: .011; display: block; }
+:root .auth-provider-shell--telegram > .telegram-login--landing iframe { position: absolute; top: 0; left: 0; width: auto !important; height: auto !important; max-width: none !important; }
+/* Google: its real button, centred on the dark plate, nothing stretched. */
+:root .auth-provider-shell > .google-sign-in--landing { display: flex; align-items: center; justify-content: center; background: #131314; overflow: hidden; }
+:root .auth-provider-shell--google iframe { width: auto !important; height: auto !important; }
+
+/* Settings rows: provider name above a full-width button. */
+:root .app-content .settings-provider:has(.auth-provider-shell) { grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
+:root .app-content .settings-provider .auth-provider-shell { justify-self: start; }

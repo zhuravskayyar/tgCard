@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2b1a0c" />
+  <title>Cardastika (Кардастіка) — Free Online Fantasy Card Game</title>
+  <meta name="description" content="Cardastika (Кардастіка) is a free online fantasy card game set in the World Tree. Build a nine-card deck, master four elements and win duels. Play in your browser or Telegram." />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://app.cardastika.org/en/" />
+  <link rel="alternate" hreflang="en" href="https://app.cardastika.org/en/" />
+  <link rel="alternate" hreflang="uk" href="https://app.cardastika.org/uk/" />
+  <link rel="alternate" hreflang="ru" href="https://app.cardastika.org/ru/" />
+  <link rel="alternate" hreflang="de" href="https://app.cardastika.org/de/" />
+  <link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/en/" />
+  <link rel="icon" type="image/webp" href="/assets/ui/auth/cardastika-logo.webp" />
+  <link rel="stylesheet" href="/landing/landing.css" />
+  <script src="/fx/world-ambient.js" defer></script>
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Cardastika" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Cardastika — Free Online Fantasy Card Game" />
+  <meta property="og:description" content="Build a nine-card deck, master Fire, Water, Air and Earth, and win fantasy duels. Play in your browser or Telegram." />
+  <meta property="og:url" content="https://app.cardastika.org/en/" />
+  <meta property="og:image" content="https://app.cardastika.org/assets/ui/auth/cardastika-logo.webp" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://app.cardastika.org/en/#page",
+    "url": "https://app.cardastika.org/en/",
+    "name": "Cardastika — online fantasy card game",
+    "inLanguage": "en",
+    "isPartOf": { "@id": "https://app.cardastika.org/#website" },
+    "about": {
+      "@id": "https://app.cardastika.org/#game",
+      "@type": "VideoGame",
+      "name": "Cardastika",
+      "alternateName": ["Кардастіка", "Кардастика", "Світове дерево"],
+      "url": "https://app.cardastika.org/",
+      "genre": ["Fantasy", "Collectible card game", "Strategy"],
+      "gamePlatform": ["Web browser", "Telegram Mini App"]
+    }
+  }
+  </script>
+</head>
+<body>
+  <main class="landing">
+    <nav class="landing__languages" aria-label="Language">
+      <a href="/en/" hreflang="en" aria-current="page">EN</a>
+      <a href="/uk/" hreflang="uk" lang="uk">UA</a>
+      <a href="/de/" hreflang="de" lang="de">DE</a>
+      <a href="/ru/" hreflang="ru" lang="ru" data-ru-only hidden>RU</a>
+    </nav>
+    <script>
+      /* Russian is offered only to visitors whose browser language is Russian. */
+      (function () {
+        var code = ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
+        if (code.split(/[-_]/)[0] === "ru") document.querySelectorAll("[data-ru-only]").forEach(function (link) { link.hidden = false; });
+      })();
+    </script>
+    <img class="landing__crest" src="/assets/ui/auth/cardastika-logo.webp" alt="Cardastika — World Tree fantasy game" width="104" height="104" />
+    <p class="landing__plate landing__eyebrow">WORLD TREE</p>
+    <h1 class="landing__plate">Cardastika — online fantasy card game</h1>
+    <p class="landing__plate landing__subtitle">A world of four elements awaits you. Build your deck. Discover the world.</p>
+    <a class="landing__play" href="/?lang=en&amp;start=1" rel="nofollow">Start game</a>
+    <a class="landing__login" href="/?lang=en&amp;login=1" rel="nofollow">Player login</a>
+    <a class="landing__more" href="/guide/">About the game →</a>
+
+    <section class="landing__about">
+      <h2>What is Cardastika</h2>
+      <p>Cardastika (in Ukrainian Кардастіка, also spelled Кардастика) is a free fantasy card game set in the world of the World Tree. It runs right in your browser and in Telegram: nothing to download, and you can start without registering.</p>
+      <h2>How to play</h2>
+      <p>Build a nine-card deck and field three cards at a time. Every card belongs to one of four elements: Fire, Water, Air or Earth. Elements have advantages over each other, so the player who picks the right cards wins.</p>
+      <ul>
+        <li>Duels against other players and the arena</li>
+        <li>A campaign with adventures and bosses</li>
+        <li>Card collections and upgrades</li>
+        <li>Guilds, raids and tournaments</li>
+      </ul>
+      <p><a href="/guide/">Full guide: rules, elements and tips →</a></p>
+      <h2>Where to play</h2>
+      <p>Open Cardastika on your phone or computer in any modern browser, or as a Telegram Mini App. Link your progress to a Google or Telegram account so you never lose it.</p>
+    </section>
+  </main>
+</body>
+</html>

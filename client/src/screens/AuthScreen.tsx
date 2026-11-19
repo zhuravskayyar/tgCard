@@ -6,8 +6,35 @@ import { ElementAmbientFx } from "../components/ElementAmbientFx";
 import { ElementTitleFx } from "../components/ElementTitleFx";
 import { setSessionToken } from "../auth/session";
 import { getUiLocale, getPickerLocales, LANGUAGE_PICKER_ENABLED, setUiLocale, type UiLocale } from "../i18n";
+import { isCrawlerAgent } from "../desktopFrame";
 
 const LOCALE_LABELS: Readonly<Record<UiLocale, string>> = { en: "EN", uk: "UA", ru: "RU", de: "DE" };
+
+/** The public start page for each language; the old in-game start screen is no longer shown to visitors. */
+const LANDING_PATHS: Readonly<Record<UiLocale, string>> = { en: "/en/", uk: "/uk/", ru: "/ru/", de: "/de/" };
+
+type EntryMode = "landing" | "start" | "login" | "screen";
+
+/** How a logged-out browser visitor arrived: from the landing's "Start game" or "Player login", or directly (→ landing). */
+function getEntryMode(isTelegramMiniApp: boolean): EntryMode {
+  if (typeof window === "undefined" || isTelegramMiniApp || isCrawlerAgent()) return "screen";
+  const params = new URLSearchParams(window.location.search);
+  // Local development behaves like production; ?dev=1 still opens the old screen with the test accounts.
+  if (import.meta.env.DEV && params.get("dev") === "1") return "screen";
+  if (params.get("start") === "1") return "start";
+  if (params.get("login") === "1") return "login";
+  return "landing";
+}
+
+/** The landing replaces the whole tab, also when the game runs inside the desktop phone frame. */
+function goToLanding() {
+  const target = LANDING_PATHS[getUiLocale()];
+  try {
+    (window.top ?? window).location.replace(target);
+  } catch {
+    window.location.replace(target);
+  }
+}
 
 interface AuthScreenProps {
   error: string | null;
@@ -29,7 +56,8 @@ export function AuthScreen({
   onTelegramMiniApp,
 }: AuthScreenProps) {
   const [pending, setPending] = useState(false);
-  const [showAccountDialog, setShowAccountDialog] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("login") === "1");
+  const [entryMode] = useState<EntryMode>(() => getEntryMode(isTelegramMiniApp));
+  const [showAccountDialog, setShowAccountDialog] = useState(() => entryMode === "login");
   const [devAccounts, setDevAccounts] = useState<Array<{ key: string; label: string }>>([]);
   const dialogRef = useRef<HTMLElement>(null);
   const busy = loading || pending;
@@ -56,6 +84,33 @@ export function AuthScreen({
       .then((result) => { if (result) setDevAccounts(result.accounts); })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (entryMode === "landing") {
+      goToLanding();
+      return;
+    }
+    // One-shot entry flags: a later logout or expired session must not start or open anything again.
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("start") && !url.searchParams.has("login")) return;
+    url.searchParams.delete("start");
+    url.searchParams.delete("login");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [entryMode]);
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (entryMode !== "start" || autoStarted.current) return;
+    autoStarted.current = true;
+    void handleGuest();
+  }, [entryMode, handleGuest]);
+
+  const dialogWasOpen = useRef(false);
+  useEffect(() => {
+    if (entryMode !== "login") return;
+    if (showAccountDialog) dialogWasOpen.current = true;
+    else if (dialogWasOpen.current) goToLanding();
+  }, [entryMode, showAccountDialog]);
 
   useEffect(() => {
     if (!showAccountDialog) return;
@@ -121,8 +176,10 @@ export function AuthScreen({
     }
   }, [busy]);
 
+  if (entryMode === "landing") return null;
+
   return (
-    <main className="auth-screen auth-screen--guest">
+    <main className={`auth-screen auth-screen--guest${entryMode === "start" && !error ? " auth-screen--auto-start" : ""}`}>
       <ElementAmbientFx />
       {isTelegramMiniApp || !LANGUAGE_PICKER_ENABLED ? null : (
         <nav aria-label="Language" className="auth-screen__languages">
