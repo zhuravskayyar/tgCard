@@ -22,7 +22,8 @@ export function mountDesktopPhoneFrame(isAdminPath: boolean) {
   // Touch tablets keep the direct layout: their on-screen keyboard would keep re-scaling the frame.
   if (!window.matchMedia("(pointer: fine)").matches) return false;
   // Crawlers index the first-paint page, not an iframe.
-  if (navigator.webdriver || /bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) return false;
+  // Google-InspectionTool / GoogleOther (Search Console live test) carry no "bot" in their UA.
+  if (navigator.webdriver || /bot|crawl|spider|slurp|lighthouse|google|bing|yandex|baidu|headless|preview|inspection/i.test(navigator.userAgent)) return false;
   // Any mouse-driven window, however narrow, gets the exact 430 px phone: a narrow desktop
   // window must not stretch the game to its own width the way a large-text phone does.
   if (window.innerHeight / DESIGN_HEIGHT < MIN_SCALE) return false;
