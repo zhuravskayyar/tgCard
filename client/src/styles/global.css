@@ -7931,7 +7931,8 @@ button.mode-tile::before,
   pointer-events: auto;
 }
 
-.auth-provider-shell iframe {
+/* Google sizes its own button iframe; only the Telegram click layer is stretched. */
+.auth-provider-shell:not(.auth-provider-shell--google) iframe {
   width: 100% !important;
   max-width: none !important;
   height: 100% !important;

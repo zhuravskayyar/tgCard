@@ -314,7 +314,6 @@ html.in-phone-frame .auth-screen--guest .element-fx { display: none; }
 :root .auth-provider-shell--telegram > .telegram-login--landing iframe { position: absolute; top: 0; left: 0; width: auto !important; height: auto !important; max-width: none !important; }
 /* Google: its real button, centred on the dark plate, nothing stretched. */
 :root .auth-provider-shell > .google-sign-in--landing { display: flex; align-items: center; justify-content: center; background: #131314; overflow: hidden; }
-:root .auth-provider-shell--google iframe { width: auto !important; height: auto !important; }
 
 /* Settings rows: provider name above a full-width button. */
 :root .app-content .settings-provider:has(.auth-provider-shell) { grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
