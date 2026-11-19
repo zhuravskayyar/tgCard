@@ -77,6 +77,8 @@ export interface DuelPlayerPowerPreview {
 export interface DuelSearchResponse {
   opponent: DuelOpponentPreview;
   player: DuelPlayerPowerPreview;
+  /** Free «Шукати іншого» left for this duel; at 0 the same opponent is offered again. */
+  rerollsLeft: number;
   searchId: string;
 }
 

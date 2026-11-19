@@ -313,8 +313,9 @@
 @keyframes treasure-stop-in { from { opacity: 0; scale: .35; } to { opacity: 1; scale: 1; } }
 @keyframes treasure-pin-in { from { opacity: 0; scale: .2; } to { opacity: 1; scale: 1; } }
 @keyframes treasure-twinkle {
-  0%, 100% { filter: brightness(1); scale: 1; }
-  50% { filter: brightness(1.5) drop-shadow(0 0 5px rgb(120 200 255 / 90%)); scale: 1.12; }
+  /* Keeps the sapphire tint of diamond.css: an animated filter replaces the whole filter list. */
+  0%, 100% { filter: hue-rotate(185deg) saturate(1.5) brightness(1.08) contrast(1.05); scale: 1; }
+  50% { filter: hue-rotate(185deg) saturate(1.5) brightness(1.6) contrast(1.05) drop-shadow(0 0 5px rgb(120 200 255 / 90%)); scale: 1.12; }
 }
 @keyframes treasure-trail-glow {
   0%, 100% { filter: drop-shadow(0 0 2px rgb(255 215 130 / 60%)); }

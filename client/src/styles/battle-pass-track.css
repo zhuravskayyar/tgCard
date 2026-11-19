@@ -1,0 +1,348 @@
+/* «Алмазні нагороди»: VIP plate, the reward track and «Що може випасти».
+   Every surface is a painted sprite (quest plate, medallion, leather strap, leather button); CSS only lays them out. */
+
+:root body .vip-plate,
+:root body .reward-catalog__entry {
+  border-style: solid;
+  border-color: transparent;
+  border-width: calc(23 * var(--u));
+  border-image: var(--sprite-panel-frame) 62 fill / calc(23 * var(--u)) stretch round;
+}
+/* Catalog rows are many and small: a lighter cut of the same plate, like the sibling list rows. */
+:root body .reward-catalog__entry {
+  border-width: calc(14 * var(--u));
+  border-image-width: calc(14 * var(--u));
+}
+
+/* VIP plate */
+.vip-plate {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas: "crest copy" "buy buy";
+  gap: 6px 10px;
+  align-items: center;
+  margin: 0;
+  color: #24140a;
+}
+.vip-plate--active { grid-template-areas: "crest copy"; }
+.vip-plate__crest { grid-area: crest; width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 2px 3px rgb(40 20 5 / 40%)); }
+.vip-plate__copy { grid-area: copy; display: grid; gap: 2px; min-width: 0; }
+.vip-plate__copy strong { font-family: var(--font-display); font-size: 18px; line-height: 1.1; }
+.vip-plate__copy span { font-size: 13px; font-weight: 600; line-height: 1.3; }
+:root body .vip-plate .vip-plate__buy { grid-area: buy; justify-self: center; display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; min-width: 200px; white-space: nowrap; }
+/* eq-button lays its children out as a grid; one inline row keeps «Купити за ⦿ 1250» on a line. */
+.vip-plate__buy-content { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.vip-plate__buy strong { font-family: var(--font-number); }
+
+/* Track */
+/* The track lies on the painted treasure map (its road runs under the strap); no frame, so captions get the full column. */
+.reward-track { position: relative; isolation: isolate; display: grid; gap: 4px; margin: 0; padding: 12px 4px 14px; color: #24140a; }
+.reward-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* bp-track-bg-v1 (731×2000): the road runs under the strap; sized to the track, its pedestal sits under the final card. */
+  /* Anchored to the bottom: the pedestal (72px above the art's bottom) meets the cards, which end ~110px above the track's bottom. */
+  background: url("/assets/ui/battle-pass/bp-track-bg-v1.webp") center bottom 38px / 100% auto no-repeat;
+  -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+}
+/* Text on the map keeps a parchment halo so it reads over trees and rivers. */
+.reward-track__circle,
+.reward-track__heads,
+.reward-track__caption strong { text-shadow: 0 0 2px #f7ecd2, 0 0 5px #f7ecd2, 0 0 9px rgb(247 236 210 / 85%); }
+/* The diamond pin marks the player's progress on the strap. */
+.reward-track__pin {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--track-fill, 0) * 100%);
+  left: 50%;
+  width: 30px;
+  height: auto;
+  transform: translate(-50%, -96%);
+  filter: drop-shadow(0 3px 3px rgb(30 15 5 / 55%));
+  transition: top .8s cubic-bezier(.2, .8, .3, 1);
+  animation: reward-track-pin 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes reward-track-pin {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+/* A slow shimmer runs down the walked part of the strap. */
+.reward-track__spine > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0 40%, rgb(255 236 170 / 55%) 50%, transparent 60% 100%) 0 0 / 100% 300% no-repeat;
+  mix-blend-mode: screen;
+  animation: reward-track-shimmer 3.2s linear infinite;
+}
+@keyframes reward-track-shimmer {
+  from { background-position: 0 100%; }
+  to { background-position: 0 0; }
+}
+.reward-track__circle { display: grid; justify-items: center; gap: 2px; margin: 0; font-size: 13px; font-weight: 700; text-align: center; }
+.reward-track__circle span { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-number); font-size: 16px; font-weight: 900; }
+.reward-track__circle img { width: 16px; height: 16px; }
+.reward-track__heads {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+.reward-track__heads > :first-child { padding-right: 6px; text-align: right; }
+.reward-track__heads-vip { padding-left: 6px; text-align: left; color: #6a2a86; }
+.reward-track__rows { position: relative; display: grid; }
+/* The strap runs on under the final medallion (8px gap + half of its 62px), so the two always join. */
+.reward-track__spine {
+  --spine-tail: 39px;
+  position: absolute;
+  top: 0;
+  bottom: calc(-1 * var(--spine-tail));
+  left: 50%;
+  width: 22px;
+  transform: translateX(-50%);
+}
+/* The unwalked strap is dimmed on its own layer, so the glow below keeps its full colour. */
+.reward-track__spine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/assets/ui/battle-pass/bp-track-v1.webp") center top / 22px auto repeat-y;
+  filter: saturate(.55) brightness(.92);
+}
+/* The walked part of the strap glows; its height follows the player's diamonds. */
+.reward-track__spine > i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--track-fill, 0) * (100% - var(--spine-tail)) + var(--track-done, 0) * var(--spine-tail));
+  background: url("/assets/ui/battle-pass/bp-track-v1.webp") center top / 22px auto repeat-y;
+  filter: saturate(1.2) brightness(1.15) drop-shadow(0 0 5px rgb(255 200 90 / 75%));
+  transition: height .8s cubic-bezier(.2, .8, .3, 1);
+}
+/* Compact rows like the reference: caption beside the icon, icons hug the strap. */
+.reward-track__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+  align-items: center;
+  min-height: 74px;
+}
+.reward-track__side { display: flex; min-width: 0; }
+.reward-track__side--free { justify-content: flex-end; }
+.reward-track__side--vip { justify-content: flex-start; }
+
+.reward-track__threshold {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 46px;
+  height: 46px;
+  background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat;
+  filter: grayscale(.55) brightness(.92);
+}
+/* The medallion's open centre is filled with the quest-plate parchment, so the number never sits on the strap. */
+.reward-track__threshold::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  z-index: -1;
+  border-radius: 50%;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / auto 400%;
+}
+.reward-track__threshold strong { font-family: var(--font-number); font-size: 13px; font-weight: 900; line-height: 1; color: #24140a; }
+/* The final stop: a larger medallion with the diamond above its number. */
+.reward-track__threshold--final { width: 62px; height: 62px; align-content: center; }
+.reward-track__threshold--final img { width: 14px; height: 14px; margin-bottom: -2px; }
+.reward-track__threshold--final strong { font-size: 14px; }
+.reward-track__final--reached .reward-track__threshold--final { filter: drop-shadow(0 0 6px rgb(255 205 100 / 80%)); }
+.reward-track__row--reached .reward-track__threshold { filter: drop-shadow(0 0 5px rgb(255 205 100 / 70%)); }
+
+/* Reward tile: medallion next to the strap, caption on the outer side. */
+.reward-track__tile {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.reward-track__side--free .reward-track__tile { flex-direction: row-reverse; text-align: right; }
+.reward-track__side--vip .reward-track__tile { text-align: left; }
+.reward-track__medallion {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  background: url("/assets/ui/trials/medallion-v1.webp") center / 100% 100% no-repeat;
+}
+/* Same parchment centre as the threshold medallions. */
+.reward-track__medallion::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  z-index: -1;
+  border-radius: 50%;
+  background: url("/assets/ui/trials/quest-plate-v1.webp") center / auto 400%;
+}
+.reward-track__icon { width: 66%; height: 66%; object-fit: contain; filter: drop-shadow(0 2px 2px rgb(30 15 5 / 45%)); }
+.reward-track__seal,
+.reward-track__lock { position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; object-fit: contain; }
+.reward-track__caption { display: grid; gap: 2px; min-width: 0; }
+.reward-track__caption strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  hyphens: auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.reward-track__caption small { font-size: 12px; font-weight: 700; color: #5b4630; }
+
+.reward-track__tile--locked .reward-track__icon { filter: grayscale(.45) opacity(.7); }
+.reward-track__tile--soon .reward-track__icon,
+.reward-track__tile--vip-locked .reward-track__icon { filter: grayscale(.85) opacity(.55); }
+.reward-track__tile--claimed .reward-track__icon { filter: grayscale(.3) opacity(.6); }
+.reward-track__tile--vip .reward-track__caption strong { color: #4a1d5c; }
+.reward-track__tile--ready .reward-track__medallion,
+.reward-track__card--ready .reward-track__card-back { animation: reward-track-ready 1.6s ease-in-out infinite; }
+/* «Забрати» sits on the painted leather button. :root body beats the book theme's muted small text. */
+:root body .app-shell .reward-track .reward-track__claim {
+  justify-self: start;
+  display: grid;
+  place-items: center;
+  /* The leather button sprite is 800×169; the chip keeps that ratio and never outgrows its caption column. */
+  width: 100%;
+  max-width: 84px;
+  min-width: 72px;
+  aspect-ratio: 800 / 169;
+  padding: 0 0 1px;
+  color: #fff3d6;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 60%);
+  background: url("/assets/ui/trials/button-leather-v1.webp") center / 100% 100% no-repeat;
+}
+:root body .app-shell .reward-track__side--free .reward-track__claim { justify-self: end; }
+:root body .app-shell .reward-track__card .reward-track__claim { justify-self: center; }
+@keyframes reward-track-ready {
+  0%, 100% { filter: drop-shadow(0 0 3px rgb(255 205 100 / 60%)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 10px rgb(255 205 100 / 95%)); transform: scale(1.05); }
+}
+
+/* Final stop: the 400 medallion, then the card itself, with drifting gem sparkles behind it. */
+.reward-track__final { position: relative; display: grid; justify-items: center; gap: 6px; padding-top: 4px; }
+/* The sparkle sprite is painted on one side; a mirrored copy makes the halo symmetric. */
+.reward-track__final::before,
+.reward-track__final::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 40px;
+  left: 50%;
+  width: 300px;
+  height: 168px;
+  background: url("/assets/ui/shop/shop_particles_overlay.webp") center / contain no-repeat;
+  opacity: .8;
+  transform: translateX(-50%);
+  animation: reward-track-sparkle 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.reward-track__final::after { animation-name: reward-track-sparkle-mirror; animation-delay: -3s; }
+@keyframes reward-track-sparkle-mirror {
+  0%, 100% { opacity: .55; transform: translateX(-50%) scaleX(-1) scale(1) rotate(0deg); }
+  50% { opacity: .9; transform: translateX(-50%) scaleX(-1) scale(1.06) rotate(4deg); }
+}
+@keyframes reward-track-sparkle {
+  0%, 100% { opacity: .55; transform: translateX(-50%) scale(1) rotate(0deg); }
+  50% { opacity: .9; transform: translateX(-50%) scale(1.06) rotate(4deg); }
+}
+.reward-track__card-pair { animation: reward-track-float 3.6s ease-in-out infinite; }
+@keyframes reward-track-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -3px; }
+}
+.reward-track__card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+/* The final card pair: card → arrow → the same card in the VIP frame (reference). */
+.reward-track__card-pair { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; }
+/* Card faces keep the shared card ratio (10/13, card-plates.css). */
+:root body .app-shell .reward-track .reward-track__card-face { width: 88px; aspect-ratio: 10 / 13; }
+.reward-track__card-face--vip { filter: drop-shadow(0 0 6px rgb(186 120 255 / 75%)) drop-shadow(0 0 3px rgb(255 205 100 / 80%)); }
+.reward-track__card-vip { position: relative; display: block; padding-top: 12px; }
+.reward-track__card-vip--locked .reward-track__card-face { filter: grayscale(.45) opacity(.8); }
+.reward-track__card-crest { position: absolute; top: -2px; left: 50%; z-index: 3; width: 34px; height: 34px; object-fit: contain; transform: translateX(-50%); }
+.reward-track__card-arrow { width: 22px; height: 22px; object-fit: contain; transform: rotate(90deg); }
+.reward-track__card-pair > .reward-track__seal { position: absolute; right: -6px; bottom: -6px; }
+/* card-back-v2 is 600×780. */
+.reward-track__card-back { width: 84px; aspect-ratio: 600 / 780; filter: drop-shadow(0 3px 4px rgb(30 15 5 / 45%)); }
+.reward-track__card--locked .reward-track__card-back { filter: grayscale(.4) drop-shadow(0 3px 4px rgb(30 15 5 / 35%)); }
+.reward-track__card .reward-track__seal { width: 30px; height: 30px; }
+/* «Мої магічні предмети» uses the painted button, like the reference. */
+.reward-track__items-button { margin-top: 4px; }
+:root body .app-shell .reward-track__info-link {
+  padding: 2px 4px;
+  color: #4a2a12;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* «Що може випасти» */
+.reward-catalog { display: grid; gap: 8px; }
+.reward-catalog ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.reward-catalog__group { margin: 4px 0 0; font-family: var(--font-display); font-size: 16px; text-align: center; color: #24140a; }
+.reward-catalog__group--vip { color: #4a1d5c; }
+.reward-catalog__entry { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; color: #24140a; }
+.reward-catalog__medallion { width: 56px; height: 56px; }
+.reward-catalog__entry strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; line-height: 1.2; }
+.reward-catalog__entry strong small { font-size: 12px; font-weight: 700; color: #5b4630; }
+.reward-catalog__entry p { margin: 2px 0 0; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.reward-catalog__entry .reward-catalog__usage { font-size: 12px; font-weight: 600; font-style: italic; color: #5b4630; }
+.reward-catalog__rule { margin: 6px 4px 0; font-size: 13px; font-weight: 600; line-height: 1.35; color: #24140a; }
+.reward-catalog__empty { margin: 8px 4px; font-size: 14px; font-weight: 600; text-align: center; color: #24140a; }
+.reward-catalog__owned { display: grid; gap: 2px; padding: 0; color: inherit; font: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
+.reward-catalog__entry--focused { filter: drop-shadow(0 0 8px rgb(255 205 100 / 90%)); }
+.reward-catalog__entry--soon .reward-track__icon { filter: grayscale(.7) opacity(.65); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-track__pin, .reward-track__spine > i::after, .reward-track__final::before, .reward-track__final::after, .reward-track__card-pair { animation: none; }
+  .reward-track__final::after { transform: translateX(-50%) scaleX(-1); }
+  .reward-track__card--ready .reward-track__card-back { animation: none; }
+  .reward-track__tile--ready .reward-track__medallion { animation: none; filter: drop-shadow(0 0 6px rgb(255 205 100 / 85%)); }
+  .reward-track__spine > i { transition: none; }
+}

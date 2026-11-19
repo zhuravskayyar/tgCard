@@ -1,4 +1,4 @@
-import type { CardRarity, PlayerCardInstance } from "./card.js";
+import type { CardElement, CardRarity, PlayerCardInstance } from "./card.js";
 import type {
   LariskaDailyRewardClaimResponse,
   LariskaDailyRewardView,
@@ -28,6 +28,30 @@ export type BattlePassReward =
   | { kind: "card"; label: string; levelSource: "lowest_deck" }
   | { kind: "equipment"; label: string; rarity: CardRarity };
 
+/** One line of «Що може випасти»: what a reward or magic item does and how it is used. */
+export interface BattlePassCatalogEntry {
+  available: boolean;
+  effect: string;
+  /** Icon key: a reward kind, or the item kind for magic items. */
+  icon: BattlePassReward["kind"] | BattlePassItemKind;
+  id: string;
+  title: string;
+  usage: string;
+}
+
+export interface BattlePassCatalog {
+  free: BattlePassCatalogEntry[];
+  /** The one-of-each rule for magic items, with the gold paid for a duplicate. */
+  uniqueRule: string;
+  vip: BattlePassCatalogEntry[];
+}
+
+/** A magic item the player holds now. */
+export interface BattlePassOwnedItem {
+  item: BattlePassItemKind;
+  quantity: number;
+}
+
 export interface CurrencyBoostStatus {
   active: boolean;
   expiresAt: string | null;
@@ -53,9 +77,25 @@ export interface BattlePassMilestoneView {
   vip: BattlePassVipRewardView | null;
 }
 
+/** The circle's final card, shown before it is claimed (reference «Карта в колоду»). */
+export interface BattlePassFinalCardPreview {
+  artKey: string | null;
+  cardId: string;
+  code: string;
+  displayName: string | null;
+  element: CardElement;
+  finalPower: number;
+  level: number;
+  rarity: CardRarity;
+  /** True when VIP is bought: the card comes in the VIP frame. */
+  vip: boolean;
+}
+
 export interface BattlePassCircleView {
   completed: boolean;
   circle: number;
+  /** Only on the active circle; null while it cannot be shown (no deck yet). */
+  finalCard?: BattlePassFinalCardPreview | null;
   /** Diamonds at which this circle starts: the final threshold of the previous circle. */
   fromDiamonds: number;
   milestones: BattlePassMilestoneView[];
@@ -70,11 +110,15 @@ export interface BattlePassVipStatus {
 }
 
 export interface BattlePassView {
+  /** Every reward and magic item of the season with its description. */
+  catalog: BattlePassCatalog;
   circles: BattlePassCircleView[];
   currencyBoost: CurrencyBoostStatus;
   currentCircle: number | null;
   diamonds: number;
   endsAt: string;
+  /** «Мої магічні предмети»: only items whose game system stores them. */
+  ownedItems: BattlePassOwnedItem[];
   nextThreshold: number | null;
   seasonId: string;
   startsAt: string;

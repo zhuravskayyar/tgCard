@@ -10,7 +10,7 @@ const LEAVE_MS = 400;
 
 type PillState = { phase: "hidden" } | { phase: "shown" | "leaving"; value: number };
 
-/** A temporary third HUD capsule: appears when diamonds are gained, counts up, then disappears. */
+/** Gained diamonds take over the gold capsule for a moment: it flips to a diamond, counts up, then flips back. */
 export function DiamondHudPill() {
   const [pill, setPill] = useState<PillState>({ phase: "hidden" });
   const rootRef = useRef<HTMLDivElement>(null);
@@ -26,6 +26,19 @@ export function DiamondHudPill() {
     const onGain = (event: Event) => {
       const { from, to } = (event as CustomEvent<DiamondGainDetail>).detail;
       stop();
+      // Gold first: while its capsule still counts, wait (at most ~3 s), then flip it to diamonds.
+      const goldCounting = () => document.querySelector(".currency-display--gold[data-counting]") !== null;
+      const waitStart = performance.now();
+      const begin = () => {
+        if (goldCounting() && performance.now() - waitStart < 3_000) {
+          run.timers.push(window.setTimeout(begin, 120));
+          return;
+        }
+        start(from, to);
+      };
+      begin();
+    };
+    const start = (from: number, to: number) => {
       setPill({ phase: "shown", value: from });
       // Wait one frame so the capsule exists before the gems fly into it.
       run.frame = window.requestAnimationFrame(() => {

@@ -53,32 +53,34 @@ img[src$="/icon-diamond-v1.webp"] {
   .diamond-icon::after { animation: none; }
 }
 
-/* HUD: a third capsule drops in under the currencies while gained diamonds count up, then leaves. */
+/* HUD: gained diamonds take over the gold capsule — it flips to a diamond, counts up, then flips back to gold. */
 :root .app-shell .currency-display--diamond {
   position: absolute;
   z-index: 3;
-  top: calc(100% + 4px);
+  top: 0;
   right: 0;
   width: calc((100% - 8px) / 2);
   border-width: 0;
+  transform-origin: 50% 50%;
   animation: diamond-hud-in .35s cubic-bezier(.2, .8, .3, 1) both;
 }
+:root .app-shell .currency-list:has(.currency-display--diamond:not(.is-leaving)) .currency-display--gold { visibility: hidden; }
 :root .app-shell .currency-display--diamond.is-leaving { animation: diamond-hud-out .4s ease-in both; }
 :root .app-shell .currency-display--diamond .diamond-icon {
   position: absolute;
   top: 46%;
   left: calc(var(--pill-height) * 69 / 140);
-  width: calc(var(--pill-height) * .66);
-  height: calc(var(--pill-height) * .66);
+  width: calc(var(--pill-height) * .9);
+  height: calc(var(--pill-height) * .9);
   transform: translate(-50%, -50%);
 }
 @keyframes diamond-hud-in {
-  from { opacity: 0; transform: translateY(-8px) scale(.92); }
+  from { opacity: 0; transform: perspective(300px) rotateX(-90deg); }
   to { opacity: 1; transform: none; }
 }
 @keyframes diamond-hud-out {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translateY(-6px) scale(.95); }
+  to { opacity: 0; transform: perspective(300px) rotateX(90deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   :root .app-shell .currency-display--diamond,

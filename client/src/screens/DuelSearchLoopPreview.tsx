@@ -8,6 +8,7 @@ const PREVIEW_MS = 3_200;
 // Dev-only sample, shown on /duel?searchLoop=1 to review the animation without any requests.
 const SAMPLE_SEARCH = {
   searchId: "preview",
+  rerollsLeft: 3,
   player: { deckPower: 108, equipmentPowerBonus: 4, collectionPowerBonus: 0, effectiveDeckPower: 112 },
   opponent: { effectiveDeckPower: 118, level: 2, name: "Суперник", photoUrl: null, powerDifferencePct: 5 },
 } satisfies DuelSearchResponse;

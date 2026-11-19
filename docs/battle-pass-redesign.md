@@ -53,3 +53,21 @@ Shared style block for every prompt:
 
 Return the PNGs; Claude trims them, converts to webp under `client/public/assets/ui/battle-pass/`
 and wires them in.
+
+## Track background (requested 2026-11-19)
+
+The old treasure map was cropped at the sides and too busy under the captions. One replacement file:
+`bp-track-bg-v1.png`, 1024×2800 (portrait, about 1:2.7, the height of one circle on a 430px phone).
+
+> Hand-painted fantasy treasure-map background for a mobile card game, warm parchment-and-sepia palette
+> (cream #ecdcb8 paper, soft ochre, faded olive and slate-blue accents), gentle painterly ink-and-wash style,
+> top-down view, portrait 1024×2800, no text, no letters, no UI, no characters, no frame, no torn border.
+> A straight sandy road runs exactly down the vertical centre (about 12% of the width) from top to bottom.
+> Both sides of the road stay calm and light for readable dark text: soft meadows, faint low hills, a few
+> sparse pale trees and small rocks only at the far outer edges; no dark forests, rivers or ruins next to the road.
+> The bottom fifth opens into a small sunlit clearing with a low carved stone pedestal at the centre, faint
+> golden glow around it. The top has a thin band of soft clouds. All four edges fade smoothly into plain
+> parchment of the same cream colour, so the image blends into the page without visible borders.
+
+Integrated 2026-11-19 as `bp-track-bg-v1.webp` (731×2000): `center bottom 38px / 100% auto` on `.reward-track::before`,
+replacing `battle-pass-map/map-v1.webp`; the strap lies on the road, the final card on the pedestal.

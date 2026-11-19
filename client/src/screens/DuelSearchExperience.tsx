@@ -376,6 +376,7 @@ function DuelSearchExperience({
   onAttack,
   onSearchAgain,
   onCancel,
+  onOpenShop,
   footer,
 }: {
   /** Rating and duel counter, drawn at the bottom of the same plate so the screen fits without scrolling. */
@@ -386,6 +387,8 @@ function DuelSearchExperience({
   onAttack: (searchId: string) => void;
   onSearchAgain: () => void;
   onCancel: () => void;
+  /** Shown once the free rerolls are spent: a weak deck is fixed in the shop, not by rerolling. */
+  onOpenShop?: () => void;
 }) {
   const opponent = search?.opponent;
   const category = opponent ? strengthCategory(opponent.powerDifferencePct) : null;
@@ -560,8 +563,18 @@ function DuelSearchExperience({
                   <DuelSearchSword className="duel-search-button__swords" />
                   НАПАСТИ
                 </button>
-                <button className="duel-search-button duel-search-button--again" disabled={!revealed} onClick={onSearchAgain} type="button">⌕ ШУКАТИ ІНШОГО</button>
+                {search.rerollsLeft > 0 ? (
+                  <button className="duel-search-button duel-search-button--again" disabled={!revealed} onClick={onSearchAgain} type="button">
+                    ⌕ ШУКАТИ ІНШОГО<span className="duel-search-button__count">{search.rerollsLeft}</span>
+                  </button>
+                ) : null}
               </div>
+              {search.rerollsLeft === 0 ? (
+                <div className="duel-search-reroll-out" role="status">
+                  <p>Безкоштовні пошуки скінчилися. Якщо твоя колода заслабка, спробуй купити нові карти.</p>
+                  {onOpenShop ? <button className="duel-search-button duel-search-button--again" onClick={onOpenShop} type="button">До магазину</button> : null}
+                </div>
+              ) : null}
             </section>
           ) : null}
         </div>

@@ -21,6 +21,8 @@ export interface CardInstanceProjectionRow {
   limited?: boolean;
   protected_from_absorption?: boolean;
   stored_elements: string | number;
+  /** Only queries that select it can show the VIP frame. */
+  vip_frame?: boolean;
 }
 
 function toInteger(value: string | number, field: string) {
@@ -61,6 +63,7 @@ export function mapCardInstanceRow(row: CardInstanceProjectionRow): PlayerCardIn
     levelProgressElements,
     limited: row.limited ?? false,
     ...(magicSource ? { magicSource: true } : {}),
+    ...(row.vip_frame ? { vip: true } : {}),
     protectedFromAbsorption: row.protected_from_absorption ?? false,
     basePower,
     bonusPower,

@@ -48,8 +48,10 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
-export function searchDuelOpponent(initData: string, signal?: AbortSignal, tutorial = false) {
-  return request<DuelSearchResponse>(initData, tutorial ? "/api/duel/search?tutorial=true" : "/api/duel/search", { method: "POST", signal });
+/** `reroll` is the «Шукати іншого» tap; a plain search (opening the screen) keeps the open offer. */
+export function searchDuelOpponent(initData: string, signal?: AbortSignal, tutorial = false, reroll = false) {
+  const query = [tutorial ? "tutorial=true" : null, reroll ? "reroll=true" : null].filter(Boolean).join("&");
+  return request<DuelSearchResponse>(initData, query ? `/api/duel/search?${query}` : "/api/duel/search", { method: "POST", signal });
 }
 
 export function startDuel(initData: string, searchId: string, tutorial = false, signal?: AbortSignal) {

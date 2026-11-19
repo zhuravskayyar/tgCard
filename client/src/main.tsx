@@ -28,6 +28,7 @@ import "./styles/daily-login.css";
 import "./styles/sprite-proportions.css";
 import "./styles/reward-fly.css";
 import "./styles/treasure-map.css";
+import "./styles/battle-pass-track.css";
 import "./styles/shop-stall.css";
 import "./styles/equipment-book.css";
 import "./styles/profile-book.css";

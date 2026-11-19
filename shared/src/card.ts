@@ -107,6 +107,8 @@ export interface PlayerCardInstance {
   limited?: boolean;
   /** Magic source (`el_*` card): power 1, keeps its full elemental potential, cannot level or absorb. */
   magicSource?: boolean;
+  /** The VIP frame of a «Алмазні нагороди» final card bought with VIP. */
+  vip?: boolean;
   protectedFromAbsorption: boolean;
   rarity: CardRarity;
   storedElements: number;

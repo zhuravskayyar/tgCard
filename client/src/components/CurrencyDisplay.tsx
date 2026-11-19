@@ -55,10 +55,15 @@ export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayPr
       return undefined;
     }
     let frame = 0;
-    const delay = flyRewardToHud(kind, rootRef.current, value - from);
+    const root = rootRef.current;
+    // Marks the count-up, so a diamond gain waits for the gold to finish before taking over its capsule.
+    root.dataset.counting = "";
+    const done = () => { delete root.dataset.counting; };
+    const delay = flyRewardToHud(kind, root, value - from);
     const timer = window.setTimeout(() => {
       if (delay === 0) {
         show(value);
+        done();
         return;
       }
       const startedAt = performance.now();
@@ -66,12 +71,14 @@ export function CurrencyDisplay({ kind, label, state, value }: CurrencyDisplayPr
         const progress = Math.min(1, (now - startedAt) / COUNT_UP_MS);
         show(Math.round(from + (value - from) * (1 - (1 - progress) ** 3)));
         if (progress < 1) frame = window.requestAnimationFrame(tick);
+        else done();
       };
       frame = window.requestAnimationFrame(tick);
     }, delay);
     return () => {
       window.clearTimeout(timer);
       window.cancelAnimationFrame(frame);
+      done();
     };
   }, [isReady, kind, value]);
 

@@ -10,6 +10,8 @@ import type {
   EquipmentBattleState,
 } from "@cardastika/shared";
 
+/** Free «Шукати іншого» per duel; then the same opponent stays and the screen suggests strengthening the deck. */
+export const DUEL_FREE_REROLLS = 3;
 export const NORMAL_MATCHMAKING_RANGE_PCT = 10;
 export const STREAK_MATCHMAKING_RANGE_PCT = 15;
 export const WIDENED_MATCHMAKING_STREAK = 5;

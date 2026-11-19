@@ -32,7 +32,7 @@ interface DuelOperations {
   findAvailability(playerId: string): Promise<DuelAvailability>;
   findActive(playerId: string): Promise<DuelView | null>;
   findById(playerId: string, duelId: string): Promise<DuelView>;
-  search(playerId: string, tutorial?: boolean): Promise<DuelSearchResponse>;
+  search(playerId: string, tutorial?: boolean, reroll?: boolean): Promise<DuelSearchResponse>;
   start(playerId: string, searchId: string, tutorial?: boolean): Promise<DuelView>;
 }
 
@@ -135,7 +135,7 @@ export async function handleDuelRequest(
     const { player } = await authenticateRoutePlayer(request, dependencies);
 
     if (request.method === "POST" && url.pathname === "/api/duel/search") {
-      sendJson(response, 200, await dependencies.duels.search(player.id, url.searchParams.get("tutorial") === "true"), headers);
+      sendJson(response, 200, await dependencies.duels.search(player.id, url.searchParams.get("tutorial") === "true", url.searchParams.get("reroll") === "true"), headers);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/duel/start") {

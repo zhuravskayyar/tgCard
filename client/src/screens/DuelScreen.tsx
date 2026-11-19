@@ -705,7 +705,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
     setState({ status: "duel", duel });
   }, [onTutorialDuelState, tutorialMode]);
 
-  const search = useCallback(async (initData: string, signal?: AbortSignal) => {
+  const search = useCallback(async (initData: string, signal?: AbortSignal, reroll = false) => {
     if (requestInFlightRef.current && !searchAbortControllerRef.current?.signal.aborted) return;
     requestInFlightRef.current = true;
     const controller = signal ? null : new AbortController();
@@ -726,7 +726,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
     };
     setState({ status: "searching" });
     try {
-      const searchResult = await searchDuelOpponent(initData, searchSignal, tutorialMode);
+      const searchResult = await searchDuelOpponent(initData, searchSignal, tutorialMode, reroll);
       const elapsed = (typeof performance === "undefined" ? Date.now() : performance.now()) - searchStartedAt;
       await waitForMinimumDisplay(elapsed);
       if (searchSignal.aborted) return;
@@ -831,7 +831,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
         setState({ status: "cooldown" });
         return;
       }
-      await search(initData);
+      await search(initData, undefined, true);
     } catch {
       setState({ status: "error", message: "Не вдалося завантажити стан дуелей" });
     }
@@ -1055,6 +1055,7 @@ export function DuelScreen({ duelRating, onOpenLeagues, onOpenTasks, onOpenShop,
           onAttack={(searchId) => void handleStart(searchId)}
           onCancel={handleCancelSearch}
           onSearchAgain={() => void handleSearchAgain()}
+          onOpenShop={tutorialMode ? undefined : onOpenShop}
           phase={state.status as DuelSearchExperiencePhase}
           search={state.status === "preview" ? state.search : undefined}
         />

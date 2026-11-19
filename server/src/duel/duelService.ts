@@ -16,6 +16,7 @@ import {
   getEquipmentBattleModifiers,
   getEquippedDefinitions,
   getRequiredAccountXp,
+  DUEL_FREE_REROLLS,
   getMatchmakingRange,
   getEquipmentCollectionElementPct,
   getPlayerCollectionModifiers,
@@ -607,7 +608,7 @@ export class DuelService {
     };
   }
 
-  async search(challengerId: string, tutorial = false): Promise<DuelSearchResponse> {
+  async search(challengerId: string, tutorial = false, reroll = false): Promise<DuelSearchResponse> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
@@ -625,38 +626,61 @@ export class DuelService {
       }
 
       const challenger = await loadDuelParticipant(client, challengerId);
-      const range = getMatchmakingRange(
-        challenger.snapshot.effectiveDeckPower,
-        challenger.player.duel_win_streak,
-      );
-      const opponentSnapshot = createBotOpponentSnapshot(
-        challenger.snapshot,
-        range,
-        await loadBotCardTemplates(client),
-        this.random,
-      );
-
-      const searchId = randomUUID();
-      await client.query(
-        "DELETE FROM duel_matchmaking_searches WHERE challenger_id = $1",
+      // Opening the screen keeps the open offer. Only a «Шукати іншого» tap (reroll) replaces it, and only
+      // DUEL_FREE_REROLLS times per duel: after that the open offer stays, so rerolling for a weak opponent
+      // stops being the best strategy.
+      const open = await client.query<{ id: string; opponent_snapshot: DuelSideSnapshot | null }>(
+        `SELECT id, opponent_snapshot FROM duel_matchmaking_searches
+           WHERE challenger_id = $1 AND used_at IS NULL AND expires_at > NOW() AND opponent_kind = 'bot'`,
         [challengerId],
       );
-      await client.query(
-        `
-          INSERT INTO duel_matchmaking_searches (
-            id, challenger_id, opponent_id, opponent_kind, opponent_snapshot, expires_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `,
-        [
-          searchId,
-          challengerId,
-          null,
-          "bot",
-          JSON.stringify(opponentSnapshot),
-          new Date(Date.now() + SEARCH_LIFETIME_MS),
-        ],
-      );
+      const rerollRow = await client.query<{ duel_search_rerolls: number | string }>("SELECT duel_search_rerolls FROM players WHERE id = $1", [challengerId]);
+      let rerolls = Number(rerollRow.rows[0]?.duel_search_rerolls ?? 0);
+      const openOffer = open.rows[0];
+      const isReroll = !tutorial && reroll && openOffer !== undefined;
+      const keepOffer = !tutorial && openOffer?.opponent_snapshot && (!reroll || rerolls >= DUEL_FREE_REROLLS);
+      let searchId: string;
+      let opponentSnapshot: DuelSideSnapshot;
+      if (keepOffer && openOffer?.opponent_snapshot) {
+        searchId = openOffer.id;
+        opponentSnapshot = openOffer.opponent_snapshot;
+      } else {
+        if (isReroll) {
+          rerolls += 1;
+          await client.query("UPDATE players SET duel_search_rerolls = $2 WHERE id = $1", [challengerId, rerolls]);
+        }
+        const range = getMatchmakingRange(
+          challenger.snapshot.effectiveDeckPower,
+          challenger.player.duel_win_streak,
+        );
+        opponentSnapshot = createBotOpponentSnapshot(
+          challenger.snapshot,
+          range,
+          await loadBotCardTemplates(client),
+          this.random,
+        );
+        searchId = randomUUID();
+        await client.query(
+          "DELETE FROM duel_matchmaking_searches WHERE challenger_id = $1",
+          [challengerId],
+        );
+        await client.query(
+          `
+            INSERT INTO duel_matchmaking_searches (
+              id, challenger_id, opponent_id, opponent_kind, opponent_snapshot, expires_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `,
+          [
+            searchId,
+            challengerId,
+            null,
+            "bot",
+            JSON.stringify(opponentSnapshot),
+            new Date(Date.now() + SEARCH_LIFETIME_MS),
+          ],
+        );
+      }
       await client.query("COMMIT");
       const preview: DuelOpponentPreview = {
         name: opponentSnapshot.name,
@@ -674,7 +698,7 @@ export class DuelService {
         collectionPowerBonus: challenger.snapshot.effectiveDeckPower - challenger.deckPower - challenger.equipmentPowerBonus,
         effectiveDeckPower: challenger.snapshot.effectiveDeckPower,
       };
-      return { searchId, opponent: preview, player };
+      return { searchId, opponent: preview, player, rerollsLeft: tutorial ? DUEL_FREE_REROLLS : Math.max(0, DUEL_FREE_REROLLS - rerolls) };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;
@@ -705,6 +729,8 @@ export class DuelService {
       );
       const search = searchResult.rows[0];
       if (!search) throw new DuelSearchInvalidError();
+      // Attacking spends the offer, so the next duel gets its free rerolls back.
+      await client.query("UPDATE players SET duel_search_rerolls = 0 WHERE id = $1", [challengerId]);
 
       const challenger = await loadDuelParticipant(client, challengerId, "duel", { dragonHp: true });
       const tutorialMode = tutorial && challenger.player.tutorial_eligible;

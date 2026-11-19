@@ -673,6 +673,11 @@
 .duel-search-actions { display: grid; width: 100%; justify-items: center; gap: 7px; }
 .duel-search-button--attack,
 .duel-search-button--again { width: min(92%, 340px); }
+/* Free rerolls left, as a small number after the label. */
+.duel-search-button__count { margin-left: 8px; font-family: var(--font-number); opacity: .85; }
+/* After the free rerolls: a plain line of advice and the way to the shop. */
+.duel-search-reroll-out { display: grid; justify-items: center; gap: 6px; margin-top: 6px; text-align: center; }
+.duel-search-reroll-out p { margin: 0 8px; color: #3a2512; font-size: 13px; font-weight: 700; line-height: 1.35; }
 
 :root .app-shell .app-content .duel-search-button--again {
   min-height: 43px;

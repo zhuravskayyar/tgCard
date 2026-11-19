@@ -106,7 +106,7 @@ test("matchmaking always builds and persists a varied bot deck even when a real 
     assert.equal(search.rows[0]?.opponent_id, null);
     assert.equal(search.rows[0]?.opponent_snapshot.name, found.opponent.name);
 
-    const nextFound = await new DuelService(pool, () => 0.999999).search(challenger.id);
+    const nextFound = await new DuelService(pool, () => 0.999999).search(challenger.id, false, true);
     assert.notEqual(nextFound.opponent.effectiveDeckPower, found.opponent.effectiveDeckPower);
     assert.deepEqual(nextFound.player, found.player);
 
@@ -438,6 +438,44 @@ test("paid Duels: the break price reopens ten Duels, auto-play runs real finishe
     assert.equal(pack.player.gold, 1000 - 50 + pack.gold);
     const counter = await pool.query<{ duel_auto_count: number }>("SELECT duel_auto_count FROM players WHERE id = $1", [challenger.id]);
     assert.equal(counter.rows[0]!.duel_auto_count, 1010);
+  } finally {
+    if (playerIds.length) await cleanup(pool, playerIds);
+    await pool.end();
+  }
+});
+
+test("only three free rerolls per duel: then the same opponent stays, and attacking gives them back", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const players = new PlayerRepository(pool);
+  const playerIds: string[] = [];
+  try {
+    const challenger = await players.findOrCreateFromTelegram(telegramUser("reroll"));
+    playerIds.push(challenger.id);
+    await players.completeTutorial(challenger.id);
+    await pool.query("UPDATE players SET tutorial_eligible = FALSE WHERE id = $1", [challenger.id]);
+    const service = new DuelService(pool, Math.random);
+    const first = await service.search(challenger.id);
+    assert.equal(first.rerollsLeft, 3, "the first search of a duel is not a reroll");
+    const left: number[] = [];
+    let last = first;
+    const reopened = await service.search(challenger.id);
+    assert.equal(reopened.searchId, first.searchId, "opening the screen again keeps the open offer and costs nothing");
+    assert.equal(reopened.rerollsLeft, 3);
+    for (let index = 0; index < 3; index += 1) {
+      last = await service.search(challenger.id, false, true);
+      left.push(last.rerollsLeft);
+    }
+    assert.deepEqual(left, [2, 1, 0]);
+    const stuck = await service.search(challenger.id, false, true);
+    assert.equal(stuck.rerollsLeft, 0);
+    assert.equal(stuck.searchId, last.searchId, "past the free rerolls the open offer is returned again");
+    assert.equal(stuck.opponent.name, last.opponent.name);
+    const duel = await service.start(challenger.id, stuck.searchId);
+    const reset = await pool.query<{ duel_search_rerolls: number }>("SELECT duel_search_rerolls FROM players WHERE id = $1", [challenger.id]);
+    assert.equal(reset.rows[0]?.duel_search_rerolls, 0);
+    await pool.query("UPDATE duels SET status = 'won', finished_at = NOW() WHERE id = $1", [duel.duelId]);
+    assert.equal((await service.search(challenger.id)).rerollsLeft, 3, "the next duel starts with fresh rerolls");
   } finally {
     if (playerIds.length) await cleanup(pool, playerIds);
     await pool.end();

@@ -201,3 +201,35 @@ test("VIP bought after a finished circle loses that circle's VIP rewards", { ski
     await pool.end();
   }
 });
+
+test("the circle's final card is shown in advance, stays the same and is the one granted; with VIP it comes in the VIP frame", { skip: !databaseUrl }, async () => {
+  if (!databaseUrl) return;
+  const pool = new Pool({ connectionString: databaseUrl });
+  const player = await new PlayerRepository(pool).findOrCreateFromTelegram(telegramUser());
+  const battlePass = new BattlePassService(pool);
+  const now = new Date("2026-08-23T12:00:00.000Z");
+  try {
+    const first = await battlePass.getPage(player.id, now);
+    const preview = first.battlePass.circles[0]!.finalCard;
+    assert.ok(preview, "the active circle shows its final card");
+    assert.equal(preview.vip, false);
+    const again = await battlePass.getPage(player.id, now);
+    assert.equal(again.battlePass.circles[0]!.finalCard?.cardId, preview.cardId, "the preview does not change between loads");
+
+    await pool.query("UPDATE player_battle_pass_state SET diamonds = 400 WHERE player_id = $1 AND season_id = $2", [player.id, "2026-08"]);
+    await pool.query("UPDATE players SET gold = 1300 WHERE id = $1", [player.id]);
+    const bought = await battlePass.purchaseVip(player.id, now);
+    assert.equal(bought.battlePass.circles[0]!.finalCard?.vip, true);
+    for (const id of ["circle-1-50", "circle-1-100", "circle-1-150", "circle-1-200", "circle-1-250", "circle-1-300", "circle-1-100-vip", "circle-1-200-vip"]) {
+      await battlePass.claimMilestone(player.id, id, now);
+    }
+    const final = await battlePass.claimMilestone(player.id, "circle-1-400", now);
+    assert.equal(final.card?.cardId, preview.cardId, "the granted card is the one shown in advance");
+    assert.equal(final.card?.vip, true);
+    const stored = await pool.query<{ vip_frame: boolean }>("SELECT vip_frame FROM player_card_instances WHERE id = $1", [final.card!.instanceId]);
+    assert.equal(stored.rows[0]?.vip_frame, true);
+  } finally {
+    await pool.query("DELETE FROM players WHERE id = $1", [player.id]);
+    await pool.end();
+  }
+});

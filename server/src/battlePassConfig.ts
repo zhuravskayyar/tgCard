@@ -1,4 +1,4 @@
-import type { BattlePassItemKind, BattlePassReward } from "@cardastika/shared";
+import type { BattlePassCatalog, BattlePassItemKind, BattlePassReward } from "@cardastika/shared";
 
 export interface BattlePassCircleConfig {
   brotherhoodThresholds?: readonly number[];
@@ -48,6 +48,38 @@ export const BATTLE_PASS_ITEM_LABELS: Record<BattlePassItemKind, string> = {
 };
 /** Items whose game system already exists; the others are shown locked. */
 const AVAILABLE_ITEMS: ReadonlySet<BattlePassItemKind> = new Set(["hunting_permit", "magic_crystal"]);
+/** What each magic item does and how it is used, following the reference description page. */
+const BATTLE_PASS_ITEM_INFO: Record<BattlePassItemKind, { effect: string; usage: string }> = {
+  chest_discount: { effect: "Персональна знижка 50% на відкриття скринь.", usage: "Активується у відкритій Лавці скринь. Діє з моменту активації до кінця дня." },
+  dragon_heart: { effect: "Застосовується в боях на війні. Перетворює всі карти мага на столі на Магію дракона: вони б’ють без відповіді й одразу змінюються наступними картами з бойової колоди.", usage: "Кнопка доступна в бою війни гільдій." },
+  element_tincture: { effect: "Застосовується на турнірі. Додаткові +10% до обраного посилення стихії на весь турнір.", usage: "Пропонується активувати перед боєм у Турнірі під час вибору посилення." },
+  fourth_key: { effect: "Додатковий ключ на бій війни. Можна брати участь у бою, навіть якщо ключа немає!", usage: "Активується під час запису на бій, якщо ключів немає." },
+  gold_legacy: { effect: "+50% золота до будь-якої покупки золота (після активації)!", usage: "Активується на сторінці покупки золота. Діє до кінця дня!" },
+  hunting_permit: { effect: "Знижка 50% на всі напади на одного боса Навали.", usage: "Пропонується активувати в Навалі, коли доступний платний напад. Діє лише на одного боса!" },
+  magic_crystal: { effect: "Застосовується в боях на війні. Кличе в бій Древнє чудовисько, що замінює три твої карти й будь-якій карті суперника завдає критичної шкоди, у відповідь отримуючи половинну.", usage: "Кнопка стає доступною в бою війни гільдій." },
+  magic_shovel: { effect: "Цей потужний інструмент миттєво викопує скарб у битвах із чаклунками!", usage: "Використовується під час викопування скарбу (потрібен доступ до скарбу)." },
+  master_charter: { effect: "Безкоштовно піднімає рівень будь-якої карти бойової колоди (за прогресу рівня 100%).", usage: "Автоматично доступна в бойовій колоді після отримання." },
+  miracle_heal: { effect: "Застосовується в боях на війні. Відновлює твоє здоров’я до 100%.", usage: "Кнопка стає доступною в бою війни гільдій." },
+  shuffle: { effect: "Застосовується на турнірі. Можна один раз змінити карти суперника.", usage: "Кнопка стає доступною в бою Турніру." },
+  stone_skin: { effect: "Застосовується в боях на війні. Зводить до нуля шкоду від 3 атакувальних ударів (ти при цьому б’єш у відповідь).", usage: "Кнопка стає доступною в бою війни гільдій." },
+};
+
+/** «Опис магічних предметів»: rewards for everyone, then VIP rewards, in the order they stand on the track. */
+export const BATTLE_PASS_CATALOG: BattlePassCatalog = {
+  uniqueRule: `У мага може бути лише один магічний предмет кожного виду. Щоб отримати такий самий, спершу використай наявний; інакше замість нього прийде ${BATTLE_PASS_DUPLICATE_ITEM_GOLD} золота.`,
+  free: [
+    { available: true, effect: "Посилення срібла й золота на 24 години в Дуелях і Навалі. Конкретні числа залежать від номера кола.", icon: "boost", id: "boost", title: "Магічні посилення", usage: "Активується в момент отримання." },
+    { available: true, effect: "Семизначна сума срібла, яка зростає з номером кола.", icon: "silver", id: "silver", title: "Мішок срібла", usage: "Видається після натискання кнопки «Забрати»." },
+    { available: true, effect: "Приємна вага в кишені — трохи золота. Залежить від номера кола.", icon: "gold", id: "gold", title: "Жменя золота", usage: "Видається після натискання кнопки «Забрати»." },
+    { available: true, effect: "Звичайне, незвичайне й рідкісне спорядження на першому колі.", icon: "equipment", id: "equipment", title: "Спорядження", usage: "Видається після натискання кнопки «Забрати»." },
+    { available: true, effect: "Карта рівня найслабшої карти твоєї бойової колоди. Стихія збігається з її стихією на початку кола. Зображення й стихія не змінюються до отримання!", icon: "card", id: "card", title: "Карта в колекцію", usage: "Видається після натискання кнопки «Забрати»." },
+  ],
+  vip: [
+    { available: true, effect: "Замість звичайної карти — та сама карта з VIP-оформленням.", icon: "card", id: "vip-card", title: "VIP-карта в колекцію", usage: "Видається після натискання кнопки «Забрати»." },
+    { available: true, effect: "Незвичайне, рідкісне й епічне спорядження.", icon: "equipment", id: "vip-equipment", title: "VIP-спорядження", usage: "Видається після натискання кнопки «Забрати»." },
+  ],
+};
+
 const item = (kind: BattlePassItemKind): BattlePassReward => ({ available: AVAILABLE_ITEMS.has(kind), item: kind, kind: "item", label: BATTLE_PASS_ITEM_LABELS[kind] });
 
 /**
@@ -78,6 +110,12 @@ const VIP_REWARDS_BY_CIRCLE: readonly (readonly (BattlePassReward | null)[])[] =
   [item("chest_discount"), item("stone_skin"), equipment("epic", "Епічне спорядження"), item("hunting_permit"), item("magic_crystal"), item("miracle_heal"), null],
   [item("chest_discount"), item("hunting_permit"), item("stone_skin"), item("magic_crystal"), item("miracle_heal"), item("master_charter"), null],
 ];
+
+// Every magic item joins the VIP part of the catalog in the order it first appears on the track.
+BATTLE_PASS_CATALOG.vip.push(...[...new Set(VIP_REWARDS_BY_CIRCLE.flat().flatMap((reward) => (reward?.kind === "item" ? [reward.item] : [])))]
+  .concat((Object.keys(BATTLE_PASS_ITEM_INFO) as BattlePassItemKind[]))
+  .filter((kind, index, all) => all.indexOf(kind) === index)
+  .map((kind) => ({ available: AVAILABLE_ITEMS.has(kind), ...BATTLE_PASS_ITEM_INFO[kind], icon: kind, id: kind, title: BATTLE_PASS_ITEM_LABELS[kind] })));
 
 export interface BattlePassMilestoneConfig {
   /** Threshold with the «Алмазна артіль» collection, when it differs. */

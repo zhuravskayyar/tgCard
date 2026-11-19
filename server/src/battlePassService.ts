@@ -4,7 +4,9 @@ import { createStandardCardInstance, CryptoCardRandomSource } from "./cards/card
 import { recordCardDiscovery } from "./collections/discoveryService.js";
 import {
   getArenaRewardCardLevelRange,
+  getCardPower,
   getNextBattlePassThreshold,
+  getRarityForLevel,
   isBattlePassCircleComplete,
 } from "@cardastika/game-core";
 import type {
@@ -14,6 +16,8 @@ import type {
   BattlePassPageResponse,
   BattlePassReward,
   BattlePassView,
+  BattlePassOwnedItem,
+  BattlePassFinalCardPreview,
   BattlePassVipPurchaseResponse,
   DailyTaskClaimResponse,
   DailyTaskReward,
@@ -27,6 +31,7 @@ import {
   BATTLE_PASS_BROTHERHOOD_COLLECTION,
   BATTLE_PASS_DUPLICATE_ITEM_GOLD,
   BATTLE_PASS_MILESTONES,
+  BATTLE_PASS_CATALOG,
   BATTLE_PASS_VIP_PRICE_GOLD,
   DAILY_TASK_EQUIPMENT_RARITY,
   DAILY_TASK_SILVER_PER_DIAMOND,
@@ -293,6 +298,89 @@ export async function loadRewardCardDefinition(database: Database) {
   );
   const row = result.rows[0];
   if (!row) throw new Error("No free battle pass card reward is configured");
+  return toRewardCardDefinition(row);
+}
+
+async function loadCardDefinitionById(database: Database, cardId: string) {
+  const result = await database.query<CardDefinitionRow>(
+    "SELECT id, code, display_name, art_key, element, collection_id, description, limited, min_rarity FROM cards WHERE id = $1",
+    [cardId],
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("Battle pass preview card is missing");
+  return toRewardCardDefinition(row);
+}
+
+/** Reference: the final card takes the element of the weakest deck card; any element when none fits. */
+async function pickPreviewCardId(database: Database, playerId: string) {
+  const weakest = await database.query<{ element: string }>(
+    `SELECT cards.element FROM player_decks
+       INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id
+       INNER JOIN player_card_instances ON player_card_instances.id = deck_slots.card_instance_id
+       INNER JOIN cards ON cards.id = player_card_instances.card_id
+       WHERE player_decks.player_id = $1
+       ORDER BY player_card_instances.level ASC, player_card_instances.bonus_power ASC
+       LIMIT 1`,
+    [playerId],
+  );
+  const pick = (element: string | null) => database.query<{ id: string }>(
+    `SELECT id FROM cards
+       WHERE shop_eligible = TRUE AND limited = FALSE AND source = 'standard' AND ($1::text IS NULL OR element = $1)
+       ORDER BY random() LIMIT 1`,
+    [element],
+  );
+  const id = (await pick(weakest.rows[0]?.element ?? null)).rows[0]?.id ?? (await pick(null)).rows[0]?.id;
+  if (!id) throw new Error("No free battle pass card reward is configured");
+  return id;
+}
+
+/** The circle's final card: chosen once, then the same card is shown and granted until it is claimed. */
+export async function getOrCreateCardPreview(database: Database, playerId: string, seasonId: string, circle: number) {
+  const select = () => database.query<{ card_id: string }>(
+    "SELECT card_id FROM player_battle_pass_card_previews WHERE player_id = $1 AND season_id = $2 AND circle = $3",
+    [playerId, seasonId, circle],
+  );
+  let cardId = (await select()).rows[0]?.card_id;
+  if (!cardId) {
+    await database.query(
+      `INSERT INTO player_battle_pass_card_previews (player_id, season_id, circle, card_id) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (player_id, season_id, circle) DO NOTHING`,
+      [playerId, seasonId, circle, await pickPreviewCardId(database, playerId)],
+    );
+    // A concurrent load may have won the insert; both then show and grant its card.
+    cardId = (await select()).rows[0]?.card_id;
+  }
+  if (!cardId) throw new Error("Battle pass card preview was not stored");
+  return loadCardDefinitionById(database, cardId);
+}
+
+/** The preview shown on the track; never throws, so a player without a deck just sees the card back. */
+async function loadFinalCardPreview(database: Database, playerId: string, seasonId: string, circle: number, vip: boolean): Promise<BattlePassFinalCardPreview | null> {
+  // Without a deck there is no weakest card to match, so no preview is stored yet: the track shows the card back.
+  const hasDeck = await database.query("SELECT 1 FROM player_decks INNER JOIN deck_slots ON deck_slots.deck_id = player_decks.id WHERE player_decks.player_id = $1 LIMIT 1", [playerId]);
+  if (!hasDeck.rowCount) return null;
+  try {
+    const level = await loadLowestDeckCardLevel(database, playerId);
+    const definition = await getOrCreateCardPreview(database, playerId, seasonId, circle);
+    return {
+      artKey: definition.artKey,
+      cardId: definition.id,
+      code: definition.code,
+      displayName: definition.displayName,
+      element: definition.element,
+      finalPower: getCardPower({ level, bonusPower: 0 }),
+      level,
+      rarity: getRarityForLevel(level),
+      vip,
+    };
+  } catch (error) {
+    // The page still loads; the log tells a missing table or a database error apart from an empty deck.
+    console.warn("Battle pass final card preview failed", error);
+    return null;
+  }
+}
+
+function toRewardCardDefinition(row: CardDefinitionRow) {
   return {
     artKey: row.art_key,
     code: row.code,
@@ -333,6 +421,8 @@ async function grantReward(
   rewardId: string,
   seasonId: string,
   now: Date,
+  circle: number,
+  vipCard: boolean,
 ): Promise<{ balance: PlayerBalance; card?: PlayerCardInstance; convertedToGold?: number; equipmentItemId?: string }> {
   let card: PlayerCardInstance | undefined;
   if (reward.kind === "boost") {
@@ -394,10 +484,32 @@ async function grantReward(
   }
 
   const level = await loadLowestDeckCardLevel(database, playerId);
-  const definition = await loadRewardCardDefinition(database);
+  // The card shown on the track since the circle began, not a fresh random one.
+  const definition = await getOrCreateCardPreview(database, playerId, seasonId, circle);
   card = await createStandardCardInstance(database, playerId, definition, level, new CryptoCardRandomSource());
+  if (vipCard) {
+    await database.query("UPDATE player_card_instances SET vip_frame = TRUE WHERE id = $1", [card.instanceId]);
+    card = { ...card, vip: true };
+  }
   await recordCardDiscovery(database, playerId, definition.id);
   return { balance: await loadBalance(database, playerId), card };
+}
+
+/** Magic items the player holds now; only kinds whose game system stores them can appear. */
+async function loadOwnedItems(database: Database, playerId: string): Promise<BattlePassOwnedItem[]> {
+  const result = await database.query<{ hunting_permits: number | string | null; magic_crystals: number | string | null }>(
+    `SELECT
+       (SELECT hunting_permits FROM player_invasion_items WHERE player_id = $1) AS hunting_permits,
+       (SELECT quantity FROM guild_war_magic_crystals WHERE player_id = $1) AS magic_crystals`,
+    [playerId],
+  );
+  const row = result.rows[0];
+  const owned: BattlePassOwnedItem[] = [];
+  const permits = toInteger(row?.hunting_permits ?? 0);
+  const crystals = toInteger(row?.magic_crystals ?? 0);
+  if (permits > 0) owned.push({ item: "hunting_permit", quantity: permits });
+  if (crystals > 0) owned.push({ item: "magic_crystal", quantity: crystals });
+  return owned;
 }
 
 export class BattlePassService {
@@ -462,9 +574,11 @@ export class BattlePassService {
     });
     const activeCircleIndex = allCircleViews.findIndex(({ completed }) => !completed);
     const visibleCircles = activeCircleIndex >= 0
-      ? [allCircleViews[activeCircleIndex]!]
+      ? [{ ...allCircleViews[activeCircleIndex]!, finalCard: await loadFinalCardPreview(database, playerId, season.seasonId, allCircleViews[activeCircleIndex]!.circle, state.vip) }]
       : allCircleViews.length ? [allCircleViews[allCircleViews.length - 1]!] : [];
     const battlePass: BattlePassView = {
+      catalog: BATTLE_PASS_CATALOG,
+      ownedItems: await loadOwnedItems(database, playerId),
       circles: visibleCircles,
       currencyBoost,
       currentCircle: visibleCircles.find(({ completed }) => !completed)?.circle ?? null,
@@ -543,7 +657,7 @@ export class BattlePassService {
         [playerId, season.seasonId, rewardId],
       );
       if (claim.rowCount !== 1) throw new BattlePassMilestoneNotClaimableError();
-      const granted = await grantReward(client, playerId, reward, rewardId, season.seasonId, now);
+      const granted = await grantReward(client, playerId, reward, rewardId, season.seasonId, now, milestone.circle, hasVip);
       await client.query("COMMIT");
       return {
         ...(await this.getPage(playerId, now)),
