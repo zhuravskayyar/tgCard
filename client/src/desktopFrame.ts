@@ -42,6 +42,7 @@ export function mountDesktopPhoneFrame(isAdminPath: boolean) {
     border: "0",
     transformOrigin: "50% 0",
     background: "transparent",
+    zIndex: "1",
   });
 
   const layout = () => {
@@ -54,6 +55,11 @@ export function mountDesktopPhoneFrame(isAdminPath: boolean) {
   frame.addEventListener("load", () => frame.focus());
   document.body.classList.add("phone-frame-host");
   document.getElementById("root")?.replaceChildren(frame);
+  // The living World Tree around the phone: embers, leaves, mist and light over the wide art.
+  const ambient = document.createElement("script");
+  ambient.src = "/fx/world-ambient.js";
+  ambient.defer = true;
+  document.head.appendChild(ambient);
   return true;
 }
 

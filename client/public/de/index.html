@@ -15,6 +15,7 @@
   <link rel="alternate" hreflang="x-default" href="https://app.cardastika.org/" />
   <link rel="icon" type="image/webp" href="/assets/ui/auth/cardastika-logo.webp" />
   <link rel="stylesheet" href="/landing/landing.css" />
+  <script src="/fx/world-ambient.js" defer></script>
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Cardastika" />
   <meta property="og:locale" content="de_DE" />
@@ -49,13 +50,21 @@
       <a href="/" hreflang="en" lang="en">EN</a>
       <a href="/uk/" hreflang="uk" lang="uk">UA</a>
       <a href="/de/" hreflang="de" aria-current="page">DE</a>
-      <a href="/ru/" hreflang="ru" lang="ru">RU</a>
+      <a href="/ru/" hreflang="ru" lang="ru" data-ru-only hidden>RU</a>
     </nav>
+    <script>
+      /* Russian is offered only to visitors whose browser language is Russian. */
+      (function () {
+        var code = ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
+        if (code.split(/[-_]/)[0] === "ru") document.querySelectorAll("[data-ru-only]").forEach(function (link) { link.hidden = false; });
+      })();
+    </script>
     <img class="landing__crest" src="/assets/ui/auth/cardastika-logo.webp" alt="Cardastika — Spiel „Weltenbaum“" width="104" height="104" />
     <p class="landing__plate landing__eyebrow">WELTENBAUM</p>
     <h1 class="landing__plate">Cardastika — Kartenspiel online</h1>
     <p class="landing__plate landing__subtitle">Eine Welt aus vier Elementen erwartet dich. Baue dein Deck. Entdecke die Welt.</p>
-    <a class="landing__play" href="/?lang=de" rel="nofollow">Kostenlos spielen</a>
+    <a class="landing__play" href="/?lang=de" rel="nofollow">Spiel starten</a>
+    <a class="landing__login" href="/?lang=de&amp;login=1" rel="nofollow">Anmelden</a>
 
     <section class="landing__about">
       <h2>Was ist Cardastika?</h2>

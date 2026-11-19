@@ -13,10 +13,29 @@ const NUMBER_LOCALES: Readonly<Record<UiLocale, UiNumberLocale>> = { en: "en-US"
 const LOCALE_STORAGE_KEY = "cardastika.locale.v1";
 /** Turn off to hide the language choice and show every player Ukrainian. Translations stay either way. */
 export const LANGUAGE_PICKER_ENABLED = true;
-/** Languages the picker offers; Russian is not offered. */
+/** Languages everyone is offered. Russian is offered only to players whose system language is Russian. */
 export const PICKER_LOCALES: readonly UiLocale[] = UI_LOCALES.filter((locale) => locale !== "ru");
-/** Saved manual choices exclude Russian; Telegram can still detect it automatically. */
-const offeredLocale = (locale: UiLocale): UiLocale | null => PICKER_LOCALES.includes(locale) ? locale : null;
+
+/** The player's primary system language: Telegram's language inside the Mini App, otherwise the browser's first preferred language. */
+function getSystemLanguageCode(): string | null {
+  if (typeof window === "undefined") return null;
+  if (getTelegramWebApp()) return getTelegramLanguageCode();
+  const code = navigator.languages?.[0] ?? navigator.language;
+  return code ? code.toLowerCase().split(/[-_]/)[0] ?? null : null;
+}
+
+export const isRussianSystemLanguage = () => getSystemLanguageCode() === "ru";
+
+/** The picker shows Russian only to players with a Russian system language. */
+export const getPickerLocales = (): readonly UiLocale[] => isRussianSystemLanguage() ? UI_LOCALES : PICKER_LOCALES;
+
+const offeredLocale = (locale: UiLocale): UiLocale | null => getPickerLocales().includes(locale) ? locale : null;
+
+/** Ukrainian, Russian or German systems get their language; every other system gets English. */
+function getSystemLocale(): UiLocale {
+  const code = getSystemLanguageCode();
+  return code === "uk" || code === "ru" || code === "de" ? code : "en";
+}
 
 const phraseTranslations = new Map<string, string>([
   ["КАРДАСТІКА", "КАРДАСТИКА"],
@@ -391,7 +410,7 @@ function getEntryLocale(): UiLocale | null {
   }
 }
 
-/** A manually selected language wins, then the landing the player came from; otherwise Telegram players get their Telegram language, including Russian. */
+/** A manually selected language wins, then the landing the player came from, then the system language (Telegram or browser). */
 export function getUiLocale(): UiLocale {
   if (!LANGUAGE_PICKER_ENABLED) return "uk";
   try {
@@ -405,9 +424,7 @@ export function getUiLocale(): UiLocale {
   }
   const entry = getEntryLocale();
   if (entry) return entry;
-  if (!getTelegramWebApp()) return "en";
-  const code = getTelegramLanguageCode();
-  return isUiLocale(code) ? code : "en";
+  return getSystemLocale();
 }
 
 /** The page reloads so every screen, number format and translated node starts from one language. */

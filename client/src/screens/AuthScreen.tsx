@@ -5,7 +5,7 @@ import { AuthProviderIcon } from "../components/AuthProviderIcon";
 import { ElementAmbientFx } from "../components/ElementAmbientFx";
 import { ElementTitleFx } from "../components/ElementTitleFx";
 import { setSessionToken } from "../auth/session";
-import { getUiLocale, LANGUAGE_PICKER_ENABLED, PICKER_LOCALES, setUiLocale, type UiLocale } from "../i18n";
+import { getUiLocale, getPickerLocales, LANGUAGE_PICKER_ENABLED, setUiLocale, type UiLocale } from "../i18n";
 
 const LOCALE_LABELS: Readonly<Record<UiLocale, string>> = { en: "EN", uk: "UA", ru: "RU", de: "DE" };
 
@@ -29,7 +29,7 @@ export function AuthScreen({
   onTelegramMiniApp,
 }: AuthScreenProps) {
   const [pending, setPending] = useState(false);
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [showAccountDialog, setShowAccountDialog] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("login") === "1");
   const [devAccounts, setDevAccounts] = useState<Array<{ key: string; label: string }>>([]);
   const dialogRef = useRef<HTMLElement>(null);
   const busy = loading || pending;
@@ -126,7 +126,7 @@ export function AuthScreen({
       <ElementAmbientFx />
       {isTelegramMiniApp || !LANGUAGE_PICKER_ENABLED ? null : (
         <nav aria-label="Language" className="auth-screen__languages">
-          {PICKER_LOCALES.map((locale) => (
+          {getPickerLocales().map((locale) => (
             <button aria-pressed={locale === getUiLocale()} key={locale} onClick={() => setUiLocale(locale)} type="button">{LOCALE_LABELS[locale]}</button>
           ))}
         </nav>

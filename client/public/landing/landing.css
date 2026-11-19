@@ -5,10 +5,25 @@
 @font-face { font-family: "Alegreya"; font-weight: 400 900; font-display: swap; src: url("/fonts/alegreya-latin-variable.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { background: #2b1a0c url("/assets/ui/auth/parchment/desktop-world-v1.webp") center / cover fixed no-repeat; }
+/* One painted world behind the whole page: the portrait art on phones, the
+   wide art on larger screens. The column itself stays transparent so the
+   background is never drawn twice or cropped at the column edges. */
+html { background: #2b1a0c; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url("/assets/ui/auth/parchment/mobile-world-v1.webp") center top / cover no-repeat;
+}
+@media (min-width: 700px) {
+  body::before { background-image: url("/assets/ui/auth/parchment/desktop-world-v1.webp"); background-position: center; }
+}
 body { margin: 0; color: #24140a; font-family: "Alegreya", Georgia, serif; }
 
 .landing {
+  position: relative;
+  z-index: 1;
   width: min(100%, 430px);
   min-height: 100dvh;
   margin-inline: auto;
@@ -17,7 +32,6 @@ body { margin: 0; color: #24140a; font-family: "Alegreya", Georgia, serif; }
   align-content: start;
   justify-items: center;
   gap: 14px;
-  background: url("/assets/ui/auth/parchment/mobile-world-v1.webp") center / cover no-repeat;
 }
 
 .landing__languages { justify-self: end; display: flex; gap: 4px; }
@@ -62,3 +76,36 @@ body { margin: 0; color: #24140a; font-family: "Alegreya", Georgia, serif; }
 .landing__about p, .landing__about li { margin: 0 0 12px; font-size: 15px; font-weight: 600; line-height: 1.6; }
 .landing__about ul { margin: 0 0 12px; padding-left: 20px; }
 .landing__about > :last-child { margin-bottom: 0; }
+
+.landing__login {
+  display: grid;
+  place-items: center;
+  width: min(100%, 290px);
+  min-height: 50px;
+  margin-top: -4px;
+  padding: 0 18px;
+  color: #2b1a0c;
+  font-family: "Calligrapher", "Alegreya", serif;
+  font-size: 17px;
+  letter-spacing: .04em;
+  text-decoration: none;
+  border: 14px solid transparent;
+  border-image: url("/assets/ui/trials/quest-plate-v1.webp") 62 fill / 14px stretch;
+  transition: filter .15s ease, transform .15s ease;
+}
+.landing__login:hover, .landing__login:focus-visible { filter: brightness(1.06); transform: translateY(-1px); }
+.landing__play { transition: filter .15s ease, transform .15s ease; }
+.landing__play:hover, .landing__play:focus-visible { filter: brightness(1.12); transform: translateY(-1px); }
+.landing__more {
+  margin-top: -4px;
+  padding: 4px 10px;
+  color: #2d1b0e;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  text-shadow: 0 0 4px #f3e4bf, 0 0 8px #f3e4bf, 0 0 12px #f3e4bf;
+  border-bottom: 2px solid rgb(45 27 14 / 35%);
+}
+.landing__more:hover, .landing__more:focus-visible { border-bottom-color: #2d1b0e; }
+.landing__about a { color: #7a1f12; font-weight: 800; text-decoration-color: rgb(122 31 18 / 40%); text-underline-offset: 3px; }
+.landing__about a:hover, .landing__about a:focus-visible { text-decoration-color: currentColor; }
