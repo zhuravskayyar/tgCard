@@ -233,3 +233,26 @@
   :root body .auth-screen--guest .auth-screen__title-text { animation: none; }
   :root body .auth-screen--guest .element-title__fx { display: none; }
 }
+
+/* Desktop phone frame: the start screen is transparent, so the page shows one painted
+   world (the host's wide art with its living effects) instead of a second, cropped
+   portrait background inside the frame. Same look as the /uk/, /de/ landings. */
+html.in-phone-frame:has(.auth-screen--guest),
+html.in-phone-frame:has(.auth-screen--guest) body,
+html.in-phone-frame:has(.auth-screen--guest) #root { background: transparent !important; }
+html.in-phone-frame .auth-screen.auth-screen--guest { background: transparent; }
+html.in-phone-frame .auth-screen--guest .element-fx { display: none; }
+
+:root .auth-screen--guest .auth-screen__guide-link {
+  margin: -2px 0 0;
+  padding: 4px 10px;
+  color: #2d1b0e;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  text-shadow: 0 0 4px #f3e4bf, 0 0 8px #f3e4bf, 0 0 12px #f3e4bf;
+  border-bottom: 2px solid rgb(45 27 14 / 35%);
+  justify-self: center;
+}
+:root .auth-screen--guest .auth-screen__guide-link:hover,
+:root .auth-screen--guest .auth-screen__guide-link:focus-visible { border-bottom-color: #2d1b0e; }

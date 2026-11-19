@@ -66,6 +66,8 @@ export function mountDesktopPhoneFrame(isAdminPath: boolean) {
 /** Inside the frame: keep the host's address bar on the current screen so reload and shared links work. */
 export function installPhoneFrameUrlSync() {
   if (!isInsidePhoneFrame()) return;
+  // Lets the start screen drop its own background so the host's wide, animated world shows through.
+  document.documentElement.classList.add("in-phone-frame");
   const mirror = () => {
     try {
       window.parent.history.replaceState(null, "", window.location.pathname + window.location.search + window.location.hash);

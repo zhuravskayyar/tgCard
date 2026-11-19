@@ -160,6 +160,10 @@ export function AuthScreen({
         </section>
 
         {isTelegramMiniApp ? null : (
+          <a className="auth-screen__guide-link" href={getUiLocale() === "uk" ? "/uk/guide/" : "/guide/"} target="_top">Про гру →</a>
+        )}
+
+        {isTelegramMiniApp ? null : (
           <section className="auth-screen__about" aria-labelledby="auth-about-title">
             <h2 id="auth-about-title">Cardastika — фентезійна карткова онлайн-гра</h2>
             <p>Кардастіка — безкоштовна гра у світі Світового Дерева. Грай у браузері або Telegram без завантаження: почни нову подорож без реєстрації або повернися до збереженого акаунта.</p>
